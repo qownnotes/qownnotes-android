@@ -1,0 +1,73 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.licensee)
+}
+
+val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
+
+android {
+    namespace = "org.qownnotes.mobile"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "org.qownnotes.mobile"
+        minSdk = 28
+        targetSdk = 36
+        versionCode = 1
+        versionName = "0.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (releaseKeystorePath != null) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").get()
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.findByName("release")
+            isMinifyEnabled = false
+        }
+    }
+
+    buildFeatures { compose = true }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    packaging.resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+}
+
+kotlin { jvmToolchain(17) }
+
+dependencies {
+    implementation(project(":core"))
+    implementation(project(":data"))
+    implementation(project(":backend-nextcloud"))
+    implementation(project(":markdown-android"))
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.room.runtime)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.espresso.core)
+}
+
+licensee {
+    allow("Apache-2.0")
+}
