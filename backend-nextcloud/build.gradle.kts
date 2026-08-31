@@ -23,4 +23,6 @@ dependencies {
     implementation(libs.rxjava2)
     implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.junit)
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.retrofit.converter.gson)
 }
