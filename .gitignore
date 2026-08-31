@@ -1,0 +1,8 @@
+.devenv/
+.direnv/
+.android/
+.gradle/
+.idea/
+**/build/
+local.properties
+*.iml
