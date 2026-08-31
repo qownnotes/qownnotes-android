@@ -15,4 +15,12 @@ android {
 
 kotlin { jvmToolchain(17) }
 
-dependencies { implementation(project(":core")) }
+dependencies {
+    implementation(project(":core"))
+    api(libs.nextcloud.sso)
+    implementation(libs.gson)
+    implementation(libs.retrofit)
+    implementation(libs.rxjava2)
+    implementation(libs.kotlinx.coroutines.core)
+    testImplementation(libs.junit)
+}

@@ -1,6 +1,6 @@
 # QOwnNotes Mobile Application Plan
 
-Status: Phase 1 foundation complete
+Status: Phase 1 complete; Phase 2 in progress
 Primary platform: Android
 Potential later platform: iOS
 Project location: Separate repository
@@ -22,7 +22,9 @@ Implemented in the initial Phase 1 foundation:
 - Spotless formatting, Licensee policy enforcement, and Dependabot updates for Gradle and GitHub Actions.
 - Architecture decision records under `docs/architecture` for module boundaries, offline persistence, Nextcloud integration, Markdown presentation, and synchronization scheduling.
 
-Nextcloud account setup remains Phase 2 work. The current local bootstrap account exists only to exercise the Room/UI foundation before Nextcloud SSO lands.
+The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account onboarding for the Phase 2 read path.
+
+Phase 2 now has an initial end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, and Markwon rendering. Real-server interoperability and the remaining Markdown compatibility/security fixtures must be verified before Phase 2 is marked complete.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -588,6 +590,28 @@ The iOS application can use a native SwiftUI or Compose Multiplatform UI after e
 - Build the note list and search.
 - Build the rendered Markdown note view.
 - Verify offline startup and account switching behavior if multiple accounts are already supported.
+
+Status: In progress
+
+Implemented:
+
+- Added Nextcloud Android Single Sign-On 1.3.4 and account import through the installed Nextcloud Files application.
+- Added persisted SSO account references and server metadata without copying credentials into Room.
+- Added Notes capability discovery, semantic API-version selection, and enforcement of Notes API 1.2 or newer.
+- Added the Notes API v1 read client with collection ETags, `pruneBefore`, HTTP 304 handling, chunk size/cursor support, and typed authentication, permission, protocol, and retryable failures.
+- Added Room schema version 2 and migration 1 to 2 for API version and collection synchronization checkpoints.
+- Added transactional pull application that preserves stable local UUIDs and does not overwrite locally changed notes.
+- Added account-scoped title/content search, cached note display, manual refresh, and account switching.
+- Replaced the raw note detail text with a Markwon-rendered view supporting core Markdown, tables, strikethrough, task lists, and YAML-frontmatter suppression.
+- Added tests for API-version negotiation, frontmatter preprocessing, and transactional pull identity/checkpoint behavior.
+
+Remaining before Phase 2 is complete:
+
+- Verify account import, capability negotiation, full pull, incremental pull, and chunked pull against supported real Nextcloud and Notes server combinations.
+- Add mock-server coverage for request headers, HTTP 304, chunk traversal, malformed responses, and network interruption between chunks.
+- Add a Room migration test and broaden pull tests for pruned records, remote deletion, and preservation of every unsynchronized state.
+- Complete safe external-link handling, internal wiki-link and `note://` navigation, images, fenced-code syntax coloring, encrypted-block detection, and the remaining Markdown compatibility fixtures.
+- Improve account-removal and revoked-authorization handling and add complete onboarding, offline-restart, and account-switching device tests.
 
 ### Phase 3: Highlighted Editing and Creation
 

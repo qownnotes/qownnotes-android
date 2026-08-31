@@ -40,6 +40,7 @@ android {
 
     buildFeatures { compose = true }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -49,12 +50,14 @@ android {
 kotlin { jvmToolchain(17) }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":core"))
     implementation(project(":data"))
     implementation(project(":backend-nextcloud"))
     implementation(project(":markdown-android"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
@@ -70,4 +73,7 @@ dependencies {
 
 licensee {
     allow("Apache-2.0")
+    allow("MIT-0")
+    allowUrl("http://opensource.org/licenses/BSD-2-Clause")
+    allowUrl("https://api.github.com/licenses/gpl-3.0")
 }

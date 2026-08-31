@@ -1,5 +1,13 @@
 # QOwnNotes Mobile
 
+## Nextcloud Account Setup
+
+Install the Nextcloud Files Android app, sign in to the desired server there,
+then choose **Add Nextcloud account** in QOwnNotes Mobile. The app requires the
+Nextcloud Notes server app with Notes API 1.2 or newer. Downloaded notes and
+account metadata remain available offline; credentials stay in Nextcloud's SSO
+integration and are not copied into the QOwnNotes database.
+
 ## NixOS Recipes
 
 ### Enter The Development Environment

@@ -5,17 +5,31 @@ import kotlinx.coroutines.flow.Flow
 interface NoteRepository {
     fun observeNotes(accountId: String): Flow<List<Note>>
 
+    fun searchNotes(accountId: String, query: String): Flow<List<Note>>
+
     fun observeNote(localId: String): Flow<Note?>
 
     suspend fun save(note: Note)
 }
 
-interface NoteBackend {
+interface PullBackend {
     val capabilities: BackendCapabilities
 
-    suspend fun pull(accountId: String): List<Note>
+    suspend fun validateAccount(account: Account): String
 
-    suspend fun push(note: Note): Note
+    suspend fun pull(account: Account, checkpoint: PullCheckpoint): PullResult
+}
+
+interface AccountRepository {
+    fun observeAccounts(): Flow<List<Account>>
+
+    suspend fun get(accountId: String): Account?
+
+    suspend fun save(account: Account)
+}
+
+interface PullStore {
+    suspend fun applyPull(accountId: String, result: PullResult)
 }
 
 data class BackendCapabilities(

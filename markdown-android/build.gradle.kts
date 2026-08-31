@@ -14,3 +14,12 @@ android {
 }
 
 kotlin { jvmToolchain(17) }
+
+dependencies {
+    implementation(libs.androidx.appcompat)
+    implementation(libs.markwon.core)
+    implementation(libs.markwon.ext.strikethrough)
+    implementation(libs.markwon.ext.tables)
+    implementation(libs.markwon.ext.tasklist)
+    testImplementation(libs.junit)
+}

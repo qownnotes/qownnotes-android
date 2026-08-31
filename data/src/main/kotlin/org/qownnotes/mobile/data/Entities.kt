@@ -4,11 +4,22 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.SyncState
 
 @Entity(tableName = "accounts")
-data class AccountEntity(@PrimaryKey val id: String, val displayName: String, val serverUrl: String)
+data class AccountEntity(
+    @PrimaryKey val id: String,
+    val displayName: String,
+    val serverUrl: String,
+    val ssoAccountName: String = "",
+    val userId: String = "",
+    val apiVersion: String? = null,
+    val collectionEtag: String? = null,
+    val lastModifiedEpochSeconds: Long = 0,
+    val lastSyncError: String? = null
+)
 
 @Entity(
     tableName = "notes",
@@ -70,5 +81,29 @@ fun Note.toEntity() = NoteEntity(
     lastSyncedTitle = lastSyncedTitle,
     lastSyncedContent = lastSyncedContent,
     lastSyncedCategory = lastSyncedCategory,
+    lastSyncError = lastSyncError
+)
+
+fun AccountEntity.toDomain() = Account(
+    id = id,
+    displayName = displayName,
+    serverUrl = serverUrl,
+    ssoAccountName = ssoAccountName,
+    userId = userId,
+    apiVersion = apiVersion,
+    collectionEtag = collectionEtag,
+    lastModifiedEpochSeconds = lastModifiedEpochSeconds,
+    lastSyncError = lastSyncError
+)
+
+fun Account.toEntity() = AccountEntity(
+    id = id,
+    displayName = displayName,
+    serverUrl = serverUrl,
+    ssoAccountName = ssoAccountName,
+    userId = userId,
+    apiVersion = apiVersion,
+    collectionEtag = collectionEtag,
+    lastModifiedEpochSeconds = lastModifiedEpochSeconds,
     lastSyncError = lastSyncError
 )

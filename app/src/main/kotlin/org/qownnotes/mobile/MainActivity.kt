@@ -1,26 +1,29 @@
 package org.qownnotes.mobile
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.widget.AppCompatTextView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -28,118 +31,181 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import com.nextcloud.android.sso.AccountImporter
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
-import org.qownnotes.mobile.core.NoteFactory
-import org.qownnotes.mobile.core.NoteRepository
+import org.qownnotes.mobile.markdown.MarkdownRenderer
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { QOwnNotesApp() }
+        setContent { QOwnNotesApp(onImportAccount = ::importAccount) }
     }
+
+    fun importAccount() {
+        runCatching { AccountImporter.pickNewAccount(this) }
+            .onFailure(applicationComponent()::reportImportError)
+    }
+
+    @Deprecated("Required by Nextcloud SSO 1.3.x")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        runCatching {
+            AccountImporter.onActivityResult(requestCode, resultCode, data, this) { account ->
+                lifecycleScope.launch { applicationComponent().importAccount(account) }
+            }
+        }.onFailure(applicationComponent()::reportImportError)
+    }
+
+    private fun applicationComponent() = (applicationContext as QOwnNotesApplication).component
 }
 
 @Composable
-fun QOwnNotesApp() {
+fun QOwnNotesApp(onImportAccount: () -> Unit = {}) {
     val application = LocalContext.current.applicationContext as QOwnNotesApplication
-    val component = application.component
-    LaunchedEffect(component) { component.ensureLocalAccount() }
-    QOwnNotesTheme {
-        NotesNavigation(component.repository, component.noteFactory)
-    }
+    QOwnNotesTheme { NotesNavigation(application.component, onImportAccount) }
 }
 
 @Composable
 private fun QOwnNotesTheme(content: @Composable () -> Unit) {
-    val darkTheme = androidx.compose.foundation.isSystemInDarkTheme()
     MaterialTheme(
-        colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme(),
+        colorScheme =
+        if (androidx.compose.foundation.isSystemInDarkTheme()) {
+            darkColorScheme()
+        } else {
+            lightColorScheme()
+        },
         content = content
     )
 }
 
 @Composable
-private fun NotesNavigation(repository: NoteRepository, noteFactory: NoteFactory) {
+private fun NotesNavigation(component: ApplicationComponent, onImportAccount: () -> Unit) {
+    val accounts by component.accountRepository.observeAccounts()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedNoteId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(accounts, selectedAccountId) {
+        if (accounts.isNotEmpty() && accounts.none { it.id == selectedAccountId }) {
+            selectedAccountId = accounts.first().id
+        }
+    }
     BackHandler(enabled = selectedNoteId != null) { selectedNoteId = null }
 
-    val localId = selectedNoteId
-    if (localId == null) {
-        NoteListScreen(repository, noteFactory, onOpen = { selectedNoteId = it })
+    val noteId = selectedNoteId
+    if (noteId != null) {
+        NoteDetailScreen(component, noteId)
+    } else if (accounts.isEmpty()) {
+        AccountOnboarding(onImportAccount)
     } else {
-        NoteDetailScreen(repository, localId)
+        NoteListScreen(
+            component = component,
+            accounts = accounts,
+            accountId = selectedAccountId ?: accounts.first().id,
+            onSelectAccount = { selectedAccountId = it },
+            onImportAccount = onImportAccount,
+            onOpen = { selectedNoteId = it }
+        )
+    }
+}
+
+@Composable
+private fun AccountOnboarding(onImportAccount: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Your Nextcloud notes, offline", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            "Choose an account from the Nextcloud Files app to download and cache your notes.",
+            modifier = Modifier.padding(vertical = 20.dp)
+        )
+        Button(onClick = onImportAccount) { Text("Add Nextcloud account") }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NoteListScreen(
-    repository: NoteRepository,
-    noteFactory: NoteFactory,
+    component: ApplicationComponent,
+    accounts: List<Account>,
+    accountId: String,
+    onSelectAccount: (String) -> Unit,
+    onImportAccount: () -> Unit,
     onOpen: (String) -> Unit
 ) {
-    val notes by repository.observeNotes(ApplicationComponent.LOCAL_ACCOUNT_ID)
-        .collectAsStateWithLifecycle(initialValue = emptyList())
-    val scope = rememberCoroutineScope()
-    val application = LocalContext.current.applicationContext as QOwnNotesApplication
+    var query by rememberSaveable { mutableStateOf("") }
+    val notesFlow = remember(accountId, query) {
+        if (accountId.isBlank()) {
+            flowOf(emptyList())
+        } else {
+            component.noteRepository.searchNotes(accountId, query)
+        }
+    }
+    val notes by notesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val syncState by component.syncState.collectAsStateWithLifecycle()
+    val account = accounts.first { it.id == accountId }
+
+    LaunchedEffect(accountId) { component.refresh(accountId) }
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("QOwnNotes") }) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                scope.launch {
-                    application.component.ensureLocalAccount()
-                    val note = noteFactory.create(ApplicationComponent.LOCAL_ACCOUNT_ID)
-                    repository.save(note)
-                    onOpen(note.localId)
+        topBar = {
+            TopAppBar(
+                title = { Text(account.displayName) },
+                actions = {
+                    if (accounts.size > 1) {
+                        TextButton(onClick = {
+                            val next = (accounts.indexOf(account) + 1) % accounts.size
+                            onSelectAccount(accounts[next].id)
+                        }) { Text("Switch") }
+                    }
+                    TextButton(onClick = onImportAccount) { Text("Add") }
                 }
-            }) { Text("+") }
+            )
         }
     ) { padding ->
-        if (notes.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(32.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                label = { Text("Search title and content") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            SyncStatus(syncState) { component.refresh(accountId) }
+            if (notes.isEmpty()) {
                 Text(
-                    "Your notes, available offline",
-                    style = MaterialTheme.typography.headlineMedium
+                    if (query.isBlank()) "No cached notes" else "No matching notes",
+                    modifier = Modifier.padding(24.dp),
+                    style = MaterialTheme.typography.titleMedium
                 )
-                Text(
-                    "Create a note to verify the local Room foundation.",
-                    modifier = Modifier.padding(top = 12.dp)
-                )
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-                items(notes, key = Note::localId) { note ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            onOpen(note.localId)
-                        }.padding(20.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(notes, key = Note::localId) { note ->
+                        Column(
+                            modifier =
+                            Modifier.fillMaxWidth().clickable { onOpen(note.localId) }
+                                .padding(horizontal = 20.dp, vertical = 14.dp)
+                        ) {
                             Text(note.title, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                note.category.ifBlank {
-                                    "Uncategorized"
-                                },
+                                note.category.ifBlank { "Uncategorized" },
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            note.syncState.name.replace('_', ' ').lowercase(),
-                            style = MaterialTheme.typography.labelSmall
-                        )
                     }
                 }
             }
@@ -147,15 +213,39 @@ private fun NoteListScreen(
     }
 }
 
+@Composable
+private fun SyncStatus(state: SyncUiState, refresh: suspend () -> Unit) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        when (state) {
+            SyncUiState.Idle -> Text(
+                "Available offline",
+                style = MaterialTheme.typography.labelMedium
+            )
+            SyncUiState.Refreshing -> CircularProgressIndicator()
+            is SyncUiState.Failed -> Text(state.message, color = MaterialTheme.colorScheme.error)
+        }
+        TextButton(onClick = {
+            scope.launch { refresh() }
+        }, enabled = state !is SyncUiState.Refreshing) {
+            Text("Refresh")
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NoteDetailScreen(repository: NoteRepository, localId: String) {
-    val note by repository.observeNote(localId).collectAsStateWithLifecycle(initialValue = null)
+private fun NoteDetailScreen(component: ApplicationComponent, localId: String) {
+    val note by component.noteRepository.observeNote(localId)
+        .collectAsStateWithLifecycle(initialValue = null)
     Scaffold(topBar = { TopAppBar(title = { Text(note?.title ?: "Note") }) }) { padding ->
-        Text(
-            text = note?.content ?: "Loading...",
-            modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp),
-            style = MaterialTheme.typography.bodyLarge
+        AndroidView(
+            factory = { context -> AppCompatTextView(context) },
+            update = { view -> component.markdownRenderer.render(view, note?.content.orEmpty()) },
+            modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp)
         )
     }
 }
