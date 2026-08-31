@@ -22,7 +22,7 @@ jobs:
       - name: Check, test, and build
         run: devenv shell -- just check
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: qownnotes-mobile-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
