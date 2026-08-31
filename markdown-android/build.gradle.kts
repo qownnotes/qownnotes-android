@@ -16,6 +16,7 @@ android {
 kotlin { jvmToolchain(17) }
 
 dependencies {
+    implementation(project(":core"))
     implementation(libs.androidx.appcompat)
     implementation(libs.markwon.core)
     implementation(libs.markwon.ext.strikethrough)

@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.resolveInternalNoteLink
 import org.qownnotes.mobile.markdown.MarkdownRenderer
 
 class MainActivity : ComponentActivity() {
@@ -107,7 +108,7 @@ private fun NotesNavigation(component: ApplicationComponent, onImportAccount: ()
 
     val noteId = selectedNoteId
     if (noteId != null) {
-        NoteDetailScreen(component, noteId)
+        NoteDetailScreen(component, noteId, onOpen = { selectedNoteId = it })
     } else if (accounts.isEmpty()) {
         AccountOnboarding(onImportAccount)
     } else {
@@ -238,13 +239,27 @@ private fun SyncStatus(state: SyncUiState, refresh: suspend () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NoteDetailScreen(component: ApplicationComponent, localId: String) {
+private fun NoteDetailScreen(
+    component: ApplicationComponent,
+    localId: String,
+    onOpen: (String) -> Unit
+) {
     val note by component.noteRepository.observeNote(localId)
         .collectAsStateWithLifecycle(initialValue = null)
+    val accountNotesFlow = remember(note?.accountId) {
+        note?.accountId?.let(component.noteRepository::observeNotes) ?: flowOf(emptyList())
+    }
+    val accountNotes by accountNotesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     Scaffold(topBar = { TopAppBar(title = { Text(note?.title ?: "Note") }) }) { padding ->
         AndroidView(
             factory = { context -> AppCompatTextView(context) },
-            update = { view -> component.markdownRenderer.render(view, note?.content.orEmpty()) },
+            update = { view ->
+                val source = note
+                component.markdownRenderer.render(view, source?.content.orEmpty()) { link ->
+                    source?.let { resolveInternalNoteLink(it, accountNotes, link) }
+                        ?.let { onOpen(it.localId) }
+                }
+            },
             modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp)
         )
     }
