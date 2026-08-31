@@ -604,12 +604,14 @@ Implemented:
 - Added account-scoped title/content search, cached note display, manual refresh, and account switching.
 - Replaced the raw note detail text with a Markwon-rendered view supporting core Markdown, tables, strikethrough, task lists, and YAML-frontmatter suppression.
 - Added tests for API-version negotiation, frontmatter preprocessing, and transactional pull identity/checkpoint behavior.
+- Hardened chunk traversal for the Notes API's numeric pending-count header, repeated or inconsistent cursors, interrupted pulls, malformed note IDs, malformed JSON, and coroutine cancellation.
+- Added a Room 1-to-2 migration fixture and pull-store coverage for pruned records, remote deletion, HTTP 304-equivalent no-op results, and preservation of every unsynchronized note state.
 
 Remaining before Phase 2 is complete:
 
 - Verify account import, capability negotiation, full pull, incremental pull, and chunked pull against supported real Nextcloud and Notes server combinations.
 - Add mock-server coverage for request headers, HTTP 304, chunk traversal, malformed responses, and network interruption between chunks.
-- Add a Room migration test and broaden pull tests for pruned records, remote deletion, and preservation of every unsynchronized state.
+- Run the Room migration and broadened transactional pull tests on an Android device in CI, and add rollback/account-isolation coverage.
 - Complete safe external-link handling, internal wiki-link and `note://` navigation, images, fenced-code syntax coloring, encrypted-block detection, and the remaining Markdown compatibility fixtures.
 - Improve account-removal and revoked-authorization handling and add complete onboarding, offline-restart, and account-switching device tests.
 

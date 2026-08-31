@@ -8,7 +8,12 @@ android {
     namespace = "org.qownnotes.mobile.data"
     compileSdk = 36
 
-    defaultConfig { minSdk = 28 }
+    defaultConfig {
+        minSdk = 28
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    sourceSets { getByName("androidTest").assets.srcDir("$projectDir/schemas") }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -30,4 +35,5 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }

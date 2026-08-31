@@ -3,6 +3,7 @@ package org.qownnotes.mobile.backend.nextcloud
 import android.content.Context
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
+import com.google.gson.JsonParseException
 import com.nextcloud.android.sso.AccountImporter
 import com.nextcloud.android.sso.api.NextcloudAPI
 import com.nextcloud.android.sso.api.ParsedResponse
@@ -11,6 +12,7 @@ import io.reactivex.Observable
 import java.net.HttpURLConnection
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.core.Account
@@ -33,25 +35,27 @@ class NextcloudBackend(context: Context) : PullBackend {
         BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
 
     override suspend fun validateAccount(account: Account): String = withContext(Dispatchers.IO) {
-        withApis(account) { capabilitiesApi, _ ->
-            val response = capabilitiesApi.getCapabilities().blockingSingle().response
-            val notes = response.ocs.data.capabilities?.getAsJsonObject("notes")
-                ?: throw BackendException.NotesAppMissing()
-            val versions = NextcloudProtocol.parseVersions(notes.get("api_version"))
-            NextcloudProtocol.selectSupportedVersion(versions)
-                ?: throw BackendException.UnsupportedApi(versions)
+        try {
+            withApis(account) { capabilitiesApi, _ ->
+                val response = capabilitiesApi.getCapabilities().blockingSingle().response
+                val notes = response.ocs.data.capabilities?.getAsJsonObject("notes")
+                    ?: throw BackendException.NotesAppMissing()
+                val versions = NextcloudProtocol.parseVersions(notes.get("api_version"))
+                NextcloudProtocol.selectSupportedVersion(versions)
+                    ?: throw BackendException.UnsupportedApi(versions)
+            }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
         }
     }
 
     override suspend fun pull(account: Account, checkpoint: PullCheckpoint): PullResult =
         withContext(Dispatchers.IO) {
+            var pageRequests = 0
             try {
                 withApis(account) { _, notesApi ->
-                    val notes = mutableListOf<RemoteNote>()
-                    var cursor: String? = null
-                    var etag = checkpoint.collectionEtag
-                    var modified = checkpoint.lastModifiedEpochSeconds
-                    do {
+                    collectPull(checkpoint) { cursor ->
+                        pageRequests++
                         val response =
                             notesApi.getNotes(
                                 checkpoint.lastModifiedEpochSeconds,
@@ -59,18 +63,22 @@ class NextcloudBackend(context: Context) : PullBackend {
                                 CHUNK_SIZE,
                                 cursor
                             ).blockingSingle()
-                        notes += response.response.map(RemoteNoteDto::toDomain)
-                        etag = response.header("ETag") ?: etag
-                        modified = response.header("Last-Modified")?.toEpochSeconds() ?: modified
-                        cursor = response.header("X-Notes-Chunk-Cursor")
-                        val pending = response.header("X-Notes-Chunk-Pending").toBoolean()
-                    } while (pending && !cursor.isNullOrBlank())
-                    PullResult(notes, etag, modified)
+                        NotesPage(
+                            notes = response.response.map(RemoteNoteDto::toDomain),
+                            etag = response.header("ETag"),
+                            lastModifiedEpochSeconds =
+                            response.header("Last-Modified")?.toEpochSeconds(),
+                            cursor = response.header("X-Notes-Chunk-Cursor"),
+                            pending = response.header("X-Notes-Chunk-Pending")
+                        )
+                    }
                 }
             } catch (error: Throwable) {
                 val cause = error.unwrap()
+                if (cause is CancellationException) throw cause
                 if (cause is NextcloudHttpRequestFailedException &&
-                    cause.statusCode == HttpURLConnection.HTTP_NOT_MODIFIED
+                    cause.statusCode == HttpURLConnection.HTTP_NOT_MODIFIED &&
+                    pageRequests == 1
                 ) {
                     PullResult(
                         emptyList(),
@@ -100,12 +108,24 @@ class NextcloudBackend(context: Context) : PullBackend {
         }
     }
 
-    private fun String.toEpochSeconds(): Long? = runCatching {
+    private fun String.toEpochSeconds(): Long = try {
         ZonedDateTime.parse(this, DateTimeFormatter.RFC_1123_DATE_TIME).toEpochSecond()
-    }.getOrNull()
+    } catch (error: RuntimeException) {
+        throw BackendException.Protocol("Invalid Last-Modified header", error)
+    }
 
-    private fun Throwable.unwrap(): Throwable =
-        if (this is RuntimeException && cause != null) cause!! else this
+    private tailrec fun Throwable.unwrap(): Throwable =
+        if (this is RuntimeException && cause != null) {
+            cause!!.unwrap()
+        } else {
+            this
+        }
+
+    private fun Throwable.asBackendException(): BackendException {
+        val cause = unwrap()
+        if (cause is CancellationException) throw cause
+        return cause.toBackendException()
+    }
 
     private fun Throwable.toBackendException(): BackendException = when (this) {
         is BackendException -> this
@@ -115,6 +135,10 @@ class NextcloudBackend(context: Context) : PullBackend {
             in 500..599 -> BackendException.Retryable(this)
             else -> BackendException.Protocol("Nextcloud returned HTTP $statusCode", this)
         }
+        is JsonParseException -> BackendException.Protocol(
+            "Nextcloud returned malformed JSON",
+            this
+        )
         else -> BackendException.Retryable(this)
     }
 
@@ -157,6 +181,50 @@ internal object NextcloudProtocol {
     }
 }
 
+internal data class NotesPage(
+    val notes: List<RemoteNote>,
+    val etag: String? = null,
+    val lastModifiedEpochSeconds: Long? = null,
+    val cursor: String? = null,
+    val pending: String? = null
+)
+
+internal fun collectPull(
+    checkpoint: PullCheckpoint,
+    loadPage: (cursor: String?) -> NotesPage
+): PullResult {
+    val notes = mutableListOf<RemoteNote>()
+    val seenCursors = mutableSetOf<String>()
+    var cursor: String? = null
+    var etag = checkpoint.collectionEtag
+    var modified = checkpoint.lastModifiedEpochSeconds
+
+    do {
+        val page = loadPage(cursor)
+        notes += page.notes
+        etag = page.etag ?: etag
+        modified = page.lastModifiedEpochSeconds ?: modified
+
+        val nextCursor = page.cursor?.takeUnless(String::isBlank)
+        val pending = page.pending?.toLongOrNull()
+        if (page.pending != null && pending == null) {
+            throw BackendException.Protocol("Invalid X-Notes-Chunk-Pending header")
+        }
+        if (nextCursor == null && pending != null && pending > 0) {
+            throw BackendException.Protocol("Chunked response is missing its continuation cursor")
+        }
+        if (nextCursor != null && pending != null && pending <= 0) {
+            throw BackendException.Protocol("Chunked response has an inconsistent pending count")
+        }
+        if (nextCursor != null && !seenCursors.add(nextCursor)) {
+            throw BackendException.Protocol("Chunked response repeated a continuation cursor")
+        }
+        cursor = nextCursor
+    } while (cursor != null)
+
+    return PullResult(notes, etag, modified)
+}
+
 private interface CapabilitiesApi {
     @GET("capabilities?format=json")
     fun getCapabilities(
@@ -181,7 +249,7 @@ private data class OcsEnvelope(val data: CapabilitiesData)
 private data class CapabilitiesData(val capabilities: com.google.gson.JsonObject?)
 
 private data class RemoteNoteDto(
-    val id: Long,
+    val id: Long?,
     val etag: String? = null,
     val readonly: Boolean = false,
     val content: String? = null,
@@ -189,7 +257,15 @@ private data class RemoteNoteDto(
     val category: String? = null,
     val modified: Long? = null
 ) {
-    fun toDomain() = RemoteNote(id, etag, title, content, category, modified, readonly)
+    fun toDomain() = RemoteNote(
+        id = id ?: throw BackendException.Protocol("Nextcloud note is missing its id"),
+        etag = etag,
+        title = title,
+        content = content,
+        category = category,
+        modifiedAtEpochSeconds = modified,
+        readOnly = readonly
+    )
 }
 
 private fun ParsedResponse<*>.header(name: String): String? =
