@@ -22,6 +22,7 @@ import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.image.SchemeHandler
+import io.noties.markwon.image.destination.ImageDestinationProcessor
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.Locale
@@ -83,13 +84,12 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
     fun hasRemoteImages(markdown: String): Boolean {
         if (redactEncryptedMarkdown(markdown, replacement = "").blockCount > 0) return false
         var found = false
-        Parser.builder().build().parse(markdown).accept(
+        val document = Parser.builder().build().parse(markdown)
+        sanitizeMarkdownHtml(document)
+        document.accept(
             object : AbstractVisitor() {
                 override fun visit(image: Image) {
-                    if (runCatching { requireSafeHttpsUrl(image.destination) }.isSuccess) {
-                        found =
-                            true
-                    }
+                    if (canonicalSafeImageDestination(image.destination) != null) found = true
                 }
             }
         )
@@ -98,10 +98,18 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
 
     private fun createMarkwon(imageSchemeHandler: SchemeHandler? = null): Markwon {
         val builder = Markwon.builder(applicationContext)
+            .fallbackToRawInputWhenEmpty(false)
             .usePlugin(
                 object : AbstractMarkwonPlugin() {
                     override fun configureConfiguration(builder: MarkwonConfiguration.Builder) {
                         builder.syntaxHighlight(BoundedSyntaxHighlight(applicationContext))
+                        builder.imageDestinationProcessor(
+                            object : ImageDestinationProcessor() {
+                                override fun process(destination: String): String =
+                                    canonicalSafeImageDestination(destination)
+                                        ?: BLOCKED_IMAGE_DESTINATION
+                            }
+                        )
                         builder.linkResolver { view, destination ->
                             when {
                                 destination.startsWith(WIKI_SCHEME) -> {
@@ -116,8 +124,10 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
                     }
                 }
             )
+            .usePlugin(MarkdownHtmlSanitizerPlugin())
             .usePlugin(StrikethroughPlugin.create())
             .usePlugin(TablePlugin.create(applicationContext))
+            .usePlugin(IndeterminateTaskListPlugin(applicationContext))
             .usePlugin(TaskListPlugin.create(applicationContext))
         if (imageSchemeHandler != null) {
             builder.usePlugin(
@@ -160,6 +170,8 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
         }
     }
 }
+
+private const val BLOCKED_IMAGE_DESTINATION = "qon-blocked-image:blocked"
 
 private data class InternalLinkHandler(
     val resolve: (InternalNoteLink) -> ResolvedNoteLink?,

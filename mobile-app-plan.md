@@ -612,12 +612,12 @@ Implemented:
 - Added fail-closed QOwnNotes encrypted-block detection that removes ciphertext before rendering and displays a locked state.
 - Added bounded syntax coloring for common fenced-code languages and aliases, with oversized and unknown blocks falling back to plain code.
 - Added HTTPS-only remote image rendering with credential, redirect, private-address, response-size, image-type, dimension, and decode-size limits; local and active URL schemes remain blocked.
+- Added QOwnNotes indeterminate task rendering, one-pass encoded image URL canonicalization, and fail-closed raw HTML removal before span generation.
 
 Remaining before Phase 2 is complete:
 
 - Verify account import, capability negotiation, full pull, incremental pull, and chunked pull against supported real Nextcloud and Notes server combinations.
 - Run the Room migration and broadened transactional pull tests on an Android device in CI, and add rollback/account-isolation coverage.
-- Complete the remaining Markdown compatibility and security fixtures, including QOwnNotes task states, encoded image paths, and raw HTML handling.
 - Improve account-removal and revoked-authorization handling and add complete onboarding, offline-restart, and account-switching device tests.
 
 ### Phase 3: Highlighted Editing and Creation

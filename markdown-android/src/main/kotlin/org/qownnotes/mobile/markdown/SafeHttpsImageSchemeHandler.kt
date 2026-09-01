@@ -53,6 +53,9 @@ internal fun requireSafeHttpsUrl(raw: String): HttpUrl {
     return url
 }
 
+internal fun canonicalSafeImageDestination(destination: String): String? =
+    runCatching { requireSafeHttpsUrl(destination).toString() }.getOrNull()
+
 internal fun isPublicImageAddress(address: InetAddress): Boolean {
     if (address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress ||
         address.isSiteLocalAddress || address.isMulticastAddress

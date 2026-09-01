@@ -11,12 +11,14 @@ import androidx.appcompat.widget.AppCompatTextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.noties.markwon.core.spans.LinkSpan
+import io.noties.markwon.ext.tasklist.TaskListSpan
 import io.noties.markwon.image.AsyncDrawableSpan
 import io.noties.markwon.image.ImageItem
 import io.noties.markwon.image.SchemeHandler
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -185,6 +187,122 @@ class MarkdownRendererInstrumentedTest {
                 """.trimIndent()
             )
         )
+    }
+
+    @Test
+    fun rendersQOwnNotesIndeterminateTasksWithoutChangingCode() {
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer(view.context).render(
+                view,
+                """
+                    - [ ] open
+                    - [x] done
+                    - [-] partial
+                      - [-] nested
+                    * [-] star
+                    + [-] plus
+                    1. [-] ordered
+
+                    `- [-] inline code`
+
+                    ```text
+                    - [-] fenced code
+                    ```
+                """.trimIndent()
+            )
+        }
+
+        val text = view.text as Spanned
+        assertEquals(7, text.getSpans(0, text.length, TaskListSpan::class.java).size)
+        assertEquals(5, text.getSpans(0, text.length, IndeterminateTaskSpan::class.java).size)
+        assertTrue(text.contains("- [-] inline code"))
+        assertTrue(text.contains("- [-] fenced code"))
+    }
+
+    @Test
+    fun canonicalizesEncodedImageBeforeDispatch() {
+        val destination = AtomicReference<String>()
+        val requested = CountDownLatch(1)
+        val handler = object : SchemeHandler() {
+            override fun supportedSchemes(): Collection<String> = listOf("https")
+
+            override fun handle(raw: String, uri: Uri): ImageItem {
+                destination.set(raw)
+                requested.countDown()
+                return ImageItem.withResult(ColorDrawable(Color.BLUE))
+            }
+        }
+
+        instrumentation.runOnMainSync {
+            val view = textView()
+            MarkdownRenderer.forTest(view.context, handler).render(
+                view,
+                "![encoded](<HTTPS://EXAMPLE.COM/a b.png?x=1&amp;y=2>)",
+                loadRemoteImages = true
+            )
+        }
+
+        assertTrue(requested.await(5, TimeUnit.SECONDS))
+        assertEquals("https://example.com/a%20b.png?x=1&y=2", destination.get())
+    }
+
+    @Test
+    fun stripsRawHtmlWithoutCreatingLinksOrImageRequests() {
+        val requestCount = AtomicInteger()
+        val handler = object : SchemeHandler() {
+            override fun supportedSchemes(): Collection<String> = listOf("https")
+
+            override fun handle(raw: String, uri: Uri): ImageItem {
+                requestCount.incrementAndGet()
+                return ImageItem.withResult(ColorDrawable(Color.BLUE))
+            }
+        }
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer.forTest(view.context, handler).render(
+                view,
+                """
+                    before <b>safe</b> after
+
+                    danger <script>![tracker](https://example.com/tracker.png)</script> tail
+
+                    prefix <a href="https://example.com">plain label</a> suffix
+
+                    <img src="https://example.com/raw.png">
+
+                    `<script>literal code</script>`
+                """.trimIndent(),
+                loadRemoteImages = true
+            )
+        }
+
+        Thread.sleep(250)
+        val text = view.text as Spanned
+        assertTrue(text.contains("before safe after"))
+        assertTrue(text.contains("plain label"))
+        assertTrue(text.contains("<script>literal code</script>"))
+        assertFalse(text.contains("tracker"))
+        assertFalse(text.contains("<b>"))
+        assertEquals(0, text.getSpans(0, text.length, LinkSpan::class.java).size)
+        assertEquals(0, text.getSpans(0, text.length, AsyncDrawableSpan::class.java).size)
+        assertEquals(0, requestCount.get())
+    }
+
+    @Test
+    fun doesNotLeakHtmlOnlyInputThroughRawFallback() {
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer(view.context).render(view, "<!-- private comment -->")
+        }
+
+        assertEquals("", view.text.toString())
     }
 
     private fun textView(): AppCompatTextView {

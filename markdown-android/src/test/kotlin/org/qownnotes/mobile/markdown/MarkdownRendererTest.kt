@@ -83,4 +83,22 @@ class MarkdownRendererTest {
         assertFalse(isPublicImageAddress(InetAddress.getByName("::1")))
         assertFalse(isPublicImageAddress(InetAddress.getByName("fc00::1")))
     }
+
+    @Test
+    fun canonicalizesEncodedImageDestinationsExactlyOnce() {
+        assertEquals(
+            "https://example.com/a%20b.png",
+            canonicalSafeImageDestination("HTTPS://EXAMPLE.COM/a%20b.png")
+        )
+        assertEquals(
+            "https://example.com/a%2520b.png",
+            canonicalSafeImageDestination("https://example.com/a%2520b.png")
+        )
+        assertEquals(
+            "https://example.com/a%20b.png?x=1&y=2",
+            canonicalSafeImageDestination("https://example.com/a b.png?x=1&y=2")
+        )
+        assertNull(canonicalSafeImageDestination("https%3A%2F%2Fexample.com/image.png"))
+        assertNull(canonicalSafeImageDestination("https://user@example.com/image.png"))
+    }
 }
