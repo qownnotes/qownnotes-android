@@ -51,6 +51,9 @@ interface AccountDao {
 
     @Upsert
     suspend fun upsert(account: AccountEntity)
+
+    @Query("UPDATE accounts SET lastSyncError = :message WHERE id = :accountId")
+    suspend fun updateSyncError(accountId: String, message: String?)
 }
 
 class DatabaseConverters {

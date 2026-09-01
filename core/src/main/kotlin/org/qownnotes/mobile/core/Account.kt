@@ -42,6 +42,12 @@ sealed class BackendException(message: String, cause: Throwable? = null) :
     class Authentication(cause: Throwable? = null) :
         BackendException("Authentication required", cause)
 
+    class AuthorizationRequired(cause: Throwable? = null) :
+        BackendException("Nextcloud account authorization required", cause)
+
+    class AccountRemoved(cause: Throwable? = null) :
+        BackendException("The Nextcloud account is no longer available", cause)
+
     class Permission(cause: Throwable? = null) : BackendException("Permission denied", cause)
 
     class NotesAppMissing : BackendException("The Nextcloud Notes app is not available")

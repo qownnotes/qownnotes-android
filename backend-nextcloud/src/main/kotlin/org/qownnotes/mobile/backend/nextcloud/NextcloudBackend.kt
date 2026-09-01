@@ -8,7 +8,12 @@ import com.google.gson.stream.MalformedJsonException
 import com.nextcloud.android.sso.AccountImporter
 import com.nextcloud.android.sso.api.NextcloudAPI
 import com.nextcloud.android.sso.api.ParsedResponse
+import com.nextcloud.android.sso.exceptions.NextcloudApiNotRespondingException
+import com.nextcloud.android.sso.exceptions.NextcloudFilesAppAccountNotFoundException
+import com.nextcloud.android.sso.exceptions.NextcloudFilesAppAccountPermissionNotGrantedException
 import com.nextcloud.android.sso.exceptions.NextcloudHttpRequestFailedException
+import com.nextcloud.android.sso.exceptions.NextcloudNetworkException
+import com.nextcloud.android.sso.exceptions.TokenMismatchException
 import io.reactivex.Observable
 import java.net.HttpURLConnection
 import java.time.ZonedDateTime
@@ -62,10 +67,14 @@ class NextcloudBackend(context: Context) : PullBackend {
         }
 
     private fun <T> withApis(account: Account, block: (CapabilitiesApi, NotesApi) -> T): T {
-        val ssoAccount = AccountImporter.getSingleSignOnAccount(
-            applicationContext,
-            account.ssoAccountName
-        )
+        if (AccountImporter.getAccountForName(applicationContext, account.ssoAccountName) == null) {
+            throw BackendException.AccountRemoved()
+        }
+        val ssoAccount = try {
+            AccountImporter.getSingleSignOnAccount(applicationContext, account.ssoAccountName)
+        } catch (error: NextcloudFilesAppAccountNotFoundException) {
+            throw BackendException.AuthorizationRequired(error)
+        }
         val api = NextcloudAPI(applicationContext, ssoAccount, gson)
         return try {
             block(
@@ -231,20 +240,16 @@ private fun Throwable.asBackendException(): BackendException {
     return cause.toBackendException()
 }
 
-private fun Throwable.toBackendException(): BackendException = when (this) {
+internal fun Throwable.toBackendException(): BackendException = when (this) {
     is BackendException -> this
-    is NotesHttpException -> when (statusCode) {
-        HttpURLConnection.HTTP_UNAUTHORIZED -> BackendException.Authentication(this)
-        HttpURLConnection.HTTP_FORBIDDEN -> BackendException.Permission(this)
-        SSO_TRANSPORT_ERROR, in 500..599 -> BackendException.Retryable(this)
-        else -> BackendException.Protocol("Nextcloud returned HTTP $statusCode", this)
-    }
-    is NextcloudHttpRequestFailedException -> when (statusCode) {
-        HttpURLConnection.HTTP_UNAUTHORIZED -> BackendException.Authentication(this)
-        HttpURLConnection.HTTP_FORBIDDEN -> BackendException.Permission(this)
-        in 500..599 -> BackendException.Retryable(this)
-        else -> BackendException.Protocol("Nextcloud returned HTTP $statusCode", this)
-    }
+    is NotesHttpException -> backendExceptionForHttpStatus(statusCode, this)
+    is NextcloudHttpRequestFailedException -> backendExceptionForHttpStatus(statusCode, this)
+    is TokenMismatchException -> BackendException.Authentication(this)
+    is NextcloudFilesAppAccountPermissionNotGrantedException ->
+        BackendException.AuthorizationRequired(this)
+    is NextcloudFilesAppAccountNotFoundException -> BackendException.AccountRemoved(this)
+    is NextcloudApiNotRespondingException, is NextcloudNetworkException ->
+        BackendException.Retryable(this)
     is JsonParseException -> BackendException.Protocol("Nextcloud returned malformed JSON", this)
     is MalformedJsonException -> BackendException.Protocol(
         "Nextcloud returned malformed JSON",
@@ -252,6 +257,14 @@ private fun Throwable.toBackendException(): BackendException = when (this) {
     )
     else -> BackendException.Retryable(this)
 }
+
+internal fun backendExceptionForHttpStatus(statusCode: Int, cause: Throwable): BackendException =
+    when (statusCode) {
+        HttpURLConnection.HTTP_UNAUTHORIZED -> BackendException.Authentication(cause)
+        HttpURLConnection.HTTP_FORBIDDEN -> BackendException.Permission(cause)
+        SSO_TRANSPORT_ERROR, in 500..599 -> BackendException.Retryable(cause)
+        else -> BackendException.Protocol("Nextcloud returned HTTP $statusCode", cause)
+    }
 
 private class NotesHttpException(val statusCode: Int) :
     Exception("Nextcloud returned HTTP $statusCode")

@@ -16,6 +16,9 @@ class RoomAccountRepository(private val accountDao: AccountDao) : AccountReposit
     override suspend fun get(accountId: String) = accountDao.get(accountId)?.toDomain()
 
     override suspend fun save(account: Account) = accountDao.upsert(account.toEntity())
+
+    override suspend fun updateSyncError(accountId: String, message: String?) =
+        accountDao.updateSyncError(accountId, message)
 }
 
 class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
@@ -23,6 +26,9 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
         if (result.notModified) return
 
         database.withTransaction {
+            val account = requireNotNull(database.accountDao().get(accountId)) {
+                "Cannot apply a pull for an unknown account"
+            }
             val dao = database.noteDao()
             val remoteIds = result.notes.mapTo(mutableSetOf()) { it.id }
             result.notes.filterNot { it.isPruned }.forEach { remote ->
@@ -68,7 +74,6 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
                 .filter { it.syncState == SyncState.SYNCHRONIZED && it.remoteId !in remoteIds }
                 .forEach { dao.delete(it) }
 
-            val account = database.accountDao().get(accountId) ?: return@withTransaction
             database.accountDao().upsert(
                 account.copy(
                     collectionEtag = result.collectionEtag,

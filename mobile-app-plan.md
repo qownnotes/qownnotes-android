@@ -613,12 +613,15 @@ Implemented:
 - Added bounded syntax coloring for common fenced-code languages and aliases, with oversized and unknown blocks falling back to plain code.
 - Added HTTPS-only remote image rendering with credential, redirect, private-address, response-size, image-type, dimension, and decode-size limits; local and active URL schemes remain blocked.
 - Added QOwnNotes indeterminate task rendering, one-pass encoded image URL canonicalization, and fail-closed raw HTML removal before span generation.
+- Added account-scoped synchronization state, same-account refresh serialization, cancellation propagation, and targeted error persistence that cannot roll back a newer checkpoint.
+- Added removed-account and revoked-authorization classification with cached-note-preserving reconnect UI, pre-persistence validation for new imports, and checkpoint-preserving reauthorization.
+- Added forced transactional rollback, missing-account, targeted-error, and duplicate-remote-ID account-isolation device coverage.
 
 Remaining before Phase 2 is complete:
 
 - Verify account import, capability negotiation, full pull, incremental pull, and chunked pull against supported real Nextcloud and Notes server combinations.
-- Run the Room migration and broadened transactional pull tests on an Android device in CI, and add rollback/account-isolation coverage.
-- Improve account-removal and revoked-authorization handling and add complete onboarding, offline-restart, and account-switching device tests.
+- Run the Room migration and broadened transactional pull tests on an Android device in CI.
+- Add explicit local-data removal and complete onboarding, offline-restart, reconnect, and account-switching device tests.
 
 ### Phase 3: Highlighted Editing and Creation
 

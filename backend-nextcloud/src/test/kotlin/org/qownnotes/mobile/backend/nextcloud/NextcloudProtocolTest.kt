@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.PullCheckpoint
@@ -98,6 +99,16 @@ class NextcloudProtocolTest {
             }
         }
         assertEquals(2, requests)
+    }
+
+    @Test
+    fun classifiesSsoTransportStatusAsRetryable() {
+        assertTrue(
+            backendExceptionForHttpStatus(
+                900,
+                IllegalStateException()
+            ) is BackendException.Retryable
+        )
     }
 
     private fun note(id: Long) = RemoteNote(id, null, "Note $id", null, null, 1)

@@ -8,6 +8,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -126,9 +127,108 @@ class RoomPullStoreTest {
         assertEquals(10, accounts.get("account")!!.lastModifiedEpochSeconds)
     }
 
-    private fun testAccount() = org.qownnotes.mobile.core.Account(
-        "account",
-        "Account",
+    @Test
+    fun failedCheckpointWriteRollsBackEveryNoteMutation() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        accounts.save(
+            testAccount().copy(collectionEtag = "etag-old", lastModifiedEpochSeconds = 10)
+        )
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED, title = "Old 42"))
+        database.noteDao().upsert(localNote(43, SyncState.SYNCHRONIZED, title = "Old 43"))
+        database.openHelper.writableDatabase.execSQL(
+            """CREATE TRIGGER fail_checkpoint BEFORE UPDATE OF collectionEtag ON accounts
+               BEGIN SELECT RAISE(ABORT, 'forced checkpoint failure'); END"""
+        )
+
+        val failure = runCatching {
+            store.applyPull(
+                "account",
+                PullResult(
+                    notes = listOf(
+                        RemoteNote(42, "new-42", "Updated 42", "new", "", 20),
+                        RemoteNote(44, "new-44", "Inserted 44", "new", "", 20)
+                    ),
+                    collectionEtag = "etag-new",
+                    lastModifiedEpochSeconds = 20
+                )
+            )
+        }
+
+        assertTrue(failure.isFailure)
+        assertEquals("Old 42", database.noteDao().getByRemoteId("account", 42)!!.title)
+        assertEquals("Old 43", database.noteDao().getByRemoteId("account", 43)!!.title)
+        assertNull(database.noteDao().getByRemoteId("account", 44))
+        assertEquals("etag-old", accounts.get("account")!!.collectionEtag)
+        assertEquals(10, accounts.get("account")!!.lastModifiedEpochSeconds)
+    }
+
+    @Test
+    fun pullMutatesOnlyTheRequestedAccount() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        accounts.save(testAccount("account-a").copy(collectionEtag = "etag-a"))
+        accounts.save(testAccount("account-b").copy(collectionEtag = "etag-b"))
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, accountId = "account-a", title = "A 42")
+        )
+        database.noteDao().upsert(
+            localNote(43, SyncState.SYNCHRONIZED, accountId = "account-a", title = "A 43")
+        )
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, accountId = "account-b", title = "B 42")
+        )
+        database.noteDao().upsert(
+            localNote(43, SyncState.SYNCHRONIZED, accountId = "account-b", title = "B 43")
+        )
+
+        store.applyPull(
+            "account-a",
+            PullResult(
+                notes = listOf(RemoteNote(42, "a-new", "A updated", "new", "", 20)),
+                collectionEtag = "etag-a-new",
+                lastModifiedEpochSeconds = 20
+            )
+        )
+
+        assertEquals("A updated", database.noteDao().getByRemoteId("account-a", 42)!!.title)
+        assertNull(database.noteDao().getByRemoteId("account-a", 43))
+        assertEquals("B 42", database.noteDao().getByRemoteId("account-b", 42)!!.title)
+        assertEquals("B 43", database.noteDao().getByRemoteId("account-b", 43)!!.title)
+        assertEquals("etag-a-new", accounts.get("account-a")!!.collectionEtag)
+        assertEquals("etag-b", accounts.get("account-b")!!.collectionEtag)
+    }
+
+    @Test
+    fun unknownAccountPullFailsBeforeMutatingNotes() = runBlocking {
+        val failure = runCatching {
+            RoomPullStore(database).applyPull(
+                "missing",
+                PullResult(emptyList(), "etag", 20)
+            )
+        }
+
+        assertTrue(failure.exceptionOrNull() is IllegalArgumentException)
+    }
+
+    @Test
+    fun targetedErrorUpdatePreservesSuccessfulCheckpoint() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        accounts.save(
+            testAccount().copy(collectionEtag = "etag-new", lastModifiedEpochSeconds = 20)
+        )
+
+        accounts.updateSyncError("account", "offline")
+
+        val account = accounts.get("account")!!
+        assertEquals("etag-new", account.collectionEtag)
+        assertEquals(20, account.lastModifiedEpochSeconds)
+        assertEquals("offline", account.lastSyncError)
+    }
+
+    private fun testAccount(id: String = "account") = org.qownnotes.mobile.core.Account(
+        id,
+        "Account $id",
         "https://cloud.example",
         "sso",
         "user"
@@ -140,11 +240,16 @@ class RoomPullStoreTest {
         lastModifiedEpochSeconds = modified
     )
 
-    private fun localNote(remoteId: Long, state: SyncState) = NoteEntity(
-        localId = "local-$remoteId",
-        accountId = "account",
+    private fun localNote(
+        remoteId: Long,
+        state: SyncState,
+        accountId: String = "account",
+        title: String = "Local"
+    ) = NoteEntity(
+        localId = "$accountId-local-$remoteId",
+        accountId = accountId,
         remoteId = remoteId,
-        title = "Local",
+        title = title,
         content = "Local content",
         category = "Local category",
         modifiedAtEpochSeconds = 10,

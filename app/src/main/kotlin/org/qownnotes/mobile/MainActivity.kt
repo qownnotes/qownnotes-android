@@ -44,6 +44,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.nextcloud.android.sso.AccountImporter
+import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
@@ -60,8 +62,9 @@ class MainActivity : ComponentActivity() {
     }
 
     fun importAccount() {
+        applicationComponent().beginAccountImport()
         runCatching { AccountImporter.pickNewAccount(this) }
-            .onFailure(applicationComponent()::reportImportError)
+            .onFailure(::handleImportFailure)
     }
 
     @Deprecated("Required by Nextcloud SSO 1.3.x")
@@ -69,12 +72,28 @@ class MainActivity : ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         runCatching {
             AccountImporter.onActivityResult(requestCode, resultCode, data, this) { account ->
-                lifecycleScope.launch { applicationComponent().importAccount(account) }
+                lifecycleScope.launch {
+                    try {
+                        applicationComponent().importAccount(account)
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        applicationComponent().reportImportError(error)
+                    }
+                }
             }
-        }.onFailure(applicationComponent()::reportImportError)
+        }.onFailure(::handleImportFailure)
     }
 
     private fun applicationComponent() = (applicationContext as QOwnNotesApplication).component
+
+    private fun handleImportFailure(error: Throwable) {
+        if (error is AccountImportCancelledException) {
+            applicationComponent().cancelAccountImport()
+        } else {
+            applicationComponent().reportImportError(error)
+        }
+    }
 }
 
 @Composable
@@ -100,6 +119,7 @@ private fun QOwnNotesTheme(content: @Composable () -> Unit) {
 private fun NotesNavigation(component: ApplicationComponent, onImportAccount: () -> Unit) {
     val accounts by component.accountRepository.observeAccounts()
         .collectAsStateWithLifecycle(initialValue = emptyList())
+    val importState by component.importState.collectAsStateWithLifecycle()
     var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedHeading by rememberSaveable { mutableStateOf<String?>(null) }
@@ -118,6 +138,8 @@ private fun NotesNavigation(component: ApplicationComponent, onImportAccount: ()
         navigationRequest++
     }
 
+    val activeAccountId = accounts.firstOrNull { it.id == selectedAccountId }?.id
+        ?: accounts.firstOrNull()?.id
     val noteId = selectedNoteId
     if (noteId != null) {
         NoteDetailScreen(
@@ -133,12 +155,13 @@ private fun NotesNavigation(component: ApplicationComponent, onImportAccount: ()
             }
         )
     } else if (accounts.isEmpty()) {
-        AccountOnboarding(onImportAccount)
+        AccountOnboarding(importState, onImportAccount)
     } else {
         NoteListScreen(
             component = component,
             accounts = accounts,
-            accountId = selectedAccountId ?: accounts.first().id,
+            accountId = requireNotNull(activeAccountId),
+            importState = importState,
             onSelectAccount = { selectedAccountId = it },
             onImportAccount = onImportAccount,
             onOpen = {
@@ -152,7 +175,7 @@ private fun NotesNavigation(component: ApplicationComponent, onImportAccount: ()
 }
 
 @Composable
-private fun AccountOnboarding(onImportAccount: () -> Unit) {
+private fun AccountOnboarding(state: SyncUiState, onImportAccount: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center
@@ -162,7 +185,14 @@ private fun AccountOnboarding(onImportAccount: () -> Unit) {
             "Choose an account from the Nextcloud Files app to download and cache your notes.",
             modifier = Modifier.padding(vertical = 20.dp)
         )
-        Button(onClick = onImportAccount) { Text("Add Nextcloud account") }
+        when (state) {
+            SyncUiState.Refreshing -> CircularProgressIndicator()
+            is SyncUiState.Failed -> Text(state.message, color = MaterialTheme.colorScheme.error)
+            else -> Unit
+        }
+        Button(onClick = onImportAccount, enabled = state !is SyncUiState.Refreshing) {
+            Text("Add Nextcloud account")
+        }
     }
 }
 
@@ -172,6 +202,7 @@ private fun NoteListScreen(
     component: ApplicationComponent,
     accounts: List<Account>,
     accountId: String,
+    importState: SyncUiState,
     onSelectAccount: (String) -> Unit,
     onImportAccount: () -> Unit,
     onOpen: (String) -> Unit
@@ -185,7 +216,8 @@ private fun NoteListScreen(
         }
     }
     val notes by notesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
-    val syncState by component.syncState.collectAsStateWithLifecycle()
+    val syncStates by component.syncStates.collectAsStateWithLifecycle()
+    val syncState = syncStates[accountId] ?: SyncUiState.Idle
     val account = accounts.first { it.id == accountId }
 
     LaunchedEffect(accountId) { component.refresh(accountId) }
@@ -207,6 +239,13 @@ private fun NoteListScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (importState is SyncUiState.Failed) {
+                Text(
+                    importState.message,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -214,7 +253,9 @@ private fun NoteListScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            SyncStatus(syncState) { component.refresh(accountId) }
+            SyncStatus(syncState, refresh = {
+                component.refresh(accountId)
+            }, reconnect = onImportAccount)
             if (notes.isEmpty()) {
                 Text(
                     if (query.isBlank()) "No cached notes" else "No matching notes",
@@ -243,7 +284,7 @@ private fun NoteListScreen(
 }
 
 @Composable
-private fun SyncStatus(state: SyncUiState, refresh: suspend () -> Unit) {
+private fun SyncStatus(state: SyncUiState, refresh: suspend () -> Unit, reconnect: () -> Unit) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -256,11 +297,20 @@ private fun SyncStatus(state: SyncUiState, refresh: suspend () -> Unit) {
             )
             SyncUiState.Refreshing -> CircularProgressIndicator()
             is SyncUiState.Failed -> Text(state.message, color = MaterialTheme.colorScheme.error)
+            is SyncUiState.AuthenticationRequired ->
+                Text(state.message, color = MaterialTheme.colorScheme.error)
+            is SyncUiState.AccountRemoved ->
+                Text(state.message, color = MaterialTheme.colorScheme.error)
         }
-        TextButton(onClick = {
-            scope.launch { refresh() }
-        }, enabled = state !is SyncUiState.Refreshing) {
-            Text("Refresh")
+        val reconnectRequired = state is SyncUiState.AuthenticationRequired ||
+            state is SyncUiState.AccountRemoved
+        TextButton(
+            onClick = {
+                if (reconnectRequired) reconnect() else scope.launch { refresh() }
+            },
+            enabled = state !is SyncUiState.Refreshing
+        ) {
+            Text(if (reconnectRequired) "Reconnect" else "Refresh")
         }
     }
 }

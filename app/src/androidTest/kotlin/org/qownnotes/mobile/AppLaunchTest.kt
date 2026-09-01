@@ -16,4 +16,14 @@ class AppLaunchTest {
     fun launchesAccountEntryPoint() {
         composeRule.onNodeWithText("Add", substring = true).assertIsDisplayed()
     }
+
+    @Test
+    fun showsAccountImportFailureOnOnboarding() {
+        composeRule.runOnUiThread {
+            val application = composeRule.activity.application as QOwnNotesApplication
+            application.component.reportImportError(IllegalStateException("Import unavailable"))
+        }
+
+        composeRule.onNodeWithText("Import unavailable").assertIsDisplayed()
+    }
 }
