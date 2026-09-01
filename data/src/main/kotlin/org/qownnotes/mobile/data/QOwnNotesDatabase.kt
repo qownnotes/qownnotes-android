@@ -52,6 +52,9 @@ interface AccountDao {
     @Upsert
     suspend fun upsert(account: AccountEntity)
 
+    @Query("DELETE FROM accounts WHERE id = :accountId")
+    suspend fun delete(accountId: String)
+
     @Query("UPDATE accounts SET lastSyncError = :message WHERE id = :accountId")
     suspend fun updateSyncError(accountId: String, message: String?)
 }

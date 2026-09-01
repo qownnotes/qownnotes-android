@@ -27,6 +27,8 @@ interface AccountRepository {
 
     suspend fun save(account: Account)
 
+    suspend fun remove(accountId: String)
+
     suspend fun updateSyncError(accountId: String, message: String?)
 }
 

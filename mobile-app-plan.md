@@ -1,6 +1,6 @@
 # QOwnNotes Mobile Application Plan
 
-Status: Phase 1 complete; Phase 2 in progress
+Status: Phase 1 complete; Phase 2 implementation complete, verification in progress
 Primary platform: Android
 Potential later platform: iOS
 Project location: Separate repository
@@ -24,7 +24,7 @@ Implemented in the initial Phase 1 foundation:
 
 The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account onboarding for the Phase 2 read path.
 
-Phase 2 now has an initial end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, and Markwon rendering. Real-server interoperability and the remaining Markdown compatibility/security fixtures must be verified before Phase 2 is marked complete.
+Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete; broader real-server interoperability and the configured CI device job must be verified before Phase 2 is marked fully complete.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -591,7 +591,7 @@ The iOS application can use a native SwiftUI or Compose Multiplatform UI after e
 - Build the rendered Markdown note view.
 - Verify offline startup and account switching behavior if multiple accounts are already supported.
 
-Status: In progress
+Status: Implementation complete; verification in progress
 
 Implemented:
 
@@ -616,12 +616,16 @@ Implemented:
 - Added account-scoped synchronization state, same-account refresh serialization, cancellation propagation, and targeted error persistence that cannot roll back a newer checkpoint.
 - Added removed-account and revoked-authorization classification with cached-note-preserving reconnect UI, pre-persistence validation for new imports, and checkpoint-preserving reauthorization.
 - Added forced transactional rollback, missing-account, targeted-error, and duplicate-remote-ID account-isolation device coverage.
+- Added account-scoped local-data removal backed by Room's foreign-key cascade, with confirmation that Nextcloud Files accounts and server notes remain untouched.
+- Added targeted reconnect identity checks, capability revalidation, checkpoint preservation, and separate loading states for cached accounts and notes.
+- Added deterministic app instrumentation for onboarding, initial pulls, offline activity restart, reconnect, account switching, and local removal.
+- Added an API 36 emulator CI job that runs all app, Room migration/storage, Nextcloud classification, and Markdown instrumentation tests.
+- Verified the complete instrumentation suite on a physical Android 16 device and documented the manual Nextcloud compatibility procedure.
 
-Remaining before Phase 2 is complete:
+Remaining verification before Phase 2 is complete:
 
-- Verify account import, capability negotiation, full pull, incremental pull, and chunked pull against supported real Nextcloud and Notes server combinations.
-- Run the Room migration and broadened transactional pull tests on an Android device in CI.
-- Add explicit local-data removal and complete onboarding, offline-restart, reconnect, and account-switching device tests.
+- Record server, Notes app, and Nextcloud Files versions for supported real-server combinations, including an incremental update and a collection large enough to exercise chunking.
+- Confirm the new emulator device-test job passes in GitHub Actions.
 
 ### Phase 3: Highlighted Editing and Creation
 

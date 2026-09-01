@@ -17,6 +17,8 @@ class RoomAccountRepository(private val accountDao: AccountDao) : AccountReposit
 
     override suspend fun save(account: Account) = accountDao.upsert(account.toEntity())
 
+    override suspend fun remove(accountId: String) = accountDao.delete(accountId)
+
     override suspend fun updateSyncError(accountId: String, message: String?) =
         accountDao.updateSyncError(accountId, message)
 }

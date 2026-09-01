@@ -8,6 +8,10 @@ Nextcloud Notes server app with Notes API 1.2 or newer. Downloaded notes and
 account metadata remain available offline; credentials stay in Nextcloud's SSO
 integration and are not copied into the QOwnNotes database.
 
+Use **Remove** in an account's note list to delete that account reference, its
+synchronization history, and its cached notes from QOwnNotes Mobile. This does
+not remove the account from Nextcloud Files or delete notes from the server.
+
 ## NixOS Recipes
 
 ### Enter The Development Environment
@@ -107,6 +111,10 @@ With an emulator or physical device running:
 ```sh
 just device-test
 ```
+
+CI runs the same instrumentation suite on an API 36 emulator. Real Nextcloud
+SSO interoperability remains a manual test because it requires an installed
+and authenticated Nextcloud Files app.
 
 ### Run All Host-Side Checks
 

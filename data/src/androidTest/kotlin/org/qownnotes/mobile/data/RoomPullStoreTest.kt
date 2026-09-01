@@ -226,6 +226,26 @@ class RoomPullStoreTest {
         assertEquals("offline", account.lastSyncError)
     }
 
+    @Test
+    fun removingAccountDeletesOnlyItsLocalData() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        accounts.save(testAccount("account-a"))
+        accounts.save(testAccount("account-b"))
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, accountId = "account-a")
+        )
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, accountId = "account-b")
+        )
+
+        accounts.remove("account-a")
+
+        assertNull(accounts.get("account-a"))
+        assertNull(database.noteDao().getByRemoteId("account-a", 42))
+        assertNotNull(accounts.get("account-b"))
+        assertNotNull(database.noteDao().getByRemoteId("account-b", 42))
+    }
+
     private fun testAccount(id: String = "account") = org.qownnotes.mobile.core.Account(
         id,
         "Account $id",
