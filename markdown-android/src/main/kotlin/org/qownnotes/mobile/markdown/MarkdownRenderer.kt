@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.text.Spannable
 import android.text.Spanned
@@ -19,24 +20,88 @@ import io.noties.markwon.core.spans.LinkSpan
 import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
+import io.noties.markwon.image.ImagesPlugin
+import io.noties.markwon.image.SchemeHandler
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.Locale
 import java.util.WeakHashMap
+import java.util.concurrent.Executors
+import org.commonmark.node.AbstractVisitor
+import org.commonmark.node.Image
+import org.commonmark.parser.Parser
 import org.qownnotes.mobile.core.InternalNoteLink
 import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.isSafeExternalUrl
 import org.qownnotes.mobile.core.parseLegacyNoteLink
 import org.qownnotes.mobile.core.parseWikiLink
+import org.qownnotes.mobile.core.redactEncryptedMarkdown
 
-class MarkdownRenderer(context: Context) {
+class MarkdownRenderer private constructor(context: Context, imageSchemeHandler: SchemeHandler) {
+    constructor(context: Context) : this(
+        context,
+        SafeHttpsImageSchemeHandler(context.applicationContext.resources)
+    )
+
     private val applicationContext = context.applicationContext
     private val linkHandlers = WeakHashMap<AppCompatTextView, InternalLinkHandler>()
-    private val markwon =
-        Markwon.builder(applicationContext)
+    private val textMarkwon = createMarkwon()
+    private val imageMarkwon = createMarkwon(imageSchemeHandler)
+
+    internal companion object {
+        private val IMAGE_EXECUTOR = Executors.newFixedThreadPool(2)
+
+        fun forTest(context: Context, imageSchemeHandler: SchemeHandler): MarkdownRenderer =
+            MarkdownRenderer(context, imageSchemeHandler)
+    }
+
+    fun render(
+        view: AppCompatTextView,
+        markdown: String,
+        resolveInternalLink: (InternalNoteLink) -> ResolvedNoteLink? = { null },
+        onInternalLink: (ResolvedNoteLink) -> Unit = {},
+        heading: String? = null,
+        onHeadingPositioned: (Int?) -> Unit = {},
+        loadRemoteImages: Boolean = false
+    ) {
+        linkHandlers[view] = InternalLinkHandler(resolveInternalLink, onInternalLink)
+        val lockedMessage = applicationContext.getString(R.string.encrypted_content_locked)
+        val encryption = redactEncryptedMarkdown(markdown, replacement = "")
+        val safeMarkdown = if (encryption.blockCount > 0) {
+            "> **$lockedMessage**"
+        } else {
+            encryption.markdown
+        }
+        val markwon = if (loadRemoteImages) imageMarkwon else textMarkwon
+        markwon.setMarkdown(view, safeMarkdown.withoutFrontmatter().withInternalLinks())
+        styleBrokenInternalLinks(view, resolveInternalLink)
+        if (heading != null) {
+            view.post { onHeadingPositioned(findHeadingTop(view, heading)) }
+        }
+    }
+
+    fun hasRemoteImages(markdown: String): Boolean {
+        if (redactEncryptedMarkdown(markdown, replacement = "").blockCount > 0) return false
+        var found = false
+        Parser.builder().build().parse(markdown).accept(
+            object : AbstractVisitor() {
+                override fun visit(image: Image) {
+                    if (runCatching { requireSafeHttpsUrl(image.destination) }.isSuccess) {
+                        found =
+                            true
+                    }
+                }
+            }
+        )
+        return found
+    }
+
+    private fun createMarkwon(imageSchemeHandler: SchemeHandler? = null): Markwon {
+        val builder = Markwon.builder(applicationContext)
             .usePlugin(
                 object : AbstractMarkwonPlugin() {
                     override fun configureConfiguration(builder: MarkwonConfiguration.Builder) {
+                        builder.syntaxHighlight(BoundedSyntaxHighlight(applicationContext))
                         builder.linkResolver { view, destination ->
                             when {
                                 destination.startsWith(WIKI_SCHEME) -> {
@@ -54,22 +119,18 @@ class MarkdownRenderer(context: Context) {
             .usePlugin(StrikethroughPlugin.create())
             .usePlugin(TablePlugin.create(applicationContext))
             .usePlugin(TaskListPlugin.create(applicationContext))
-            .build()
-
-    fun render(
-        view: AppCompatTextView,
-        markdown: String,
-        resolveInternalLink: (InternalNoteLink) -> ResolvedNoteLink? = { null },
-        onInternalLink: (ResolvedNoteLink) -> Unit = {},
-        heading: String? = null,
-        onHeadingPositioned: (Int?) -> Unit = {}
-    ) {
-        linkHandlers[view] = InternalLinkHandler(resolveInternalLink, onInternalLink)
-        markwon.setMarkdown(view, markdown.withoutFrontmatter().withInternalLinks())
-        styleBrokenInternalLinks(view, resolveInternalLink)
-        if (heading != null) {
-            view.post { onHeadingPositioned(findHeadingTop(view, heading)) }
+        if (imageSchemeHandler != null) {
+            builder.usePlugin(
+                ImagesPlugin.create { images ->
+                    images.removeSchemeHandler("http")
+                    images.removeSchemeHandler("data")
+                    images.addSchemeHandler(imageSchemeHandler)
+                    images.executorService(IMAGE_EXECUTOR)
+                    images.errorHandler { _, _ -> blockedImageDrawable() }
+                }
+            )
         }
+        return builder.build()
     }
 
     private fun dispatchInternalLink(view: android.view.View, destination: String) {
@@ -86,6 +147,16 @@ class MarkdownRenderer(context: Context) {
             applicationContext.startActivity(intent)
         } catch (_: ActivityNotFoundException) {
         } catch (_: SecurityException) {
+        }
+    }
+
+    private fun blockedImageDrawable(): GradientDrawable {
+        val size = (24 * applicationContext.resources.displayMetrics.density).toInt()
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(Color.TRANSPARENT)
+            setStroke((2 * applicationContext.resources.displayMetrics.density).toInt(), Color.RED)
+            setSize(size, size)
         }
     }
 }

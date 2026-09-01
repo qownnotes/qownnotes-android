@@ -283,11 +283,18 @@ private fun NoteDetailScreen(
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     var pendingHeading by remember(localId, heading, navigationRequest) { mutableStateOf(heading) }
+    var loadRemoteImages by remember(localId) { mutableStateOf(false) }
+    val hasRemoteImages = remember(note?.content) {
+        component.markdownRenderer.hasRemoteImages(note?.content.orEmpty())
+    }
     LaunchedEffect(localId, navigationRequest) {
         if (heading == null) scrollState.scrollTo(0)
     }
     Scaffold(topBar = { TopAppBar(title = { Text(note?.title ?: "Note") }) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(scrollState)) {
+            if (hasRemoteImages && !loadRemoteImages) {
+                TextButton(onClick = { loadRemoteImages = true }) { Text("Load remote images") }
+            }
             AndroidView(
                 factory = { context -> AppCompatTextView(context) },
                 update = { view ->
@@ -305,7 +312,8 @@ private fun NoteDetailScreen(
                                 pendingHeading = null
                                 if (top != null) scope.launch { scrollState.scrollTo(top) }
                             }
-                        }
+                        },
+                        loadRemoteImages = loadRemoteImages
                     )
                 },
                 modifier = Modifier.fillMaxWidth().padding(20.dp)

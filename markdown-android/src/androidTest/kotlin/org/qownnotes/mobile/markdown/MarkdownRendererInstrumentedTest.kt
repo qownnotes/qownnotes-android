@@ -1,13 +1,24 @@
 package org.qownnotes.mobile.markdown
 
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.net.Uri
 import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.ContextThemeWrapper
 import android.view.View
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.noties.markwon.core.spans.LinkSpan
+import io.noties.markwon.image.AsyncDrawableSpan
+import io.noties.markwon.image.ImageItem
+import io.noties.markwon.image.SchemeHandler
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -77,6 +88,103 @@ class MarkdownRendererInstrumentedTest {
 
         assertNotNull(headingTop)
         assertTrue(headingTop!! > 0)
+    }
+
+    @Test
+    fun encryptedPayloadIsRemovedBeforeRendering() {
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer(view.context).render(
+                view,
+                """
+                    # Visible
+                    <!-- BEGIN ENCRYPTED TEXT --
+                    ciphertext [[Secret]] ![tracker](https://example.com/tracker.png)
+                    -- END ENCRYPTED TEXT -->
+                """.trimIndent()
+            )
+        }
+
+        val text = view.text as Spanned
+        assertTrue(text.contains("Encrypted content is locked"))
+        assertTrue(!text.contains("ciphertext"))
+        assertEquals(0, text.getSpans(0, text.length, LinkSpan::class.java).size)
+        assertEquals(0, text.getSpans(0, text.length, AsyncDrawableSpan::class.java).size)
+    }
+
+    @Test
+    fun highlightsSupportedFencedCodeWithoutChangingItsText() {
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer(view.context).render(
+                view,
+                "```kotlin\nval answer = 42 // highlighted\n```"
+            )
+        }
+
+        val text = view.text as Spanned
+        assertTrue(text.contains("val answer = 42 // highlighted"))
+        assertTrue(text.getSpans(0, text.length, ForegroundColorSpan::class.java).isNotEmpty())
+    }
+
+    @Test
+    fun dispatchesOnlyHttpsImagesToConfiguredHandler() {
+        val requested = CountDownLatch(1)
+        val requestCount = AtomicInteger()
+        lateinit var renderer: MarkdownRenderer
+        lateinit var view: AppCompatTextView
+        val handler = object : SchemeHandler() {
+            override fun supportedSchemes(): Collection<String> = listOf("https")
+
+            override fun handle(raw: String, uri: Uri): ImageItem {
+                requestCount.incrementAndGet()
+                requested.countDown()
+                return ImageItem.withResult(ColorDrawable(Color.BLUE))
+            }
+        }
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            renderer = MarkdownRenderer.forTest(view.context, handler)
+            renderer.render(
+                view,
+                "![allowed](https://example.com/image.png)"
+            )
+        }
+        assertFalse(requested.await(250, TimeUnit.MILLISECONDS))
+
+        instrumentation.runOnMainSync {
+            renderer.render(
+                view,
+                "![allowed](https://example.com/image.png) ![blocked](file:///sdcard/private.png)",
+                loadRemoteImages = true
+            )
+        }
+
+        assertTrue(requested.await(5, TimeUnit.SECONDS))
+        Thread.sleep(250)
+        assertEquals(1, requestCount.get())
+    }
+
+    @Test
+    fun detectsOnlySafeRemoteImagesOutsideEncryptedNotes() {
+        val renderer = MarkdownRenderer(instrumentation.targetContext)
+
+        assertTrue(renderer.hasRemoteImages("![image](https://example.com/image.png)"))
+        assertFalse(renderer.hasRemoteImages("![image](http://example.com/image.png)"))
+        assertFalse(
+            renderer.hasRemoteImages(
+                """
+            <!-- BEGIN ENCRYPTED TEXT --
+            ![image](https://example.com/private.png)
+            -- END ENCRYPTED TEXT -->
+                """.trimIndent()
+            )
+        )
     }
 
     private fun textView(): AppCompatTextView {
