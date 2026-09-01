@@ -607,13 +607,14 @@ Implemented:
 - Hardened chunk traversal for the Notes API's numeric pending-count header, repeated or inconsistent cursors, interrupted pulls, malformed note IDs, malformed JSON, and coroutine cancellation.
 - Added a Room 1-to-2 migration fixture and pull-store coverage for pruned records, remote deletion, HTTP 304-equivalent no-op results, and preservation of every unsynchronized note state.
 - Added MockWebServer coverage for incremental request headers, first-page query parameters, HTTP 304 handling, chunk traversal, forward-compatible JSON parsing, malformed responses, HTTP error classification, and network interruption between chunks.
-- Added safe rendered-link dispatch with an explicit HTTP/HTTPS allowlist, in-app wiki-link and legacy `note://` navigation, account-scoped deterministic resolution, aliases, qualified paths, and heading preservation.
+- Added safe rendered-link dispatch with an explicit HTTP/HTTPS allowlist, in-app wiki-link and legacy `note://` navigation, account-scoped deterministic resolution, aliases, qualified paths, broken-link styling, heading scrolling, and an internal-note back stack.
+- Added Android instrumentation coverage for resolved and broken internal-link spans, click dispatch, and rendered heading lookup.
 
 Remaining before Phase 2 is complete:
 
 - Verify account import, capability negotiation, full pull, incremental pull, and chunked pull against supported real Nextcloud and Notes server combinations.
 - Run the Room migration and broadened transactional pull tests on an Android device in CI, and add rollback/account-isolation coverage.
-- Complete broken-internal-link styling and heading scrolling, images, fenced-code syntax coloring, encrypted-block detection, and the remaining Markdown compatibility fixtures.
+- Complete images, fenced-code syntax coloring, encrypted-block detection, and the remaining Markdown compatibility fixtures.
 - Improve account-removal and revoked-authorization handling and add complete onboarding, offline-restart, and account-switching device tests.
 
 ### Phase 3: Highlighted Editing and Creation

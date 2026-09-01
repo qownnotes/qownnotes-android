@@ -32,6 +32,15 @@ class MarkdownRendererTest {
     }
 
     @Test
+    fun preservesInternalLinkSyntaxInsideMultilineCodeSpan() {
+        val markdown = "`code starts\n[[Still code]]\ncode ends` and [[Linked]]"
+
+        val rendered = markdown.withInternalLinks()
+
+        assertTrue(rendered.startsWith("`code starts\n[[Still code]]\ncode ends` and [Linked]("))
+    }
+
+    @Test
     fun preservesEscapedWikiLink() {
         val markdown = "\\[[Not a link]]"
 

@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -45,6 +48,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.resolveInternalNoteLink
 import org.qownnotes.mobile.markdown.MarkdownRenderer
 
@@ -98,17 +102,36 @@ private fun NotesNavigation(component: ApplicationComponent, onImportAccount: ()
         .collectAsStateWithLifecycle(initialValue = emptyList())
     var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedNoteId by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedHeading by rememberSaveable { mutableStateOf<String?>(null) }
+    var navigationRequest by rememberSaveable { mutableStateOf(0) }
+    var noteHistory by rememberSaveable { mutableStateOf(emptyList<String>()) }
 
     LaunchedEffect(accounts, selectedAccountId) {
         if (accounts.isNotEmpty() && accounts.none { it.id == selectedAccountId }) {
             selectedAccountId = accounts.first().id
         }
     }
-    BackHandler(enabled = selectedNoteId != null) { selectedNoteId = null }
+    BackHandler(enabled = selectedNoteId != null) {
+        selectedNoteId = noteHistory.lastOrNull()
+        noteHistory = noteHistory.dropLast(1)
+        selectedHeading = null
+        navigationRequest++
+    }
 
     val noteId = selectedNoteId
     if (noteId != null) {
-        NoteDetailScreen(component, noteId, onOpen = { selectedNoteId = it })
+        NoteDetailScreen(
+            component = component,
+            localId = noteId,
+            heading = selectedHeading,
+            navigationRequest = navigationRequest,
+            onOpen = { destination ->
+                if (noteId != destination.localId) noteHistory = noteHistory + noteId
+                selectedNoteId = destination.localId
+                selectedHeading = destination.heading
+                navigationRequest++
+            }
+        )
     } else if (accounts.isEmpty()) {
         AccountOnboarding(onImportAccount)
     } else {
@@ -118,7 +141,12 @@ private fun NotesNavigation(component: ApplicationComponent, onImportAccount: ()
             accountId = selectedAccountId ?: accounts.first().id,
             onSelectAccount = { selectedAccountId = it },
             onImportAccount = onImportAccount,
-            onOpen = { selectedNoteId = it }
+            onOpen = {
+                noteHistory = emptyList()
+                selectedNoteId = it
+                selectedHeading = null
+                navigationRequest++
+            }
         )
     }
 }
@@ -242,7 +270,9 @@ private fun SyncStatus(state: SyncUiState, refresh: suspend () -> Unit) {
 private fun NoteDetailScreen(
     component: ApplicationComponent,
     localId: String,
-    onOpen: (String) -> Unit
+    heading: String?,
+    navigationRequest: Int,
+    onOpen: (ResolvedNoteLink) -> Unit
 ) {
     val note by component.noteRepository.observeNote(localId)
         .collectAsStateWithLifecycle(initialValue = null)
@@ -250,17 +280,36 @@ private fun NoteDetailScreen(
         note?.accountId?.let(component.noteRepository::observeNotes) ?: flowOf(emptyList())
     }
     val accountNotes by accountNotesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    var pendingHeading by remember(localId, heading, navigationRequest) { mutableStateOf(heading) }
+    LaunchedEffect(localId, navigationRequest) {
+        if (heading == null) scrollState.scrollTo(0)
+    }
     Scaffold(topBar = { TopAppBar(title = { Text(note?.title ?: "Note") }) }) { padding ->
-        AndroidView(
-            factory = { context -> AppCompatTextView(context) },
-            update = { view ->
-                val source = note
-                component.markdownRenderer.render(view, source?.content.orEmpty()) { link ->
-                    source?.let { resolveInternalNoteLink(it, accountNotes, link) }
-                        ?.let { onOpen(it.localId) }
-                }
-            },
-            modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp)
-        )
+        Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(scrollState)) {
+            AndroidView(
+                factory = { context -> AppCompatTextView(context) },
+                update = { view ->
+                    val source = note
+                    component.markdownRenderer.render(
+                        view = view,
+                        markdown = source?.content.orEmpty(),
+                        resolveInternalLink = { link ->
+                            source?.let { resolveInternalNoteLink(it, accountNotes, link) }
+                        },
+                        onInternalLink = onOpen,
+                        heading = if (source != null) pendingHeading else null,
+                        onHeadingPositioned = { top ->
+                            if (pendingHeading != null) {
+                                pendingHeading = null
+                                if (top != null) scope.launch { scrollState.scrollTo(top) }
+                            }
+                        }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().padding(20.dp)
+            )
+        }
     }
 }

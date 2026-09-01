@@ -6,7 +6,10 @@ plugins {
 android {
     namespace = "org.qownnotes.mobile.markdown"
     compileSdk = 36
-    defaultConfig { minSdk = 28 }
+    defaultConfig {
+        minSdk = 28
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -23,4 +26,6 @@ dependencies {
     implementation(libs.markwon.ext.tables)
     implementation(libs.markwon.ext.tasklist)
     testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }
