@@ -32,6 +32,34 @@ class MarkdownRendererInstrumentedTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     @Test
+    fun sourceHighlightingPreservesTextAndSelection() {
+        val source = "---\ntitle: Test\n---\n# Heading\n[[Wiki]] <!-- comment -->"
+        val changed = CountDownLatch(1)
+        lateinit var view: MarkdownEditText
+        lateinit var binding: MarkdownEditorBinding
+
+        instrumentation.runOnMainSync {
+            view = MarkdownEditText(textView().context)
+            binding = MarkdownEditorBinding(view.context, view) { changed.countDown() }
+            view.setText(source)
+            view.setSelection(5, 10)
+        }
+
+        assertTrue(changed.await(5, TimeUnit.SECONDS))
+        Thread.sleep(250)
+        instrumentation.runOnMainSync {
+            assertEquals(source, view.text.toString())
+            assertEquals(5, view.selectionStart)
+            assertEquals(10, view.selectionEnd)
+            assertEquals(
+                3,
+                view.text!!.getSpans(0, view.length(), SupplementalSyntaxSpan::class.java).size
+            )
+            binding.close()
+        }
+    }
+
+    @Test
     fun stylesBrokenInternalLinksAndDisablesClicks() {
         lateinit var view: AppCompatTextView
 

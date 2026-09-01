@@ -12,6 +12,11 @@ Use **Remove** in an account's note list to delete that account reference, its
 synchronization history, and its cached notes from QOwnNotes Mobile. This does
 not remove the account from Nextcloud Files or delete notes from the server.
 
+Use **New** to create a QOwnNotes-compatible note or **Edit** while viewing a
+writable note. Drafts are stored locally first and synchronized through the
+Nextcloud Notes API; updates use the last known ETag to avoid blindly
+overwriting a concurrent server edit.
+
 ## NixOS Recipes
 
 ### Enter The Development Environment

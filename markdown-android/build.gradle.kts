@@ -26,6 +26,7 @@ dependencies {
     implementation(libs.markwon.ext.strikethrough)
     implementation(libs.markwon.ext.tables)
     implementation(libs.markwon.ext.tasklist)
+    implementation(libs.markwon.editor)
     implementation(libs.okhttp)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

@@ -7,11 +7,19 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.replaceText
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -167,6 +175,79 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("remove-account").performClick()
         composeRule.onNodeWithTag("confirm-remove-account").performClick()
         composeRule.waitForText("Your Nextcloud notes, offline")
+    }
+
+    @Test
+    fun createsAndEditsANoteOfflineFirst() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+
+        composeRule.onNodeWithTag("create-note").performClick()
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithText("Edit").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("edit-note").performClick()
+        onView(withId(R.id.markdown_editor)).perform(
+            click(),
+            replaceText("# Edited\n\nDraft text")
+        )
+            .check(matches(withText(containsString("Draft text"))))
+        composeRule.onNodeWithTag("finish-editing").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                application.component.noteRepository
+                    .observeNotes(testAccount("alice").localAccountId())
+                    .first()
+                    .any { it.content.contains("Draft text") }
+            }
+        }
+    }
+
+    @Test
+    fun readOnlyNoteCannotEnterEditingMode() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(
+                        id = 42,
+                        etag = "etag-1",
+                        title = "Shared note",
+                        content = "Read only content",
+                        category = "",
+                        modifiedAtEpochSeconds = 10,
+                        readOnly = true
+                    )
+                ),
+                collectionEtag = "etag-1",
+                lastModifiedEpochSeconds = 10
+            )
+        )
+        composeRule.onNodeWithTag("add-account").performClick()
+        composeRule.waitForText("Shared note")
+
+        composeRule.onNodeWithText("Shared note").performClick()
+
+        composeRule.waitForText("Read only")
+        composeRule.onNodeWithTag("edit-note").assertDoesNotExist()
+    }
+
+    @Test
+    fun editorDraftSurvivesActivityRecreation() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.onNodeWithTag("edit-note").performClick()
+        onView(withId(R.id.markdown_editor)).perform(
+            click(),
+            replaceText("# Edited\n\nUnsaved draft")
+        )
+
+        composeRule.activityRule.scenario.recreate()
+
+        onView(withId(R.id.markdown_editor))
+            .check(matches(withText(containsString("Unsaved draft"))))
     }
 
     private fun importAccount(

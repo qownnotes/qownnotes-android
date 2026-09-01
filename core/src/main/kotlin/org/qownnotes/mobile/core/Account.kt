@@ -57,5 +57,14 @@ sealed class BackendException(message: String, cause: Throwable? = null) :
 
     class Retryable(cause: Throwable) : BackendException("The server could not be reached", cause)
 
+    class Conflict(cause: Throwable? = null) :
+        BackendException("The note changed on the server", cause)
+
+    class RemoteMissing(cause: Throwable? = null) :
+        BackendException("The note no longer exists on the server", cause)
+
+    class InsufficientStorage(cause: Throwable? = null) :
+        BackendException("The server does not have enough storage", cause)
+
     class Protocol(message: String, cause: Throwable? = null) : BackendException(message, cause)
 }

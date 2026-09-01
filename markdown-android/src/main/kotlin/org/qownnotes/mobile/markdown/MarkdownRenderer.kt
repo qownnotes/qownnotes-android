@@ -96,6 +96,9 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
         return found
     }
 
+    fun hasEncryptedContent(markdown: String): Boolean =
+        redactEncryptedMarkdown(markdown, replacement = "").blockCount > 0
+
     private fun createMarkwon(imageSchemeHandler: SchemeHandler? = null): Markwon {
         val builder = Markwon.builder(applicationContext)
             .fallbackToRawInputWhenEmpty(false)

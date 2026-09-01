@@ -47,7 +47,8 @@ data class NoteEntity(
     val lastSyncedTitle: String?,
     val lastSyncedContent: String?,
     val lastSyncedCategory: String?,
-    val lastSyncError: String?
+    val lastSyncError: String?,
+    val localRevision: Long = 0
 )
 
 fun NoteEntity.toDomain() = Note(
@@ -64,7 +65,8 @@ fun NoteEntity.toDomain() = Note(
     lastSyncedTitle = lastSyncedTitle,
     lastSyncedContent = lastSyncedContent,
     lastSyncedCategory = lastSyncedCategory,
-    lastSyncError = lastSyncError
+    lastSyncError = lastSyncError,
+    localRevision = localRevision
 )
 
 fun Note.toEntity() = NoteEntity(
@@ -81,7 +83,8 @@ fun Note.toEntity() = NoteEntity(
     lastSyncedTitle = lastSyncedTitle,
     lastSyncedContent = lastSyncedContent,
     lastSyncedCategory = lastSyncedCategory,
-    lastSyncError = lastSyncError
+    lastSyncError = lastSyncError,
+    localRevision = localRevision
 )
 
 fun AccountEntity.toDomain() = Account(

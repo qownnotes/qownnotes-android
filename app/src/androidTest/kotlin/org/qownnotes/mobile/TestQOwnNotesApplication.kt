@@ -9,10 +9,13 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
-import org.qownnotes.mobile.core.PullBackend
+import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
+import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.data.MIGRATION_1_2
+import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 
 class TestQOwnNotesApplication : QOwnNotesApplication() {
@@ -22,7 +25,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
     override fun createComponent(): ApplicationComponent {
         val database =
             Room.databaseBuilder(this, QOwnNotesDatabase::class.java, TEST_DATABASE)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .allowMainThreadQueries()
                 .build()
         return ApplicationComponent(this, database, fakeBackend)
@@ -71,7 +74,7 @@ class FakeAccountImportGateway : AccountImportGateway {
     ) = Unit
 }
 
-class FakePullBackend : PullBackend {
+class FakePullBackend : NoteBackend {
     override val capabilities = BackendCapabilities(categories = true, readOnlyNotes = true)
     private val pulls = mutableMapOf<String, ArrayDeque<Result<PullResult>>>()
     val checkpoints = mutableListOf<Pair<String, PullCheckpoint>>()
@@ -96,6 +99,12 @@ class FakePullBackend : PullBackend {
             )
     }
 
+    override suspend fun create(account: Account, note: Note): RemoteNote =
+        canonical(note, remoteId = nextRemoteId++)
+
+    override suspend fun update(account: Account, note: Note): RemoteNote =
+        canonical(note, remoteId = requireNotNull(note.remoteId))
+
     fun enqueue(account: SingleSignOnAccount, result: PullResult) {
         queue(account).add(Result.success(result))
     }
@@ -114,4 +123,16 @@ class FakePullBackend : PullBackend {
 
     private fun queue(account: SingleSignOnAccount) =
         pulls.getOrPut(account.localAccountId()) { ArrayDeque() }
+
+    private fun canonical(note: Note, remoteId: Long) = RemoteNote(
+        id = remoteId,
+        etag = "write-etag-${note.localRevision}",
+        title = note.title,
+        content = note.content,
+        category = note.category,
+        modifiedAtEpochSeconds = note.modifiedAtEpochSeconds,
+        readOnly = false
+    )
+
+    private var nextRemoteId = 1_000L
 }

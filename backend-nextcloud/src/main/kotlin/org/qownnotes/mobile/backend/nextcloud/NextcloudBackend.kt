@@ -25,23 +25,28 @@ import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.BackendException
-import org.qownnotes.mobile.core.PullBackend
+import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
 import retrofit2.Call
 import retrofit2.NextcloudRetrofitApiBuilder
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
 import retrofit2.http.Query
 
-class NextcloudBackend(context: Context) : PullBackend {
+class NextcloudBackend(context: Context) : NoteBackend {
     private val applicationContext = context.applicationContext
     private val gson = GsonBuilder().create()
 
     override val capabilities =
-        BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
+        BackendCapabilities(categories = true, readOnlyNotes = true)
 
     override suspend fun validateAccount(account: Account): String = withContext(Dispatchers.IO) {
         try {
@@ -62,6 +67,24 @@ class NextcloudBackend(context: Context) : PullBackend {
         withContext(Dispatchers.IO) {
             try {
                 withApis(account) { _, notesApi -> pullFromApi(notesApi, checkpoint) }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun create(account: Account, note: Note): RemoteNote =
+        withContext(Dispatchers.IO) {
+            try {
+                withApis(account) { _, notesApi -> createWithApi(notesApi, note) }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun update(account: Account, note: Note): RemoteNote =
+        withContext(Dispatchers.IO) {
+            try {
+                withApis(account) { _, notesApi -> updateWithApi(notesApi, note) }
             } catch (error: Throwable) {
                 throw error.asBackendException()
             }
@@ -210,6 +233,35 @@ internal fun pullFromApi(notesApi: NotesApi, checkpoint: PullCheckpoint): PullRe
     }
 }
 
+internal fun createWithApi(notesApi: NotesApi, note: Note): RemoteNote =
+    notesApi.createNote(note.toWriteDto()).execute().toCanonicalRemoteNote()
+
+internal fun updateWithApi(notesApi: NotesApi, note: Note): RemoteNote {
+    val remoteId = note.remoteId
+        ?: throw BackendException.Protocol("Cannot update a note without a remote id")
+    val etag = note.remoteEtag
+        ?: throw BackendException.Protocol("Cannot update a note without an etag")
+    require(etag.none { it == '"' || it == '\r' || it == '\n' }) { "Invalid note etag" }
+    return notesApi.updateNote(remoteId, "\"$etag\"", note.toWriteDto())
+        .execute()
+        .toCanonicalRemoteNote()
+}
+
+private fun Note.toWriteDto() = NoteWriteDto(title, content, category, modifiedAtEpochSeconds)
+
+private fun Response<RemoteNoteDto>.toCanonicalRemoteNote(): RemoteNote {
+    if (!isSuccessful) {
+        throw when (code()) {
+            HttpURLConnection.HTTP_PRECON_FAILED -> BackendException.Conflict()
+            HttpURLConnection.HTTP_NOT_FOUND -> BackendException.RemoteMissing()
+            HTTP_INSUFFICIENT_STORAGE -> BackendException.InsufficientStorage()
+            else -> backendExceptionForHttpStatus(code(), NotesHttpException(code()))
+        }
+    }
+    return (body() ?: throw BackendException.Protocol("Nextcloud returned an empty response"))
+        .toCanonicalRemote()
+}
+
 private fun Response<List<RemoteNoteDto>>.toNotesPage(): NotesPage {
     if (!isSuccessful) throw NotesHttpException(code())
     val notes = body() ?: throw BackendException.Protocol("Nextcloud returned an empty response")
@@ -264,7 +316,11 @@ internal fun backendExceptionForHttpStatus(statusCode: Int, cause: Throwable): B
     when (statusCode) {
         HttpURLConnection.HTTP_UNAUTHORIZED -> BackendException.Authentication(cause)
         HttpURLConnection.HTTP_FORBIDDEN -> BackendException.Permission(cause)
-        SSO_TRANSPORT_ERROR, in 500..599 -> BackendException.Retryable(cause)
+        HTTP_INSUFFICIENT_STORAGE -> BackendException.InsufficientStorage(cause)
+        SSO_TRANSPORT_ERROR, HTTP_LOCKED, HTTP_TOO_MANY_REQUESTS,
+        HttpURLConnection.HTTP_CLIENT_TIMEOUT,
+        HttpURLConnection.HTTP_UNAVAILABLE, in 500..506, in 508..599 ->
+            BackendException.Retryable(cause)
         else -> BackendException.Protocol("Nextcloud returned HTTP $statusCode", cause)
     }
 
@@ -273,6 +329,9 @@ private class NotesHttpException(val statusCode: Int) :
 
 private const val NOTES_CHUNK_SIZE = 200
 private const val SSO_TRANSPORT_ERROR = 900
+private const val HTTP_LOCKED = 423
+private const val HTTP_TOO_MANY_REQUESTS = 429
+private const val HTTP_INSUFFICIENT_STORAGE = 507
 
 private interface CapabilitiesApi {
     @GET("capabilities?format=json")
@@ -280,6 +339,16 @@ private interface CapabilitiesApi {
 }
 
 internal interface NotesApi {
+    @POST("notes")
+    fun createNote(@Body request: NoteWriteDto): Call<RemoteNoteDto>
+
+    @PUT("notes/{id}")
+    fun updateNote(
+        @Path("id") id: Long,
+        @Header("If-Match") ifMatch: String,
+        @Body request: NoteWriteDto
+    ): Call<RemoteNoteDto>
+
     @GET("notes")
     fun getNotes(
         @Query("pruneBefore") pruneBefore: Long,
@@ -295,6 +364,13 @@ internal interface NotesApi {
         @Query("chunkCursor") chunkCursor: String
     ): Call<List<RemoteNoteDto>>
 }
+
+internal data class NoteWriteDto(
+    val title: String,
+    val content: String,
+    val category: String,
+    val modified: Long
+)
 
 private data class OcsResponse(val ocs: OcsEnvelope)
 
@@ -318,6 +394,19 @@ internal data class RemoteNoteDto(
         content = content,
         category = category,
         modifiedAtEpochSeconds = modified,
+        readOnly = readonly
+    )
+
+    fun toCanonicalRemote() = RemoteNote(
+        id = id ?: throw BackendException.Protocol("Nextcloud note is missing its id"),
+        etag = etag ?: throw BackendException.Protocol("Nextcloud note is missing its etag"),
+        title = title ?: throw BackendException.Protocol("Nextcloud note is missing its title"),
+        content = content
+            ?: throw BackendException.Protocol("Nextcloud note is missing its content"),
+        category = category
+            ?: throw BackendException.Protocol("Nextcloud note is missing its category"),
+        modifiedAtEpochSeconds = modified
+            ?: throw BackendException.Protocol("Nextcloud note is missing its modified timestamp"),
         readOnly = readonly
     )
 }

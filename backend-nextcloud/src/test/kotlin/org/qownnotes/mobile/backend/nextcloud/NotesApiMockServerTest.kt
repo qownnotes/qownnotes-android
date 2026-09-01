@@ -13,7 +13,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.qownnotes.mobile.core.BackendException
+import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.PullCheckpoint
+import org.qownnotes.mobile.core.SyncState
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -153,8 +155,73 @@ class NotesApiMockServerTest {
         }
     }
 
+    @Test
+    fun createsNoteAndAdoptsCanonicalResponse() {
+        server.enqueue(canonicalResponse(101, "server-etag", "Sanitized title", "# Local\n"))
+
+        val remote = createWithApi(api, testNote())
+
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/index.php/apps/notes/api/v1/notes", request.requestUrl!!.encodedPath)
+        val body = GsonBuilder().create().fromJson(
+            request.body.readUtf8(),
+            NoteWriteDto::class.java
+        )
+        assertEquals("Local", body.title)
+        assertEquals("# Local\n", body.content)
+        assertEquals("Sanitized title", remote.title)
+        assertEquals("server-etag", remote.etag)
+        assertEquals(101L, remote.id)
+    }
+
+    @Test
+    fun updatesNoteWithQuotedIfMatch() {
+        server.enqueue(canonicalResponse(42, "new-etag", "Local", "Updated"))
+
+        val remote = updateWithApi(
+            api,
+            testNote().copy(remoteId = 42, remoteEtag = "old-etag", content = "Updated")
+        )
+
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/index.php/apps/notes/api/v1/notes/42", request.requestUrl!!.encodedPath)
+        assertEquals("\"old-etag\"", request.getHeader("If-Match"))
+        assertEquals("new-etag", remote.etag)
+    }
+
+    @Test
+    fun classifiesWriteConflictAndInsufficientStorage() {
+        server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_PRECON_FAILED))
+        assertThrows(BackendException.Conflict::class.java) {
+            updateWithApi(api, testNote().copy(remoteId = 42, remoteEtag = "old-etag"))
+        }
+
+        server.enqueue(MockResponse().setResponseCode(507))
+        assertThrows(BackendException.InsufficientStorage::class.java) {
+            createWithApi(api, testNote())
+        }
+    }
+
     private fun notesResponse(body: String) = MockResponse()
         .setResponseCode(HttpURLConnection.HTTP_OK)
         .setHeader("Content-Type", "application/json")
         .setBody(body)
+
+    private fun canonicalResponse(id: Long, etag: String, title: String, content: String) =
+        notesResponse(
+            """{"id":$id,"etag":"$etag","readonly":false,"title":"$title","content":${
+                GsonBuilder().create().toJson(content)
+            },"category":"","modified":20}"""
+        )
+
+    private fun testNote() = Note(
+        localId = "local",
+        accountId = "account",
+        title = "Local",
+        content = "# Local\n",
+        modifiedAtEpochSeconds = 10,
+        syncState = SyncState.LOCALLY_CREATED
+    )
 }

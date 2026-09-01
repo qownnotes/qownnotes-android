@@ -14,7 +14,8 @@ data class Note(
     val lastSyncedTitle: String? = null,
     val lastSyncedContent: String? = null,
     val lastSyncedCategory: String? = null,
-    val lastSyncError: String? = null
+    val lastSyncError: String? = null,
+    val localRevision: Long = 0
 )
 
 enum class SyncState {

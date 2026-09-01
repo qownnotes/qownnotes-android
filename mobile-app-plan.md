@@ -1,6 +1,6 @@
 # QOwnNotes Mobile Application Plan
 
-Status: Phase 1 complete; Phase 2 implementation complete, verification in progress
+Status: Phase 3 in progress
 Primary platform: Android
 Potential later platform: iOS
 Project location: Separate repository
@@ -25,6 +25,8 @@ Implemented in the initial Phase 1 foundation:
 The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account onboarding for the Phase 2 read path.
 
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete; broader real-server interoperability and the configured CI device job must be verified before Phase 2 is marked fully complete.
+
+Phase 3 now has an initial end-to-end write path with offline-first note creation and Markdown source editing, asynchronous source highlighting, a formatting toolbar, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Real-server creation and formatting-triggered updates are verified, but physical-device editor focus and keyboard input must be fixed before Phase 3 is complete.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -629,6 +631,8 @@ Remaining verification before Phase 2 is complete:
 
 ### Phase 3: Highlighted Editing and Creation
 
+Status: In progress
+
 - Add the highlighted Markdown source editor.
 - Add asynchronous, stale-result-safe highlighting.
 - Add the Markdown formatting toolbar.
@@ -638,6 +642,29 @@ Remaining verification before Phase 2 is complete:
 - Push note creation to Nextcloud.
 - Push edits using `If-Match` and the last known ETag.
 - Adopt canonical server responses.
+
+Implemented:
+
+- Added QOwnNotes-compatible offline note creation with stable local identities and immediate editor navigation.
+- Added an `AppCompatEditText` Markdown source editor with asynchronous Markwon highlighting, supplemental QOwnNotes syntax highlighting, cursor preservation, and a mobile formatting toolbar.
+- Added debounced Room draft persistence, lifecycle flushing, and application-scoped draft retention across activity recreation.
+- Added Room schema version 3 with monotonically increasing local revisions so stale write responses cannot replace newer editor content.
+- Added Notes API `POST` creation and `PUT` updates with quoted `If-Match` ETags, strict canonical-response validation, and explicit conflict, missing-note, and insufficient-storage failures.
+- Added transactional canonical response application that adopts server IDs, ETags, and sanitized titles while preserving newer local content.
+- Added API, migration, repository, formatting, highlighting, read-only, creation, editing, and recreation coverage.
+
+Remaining verification:
+
+- Fix native editor focus and IME activation: on the OPPO CPH2653 running Android 16, entering edit mode displays the editor and formatting controls but tapping the source does not show a cursor or keyboard.
+- Verify direct typing, cursor movement, selection, and representative software keyboards on physical devices after the focus fix.
+- Verify canonical title sanitization and HTTP 412 conflict behavior against supported real Nextcloud and Notes server versions. Real-server `POST` creation and formatting-triggered `PUT` updates are confirmed.
+- Validate large-note editor responsiveness and additional input methods on physical devices.
+
+Known physical-device issue recorded on 2026-09-01:
+
+- The user was not able to write text into a note because the editor never displayed a cursor or opened the software keyboard.
+- The formatting toolbar did modify the note, and **Done** successfully synchronized that modified note to the real Nextcloud server.
+- The next Phase 3 task is to fix editor focus, cursor, and IME behavior before adding further editing features.
 
 ### Phase 4: Synchronization Safety
 

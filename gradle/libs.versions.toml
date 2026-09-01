@@ -54,6 +54,7 @@ markwon-image = { module = "io.noties.markwon:image", version.ref = "markwon" }
 markwon-ext-strikethrough = { module = "io.noties.markwon:ext-strikethrough", version.ref = "markwon" }
 markwon-ext-tables = { module = "io.noties.markwon:ext-tables", version.ref = "markwon" }
 markwon-ext-tasklist = { module = "io.noties.markwon:ext-tasklist", version.ref = "markwon" }
+markwon-editor = { module = "io.noties.markwon:editor", version.ref = "markwon" }
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar-jdk-libs" }
 
 [plugins]

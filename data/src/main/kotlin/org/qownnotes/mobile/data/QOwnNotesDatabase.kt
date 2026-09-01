@@ -28,8 +28,43 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE localId = :localId")
     fun observe(localId: String): Flow<NoteEntity?>
 
+    @Query("SELECT * FROM notes WHERE localId = :localId")
+    suspend fun get(localId: String): NoteEntity?
+
+    @Query(
+        "SELECT * FROM notes WHERE accountId = :accountId AND " +
+            "syncState IN ('LOCALLY_CREATED', 'LOCALLY_MODIFIED') ORDER BY localId"
+    )
+    suspend fun getPending(accountId: String): List<NoteEntity>
+
     @Upsert
     suspend fun upsert(note: NoteEntity)
+
+    @Query(
+        """UPDATE notes SET localRevision = localRevision + 1,
+           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END
+           WHERE localId = :localId AND readOnly = 0
+             AND NOT (syncState = 'FAILED' AND remoteId IS NULL)"""
+    )
+    suspend fun beginEditing(localId: String): Int
+
+    @Query(
+        """UPDATE notes SET content = :content,
+           modifiedAtEpochSeconds = :modifiedAtEpochSeconds,
+           localRevision = localRevision + 1,
+           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = NULL
+           WHERE localId = :localId AND readOnly = 0 AND content != :content"""
+    )
+    suspend fun updateDraft(localId: String, content: String, modifiedAtEpochSeconds: Long): Int
+
+    @Query(
+        """UPDATE notes SET
+           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = NULL
+           WHERE localId = :localId AND syncState = 'FAILED'"""
+    )
+    suspend fun retry(localId: String): Int
 
     @Query("SELECT * FROM notes WHERE accountId = :accountId AND remoteId = :remoteId")
     suspend fun getByRemoteId(accountId: String, remoteId: Long): NoteEntity?
@@ -65,7 +100,7 @@ class DatabaseConverters {
     @TypeConverter fun stringToSyncState(value: String): SyncState = SyncState.valueOf(value)
 }
 
-@Database(entities = [AccountEntity::class, NoteEntity::class], version = 2, exportSchema = true)
+@Database(entities = [AccountEntity::class, NoteEntity::class], version = 3, exportSchema = true)
 @TypeConverters(DatabaseConverters::class)
 abstract class QOwnNotesDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
@@ -84,5 +119,12 @@ val MIGRATION_1_2 =
                 "ALTER TABLE accounts ADD COLUMN lastModifiedEpochSeconds INTEGER NOT NULL DEFAULT 0"
             )
             db.execSQL("ALTER TABLE accounts ADD COLUMN lastSyncError TEXT")
+        }
+    }
+
+val MIGRATION_2_3 =
+    object : Migration(2, 3) {
+        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE notes ADD COLUMN localRevision INTEGER NOT NULL DEFAULT 0")
         }
     }

@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -43,15 +45,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.ResolvedNoteLink
+import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.resolveInternalNoteLink
+import org.qownnotes.mobile.markdown.MarkdownEditText
+import org.qownnotes.mobile.markdown.MarkdownEditorBinding
+import org.qownnotes.mobile.markdown.MarkdownFormatAction
 import org.qownnotes.mobile.markdown.MarkdownRenderer
 
 class MainActivity : ComponentActivity() {
@@ -213,6 +223,15 @@ private fun NotesNavigation(
                     noteHistory = emptyList()
                 }
             },
+            onCreate = { accountId ->
+                scope.launch {
+                    val note = component.createNote(accountId)
+                    noteHistory = emptyList()
+                    selectedNoteId = note.localId
+                    selectedHeading = null
+                    navigationRequest++
+                }
+            },
             onOpen = {
                 noteHistory = emptyList()
                 selectedNoteId = it
@@ -270,6 +289,7 @@ private fun NoteListScreen(
     onImportAccount: () -> Unit,
     onReconnectAccount: (String) -> Unit,
     onRemoveAccount: (String) -> Unit,
+    onCreate: (String) -> Unit,
     onOpen: (String) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -299,6 +319,10 @@ private fun NoteListScreen(
                             onSelectAccount(accounts[next].id)
                         }, modifier = Modifier.testTag("switch-account")) { Text("Switch") }
                     }
+                    TextButton(
+                        onClick = { onCreate(accountId) },
+                        modifier = Modifier.testTag("create-note")
+                    ) { Text("New") }
                     TextButton(
                         onClick = { showRemoveConfirmation = true },
                         modifier = Modifier.testTag("remove-account")
@@ -436,42 +460,207 @@ private fun NoteDetailScreen(
     val accountNotes by accountNotesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var editing by rememberSaveable(localId) { mutableStateOf(false) }
+    var draft by remember(localId) { mutableStateOf<String?>(null) }
+    var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
+    var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
+    var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
+    var editorBinding by remember { mutableStateOf<MarkdownEditorBinding?>(null) }
     var pendingHeading by remember(localId, heading, navigationRequest) { mutableStateOf(heading) }
     var loadRemoteImages by remember(localId) { mutableStateOf(false) }
     val hasRemoteImages = remember(note?.content) {
         component.markdownRenderer.hasRemoteImages(note?.content.orEmpty())
     }
+    val hasEncryptedContent = remember(note?.content) {
+        component.markdownRenderer.hasEncryptedContent(note?.content.orEmpty())
+    }
+    val latestDraft by rememberUpdatedState(draft)
+    val latestNote by rememberUpdatedState(note)
+    val latestEditing by rememberUpdatedState(editing)
+    LaunchedEffect(note?.localId, note?.content) {
+        if (draft == null || !editing) {
+            draft = note?.let { component.draft(localId, it.content) }
+        }
+    }
+    LaunchedEffect(draft, editing) {
+        val source = draft ?: return@LaunchedEffect
+        val current = note ?: return@LaunchedEffect
+        if (!editing || source == current.content) return@LaunchedEffect
+        delay(500)
+        component.saveDraft(localId, source)
+    }
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner, localId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP && latestEditing) {
+                val source = latestDraft
+                val current = latestNote
+                if (source != null && current != null && source != current.content) {
+                    component.saveDraftInBackground(localId, source)
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            if (latestEditing) {
+                latestDraft?.let { component.saveDraftInBackground(localId, it) }
+            }
+            editorBinding?.close()
+        }
+    }
+    BackHandler(enabled = editing) {
+        val source = draft
+        if (source != null) {
+            scope.launch {
+                if (component.saveDraft(localId, source)) editing = false
+            }
+        } else {
+            editing = false
+        }
+    }
     LaunchedEffect(localId, navigationRequest) {
         if (heading == null) scrollState.scrollTo(0)
     }
-    Scaffold(topBar = { TopAppBar(title = { Text(note?.title ?: "Note") }) }) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(scrollState)) {
-            if (hasRemoteImages && !loadRemoteImages) {
-                TextButton(onClick = { loadRemoteImages = true }) { Text("Load remote images") }
-            }
-            AndroidView(
-                factory = { context -> AppCompatTextView(context) },
-                update = { view ->
-                    val source = note
-                    component.markdownRenderer.render(
-                        view = view,
-                        markdown = source?.content.orEmpty(),
-                        resolveInternalLink = { link ->
-                            source?.let { resolveInternalNoteLink(it, accountNotes, link) }
-                        },
-                        onInternalLink = onOpen,
-                        heading = if (source != null) pendingHeading else null,
-                        onHeadingPositioned = { top ->
-                            if (pendingHeading != null) {
-                                pendingHeading = null
-                                if (top != null) scope.launch { scrollState.scrollTo(top) }
-                            }
-                        },
-                        loadRemoteImages = loadRemoteImages
-                    )
-                },
-                modifier = Modifier.fillMaxWidth().padding(20.dp)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(note?.title ?: "Note") },
+                actions = {
+                    val current = note
+                    if (editing) {
+                        TextButton(
+                            onClick = {
+                                val source = draft
+                                if (source != null) {
+                                    scope.launch {
+                                        if (component.saveDraft(localId, source)) editing = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier.testTag("finish-editing")
+                        ) { Text("Done") }
+                    } else if (current != null && !current.readOnly && !hasEncryptedContent) {
+                        if (current.syncState == SyncState.FAILED) {
+                            TextButton(
+                                onClick = { scope.launch { component.retryNote(localId) } },
+                                modifier = Modifier.testTag("retry-note")
+                            ) { Text("Retry") }
+                        }
+                        if (current.syncState != SyncState.FAILED || current.remoteId != null) {
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        component.beginEditing(localId)?.let { editable ->
+                                            draft = editable.content
+                                            selectionStart = editable.content.length
+                                            selectionEnd = editable.content.length
+                                            editing = true
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.testTag("edit-note")
+                            ) { Text("Edit") }
+                        }
+                    } else if (current?.readOnly == true) {
+                        Text("Read only", modifier = Modifier.padding(horizontal = 12.dp))
+                    }
+                }
             )
         }
+    ) { padding ->
+        if (editing) {
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                note?.lastSyncError?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                        .testTag("format-toolbar")
+                ) {
+                    FormatButton("B", MarkdownFormatAction.BOLD, editor)
+                    FormatButton("I", MarkdownFormatAction.ITALIC, editor)
+                    FormatButton("S", MarkdownFormatAction.STRIKETHROUGH, editor)
+                    FormatButton("Code", MarkdownFormatAction.CODE, editor)
+                    FormatButton("Link", MarkdownFormatAction.LINK, editor)
+                    FormatButton("H", MarkdownFormatAction.HEADING, editor)
+                    FormatButton("List", MarkdownFormatAction.BULLET, editor)
+                    FormatButton("1.", MarkdownFormatAction.NUMBERED, editor)
+                    FormatButton("Task", MarkdownFormatAction.TASK, editor)
+                    FormatButton("Quote", MarkdownFormatAction.QUOTE, editor)
+                }
+                AndroidView(
+                    factory = { context ->
+                        MarkdownEditText(context).also { view ->
+                            view.id = R.id.markdown_editor
+                            view.setText(draft.orEmpty())
+                            view.setSelection(
+                                selectionStart.coerceIn(0, view.length()),
+                                selectionEnd.coerceIn(0, view.length())
+                            )
+                            view.onSelectionChanged = { start, end ->
+                                selectionStart = start
+                                selectionEnd = end
+                            }
+                            editorBinding = MarkdownEditorBinding(context, view) {
+                                component.cacheDraft(localId, it)
+                                draft = it
+                            }
+                            editor = view
+                        }
+                    },
+                    update = {},
+                    onRelease = {
+                        editorBinding?.close()
+                    },
+                    modifier = Modifier.fillMaxSize().padding(16.dp).testTag("markdown-editor")
+                )
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(scrollState)) {
+                note?.lastSyncError?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                if (hasRemoteImages && !loadRemoteImages) {
+                    TextButton(onClick = { loadRemoteImages = true }) { Text("Load remote images") }
+                }
+                AndroidView(
+                    factory = { context -> AppCompatTextView(context) },
+                    update = { view ->
+                        val source = note
+                        component.markdownRenderer.render(
+                            view = view,
+                            markdown = source?.content.orEmpty(),
+                            resolveInternalLink = { link ->
+                                source?.let { resolveInternalNoteLink(it, accountNotes, link) }
+                            },
+                            onInternalLink = onOpen,
+                            heading = if (source != null) pendingHeading else null,
+                            onHeadingPositioned = { top ->
+                                if (pendingHeading != null) {
+                                    pendingHeading = null
+                                    if (top != null) scope.launch { scrollState.scrollTo(top) }
+                                }
+                            },
+                            loadRemoteImages = loadRemoteImages
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(20.dp)
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun FormatButton(label: String, action: MarkdownFormatAction, editor: MarkdownEditText?) {
+    TextButton(onClick = { editor?.applyFormat(action) }) { Text(label) }
 }

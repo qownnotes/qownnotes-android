@@ -246,6 +246,67 @@ class RoomPullStoreTest {
         assertNotNull(database.noteDao().getByRemoteId("account-b", 42))
     }
 
+    @Test
+    fun editingDraftIncrementsRevisionAndMarksRemoteNoteModified() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+
+        assertTrue(notes.updateDraft("account-local-42", "Edited", 20))
+
+        val note = notes.get("account-local-42")!!
+        assertEquals("Edited", note.content)
+        assertEquals(1L, note.localRevision)
+        assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
+    }
+
+    @Test
+    fun staleCreateResponseAttachesRemoteIdentityWithoutReplacingNewerDraft() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.LOCALLY_CREATED).copy(
+                remoteId = null,
+                content = "Submitted",
+                localRevision = 1
+            )
+        )
+        notes.updateDraft("account-local-42", "Newer draft", 30)
+
+        RoomPushStore(database).applySuccess(
+            "account-local-42",
+            1,
+            RemoteNote(99, "remote-etag", "Canonical", "Submitted", "", 20)
+        )
+
+        val note = notes.get("account-local-42")!!
+        assertEquals(99L, note.remoteId)
+        assertEquals("remote-etag", note.remoteEtag)
+        assertEquals("Newer draft", note.content)
+        assertEquals("Submitted", note.lastSyncedContent)
+        assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
+    }
+
+    @Test
+    fun uncertainCreateFailureRequiresExplicitRetry() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.LOCALLY_CREATED).copy(remoteId = null)
+        )
+
+        RoomPushStore(
+            database
+        ).recordFailure("account-local-42", "Outcome unknown", terminal = true)
+        assertEquals(SyncState.FAILED, notes.get("account-local-42")!!.syncState)
+        assertNull(notes.beginEditing("account-local-42"))
+        assertTrue(notes.retry("account-local-42"))
+        assertEquals(SyncState.LOCALLY_CREATED, notes.get("account-local-42")!!.syncState)
+    }
+
     private fun testAccount(id: String = "account") = org.qownnotes.mobile.core.Account(
         id,
         "Account $id",

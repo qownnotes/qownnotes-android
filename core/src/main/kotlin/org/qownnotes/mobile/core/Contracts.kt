@@ -9,15 +9,29 @@ interface NoteRepository {
 
     fun observeNote(localId: String): Flow<Note?>
 
+    suspend fun get(localId: String): Note?
+
+    suspend fun pending(accountId: String): List<Note>
+
     suspend fun save(note: Note)
+
+    suspend fun beginEditing(localId: String): Note?
+
+    suspend fun updateDraft(localId: String, content: String, modifiedAtEpochSeconds: Long): Boolean
+
+    suspend fun retry(localId: String): Boolean
 }
 
-interface PullBackend {
+interface NoteBackend {
     val capabilities: BackendCapabilities
 
     suspend fun validateAccount(account: Account): String
 
     suspend fun pull(account: Account, checkpoint: PullCheckpoint): PullResult
+
+    suspend fun create(account: Account, note: Note): RemoteNote
+
+    suspend fun update(account: Account, note: Note): RemoteNote
 }
 
 interface AccountRepository {
@@ -34,6 +48,17 @@ interface AccountRepository {
 
 interface PullStore {
     suspend fun applyPull(accountId: String, result: PullResult)
+}
+
+interface PushStore {
+    suspend fun applySuccess(localId: String, submittedRevision: Long, remote: RemoteNote)
+
+    suspend fun recordFailure(
+        localId: String,
+        message: String,
+        conflict: Boolean = false,
+        terminal: Boolean = false
+    )
 }
 
 data class BackendCapabilities(

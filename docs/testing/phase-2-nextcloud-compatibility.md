@@ -20,6 +20,8 @@ Verified on 2026-09-01 at commit `f944f8f` plus the Phase 2 completion worktree:
 | SSO authorization | Passed |
 | Notes capability negotiation | Passed |
 | Initial full pull and cached note display | Passed |
+| Note creation through `POST /notes` | Passed |
+| Note update through ETag-protected `PUT /notes/{id}` | Passed using formatting controls |
 | Offline cache, reconnect, switching, and local removal flows | Passed with scripted device tests |
 
 The server, Notes app, and Nextcloud Files version numbers were not recorded during the initial
