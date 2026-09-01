@@ -276,9 +276,7 @@ private const val SSO_TRANSPORT_ERROR = 900
 
 private interface CapabilitiesApi {
     @GET("capabilities?format=json")
-    fun getCapabilities(
-        @Header("OCS-APIRequest") ocsRequest: String = "true"
-    ): Observable<ParsedResponse<OcsResponse>>
+    fun getCapabilities(): Observable<ParsedResponse<OcsResponse>>
 }
 
 internal interface NotesApi {
