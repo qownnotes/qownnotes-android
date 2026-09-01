@@ -50,4 +50,12 @@ class BackendExceptionClassificationTest {
                 BackendException.Retryable
         )
     }
+
+    @Test
+    fun unexpectedFailuresAreNotReportedAsNetworkFailures() {
+        val exception = IllegalStateException("SSO setup failed").toBackendException()
+
+        assertTrue(exception is BackendException.Protocol)
+        assertTrue(exception.message == "SSO setup failed")
+    }
 }

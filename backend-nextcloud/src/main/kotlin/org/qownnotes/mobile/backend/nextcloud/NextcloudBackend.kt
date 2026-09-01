@@ -15,6 +15,7 @@ import com.nextcloud.android.sso.exceptions.NextcloudHttpRequestFailedException
 import com.nextcloud.android.sso.exceptions.NextcloudNetworkException
 import com.nextcloud.android.sso.exceptions.TokenMismatchException
 import io.reactivex.Observable
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -255,7 +256,8 @@ internal fun Throwable.toBackendException(): BackendException = when (this) {
         "Nextcloud returned malformed JSON",
         this
     )
-    else -> BackendException.Retryable(this)
+    is IOException -> BackendException.Retryable(this)
+    else -> BackendException.Protocol(message ?: "Nextcloud request failed", this)
 }
 
 internal fun backendExceptionForHttpStatus(statusCode: Int, cause: Throwable): BackendException =
