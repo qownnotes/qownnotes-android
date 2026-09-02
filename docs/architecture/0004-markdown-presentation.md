@@ -13,3 +13,6 @@ The concrete Markwon artifacts will be selected and license-checked when Markdow
 - Rendering and editor highlighting can evolve independently.
 - Highlighting cannot alter source text, cursor position, or selection.
 - Android widget behavior does not enter the portable core.
+- The application theme must stay a `Theme.AppCompat` descendant, because the hosted AppCompat widgets take their default styles from AppCompat theme attributes. A framework-only theme leaves the editor without `focusableInTouchMode` and makes typing impossible.
+- The hosted widgets are styled from two independent sources, so Compose colors must be passed into them explicitly.
+- Editor device tests must inject real key events, because setting widget text directly bypasses input focus.

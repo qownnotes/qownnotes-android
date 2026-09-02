@@ -26,7 +26,7 @@ The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account o
 
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete; broader real-server interoperability and the configured CI device job must be verified before Phase 2 is marked fully complete.
 
-Phase 3 now has an initial end-to-end write path with offline-first note creation and Markdown source editing, asynchronous source highlighting, a formatting toolbar, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Real-server creation and formatting-triggered updates are verified; real-server title sanitization, conflict behavior, and large-note responsiveness remain to be checked.
+Phase 3 now has an initial end-to-end write path with offline-first note creation and Markdown source editing, asynchronous source highlighting, a formatting toolbar, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: undo and redo are still missing, supplemental highlighting still runs on the main thread, and large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -241,6 +241,13 @@ Jetpack Compose can host mature Android text widgets through `AndroidView`:
 - Use an `AppCompatTextView` or equivalent for Markwon-rendered viewing.
 - Use an `AppCompatEditText` or equivalent with `MarkwonEditor` for highlighted source editing.
 - Keep these Android-specific adapters behind application interfaces so they do not enter the portable domain layer.
+
+Constraints that apply when Compose hosts these widgets:
+
+- The application theme must stay a `Theme.AppCompat` descendant. AppCompat widgets resolve their default styles from AppCompat theme attributes such as `editTextStyle`, and a framework-only theme silently leaves the editor without `focusableInTouchMode`, which makes typing impossible. This caused the 2026-09-01 editing defect.
+- Do not rely on the theme alone for interactive behavior. The editor view sets its own focus and input-method flags so it keeps working if the host theme changes.
+- Hosted widgets do not follow the Compose color scheme. Pass the Compose surface colors into them explicitly, otherwise rendered and edited text becomes unreadable in dark mode.
+- Drive editor device tests with real key-event injection. Setting text directly on the widget bypasses input focus and cannot detect a non-typable editor.
 
 Do not implement the editor solely with a Compose `BasicTextField` unless profiling and a prototype demonstrate correct cursor, selection, span, input-method, and large-document behavior.
 
@@ -659,11 +666,20 @@ Implemented:
 - Changed formatting actions to replace only the changed range instead of the whole document, preserving undo history, spans, and in-progress input-method composition.
 - Applied the Compose surface text color to the hosted editor and rendered views so note text stays legible in dark mode.
 
+Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
+
+Known scope gaps:
+
+- Undo and redo are not implemented. The editor requirements in this document call for preserving undo and redo, and only the framework `EditText` undo buffer exists. It has no on-screen affordance and is unreachable on a phone without a hardware keyboard. Decide whether Phase 3 ships a toolbar undo/redo control or whether the requirement moves to a later phase.
+- Supplemental QOwnNotes highlighting runs on the main thread. `SupplementalSyntaxWatcher.afterTextChanged` scans the whole document with three regular expressions and rewrites its spans on every keystroke, so its cost grows with note length. The Markwon highlighting beside it is already pre-rendered off the main thread. This is the most likely cause of poor large-note typing latency and should be measured before being redesigned.
+- Editor highlighting has not been audited against the syntax list in the Editing Mode section of this document. Coverage of Setext headings, fence language identifiers, images, and tables in the source view is assumed from the Markwon editor plugins rather than asserted by a test.
+
 Remaining verification:
 
-- Verify canonical title sanitization and HTTP 412 conflict behavior against supported real Nextcloud and Notes server versions. Real-server `POST` creation and formatting-triggered `PUT` updates are confirmed.
-- Validate large-note editor responsiveness, non-Latin composing text, and additional software keyboards on physical devices.
-- Reconfirm typing on the OPPO CPH2653 running Android 16, where the original defect was reported.
+- Verify canonical title sanitization and HTTP 412 conflict behavior against supported real Nextcloud and Notes server versions. Only MockWebServer coverage exists for these paths. Real-server `POST` creation and formatting-triggered `PUT` updates are confirmed.
+- Measure editor responsiveness on representative large notes. No test or fixture in the repository uses a large document, so the acceptance criterion covering large-note editing is currently unverified rather than met.
+- Validate non-Latin text, input-method composing text, and additional software keyboards on physical devices.
+- Reconfirm typing on the OPPO CPH2653 running Android 16, where the original defect was reported. The fix is verified on an API 36 emulator only.
 
 Resolved physical-device issue recorded on 2026-09-01:
 
