@@ -225,8 +225,7 @@ class AppLaunchTest {
         onView(withId(R.id.markdown_editor)).perform(click())
         onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
         onView(withId(R.id.markdown_editor)).perform(typeText(" typed by hand"))
-        onView(withId(R.id.markdown_editor))
-            .check(matches(withText(containsString("typed by hand"))))
+        awaitEditorText("typed by hand")
 
         composeRule.onNodeWithTag("finish-editing").performClick()
         composeRule.waitUntil(timeoutMillis = 10_000) {
@@ -246,6 +245,8 @@ class AppLaunchTest {
         composeRule.enterEditMode()
 
         onView(withId(R.id.markdown_editor)).perform(click(), typeText("bold me"))
+        // Format the fully typed text, not whatever part of it the input method has committed.
+        awaitEditorText("bold me")
         composeRule.onNodeWithText("B").performClick()
 
         onView(withId(R.id.markdown_editor))
@@ -374,6 +375,22 @@ class AppLaunchTest {
         onNodeWithTag("edit-note").performClick()
         waitUntil(timeoutMillis = 10_000) {
             onAllNodesWithTag("markdown-editor").fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /**
+     * Espresso injects key events into the input method, which commits the resulting characters
+     * back through an asynchronous input connection. Looping the main thread until it is idle does
+     * not cover that cross-process round trip, so the last characters of [typeText] can still be in
+     * flight when the action returns. Poll the editor instead of asserting once.
+     */
+    private fun awaitEditorText(substring: String) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.runOnIdle {
+                composeRule.activity.findViewById<TextView>(R.id.markdown_editor)
+                    ?.text
+                    ?.contains(substring) == true
+            }
         }
     }
 
