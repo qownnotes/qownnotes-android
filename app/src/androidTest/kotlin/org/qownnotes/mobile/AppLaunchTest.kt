@@ -10,7 +10,9 @@ import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
+import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.ViewMatchers.hasFocus
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -185,7 +187,7 @@ class AppLaunchTest {
         composeRule.waitUntil {
             composeRule.onAllNodesWithText("Edit").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("edit-note").performClick()
+        composeRule.enterEditMode()
         onView(withId(R.id.markdown_editor)).perform(
             click(),
             replaceText("# Edited\n\nDraft text")
@@ -201,6 +203,49 @@ class AppLaunchTest {
                     .any { it.content.contains("Draft text") }
             }
         }
+    }
+
+    /**
+     * Regression test for the editor that could be displayed but never typed into. Espresso's
+     * `typeText` taps the view and then injects key events into whichever view holds input focus,
+     * so it fails unless the editor is genuinely focusable in touch mode. `replaceText` sets the
+     * text directly and therefore cannot detect that defect.
+     */
+    @Test
+    fun editorAcceptsTypedInputAfterBeingTapped() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        onView(withId(R.id.markdown_editor)).perform(click())
+        onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
+        onView(withId(R.id.markdown_editor)).perform(typeText(" typed by hand"))
+        onView(withId(R.id.markdown_editor))
+            .check(matches(withText(containsString("typed by hand"))))
+
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                application.component.noteRepository
+                    .observeNotes(testAccount("alice").localAccountId())
+                    .first()
+                    .any { it.content.contains("typed by hand") }
+            }
+        }
+    }
+
+    @Test
+    fun toolbarFormattingKeepsInputFocusInTheEditor() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        onView(withId(R.id.markdown_editor)).perform(click(), typeText("bold me"))
+        composeRule.onNodeWithText("B").performClick()
+
+        onView(withId(R.id.markdown_editor))
+            .check(matches(withText(containsString("**"))))
+            .check(matches(hasFocus()))
     }
 
     @Test
@@ -238,7 +283,7 @@ class AppLaunchTest {
     fun editorDraftSurvivesActivityRecreation() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
-        composeRule.onNodeWithTag("edit-note").performClick()
+        composeRule.enterEditMode()
         onView(withId(R.id.markdown_editor)).perform(
             click(),
             replaceText("# Edited\n\nUnsaved draft")
@@ -272,6 +317,17 @@ class AppLaunchTest {
         collectionEtag = etag,
         lastModifiedEpochSeconds = modified
     )
+
+    /**
+     * Entering edit mode loads the editable note asynchronously, so the editor view only exists
+     * after a later recomposition. Espresso does not observe Compose work, so wait explicitly.
+     */
+    private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.enterEditMode() {
+        onNodeWithTag("edit-note").performClick()
+        waitUntil(timeoutMillis = 10_000) {
+            onAllNodesWithTag("markdown-editor").fetchSemanticsNodes().isNotEmpty()
+        }
+    }
 
     private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.waitForText(
         text: String

@@ -1,7 +1,12 @@
 <resources>
-    <style name="Theme.QOwnNotes" parent="android:style/Theme.Material.Light.NoActionBar">
+    <!--
+        Must stay an AppCompat descendant. The hosted `AppCompatEditText` and `AppCompatTextView`
+        resolve their default styles from AppCompat theme attributes such as `editTextStyle`.
+        A framework-only theme leaves those attributes undefined, which strips the editor of
+        `focusableInTouchMode` and makes typing impossible.
+    -->
+    <style name="Theme.QOwnNotes" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:windowLightStatusBar">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 </resources>

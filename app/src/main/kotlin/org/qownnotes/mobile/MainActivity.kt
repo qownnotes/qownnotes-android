@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -41,6 +42,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -475,6 +477,7 @@ private fun NoteDetailScreen(
     val hasEncryptedContent = remember(note?.content) {
         component.markdownRenderer.hasEncryptedContent(note?.content.orEmpty())
     }
+    val editorTextColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val latestDraft by rememberUpdatedState(draft)
     val latestNote by rememberUpdatedState(note)
     val latestEditing by rememberUpdatedState(editing)
@@ -570,7 +573,7 @@ private fun NoteDetailScreen(
         }
     ) { padding ->
         if (editing) {
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Column(modifier = Modifier.fillMaxSize().padding(padding).imePadding()) {
                 note?.lastSyncError?.let {
                     Text(
                         it,
@@ -611,11 +614,19 @@ private fun NoteDetailScreen(
                                 draft = it
                             }
                             editor = view
+                            view.focusForInput()
                         }
                     },
-                    update = {},
-                    onRelease = {
+                    update = { view ->
+                        if (view.currentTextColor != editorTextColor) {
+                            view.setTextColor(editorTextColor)
+                        }
+                    },
+                    onRelease = { view ->
                         editorBinding?.close()
+                        editorBinding = null
+                        editor = null
+                        view.releaseInputFocus()
                     },
                     modifier = Modifier.fillMaxSize().padding(16.dp).testTag("markdown-editor")
                 )
@@ -636,6 +647,9 @@ private fun NoteDetailScreen(
                     factory = { context -> AppCompatTextView(context) },
                     update = { view ->
                         val source = note
+                        if (view.currentTextColor != editorTextColor) {
+                            view.setTextColor(editorTextColor)
+                        }
                         component.markdownRenderer.render(
                             view = view,
                             markdown = source?.content.orEmpty(),
@@ -662,5 +676,12 @@ private fun NoteDetailScreen(
 
 @Composable
 private fun FormatButton(label: String, action: MarkdownFormatAction, editor: MarkdownEditText?) {
-    TextButton(onClick = { editor?.applyFormat(action) }) { Text(label) }
+    TextButton(
+        onClick = {
+            editor?.applyFormat(action)
+            // Tapping a Compose button moves focus away from the embedded editor, which closes
+            // the keyboard. Hand focus back so formatting does not interrupt typing.
+            editor?.focusForInput()
+        }
+    ) { Text(label) }
 }

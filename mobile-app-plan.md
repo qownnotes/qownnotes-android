@@ -26,7 +26,7 @@ The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account o
 
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete; broader real-server interoperability and the configured CI device job must be verified before Phase 2 is marked fully complete.
 
-Phase 3 now has an initial end-to-end write path with offline-first note creation and Markdown source editing, asynchronous source highlighting, a formatting toolbar, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Real-server creation and formatting-triggered updates are verified, but physical-device editor focus and keyboard input must be fixed before Phase 3 is complete.
+Phase 3 now has an initial end-to-end write path with offline-first note creation and Markdown source editing, asynchronous source highlighting, a formatting toolbar, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Real-server creation and formatting-triggered updates are verified; real-server title sanitization, conflict behavior, and large-note responsiveness remain to be checked.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -652,19 +652,24 @@ Implemented:
 - Added Notes API `POST` creation and `PUT` updates with quoted `If-Match` ETags, strict canonical-response validation, and explicit conflict, missing-note, and insufficient-storage failures.
 - Added transactional canonical response application that adopts server IDs, ETags, and sanitized titles while preserving newer local content.
 - Added API, migration, repository, formatting, highlighting, read-only, creation, editing, and recreation coverage.
+- Fixed the editor focus and IME defect recorded on 2026-09-01. `AppCompatEditText` resolves its default style from the AppCompat `editTextStyle` theme attribute, which only exists in `Theme.AppCompat` descendants. The application theme derived from the framework `Theme.Material.Light.NoActionBar`, so `Widget.AppCompat.EditText` was never applied and the editor was left focusable but not focusable in touch mode, making a cursor and keyboard unreachable by tapping.
+- Rebased the application theme on `Theme.AppCompat.DayNight.NoActionBar` so hosted AppCompat widgets get their intended styles and follow the system dark mode like the Compose theme.
+- Set the interactive flags on `MarkdownEditText` itself so editing no longer depends on the hosting theme, and removed the inherited widget background because Compose supplies the editor surface.
+- Added focus and keyboard activation when edit mode opens, focus restoration after formatting-toolbar actions, keyboard dismissal when the editor is released, and IME insets so the keyboard cannot cover the editor.
+- Changed formatting actions to replace only the changed range instead of the whole document, preserving undo history, spans, and in-progress input-method composition.
+- Applied the Compose surface text color to the hosted editor and rendered views so note text stays legible in dark mode.
 
 Remaining verification:
 
-- Fix native editor focus and IME activation: on the OPPO CPH2653 running Android 16, entering edit mode displays the editor and formatting controls but tapping the source does not show a cursor or keyboard.
-- Verify direct typing, cursor movement, selection, and representative software keyboards on physical devices after the focus fix.
 - Verify canonical title sanitization and HTTP 412 conflict behavior against supported real Nextcloud and Notes server versions. Real-server `POST` creation and formatting-triggered `PUT` updates are confirmed.
-- Validate large-note editor responsiveness and additional input methods on physical devices.
+- Validate large-note editor responsiveness, non-Latin composing text, and additional software keyboards on physical devices.
+- Reconfirm typing on the OPPO CPH2653 running Android 16, where the original defect was reported.
 
-Known physical-device issue recorded on 2026-09-01:
+Resolved physical-device issue recorded on 2026-09-01:
 
 - The user was not able to write text into a note because the editor never displayed a cursor or opened the software keyboard.
 - The formatting toolbar did modify the note, and **Done** successfully synchronized that modified note to the real Nextcloud server.
-- The next Phase 3 task is to fix editor focus, cursor, and IME behavior before adding further editing features.
+- The device test suite did not catch this because it drove the editor with Espresso `replaceText`, which sets text directly and never requires input focus. It now taps the editor, asserts focus, and injects real key events with `typeText`, and a `markdown-android` test asserts the editor stays focusable in touch mode under a non-AppCompat theme.
 
 ### Phase 4: Synchronization Safety
 

@@ -9,6 +9,8 @@ import android.text.TextWatcher
 import android.text.style.ForegroundColorSpan
 import android.util.AttributeSet
 import android.view.Gravity
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.widget.AppCompatEditText
 import io.noties.markwon.Markwon
 import io.noties.markwon.editor.MarkwonEditor
@@ -99,20 +101,79 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
         gravity = Gravity.TOP or Gravity.START
         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
             InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN
         setHorizontallyScrolling(false)
+        // `AppCompatEditText` takes its default style from the AppCompat `editTextStyle` theme
+        // attribute. A host theme that is not an AppCompat descendant leaves that attribute
+        // undefined, so `Widget.AppCompat.EditText` is never applied and the view stays
+        // non-focusable in touch mode: tapping it would never show a cursor or the keyboard.
+        // These flags make interactive editing independent of the hosting theme.
+        isFocusable = true
+        isFocusableInTouchMode = true
+        isClickable = true
+        isLongClickable = true
+        isCursorVisible = true
+        showSoftInputOnFocus = true
+        // The editor fills a Compose surface that already supplies padding and background.
+        background = null
+    }
+
+    /** Gives the editor input focus and asks the input method to open. */
+    fun focusForInput() {
+        val request = Runnable {
+            if (isFocused || requestFocus()) {
+                inputMethodManager()?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
+        if (isAttachedToWindow && hasWindowFocus()) request.run() else post(request)
+    }
+
+    /** Releases input focus and hides the input method when editing stops. */
+    fun releaseInputFocus() {
+        inputMethodManager()?.hideSoftInputFromWindow(windowToken, 0)
+        clearFocus()
     }
 
     fun applyFormat(action: MarkdownFormatAction) {
-        val edit =
-            applyMarkdownFormat(text?.toString().orEmpty(), selectionStart, selectionEnd, action)
-        text?.replace(0, text?.length ?: 0, edit.text)
-        setSelection(edit.selectionStart, edit.selectionEnd)
+        val editable = text ?: return
+        val source = editable.toString()
+        val edit = applyMarkdownFormat(
+            source,
+            selectionStart.coerceAtLeast(0),
+            selectionEnd.coerceAtLeast(0),
+            action
+        )
+        // Replace only the changed range so undo history, spans, and any in-progress input-method
+        // composition outside that range survive the formatting action.
+        replaceChangedRange(editable, source, edit.text)
+        setSelection(
+            edit.selectionStart.coerceIn(0, editable.length),
+            edit.selectionEnd.coerceIn(0, editable.length)
+        )
     }
 
     override fun onSelectionChanged(selStart: Int, selEnd: Int) {
         super.onSelectionChanged(selStart, selEnd)
         onSelectionChanged?.invoke(selStart, selEnd)
     }
+
+    private fun inputMethodManager() =
+        context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+}
+
+internal fun replaceChangedRange(target: Editable, before: String, after: String) {
+    if (before == after) return
+    val shortest = minOf(before.length, after.length)
+    var prefix = 0
+    while (prefix < shortest && before[prefix] == after[prefix]) prefix++
+    var suffix = 0
+    while (
+        suffix < shortest - prefix &&
+        before[before.length - 1 - suffix] == after[after.length - 1 - suffix]
+    ) {
+        suffix++
+    }
+    target.replace(prefix, before.length - suffix, after.substring(prefix, after.length - suffix))
 }
 
 class MarkdownEditorBinding(
