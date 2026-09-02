@@ -368,10 +368,13 @@ class AppLaunchTest {
     )
 
     /**
-     * Entering edit mode loads the editable note asynchronously, so the editor view only exists
-     * after a later recomposition. Espresso does not observe Compose work, so wait explicitly.
+     * Opening a note loads it from the repository, and the edit action appears only once that flow
+     * has emitted. Entering edit mode then loads the editable note asynchronously as well, so the
+     * editor view only exists after a later recomposition. Espresso does not observe Compose work,
+     * so wait for both steps explicitly.
      */
     private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.enterEditMode() {
+        waitForTag("edit-note")
         onNodeWithTag("edit-note").performClick()
         waitUntil(timeoutMillis = 10_000) {
             onAllNodesWithTag("markdown-editor").fetchSemanticsNodes().isNotEmpty()
