@@ -1,3 +1,4 @@
 <resources>
     <item name="markdown_editor" type="id" />
+    <item name="markdown_view" type="id" />
 </resources>

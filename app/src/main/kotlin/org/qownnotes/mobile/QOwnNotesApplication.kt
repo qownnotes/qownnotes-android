@@ -65,7 +65,8 @@ class ApplicationComponent(
         Room.databaseBuilder(application, QOwnNotesDatabase::class.java, "qownnotes.db")
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build(),
-    private val backend: NoteBackend = NextcloudBackend(application)
+    private val backend: NoteBackend = NextcloudBackend(application),
+    val settings: AppSettings = AppSettings(application)
 ) {
     val noteRepository = RoomNoteRepository(database.noteDao())
     val accountRepository = RoomAccountRepository(database.accountDao())

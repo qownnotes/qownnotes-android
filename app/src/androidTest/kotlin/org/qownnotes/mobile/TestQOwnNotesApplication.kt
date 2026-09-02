@@ -28,7 +28,9 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
                 .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .allowMainThreadQueries()
                 .build()
-        return ApplicationComponent(this, database, fakeBackend)
+        // A dedicated preference file keeps device tests from reading or writing real user
+        // settings, and lets `reset` restore defaults without touching the production store.
+        return ApplicationComponent(this, database, fakeBackend, AppSettings(this, TEST_SETTINGS))
     }
 
     override fun createAccountImportGateway(): AccountImportGateway = fakeAccountImporter
@@ -38,12 +40,14 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
             component.removeLocalData(account.id)
         }
         component.cancelAccountImport()
+        component.settings.resetNoteTextSize()
         fakeBackend.reset()
         fakeAccountImporter.reset()
     }
 
     private companion object {
         const val TEST_DATABASE = "qownnotes-device-test.db"
+        const val TEST_SETTINGS = "qownnotes-device-test-settings"
     }
 }
 

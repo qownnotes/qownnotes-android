@@ -2,6 +2,7 @@ package org.qownnotes.mobile
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.TypedValue
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -45,6 +46,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -65,6 +68,7 @@ import org.qownnotes.mobile.markdown.MarkdownEditText
 import org.qownnotes.mobile.markdown.MarkdownEditorBinding
 import org.qownnotes.mobile.markdown.MarkdownFormatAction
 import org.qownnotes.mobile.markdown.MarkdownRenderer
+import org.qownnotes.mobile.markdown.NoteTextSize
 
 class MainActivity : ComponentActivity() {
     private var reconnectAccountId: String? = null
@@ -468,6 +472,7 @@ private fun NoteDetailScreen(
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
+    var renderedView by remember { mutableStateOf<AppCompatTextView?>(null) }
     var editorBinding by remember { mutableStateOf<MarkdownEditorBinding?>(null) }
     var pendingHeading by remember(localId, heading, navigationRequest) { mutableStateOf(heading) }
     var loadRemoteImages by remember(localId) { mutableStateOf(false) }
@@ -478,6 +483,16 @@ private fun NoteDetailScreen(
         component.markdownRenderer.hasEncryptedContent(note?.content.orEmpty())
     }
     val editorTextColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    val noteTextSizeSp by component.settings.noteTextSizeSp.collectAsStateWithLifecycle()
+    // Applied from a composition effect rather than from an `AndroidView` update block. An update
+    // block that observes this value is rescheduled through the holder's `View.getHandler()`,
+    // which is null while the view is detached, and the view/edit transition detaches one of them.
+    LaunchedEffect(noteTextSizeSp, editor, renderedView) {
+        editor?.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
+        // Markwon sizes headings and code relative to the view's own text size, so the existing
+        // spans rescale without re-rendering the note.
+        renderedView?.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
+    }
     val latestDraft by rememberUpdatedState(draft)
     val latestNote by rememberUpdatedState(note)
     val latestEditing by rememberUpdatedState(editing)
@@ -531,6 +546,20 @@ private fun NoteDetailScreen(
                 title = { Text(note?.title ?: "Note") },
                 actions = {
                     val current = note
+                    NoteTextSizeButton(
+                        label = "A-",
+                        description = "Decrease note text size",
+                        testTag = "decrease-note-text-size",
+                        enabled = NoteTextSize.canDecrease(noteTextSizeSp),
+                        onClick = component.settings::decreaseNoteTextSize
+                    )
+                    NoteTextSizeButton(
+                        label = "A+",
+                        description = "Increase note text size",
+                        testTag = "increase-note-text-size",
+                        enabled = NoteTextSize.canIncrease(noteTextSizeSp),
+                        onClick = component.settings::increaseNoteTextSize
+                    )
                     if (editing) {
                         TextButton(
                             onClick = {
@@ -600,6 +629,7 @@ private fun NoteDetailScreen(
                     factory = { context ->
                         MarkdownEditText(context).also { view ->
                             view.id = R.id.markdown_editor
+                            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
                             view.setText(draft.orEmpty())
                             view.setSelection(
                                 selectionStart.coerceIn(0, view.length()),
@@ -644,7 +674,14 @@ private fun NoteDetailScreen(
                     TextButton(onClick = { loadRemoteImages = true }) { Text("Load remote images") }
                 }
                 AndroidView(
-                    factory = { context -> AppCompatTextView(context) },
+                    factory = { context ->
+                        AppCompatTextView(context).also {
+                            it.id = R.id.markdown_view
+                            it.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
+                            renderedView = it
+                        }
+                    },
+                    onRelease = { renderedView = null },
                     update = { view ->
                         val source = note
                         if (view.currentTextColor != editorTextColor) {
@@ -667,11 +704,29 @@ private fun NoteDetailScreen(
                             loadRemoteImages = loadRemoteImages
                         )
                     },
-                    modifier = Modifier.fillMaxWidth().padding(20.dp)
+                    modifier = Modifier.fillMaxWidth().padding(20.dp).testTag("markdown-view")
                 )
             }
         }
     }
+}
+
+/**
+ * `A-` and `A+` read as single letters to a screen reader, so both carry an explicit description.
+ */
+@Composable
+private fun NoteTextSizeButton(
+    label: String,
+    description: String,
+    testTag: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.testTag(testTag).semantics { contentDescription = description }
+    ) { Text(label) }
 }
 
 @Composable

@@ -1,6 +1,9 @@
 package org.qownnotes.mobile
 
+import android.widget.TextView
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -23,6 +26,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -30,6 +34,7 @@ import org.junit.runner.RunWith
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
+import org.qownnotes.mobile.markdown.NoteTextSize
 
 @RunWith(AndroidJUnit4::class)
 class AppLaunchTest {
@@ -249,6 +254,49 @@ class AppLaunchTest {
     }
 
     @Test
+    fun noteTextSizeCanBeIncreasedAndSurvivesRecreation() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        val initial = textSizeOf(R.id.markdown_view)
+        composeRule.onNodeWithTag("increase-note-text-size").performClick()
+        val increased = textSizeOf(R.id.markdown_view)
+        assertTrue("expected $increased to exceed $initial", increased > initial)
+
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForTag("markdown-view")
+        assertEquals(increased, textSizeOf(R.id.markdown_view), 0.5f)
+    }
+
+    @Test
+    fun noteTextSizeAlsoAppliesToTheEditor() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        val initial = textSizeOf(R.id.markdown_editor)
+        composeRule.onNodeWithTag("increase-note-text-size").performClick()
+        assertTrue(textSizeOf(R.id.markdown_editor) > initial)
+    }
+
+    @Test
+    fun noteTextSizeStopsAtItsSmallestStep() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        // Clicking past the smallest step must saturate rather than shrink without bound.
+        repeat(NoteTextSize.steps.size + 2) {
+            composeRule.onNodeWithTag("decrease-note-text-size").performClick()
+        }
+
+        composeRule.onNodeWithTag("decrease-note-text-size").assertIsNotEnabled()
+        // Reading stays possible at the smallest step, and enlarging is still offered.
+        composeRule.onNodeWithTag("increase-note-text-size").assertIsEnabled()
+    }
+
+    @Test
     fun readOnlyNoteCannotEnterEditingMode() {
         val account = testAccount("alice")
         application.fakeAccountImporter.enqueue(account)
@@ -326,6 +374,20 @@ class AppLaunchTest {
         onNodeWithTag("edit-note").performClick()
         waitUntil(timeoutMillis = 10_000) {
             onAllNodesWithTag("markdown-editor").fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun textSizeOf(viewId: Int): Float {
+        var size = 0f
+        onView(withId(viewId)).check { view, _ -> size = (view as TextView).textSize }
+        return size
+    }
+
+    private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.waitForTag(
+        tag: String
+    ) {
+        waitUntil(timeoutMillis = 10_000) {
+            onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
         }
     }
 

@@ -109,6 +109,7 @@ The first usable Android release must provide:
 - Detect concurrent server changes using ETags.
 - Preserve local content when synchronization fails.
 - Support light and dark themes.
+- Let the reader adjust the note body text size and remember that choice.
 - Handle rotation, navigation, and process recreation without losing editor text.
 
 ## First-Release Non-Goals
@@ -199,6 +200,20 @@ Viewing mode displays fully rendered Markdown and must support:
 
 External links should open through the operating system. Internal note links should navigate inside the application. Broken internal links should be visually distinguishable.
 
+### Note Text Size
+
+Readers must be able to enlarge note text without enlarging the rest of the interface.
+
+- Adjust the size with `A-` and `A+` controls on the note screen, so the control is where the reading happens.
+- Apply the size to both the rendered note and the Markdown source editor.
+- Persist the choice for the whole application and restore it after process death.
+- Use discrete steps and saturate at both ends rather than scaling without bound.
+- Express sizes in scale-independent pixels so the setting composes with the system font size instead of replacing it. A reader who has already enlarged system text keeps that enlargement.
+- Leave note titles, the note list, and application chrome at system size.
+- Give the controls explicit accessibility descriptions, because `A-` and `A+` are announced as single letters.
+
+Presentation preferences of this kind are device-local and are not synchronized, so they belong in `SharedPreferences` rather than in the Room schema that models note content.
+
 ### Editing Mode
 
 Editing mode keeps the Markdown source visible and applies live syntax highlighting. It is not a WYSIWYG editor.
@@ -248,6 +263,7 @@ Constraints that apply when Compose hosts these widgets:
 - Do not rely on the theme alone for interactive behavior. The editor view sets its own focus and input-method flags so it keeps working if the host theme changes.
 - Hosted widgets do not follow the Compose color scheme. Pass the Compose surface colors into them explicitly, otherwise rendered and edited text becomes unreadable in dark mode.
 - Drive editor device tests with real key-event injection. Setting text directly on the widget bypasses input focus and cannot detect a non-typable editor.
+- Do not observe frequently changing state inside an `AndroidView` update block. Compose reschedules that block through the holder's `View.getHandler()`, which is null while the view is detached, so a state change during a screen transition crashes. Apply such values from a composition effect against a remembered view reference instead.
 
 Do not implement the editor solely with a Compose `BasicTextField` unless profiling and a prototype demonstrate correct cursor, selection, span, input-method, and large-document behavior.
 
@@ -665,6 +681,7 @@ Implemented:
 - Added focus and keyboard activation when edit mode opens, focus restoration after formatting-toolbar actions, keyboard dismissal when the editor is released, and IME insets so the keyboard cannot cover the editor.
 - Changed formatting actions to replace only the changed range instead of the whole document, preserving undo history, spans, and in-progress input-method composition.
 - Applied the Compose surface text color to the hosted editor and rendered views so note text stays legible in dark mode.
+- Added an adjustable note text size, requested during Phase 3 rather than planned. `A-` and `A+` controls on the note screen step through discrete `sp` sizes, apply to both the rendered note and the source editor, persist in `SharedPreferences`, survive process death, and carry accessibility descriptions. Rendered headings and code rescale without re-rendering because Markwon sizes them relative to the view.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 
@@ -673,6 +690,7 @@ Known scope gaps:
 - Undo and redo are not implemented. The editor requirements in this document call for preserving undo and redo, and only the framework `EditText` undo buffer exists. It has no on-screen affordance and is unreachable on a phone without a hardware keyboard. Decide whether Phase 3 ships a toolbar undo/redo control or whether the requirement moves to a later phase.
 - Supplemental QOwnNotes highlighting runs on the main thread. `SupplementalSyntaxWatcher.afterTextChanged` scans the whole document with three regular expressions and rewrites its spans on every keystroke, so its cost grows with note length. The Markwon highlighting beside it is already pre-rendered off the main thread. This is the most likely cause of poor large-note typing latency and should be measured before being redesigned.
 - Editor highlighting has not been audited against the syntax list in the Editing Mode section of this document. Coverage of Setext headings, fence language identifiers, images, and tables in the source view is assumed from the Markwon editor plugins rather than asserted by a test.
+- The note text size is the first user preference, and it introduced the only preference storage in the project. Later settings should either reuse `AppSettings` or replace it deliberately; it should not be duplicated per feature. There is still no settings screen, so a preference without an obvious in-context control has nowhere to live.
 
 Remaining verification:
 
