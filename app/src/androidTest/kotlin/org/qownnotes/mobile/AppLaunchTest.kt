@@ -10,6 +10,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
@@ -329,6 +331,40 @@ class AppLaunchTest {
     }
 
     @Test
+    fun findInNoteCountsCyclesAndClearsMatches() {
+        importAccount(
+            "alice",
+            "Recipe",
+            "etag-1",
+            10,
+            "# Recipe\n\nAdd salt, then more salt, and finally taste the **salt**.\n"
+        )
+        composeRule.onNodeWithText("Recipe").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        composeRule.onNodeWithTag("find-in-note").performClick()
+        composeRule.onNodeWithTag("note-find-field").performTextInput("SALT")
+
+        // The rendered note is searched, so the emphasized occurrence counts once and its
+        // surrounding source markers are not part of the text.
+        composeRule.waitForText("1 of 3")
+        composeRule.onNodeWithTag("find-next").performClick()
+        composeRule.onNodeWithText("2 of 3").assertIsDisplayed()
+        composeRule.onNodeWithTag("find-previous").performClick()
+        composeRule.onNodeWithText("1 of 3").assertIsDisplayed()
+        // Moving back past the first match wraps around to the last one.
+        composeRule.onNodeWithTag("find-previous").performClick()
+        composeRule.onNodeWithText("3 of 3").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("note-find-field").performTextReplacement("pepper")
+        composeRule.waitForText("No matches")
+        composeRule.onNodeWithTag("find-next").assertIsNotEnabled()
+
+        composeRule.onNodeWithTag("close-find").performClick()
+        composeRule.onNodeWithTag("note-find-field").assertDoesNotExist()
+    }
+
+    @Test
     fun editorDraftSurvivesActivityRecreation() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
@@ -348,11 +384,12 @@ class AppLaunchTest {
         user: String,
         title: String,
         etag: String,
-        modified: Long
+        modified: Long,
+        content: String = "# $title"
     ): SingleSignOnAccount {
         val account = testAccount(user)
         application.fakeAccountImporter.enqueue(account)
-        application.fakeBackend.enqueue(account, pull(title, etag, modified))
+        application.fakeBackend.enqueue(account, pull(title, etag, modified, content))
         composeRule.onNodeWithTag("add-account").performClick()
         composeRule.waitForText(title)
         return account
@@ -361,11 +398,12 @@ class AppLaunchTest {
     private fun testAccount(user: String) =
         SingleSignOnAccount(user, user, "test-token", "https://cloud.example", "nextcloud")
 
-    private fun pull(title: String, etag: String, modified: Long) = PullResult(
-        notes = listOf(RemoteNote(42, etag, title, "# $title", "", modified)),
-        collectionEtag = etag,
-        lastModifiedEpochSeconds = modified
-    )
+    private fun pull(title: String, etag: String, modified: Long, content: String = "# $title") =
+        PullResult(
+            notes = listOf(RemoteNote(42, etag, title, content, "", modified)),
+            collectionEtag = etag,
+            lastModifiedEpochSeconds = modified
+        )
 
     /**
      * Opening a note loads it from the repository, and the edit action appears only once that flow

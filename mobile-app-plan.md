@@ -110,6 +110,7 @@ The first usable Android release must provide:
 - Preserve local content when synchronization fails.
 - Support light and dark themes.
 - Let the reader adjust the note body text size and remember that choice.
+- Find text inside the note that is open.
 - Handle rotation, navigation, and process recreation without losing editor text.
 
 ## First-Release Non-Goals
@@ -213,6 +214,18 @@ Readers must be able to enlarge note text without enlarging the rest of the inte
 - Give the controls explicit accessibility descriptions, because `A-` and `A+` are announced as single letters.
 
 Presentation preferences of this kind are device-local and are not synchronized, so they belong in `SharedPreferences` rather than in the Room schema that models note content.
+
+### Finding Text in a Note
+
+Notes grow long, and the note list search only says which note contains a word, not where.
+
+- Open a find bar from the note screen and keep it visible above the note while the note scrolls.
+- Search what the reader sees. The rendered note no longer contains the Markdown markers, and its offsets differ from the source offsets, so the source cannot address the rendered text.
+- Match literally and case-insensitively, without overlapping matches, so a query can contain Markdown punctuation and every match is exactly as long as the query.
+- Mark every match, mark the current one differently, and scroll it into sight.
+- Report the position in the matches, such as `2 of 7`, and say when there are none.
+- Move to the next and previous match and wrap around at both ends.
+- Leave the note untouched: finding text may only add and remove its own spans.
 
 ### Editing Mode
 
@@ -682,6 +695,7 @@ Implemented:
 - Changed formatting actions to replace only the changed range instead of the whole document, preserving undo history, spans, and in-progress input-method composition.
 - Applied the Compose surface text color to the hosted editor and rendered views so note text stays legible in dark mode.
 - Added an adjustable note text size, requested during Phase 3 rather than planned. `A-` and `A+` controls on the note screen step through discrete `sp` sizes, apply to both the rendered note and the source editor, persist in `SharedPreferences`, survive process death, and carry accessibility descriptions. Rendered headings and code rescale without re-rendering because Markwon sizes them relative to the view.
+- Added finding text inside the open note, requested during Phase 3 rather than planned. A find bar on the note screen marks every match in the rendered note, marks and scrolls to the current one, reports the position in the matches, and wraps around at both ends. Matching is portable policy in `core`; only the span application and the offset lookup are Android. The find highlights are a private span type, so they can be removed again without disturbing the Markdown spans they are drawn over.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 
@@ -690,6 +704,7 @@ Known scope gaps:
 - Undo and redo are not implemented. The editor requirements in this document call for preserving undo and redo, and only the framework `EditText` undo buffer exists. It has no on-screen affordance and is unreachable on a phone without a hardware keyboard. Decide whether Phase 3 ships a toolbar undo/redo control or whether the requirement moves to a later phase.
 - Supplemental QOwnNotes highlighting runs on the main thread. `SupplementalSyntaxWatcher.afterTextChanged` scans the whole document with three regular expressions and rewrites its spans on every keystroke, so its cost grows with note length. The Markwon highlighting beside it is already pre-rendered off the main thread. This is the most likely cause of poor large-note typing latency and should be measured before being redesigned.
 - Editor highlighting has not been audited against the syntax list in the Editing Mode section of this document. Coverage of Setext headings, fence language identifiers, images, and tables in the source view is assumed from the Markwon editor plugins rather than asserted by a test.
+- Finding text works while reading a note but not while editing one. The editor shows the Markdown source, so it needs its own matching pass and its own way of moving the caret to a match, and the find bar would compete with the formatting toolbar and the keyboard for space. Decide whether the editor gets its own find affordance before this is called complete.
 - The note text size is the first user preference, and it introduced the only preference storage in the project. Later settings should either reuse `AppSettings` or replace it deliberately; it should not be duplicated per feature. There is still no settings screen, so a preference without an obvious in-context control has nowhere to live.
 
 Remaining verification:

@@ -15,4 +15,6 @@ The concrete Markwon artifacts will be selected and license-checked when Markdow
 - Android widget behavior does not enter the portable core.
 - The application theme must stay a `Theme.AppCompat` descendant, because the hosted AppCompat widgets take their default styles from AppCompat theme attributes. A framework-only theme leaves the editor without `focusableInTouchMode` and makes typing impossible.
 - The hosted widgets are styled from two independent sources, so Compose colors must be passed into them explicitly.
+- Anything that marks up a note for the reader, such as finding text in it, works on the rendered text. Rendering removes the source markers and shifts every offset, so source offsets cannot address the rendered note.
+- A rendered note is held in a `SpannableString`, which has no watchers. Spans added to it after rendering must invalidate the view explicitly or they stay invisible.
 - Editor device tests must inject real key events, because setting widget text directly bypasses input focus.

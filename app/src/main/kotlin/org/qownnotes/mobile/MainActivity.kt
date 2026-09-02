@@ -42,7 +42,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -68,7 +72,10 @@ import org.qownnotes.mobile.markdown.MarkdownEditText
 import org.qownnotes.mobile.markdown.MarkdownEditorBinding
 import org.qownnotes.mobile.markdown.MarkdownFormatAction
 import org.qownnotes.mobile.markdown.MarkdownRenderer
+import org.qownnotes.mobile.markdown.NoteSearchColors
 import org.qownnotes.mobile.markdown.NoteTextSize
+import org.qownnotes.mobile.markdown.highlightNoteSearchMatches
+import org.qownnotes.mobile.markdown.noteSearchMatchTop
 
 class MainActivity : ComponentActivity() {
     private var reconnectAccountId: String? = null
@@ -476,6 +483,11 @@ private fun NoteDetailScreen(
     var editorBinding by remember { mutableStateOf<MarkdownEditorBinding?>(null) }
     var pendingHeading by remember(localId, heading, navigationRequest) { mutableStateOf(heading) }
     var loadRemoteImages by remember(localId) { mutableStateOf(false) }
+    var finding by rememberSaveable(localId) { mutableStateOf(false) }
+    var findQuery by rememberSaveable(localId) { mutableStateOf("") }
+    var currentMatch by rememberSaveable(localId) { mutableStateOf(0) }
+    var matches by remember(localId) { mutableStateOf(emptyList<IntRange>()) }
+    val renderedNote = remember(localId) { RenderedNote() }
     val hasRemoteImages = remember(note?.content) {
         component.markdownRenderer.hasRemoteImages(note?.content.orEmpty())
     }
@@ -483,6 +495,12 @@ private fun NoteDetailScreen(
         component.markdownRenderer.hasEncryptedContent(note?.content.orEmpty())
     }
     val editorTextColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    val searchColors = NoteSearchColors(
+        matchBackground = MaterialTheme.colorScheme.secondaryContainer.toArgb(),
+        matchText = MaterialTheme.colorScheme.onSecondaryContainer.toArgb(),
+        currentBackground = MaterialTheme.colorScheme.primary.toArgb(),
+        currentText = MaterialTheme.colorScheme.onPrimary.toArgb()
+    )
     val noteTextSizeSp by component.settings.noteTextSizeSp.collectAsStateWithLifecycle()
     // Applied from a composition effect rather than from an `AndroidView` update block. An update
     // block that observes this value is rescheduled through the holder's `View.getHandler()`,
@@ -537,8 +555,25 @@ private fun NoteDetailScreen(
             editing = false
         }
     }
+    BackHandler(enabled = finding && !editing) {
+        finding = false
+        findQuery = ""
+        currentMatch = 0
+    }
     LaunchedEffect(localId, navigationRequest) {
         if (heading == null) scrollState.scrollTo(0)
+    }
+    LaunchedEffect(matches, currentMatch, renderedView) {
+        val view = renderedView ?: return@LaunchedEffect
+        val match = matches.getOrNull(currentMatch) ?: return@LaunchedEffect
+        // A note that has just been rendered has no layout yet, and offsets cannot be resolved
+        // before it has one, so give the view a frame to be measured.
+        val top = noteSearchMatchTop(view, match)
+            ?: run {
+                withFrameNanos { }
+                noteSearchMatchTop(view, match)
+            }
+        top?.let { scrollState.scrollTo(it) }
     }
     Scaffold(
         topBar = {
@@ -546,20 +581,32 @@ private fun NoteDetailScreen(
                 title = { Text(note?.title ?: "Note") },
                 actions = {
                     val current = note
-                    NoteTextSizeButton(
+                    CompactActionButton(
                         label = "A-",
                         description = "Decrease note text size",
                         testTag = "decrease-note-text-size",
                         enabled = NoteTextSize.canDecrease(noteTextSizeSp),
                         onClick = component.settings::decreaseNoteTextSize
                     )
-                    NoteTextSizeButton(
+                    CompactActionButton(
                         label = "A+",
                         description = "Increase note text size",
                         testTag = "increase-note-text-size",
                         enabled = NoteTextSize.canIncrease(noteTextSizeSp),
                         onClick = component.settings::increaseNoteTextSize
                     )
+                    if (!editing) {
+                        TextButton(
+                            onClick = {
+                                finding = !finding
+                                if (!finding) {
+                                    findQuery = ""
+                                    currentMatch = 0
+                                }
+                            },
+                            modifier = Modifier.testTag("find-in-note")
+                        ) { Text("Find") }
+                    }
                     if (editing) {
                         TextButton(
                             onClick = {
@@ -662,60 +709,198 @@ private fun NoteDetailScreen(
                 )
             }
         } else {
-            Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(scrollState)) {
-                note?.lastSyncError?.let {
-                    Text(
-                        it,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp)
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                if (finding) {
+                    FindInNoteBar(
+                        query = findQuery,
+                        matchCount = matches.size,
+                        currentMatch = currentMatch,
+                        onQueryChange = {
+                            findQuery = it
+                            currentMatch = 0
+                        },
+                        onPrevious = {
+                            if (matches.isNotEmpty()) {
+                                currentMatch = (currentMatch + matches.size - 1) % matches.size
+                            }
+                        },
+                        onNext = {
+                            if (matches.isNotEmpty()) {
+                                currentMatch = (currentMatch + 1) % matches.size
+                            }
+                        },
+                        onClose = {
+                            finding = false
+                            findQuery = ""
+                            currentMatch = 0
+                        }
                     )
                 }
-                if (hasRemoteImages && !loadRemoteImages) {
-                    TextButton(onClick = { loadRemoteImages = true }) { Text("Load remote images") }
-                }
-                AndroidView(
-                    factory = { context ->
-                        AppCompatTextView(context).also {
-                            it.id = R.id.markdown_view
-                            it.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
-                            renderedView = it
-                        }
-                    },
-                    onRelease = { renderedView = null },
-                    update = { view ->
-                        val source = note
-                        if (view.currentTextColor != editorTextColor) {
-                            view.setTextColor(editorTextColor)
-                        }
-                        component.markdownRenderer.render(
-                            view = view,
-                            markdown = source?.content.orEmpty(),
-                            resolveInternalLink = { link ->
-                                source?.let { resolveInternalNoteLink(it, accountNotes, link) }
-                            },
-                            onInternalLink = onOpen,
-                            heading = if (source != null) pendingHeading else null,
-                            onHeadingPositioned = { top ->
-                                if (pendingHeading != null) {
-                                    pendingHeading = null
-                                    if (top != null) scope.launch { scrollState.scrollTo(top) }
-                                }
-                            },
-                            loadRemoteImages = loadRemoteImages
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(scrollState)
+                ) {
+                    note?.lastSyncError?.let {
+                        Text(
+                            it,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
                         )
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(20.dp).testTag("markdown-view")
-                )
+                    }
+                    if (hasRemoteImages && !loadRemoteImages) {
+                        TextButton(onClick = { loadRemoteImages = true }) {
+                            Text("Load remote images")
+                        }
+                    }
+                    AndroidView(
+                        factory = { context ->
+                            AppCompatTextView(context).also {
+                                it.id = R.id.markdown_view
+                                it.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
+                                renderedView = it
+                            }
+                        },
+                        onRelease = { renderedView = null },
+                        update = { view ->
+                            val source = note
+                            if (view.currentTextColor != editorTextColor) {
+                                view.setTextColor(editorTextColor)
+                            }
+                            // Rendering is the expensive part of this block, and the block also
+                            // re-runs while the reader types a find query. Parse the note again
+                            // only when what it renders to can actually have changed.
+                            val renderKey =
+                                listOf(source, accountNotes, pendingHeading, loadRemoteImages)
+                            if (renderedNote.needsRendering(view, renderKey)) {
+                                component.markdownRenderer.render(
+                                    view = view,
+                                    markdown = source?.content.orEmpty(),
+                                    resolveInternalLink = { link ->
+                                        source?.let {
+                                            resolveInternalNoteLink(it, accountNotes, link)
+                                        }
+                                    },
+                                    onInternalLink = onOpen,
+                                    heading = if (source != null) pendingHeading else null,
+                                    onHeadingPositioned = { top ->
+                                        if (pendingHeading != null) {
+                                            pendingHeading = null
+                                            if (top != null) {
+                                                scope.launch { scrollState.scrollTo(top) }
+                                            }
+                                        }
+                                    },
+                                    loadRemoteImages = loadRemoteImages
+                                )
+                            }
+                            val found = highlightNoteSearchMatches(
+                                view = view,
+                                query = if (finding) findQuery else "",
+                                currentMatch = currentMatch,
+                                colors = searchColors
+                            )
+                            if (found != matches) matches = found
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(20.dp).testTag("markdown-view")
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * `A-` and `A+` read as single letters to a screen reader, so both carry an explicit description.
+ * Remembers what a rendered note view was last rendered from.
+ *
+ * This is deliberately not Compose state. It is read and written inside an `AndroidView` update
+ * block, where observing it would make the block invalidate itself, and it tracks the view as well
+ * as the inputs so a newly created view is always rendered into.
+ */
+private class RenderedNote {
+    private var view: Any? = null
+    private var key: List<Any?>? = null
+
+    fun needsRendering(view: Any, key: List<Any?>): Boolean {
+        if (this.view === view && this.key == key) return false
+        this.view = view
+        this.key = key
+        return true
+    }
+}
+
+/**
+ * Finds text in the note that is being read. The bar stays above the note while the note scrolls,
+ * so the query and the position within the matches remain visible while moving through them.
  */
 @Composable
-private fun NoteTextSizeButton(
+private fun FindInNoteBar(
+    query: String,
+    matchCount: Int,
+    currentMatch: Int,
+    onQueryChange: (String) -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onClose: () -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+    // Opening the bar is a request to type, so take the focus instead of asking for a second tap.
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            label = { Text("Find in note") },
+            singleLine = true,
+            supportingText = {
+                Text(
+                    findMatchStatus(query, matchCount, currentMatch),
+                    modifier = Modifier.testTag("find-match-status")
+                )
+            },
+            modifier = Modifier.weight(1f).focusRequester(focusRequester).testTag("note-find-field")
+        )
+        CompactActionButton(
+            label = "<",
+            description = "Previous match",
+            testTag = "find-previous",
+            enabled = matchCount > 0,
+            onClick = onPrevious
+        )
+        CompactActionButton(
+            label = ">",
+            description = "Next match",
+            testTag = "find-next",
+            enabled = matchCount > 0,
+            onClick = onNext
+        )
+        CompactActionButton(
+            label = "X",
+            description = "Close find",
+            testTag = "close-find",
+            enabled = true,
+            onClick = onClose
+        )
+    }
+}
+
+/**
+ * The status is always present, even while it is empty, so that typing a query cannot make the
+ * note jump by a text line.
+ */
+private fun findMatchStatus(query: String, matchCount: Int, currentMatch: Int): String = when {
+    query.isBlank() -> ""
+    matchCount == 0 -> "No matches"
+    else -> "${currentMatch.coerceIn(0, matchCount - 1) + 1} of $matchCount"
+}
+
+/**
+ * A button labelled with punctuation or a single letter, such as `A+` or `>`. A screen reader
+ * cannot announce those usefully, so every caller supplies a description.
+ */
+@Composable
+private fun CompactActionButton(
     label: String,
     description: String,
     testTag: String,
