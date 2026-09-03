@@ -124,6 +124,8 @@ These features are valuable but are not required before the basic view, edit, cr
 - Note sharing
 - Widgets
 - Multiple simultaneous backends
+- Note folder navigation and moving notes between folders
+- Multiple note folders inside one Nextcloud account, which the Notes API cannot serve
 - Attachment upload
 - Image insertion
 - Interactive task toggling in rendered view
@@ -419,7 +421,7 @@ A note needs at least:
 - Optional remote ID
 - Title
 - Markdown content
-- Category
+- Category, meaning the note's folder path relative to the account's notes root, with `/` between levels and an empty string for the root
 - Modified time
 - Remote ETag
 - Read-only state
@@ -544,6 +546,66 @@ The initial conflict UI can offer:
 - Review local and server versions before choosing
 
 Retain the common base version in storage. A later release may implement attribute-level merging and automatic three-way content merging.
+
+## Note Folders
+
+QOwnNotes users organize notes in folders, and the mobile application should offer the same organization. The word "folder" covers two different QOwnNotes concepts, and the Nextcloud Notes API supports them very differently. This section records what the API actually allows and which behavior the application will adopt.
+
+### What QOwnNotes Provides
+
+- Note folders are several independently configured root directories. Exactly one is current, and switching it replaces the entire note list. Each carries a name, a local path, an optional cloud connection with a remote path, subfolder visibility, excluded subfolder paths, and its own active subfolder and tag state.
+- Note subfolders are the directory tree inside the current note folder, at arbitrary depth, with a "show notes from all subfolders" option and per-path exclusion.
+
+### What the Nextcloud Notes API Provides
+
+- One notes root per user. The `notesPath` setting is a per-user server-side setting relative to the user's files root, defaulting to the localized name `Notes`. It is readable and writable through `GET /settings` and `PUT /settings` from API 1.2. Every other API response is scoped to it, and there is no way to request a second root.
+- Subfolders are the `category` attribute, available since API 1.0. The server derives it from the note file's path relative to the notes root, recursing without a depth limit, using `/` as the delimiter. An empty string means the notes root.
+- Writing `category` on `POST /notes` or `PUT /notes/{id}` moves the file and creates the missing folders. Illegal characters are removed and the sanitized value is returned in the response.
+- The server ignores dot-prefixed folders unless the user's `showHidden` setting is enabled, and always ignores the per-note `.attachments.<id>` folders.
+- Only files with the extensions `txt`, `org`, `markdown`, `md`, `note`, or the user's configured custom suffix are treated as notes.
+- `GET /notes?category=` exists since API 1.1 but matches the category string exactly. It cannot return a subtree.
+- The API never returns the list of categories. The web frontend has that list, the public API does not. A client only learns about folders that currently contain at least one visible note.
+- The API has no category rename or delete operation. Those endpoints exist only in the web frontend controller.
+- Deleting the last note in a folder deletes the folder that just became empty.
+
+### Decisions
+
+One Nextcloud account is one note folder. Read `notesPath` for display and never write it. It is a single shared per-user setting, so rewriting it to switch folders would silently repoint the web interface and every other client of that account, would not move any file, and would make every other client see its whole collection change. The application must not send `PUT /settings`.
+
+Map QOwnNotes note subfolders onto `category`. The mapping is lossless in both directions, including nesting, so this is the supported way to give QOwnNotes users folders on a Nextcloud account.
+
+Multiple roots come from multiple accounts now and from the local-folder backend later. That backend is file-first like the desktop application, so it can model QOwnNotes note folders directly.
+
+Folder scope is a local view, not a server query. Keep pulling the full unfiltered collection. `?category=` matches exactly and cannot express a subtree; the response `ETag` and `Last-Modified` are computed for the requested query, so mixing filtered and unfiltered requests would corrupt the single stored pull checkpoint; and the rule that a note missing from the final chunk was deleted remotely would delete every out-of-scope note. Scoping locally also makes folder switching instant and available offline.
+
+Folders are derived state, not stored entities. Build the tree from the distinct category values of the cached notes. This needs no new table and no note-schema migration, because `category` and `lastSyncedCategory` are already modeled, persisted, parsed, and sent.
+
+An empty folder cannot exist on the server. Do not offer creating an empty folder as a durable object. A new-folder affordance may only pre-fill the category of a note that is being created.
+
+The selected scope is a device-local preference. Persist it per account through the existing `AppSettings` rather than in Room, and fall back to the root when the remembered folder no longer contains notes.
+
+Category normalization belongs in `core`. Split on `/`, trim each segment, drop empty, `.`, and `..` segments, remove the characters the server removes, and rejoin with `/`, where the root is the empty string. The local-folder backend needs the same policy, and the rule has to stay portable for a later Kotlin Multiplatform extraction. Always adopt the server's canonical category from the response, exactly as the canonical title is adopted today.
+
+### Behavior
+
+- Show folder navigation in the note list for the current account: the root plus the derived tree, with a note count per folder and a "show notes from subfolders" toggle matching QOwnNotes.
+- Create new notes in the current folder scope. The naming policy takes the category, so a note created inside a folder stays there without a follow-up move.
+- Scope the search to the current folder and its subtree, offer a way to search the whole account, and include the category in the matched fields as the Notes server's own search does.
+- Move a note with `PUT /notes/{id}`, the new category, and `If-Match`. The server may sanitize the category, and it may also append a deduplicating suffix to the title when the target folder already holds a note with that title, so both fields must be adopted from the canonical response. A move follows the same conflict rules as a content edit, and a read-only note cannot be moved.
+- Defer renaming and deleting a folder. Without an API operation, both are one guarded update per contained note: not atomic, interruptible, and able to fail halfway. If they are implemented, they must run through the synchronization queue with per-note conflict handling and a resumable record of what remains, never as a fire-and-forget loop.
+- Keep resolving wiki links against the source note's category first and then across the account. That already matches the QOwnNotes preference for the current subfolder.
+- Treat excluding a subfolder from the list as a view preference only. Excluded folders must still be synchronized, and excluding one must never influence the pull or remote-deletion detection.
+
+### Query Rules
+
+- A subtree query is `category = :scope OR category LIKE :scope || '/%'` and needs an explicit `ESCAPE` clause, because `%` and `_` are legal characters in a folder name.
+- The root scope means every note of the account. Do not express it as a `LIKE` pattern.
+- Add an index on `(accountId, category)` before filtering the note list by folder.
+- Store and display the category exactly as the server returned it, and compare case-insensitively where QOwnNotes does, because the server's underlying storage may be case-insensitive while the attribute is a plain string.
+
+### Capabilities
+
+Extend `BackendCapabilities` with a `nestedCategories` flag beside the existing `categories` flag. Nextcloud and the later local-folder backend both support nesting, but a future flat backend may support categories without a hierarchy, and screen code must not assume the tree exists.
 
 ## Local-Folder Backend
 
@@ -743,7 +805,25 @@ Resolved physical-device issue recorded on 2026-09-01:
 - Verify no local edit can be replaced by an older pull or push result.
 - Add telemetry-free diagnostics suitable for user bug reports.
 
-### Phase 5: Local-Only Folder Backend
+### Phase 5: Note Folders
+
+Give Nextcloud accounts QOwnNotes-style folders through the Notes `category` attribute, as decided in the Note Folders section. This follows Phase 4 because moving a note between folders is a guarded remote update that needs the conflict infrastructure built there.
+
+- Add category normalization and folder-tree derivation to `core`.
+- Derive the per-account folder tree from the cached notes rather than from a new table.
+- Add folder navigation to the note list, with the current scope, a note count per folder, and a subfolder-inclusion toggle.
+- Persist the selected scope per account in `AppSettings` and fall back to the root when the folder no longer exists.
+- Create notes in the current folder scope.
+- Scope the search to the current subtree, allow searching the whole account, and match the category as well.
+- Add an indexed, correctly escaped subtree query to the note DAO.
+- Display the account's notes root name from `GET /settings`, read-only.
+- Move a note to another folder with `If-Match`, adopting the canonical category and title.
+- Add the `nestedCategories` backend capability.
+- Keep the pull unfiltered and confirm that folder scoping cannot influence remote-deletion detection.
+
+Explicitly out of scope for this phase: writing `notesPath`, creating durable empty folders, and renaming or deleting folders.
+
+### Phase 6: Local-Only Folder Backend
 
 - Add folder selection and persistent URI permissions.
 - Index Markdown and text files.
@@ -752,8 +832,9 @@ Resolved physical-device issue recorded on 2026-09-01:
 - Add subfolder and wiki-link resolution.
 - Add local images and attachment opening.
 - Reuse the same note list, viewer, and editor screens.
+- Add multiple configured note folders with QOwnNotes-style per-folder settings, which this backend can support and the Nextcloud backend cannot.
 
-### Phase 6: Extended Features
+### Phase 7: Extended Features
 
 - Delete and trash behavior
 - Favorites
@@ -762,10 +843,12 @@ Resolved physical-device issue recorded on 2026-09-01:
 - Sharing
 - Widgets
 - Multiple configured backends
+- Folder renaming and deletion across every contained note
+- Per-folder exclusion from the note list
 - QOwnNotes title-to-filename options
 - QOwnNotes encryption compatibility
 
-### Phase 7: Shared Core and iOS
+### Phase 8: Shared Core and iOS
 
 - Identify stable pure Kotlin components.
 - Extract those components into Kotlin Multiplatform.
@@ -787,6 +870,8 @@ Resolved physical-device issue recorded on 2026-09-01:
 - Conflict detection
 - Error classification
 - Search normalization
+- Category normalization and folder-tree derivation
+- Folder scope fallback when the remembered folder no longer exists
 
 ### API Tests
 
@@ -799,7 +884,7 @@ Use a mock HTTP server to verify:
 - `pruneBefore` behavior
 - Chunk cursor handling
 - Deletion detection only after the final chunk
-- Canonical server responses after creation and update
+- Canonical server responses after creation and update, including a sanitized category and a deduplicated title after a move
 - `If-Match` headers
 - HTTP 401, 403, 404, 412, 5xx, and insufficient-storage behavior
 - Network interruption during multi-chunk synchronization
@@ -812,6 +897,7 @@ Use a mock HTTP server to verify:
 - Worker retries do not duplicate note creation
 - Older synchronization results cannot replace newer local edits
 - Account removal cleans up the correct local state
+- Folder subtree queries with `%` and `_` in folder names
 
 ### Markdown Compatibility Tests
 
@@ -833,6 +919,7 @@ Test rendered output and editor highlighting separately because they use differe
 ### UI and Device Tests
 
 - Note list loading and offline state
+- Folder navigation, scope persistence, and creating a note inside the current folder
 - Rendered-view to edit-mode transition
 - Text selection, copying, and link tapping in the rendered note
 - Cursor and selection stability during highlighting
@@ -857,6 +944,8 @@ Run against supported Nextcloud/Notes server combinations and verify:
 - Server title sanitization
 - Server-side deletion
 - Large note collections and chunked synchronization
+- Creating a note in a nested category and moving a note between categories
+- A folder disappearing on the server after its last note is moved or deleted
 
 ## Acceptance Criteria for the Initial Release
 
@@ -898,6 +987,10 @@ Run against supported Nextcloud/Notes server combinations and verify:
 - Nextcloud Notes API overview: <https://github.com/nextcloud/notes/blob/main/docs/api/README.md>
 - Nextcloud Notes API v1: <https://github.com/nextcloud/notes/blob/main/docs/api/v1.md>
 - Nextcloud Login Flow: <https://docs.nextcloud.com/server/latest/developer_manual/client_apis/LoginFlow/index.html>
+- Nextcloud Notes folder scanning and category handling: <https://github.com/nextcloud/notes/blob/main/lib/Service/NotesService.php>
+- Nextcloud Notes category filtering and chunking: <https://github.com/nextcloud/notes/blob/main/lib/Controller/Helper.php>
+- Nextcloud Notes `notesPath` settings handling: <https://github.com/nextcloud/notes/blob/main/lib/Service/SettingsService.php>
+- QOwnNotes note folders: <https://github.com/pbek/QOwnNotes/blob/main/src/entities/notefolder.h>
 - Markwon: <https://noties.io/Markwon/>
 
 ## Prompt for the Next Session
