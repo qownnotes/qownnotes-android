@@ -1,5 +1,8 @@
 package org.qownnotes.mobile
 
+import android.content.ClipboardManager
+import android.view.InputDevice
+import android.view.MotionEvent
 import android.widget.TextView
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -12,7 +15,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.ViewAction
+import androidx.test.espresso.action.GeneralClickAction
+import androidx.test.espresso.action.Press
+import androidx.test.espresso.action.Tap
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeText
@@ -331,6 +340,72 @@ class AppLaunchTest {
     }
 
     @Test
+    fun renderedNoteTextCanBeSelectedAndCopied() {
+        importAccount(
+            "alice",
+            "Recipe",
+            "etag-1",
+            10,
+            "# Recipe\n\nAdd salt, then taste it.\n"
+        )
+        composeRule.onNodeWithText("Recipe").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        val copied = selectAllAndCopy(R.id.markdown_view)
+
+        // The rendered text is copied, so the Markdown heading marker is not part of it.
+        assertTrue("unexpected clipboard content: $copied", copied.contains("Add salt, then taste"))
+        assertTrue("unexpected clipboard content: $copied", copied.startsWith("Recipe"))
+    }
+
+    /**
+     * The gesture a reader actually uses. Selection only starts when the note view is selectable
+     * and its movement method allows arbitrary selection, so this covers the whole path rather
+     * than the flags behind it.
+     */
+    @Test
+    fun longPressingTheRenderedNoteSelectsAWord() {
+        importAccount(
+            "alice",
+            "Recipe",
+            "etag-1",
+            10,
+            "Add salt, then taste it and add more salt because salt makes it tasty.\n"
+        )
+        composeRule.onNodeWithText("Recipe").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        onView(withId(R.id.markdown_view)).perform(longPressOnRenderedText())
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            selectionOf(R.id.markdown_view).isNotBlank()
+        }
+    }
+
+    /**
+     * A selectable `TextView` consumes touches that a read-only one ignores. The note must still
+     * scroll inside its Compose container, which is what a reader does far more often than
+     * selecting.
+     */
+    @Test
+    fun theRenderedNoteStillScrollsWhileItsTextIsSelectable() {
+        importAccount(
+            "alice",
+            "Long note",
+            "etag-1",
+            10,
+            (1..80).joinToString("\n\n") { "Paragraph $it of a note that is longer than a screen." }
+        )
+        composeRule.onNodeWithText("Long note").performClick()
+        composeRule.waitForTag("markdown-view")
+        val before = screenTopOf(R.id.markdown_view)
+
+        composeRule.onNodeWithTag("markdown-view").performTouchInput { swipeUp() }
+
+        composeRule.waitUntil(timeoutMillis = 10_000) { screenTopOf(R.id.markdown_view) < before }
+    }
+
+    @Test
     fun findInNoteCountsCyclesAndClearsMatches() {
         importAccount(
             "alice",
@@ -433,6 +508,70 @@ class AppLaunchTest {
                     ?.contains(substring) == true
             }
         }
+    }
+
+    /**
+     * Selects the whole rendered note and copies it through the same `TextView` actions the
+     * selection toolbar uses, which only work when the note view is genuinely selectable.
+     */
+    private fun selectAllAndCopy(viewId: Int): String {
+        lateinit var view: TextView
+        onView(withId(viewId)).check { found, _ -> view = found as TextView }
+        composeRule.runOnUiThread {
+            assertTrue("the rendered note is not selectable", view.isTextSelectable)
+            view.onTextContextMenuItem(android.R.id.selectAll)
+            assertTrue("selecting the note produced no selection", view.hasSelection())
+            view.onTextContextMenuItem(android.R.id.copy)
+        }
+        val clipboard = composeRule.activity.getSystemService(ClipboardManager::class.java)
+        return clipboard.primaryClip
+            ?.getItemAt(0)
+            ?.coerceToText(composeRule.activity)
+            ?.toString()
+            .orEmpty()
+    }
+
+    /**
+     * Presses in the middle of a rendered line instead of in the middle of the view, because the
+     * center of a note can fall on the blank line between two blocks, where there is no word to
+     * select.
+     */
+    private fun longPressOnRenderedText(): ViewAction = GeneralClickAction(
+        Tap.LONG,
+        { view ->
+            val text = view as TextView
+            val layout = text.layout
+            val line = layout.lineCount / 2
+            val offset = (layout.getLineStart(line) + layout.getLineEnd(line)) / 2
+            val location = IntArray(2).also(view::getLocationOnScreen)
+            floatArrayOf(
+                location[0] + text.totalPaddingLeft + layout.getPrimaryHorizontal(offset),
+                location[1] + text.totalPaddingTop +
+                    (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f
+            )
+        },
+        Press.FINGER,
+        InputDevice.SOURCE_UNKNOWN,
+        MotionEvent.BUTTON_PRIMARY
+    )
+
+    private fun selectionOf(viewId: Int): String {
+        var selected = ""
+        onView(withId(viewId)).check { view, _ ->
+            val text = view as TextView
+            if (text.hasSelection()) {
+                selected = text.text.substring(text.selectionStart, text.selectionEnd)
+            }
+        }
+        return selected
+    }
+
+    private fun screenTopOf(viewId: Int): Int {
+        var top = 0
+        onView(withId(viewId)).check { view, _ ->
+            top = IntArray(2).also(view::getLocationOnScreen)[1]
+        }
+        return top
     }
 
     private fun textSizeOf(viewId: Int): Float {

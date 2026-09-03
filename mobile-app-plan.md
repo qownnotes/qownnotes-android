@@ -111,6 +111,7 @@ The first usable Android release must provide:
 - Support light and dark themes.
 - Let the reader adjust the note body text size and remember that choice.
 - Find text inside the note that is open.
+- Select and copy text out of the rendered note.
 - Handle rotation, navigation, and process recreation without losing editor text.
 
 ## First-Release Non-Goals
@@ -201,6 +202,16 @@ Viewing mode displays fully rendered Markdown and must support:
 
 External links should open through the operating system. Internal note links should navigate inside the application. Broken internal links should be visually distinguishable.
 
+### Selecting and Copying Rendered Text
+
+A note is read far more often than it is edited, and taking a phone number, a command, or a paragraph out of a note must not require entering the editor.
+
+- Let the reader select rendered note text with the platform's own gesture and copy it with the platform's own selection toolbar.
+- Copy what the reader sees. Selection addresses the rendered text, so the copied text carries no Markdown markers.
+- Keep links tappable while the text is selectable. Selection has to be the base behavior, because the framework only offers selection when the movement method reports that it can select arbitrarily and the link-only movement method also discards the selection as soon as a touch lands outside a link.
+- Distinguish the gestures rather than letting them compete: only a short, stationary touch follows a link, so a press long enough to start a selection and a drag that scrolls the note leave the link alone.
+- Keep the note scrollable. A selectable text view consumes touches a read-only one ignores, and scrolling is the more common gesture.
+
 ### Note Text Size
 
 Readers must be able to enlarge note text without enlarging the rest of the interface.
@@ -276,6 +287,7 @@ Constraints that apply when Compose hosts these widgets:
 - Do not rely on the theme alone for interactive behavior. The editor view sets its own focus and input-method flags so it keeps working if the host theme changes.
 - Hosted widgets do not follow the Compose color scheme. Pass the Compose surface colors into them explicitly, otherwise rendered and edited text becomes unreadable in dark mode.
 - Drive editor device tests with real key-event injection. Setting text directly on the widget bypasses input focus and cannot detect a non-typable editor.
+- Markwon reinstalls a link-only movement method on every render, so a movement method that also supports selection has to be supplied to Markwon rather than set on the view afterwards. Enabling selection re-sets the widget's text and movement method, so it must happen before the Markdown is applied.
 - Do not observe frequently changing state inside an `AndroidView` update block. Compose reschedules that block through the holder's `View.getHandler()`, which is null while the view is detached, so a state change during a screen transition crashes. Apply such values from a composition effect against a remembered view reference instead.
 
 Do not implement the editor solely with a Compose `BasicTextField` unless profiling and a prototype demonstrate correct cursor, selection, span, input-method, and large-document behavior.
@@ -695,6 +707,7 @@ Implemented:
 - Changed formatting actions to replace only the changed range instead of the whole document, preserving undo history, spans, and in-progress input-method composition.
 - Applied the Compose surface text color to the hosted editor and rendered views so note text stays legible in dark mode.
 - Added an adjustable note text size, requested during Phase 3 rather than planned. `A-` and `A+` controls on the note screen step through discrete `sp` sizes, apply to both the rendered note and the source editor, persist in `SharedPreferences`, survive process death, and carry accessibility descriptions. Rendered headings and code rescale without re-rendering because Markwon sizes them relative to the view.
+- Added selecting and copying rendered note text, requested during Phase 3 rather than planned. The rendered view is selectable, and links stay tappable through a movement method that selects arbitrarily and only follows a link on a short, stationary touch. Device tests cover the long-press selection gesture, copying to the clipboard, and that the note still scrolls.
 - Added finding text inside the open note, requested during Phase 3 rather than planned. A find bar on the note screen marks every match in the rendered note, marks and scrolls to the current one, reports the position in the matches, and wraps around at both ends. Matching is portable policy in `core`; only the span application and the offset lookup are Android. The find highlights are a private span type, so they can be removed again without disturbing the Markdown spans they are drawn over.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
@@ -821,6 +834,7 @@ Test rendered output and editor highlighting separately because they use differe
 
 - Note list loading and offline state
 - Rendered-view to edit-mode transition
+- Text selection, copying, and link tapping in the rendered note
 - Cursor and selection stability during highlighting
 - Input methods, composing text, and non-Latin text
 - Large-note responsiveness
@@ -850,6 +864,7 @@ Run against supported Nextcloud/Notes server combinations and verify:
 - Existing Nextcloud notes are visible after initial synchronization.
 - Previously synchronized notes remain available after restarting without network access.
 - Common QOwnNotes Markdown renders correctly in light and dark modes.
+- Rendered note text can be selected and copied while its links stay tappable.
 - Markdown source is highlighted while remaining visible and editable.
 - Highlighting never changes the stored source text.
 - Editing remains responsive on representative large notes.

@@ -23,6 +23,7 @@ import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.image.SchemeHandler
 import io.noties.markwon.image.destination.ImageDestinationProcessor
+import io.noties.markwon.movement.MovementMethodPlugin
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.Locale
@@ -66,6 +67,10 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
         loadRemoteImages: Boolean = false
     ) {
         linkHandlers[view] = InternalLinkHandler(resolveInternalLink, onInternalLink)
+        // Reading a note includes taking text out of it, and copying needs a selection. This is
+        // applied before the Markdown because `setTextIsSelectable` re-sets both the text and the
+        // movement method, which would otherwise discard what the renderer just installed.
+        view.enableTextSelection()
         val lockedMessage = applicationContext.getString(R.string.encrypted_content_locked)
         val encryption = redactEncryptedMarkdown(markdown, replacement = "")
         val safeMarkdown = if (encryption.blockCount > 0) {
@@ -127,6 +132,7 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
                     }
                 }
             )
+            .usePlugin(MovementMethodPlugin.create(SelectableLinkMovementMethod()))
             .usePlugin(MarkdownHtmlSanitizerPlugin())
             .usePlugin(StrikethroughPlugin.create())
             .usePlugin(TablePlugin.create(applicationContext))
@@ -180,6 +186,17 @@ private data class InternalLinkHandler(
     val resolve: (InternalNoteLink) -> ResolvedNoteLink?,
     val open: (ResolvedNoteLink) -> Unit
 )
+
+/**
+ * Turns the rendered note into selectable text once.
+ *
+ * `setTextIsSelectable` also makes the view focusable, clickable, and long-clickable and re-sets
+ * its text, so it is applied only while the view is not selectable yet.
+ */
+private fun AppCompatTextView.enableTextSelection() {
+    if (isTextSelectable) return
+    setTextIsSelectable(true)
+}
 
 private fun styleBrokenInternalLinks(
     view: AppCompatTextView,

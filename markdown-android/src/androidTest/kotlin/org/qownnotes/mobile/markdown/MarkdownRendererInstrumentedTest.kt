@@ -3,10 +3,15 @@ package org.qownnotes.mobile.markdown
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
+import android.os.SystemClock
+import android.text.Selection
+import android.text.Spannable
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.ContextThemeWrapper
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -22,9 +27,11 @@ import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.qownnotes.mobile.core.InternalNoteLink
 import org.qownnotes.mobile.core.ResolvedNoteLink
 
 @RunWith(AndroidJUnit4::class)
@@ -95,6 +102,59 @@ class MarkdownRendererInstrumentedTest {
         }
 
         assertEquals(expected, opened)
+    }
+
+    @Test
+    fun renderedNoteTextCanBeSelected() {
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer(view.context).render(view, "# Heading\n\nSelect **this** text.")
+            Selection.setSelection(view.text as Spannable, 0, "Heading".length)
+        }
+
+        assertTrue(view.isTextSelectable)
+        // Selection handles and the copy action are only offered when the movement method allows
+        // arbitrary selection, so the rendered note cannot use a plain `LinkMovementMethod`.
+        assertTrue(view.movementMethod.canSelectArbitrarily())
+        assertTrue(view.hasSelection())
+        assertEquals("Heading", view.text.substring(0, view.selectionEnd))
+    }
+
+    @Test
+    fun tappingAResolvedLinkOpensItWhileTheNoteIsSelectable() {
+        val expected = ResolvedNoteLink("target", null)
+        var opened: ResolvedNoteLink? = null
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = laidOutView("[[Target]]", resolve = { expected }, open = { opened = it })
+            view.touch(offset = 3, durationMillis = 20)
+        }
+
+        assertEquals(expected, opened)
+    }
+
+    /** A press that is long enough to start a selection must not also follow the link under it. */
+    @Test
+    fun pressingALinkLongEnoughToSelectDoesNotOpenIt() {
+        var opened: ResolvedNoteLink? = null
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = laidOutView(
+                "[[Target]]",
+                resolve = { ResolvedNoteLink("target", null) },
+                open = { opened = it }
+            )
+            view.touch(
+                offset = 3,
+                durationMillis = ViewConfiguration.getLongPressTimeout().toLong() + 50
+            )
+        }
+
+        assertNull(opened)
     }
 
     @Test
@@ -331,6 +391,49 @@ class MarkdownRendererInstrumentedTest {
         }
 
         assertEquals("", view.text.toString())
+    }
+
+    private fun laidOutView(
+        markdown: String,
+        resolve: (InternalNoteLink) -> ResolvedNoteLink?,
+        open: (ResolvedNoteLink) -> Unit
+    ): AppCompatTextView = textView().also { view ->
+        MarkdownRenderer(view.context).render(
+            view = view,
+            markdown = markdown,
+            resolveInternalLink = resolve,
+            onInternalLink = open
+        )
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+    }
+
+    /**
+     * Drives the view's movement method the way `TextView.onTouchEvent` does, because that is where
+     * a rendered link is turned into a click.
+     */
+    private fun AppCompatTextView.touch(offset: Int, durationMillis: Long) {
+        val line = layout.getLineForOffset(offset)
+        val x = layout.getPrimaryHorizontal(offset) + totalPaddingLeft
+        val y = (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f + totalPaddingTop
+        val downTime = SystemClock.uptimeMillis()
+        listOf(
+            MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0),
+            MotionEvent.obtain(
+                downTime,
+                downTime + durationMillis,
+                MotionEvent.ACTION_UP,
+                x,
+                y,
+                0
+            )
+        ).forEach { event ->
+            movementMethod.onTouchEvent(this, text as Spannable, event)
+            event.recycle()
+        }
     }
 
     private fun textView(): AppCompatTextView {
