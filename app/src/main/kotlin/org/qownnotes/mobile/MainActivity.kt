@@ -1090,8 +1090,12 @@ private fun RenameNoteDialog(
     val focusRequester = remember { FocusRequester() }
     // The field is the only reason this dialog exists, so it takes the focus rather than asking
     // for another tap. A dialog composes into a window of its own, so the focus is taken once the
-    // field has actually been placed rather than after a guessed number of frames.
-    var focusTaken by remember { mutableStateOf(false) }
+    // field has actually been placed rather than after a guessed number of frames. Taking it from
+    // an effect rather than from within the layout pass keeps focus work out of measuring.
+    var fieldPlaced by remember { mutableStateOf(false) }
+    LaunchedEffect(fieldPlaced) {
+        if (fieldPlaced) focusRequester.requestFocus()
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Rename note") },
@@ -1105,12 +1109,7 @@ private fun RenameNoteDialog(
                     Text("Characters a file name cannot hold are replaced by spaces.")
                 },
                 modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
-                    .onPlaced {
-                        if (!focusTaken) {
-                            focusTaken = true
-                            focusRequester.requestFocus()
-                        }
-                    }
+                    .onPlaced { fieldPlaced = true }
                     .testTag("note-name-field")
             )
         },
