@@ -855,9 +855,16 @@ private fun NoteDetailScreen(
                                     heading = if (source != null) pendingHeading else null,
                                     onHeadingPositioned = { top ->
                                         if (pendingHeading != null) {
-                                            pendingHeading = null
                                             if (top != null) {
-                                                scope.launch { scrollState.scrollTo(top) }
+                                                scope.launch {
+                                                    // The Android view is laid out before Compose
+                                                    // updates the containing scroll range.
+                                                    withFrameNanos { }
+                                                    scrollState.scrollTo(top)
+                                                    pendingHeading = null
+                                                }
+                                            } else {
+                                                pendingHeading = null
                                             }
                                         }
                                     },
