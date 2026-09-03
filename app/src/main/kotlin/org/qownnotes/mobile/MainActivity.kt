@@ -93,6 +93,7 @@ import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.ResolvedNoteLink
+import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.resolveInternalNoteLink
 import org.qownnotes.mobile.markdown.MarkdownEditText
@@ -111,6 +112,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         reconnectAccountId = savedInstanceState?.getString(RECONNECT_ACCOUNT_ID)
+        // A recreated activity is handed the intent it started with once more. Only a first start
+        // carries a share that has not been accepted yet, so rotating the device or dying in the
+        // background cannot turn one shared text into a second note.
+        if (savedInstanceState == null) acceptShare(intent)
         enableEdgeToEdge()
         setContent {
             QOwnNotesApp(
@@ -120,9 +125,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Receives a share that arrives while the application is already running. The activity is a
+     * single task, so every share reaches the instance the user is looking at.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        acceptShare(intent)
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString(RECONNECT_ACCOUNT_ID, reconnectAccountId)
         super.onSaveInstanceState(outState)
+    }
+
+    internal fun acceptShare(intent: Intent?) {
+        sharedTextOf(intent)?.let(applicationComponent()::receiveShare)
     }
 
     private fun importAccount(expectedAccountId: String? = null) {
@@ -173,6 +192,23 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val RECONNECT_ACCOUNT_ID = "reconnectAccountId"
     }
+}
+
+/**
+ * Reads the text of a share.
+ *
+ * Only text is read. An attachment is a stream this release cannot store, and an intent that
+ * carries no text at all is an ordinary start rather than a share, so both leave the note list as
+ * it was. The text can be styled, and its markup is dropped rather than guessed at, because the
+ * note is Markdown and no sharing application promises which formatting its styling stood for.
+ */
+internal fun sharedTextOf(intent: Intent?): SharedText? {
+    if (intent?.action != Intent.ACTION_SEND) return null
+    if (intent.type?.startsWith("text/") != true) return null
+    val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString().orEmpty()
+    val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT)?.takeIf { it.isNotBlank() }
+    if (text.isBlank() && subject == null) return null
+    return SharedText(text = text, subject = subject)
 }
 
 @Composable
@@ -228,6 +264,19 @@ private fun NotesNavigation(
     val loadedAccounts = accounts
     val activeAccountId = loadedAccounts?.firstOrNull { it.id == selectedAccountId }?.id
         ?: loadedAccounts?.firstOrNull()?.id
+    val pendingShare by component.pendingShare.collectAsStateWithLifecycle()
+    // Text another application shared becomes a note in the account that is being looked at, and
+    // that note is opened, so the share ends where the user can see and correct it. A share that
+    // arrives before any account exists waits here until onboarding has produced one.
+    LaunchedEffect(pendingShare, activeAccountId) {
+        if (pendingShare == null || activeAccountId == null) return@LaunchedEffect
+        val shared = component.takePendingShare() ?: return@LaunchedEffect
+        val note = component.createSharedNote(activeAccountId, shared)
+        noteHistory = emptyList()
+        selectedNoteId = note.localId
+        selectedHeading = null
+        navigationRequest++
+    }
     val noteId = selectedNoteId
     if (loadedAccounts == null) {
         LoadingScreen()
@@ -252,7 +301,7 @@ private fun NotesNavigation(
             )
         }
     } else if (loadedAccounts.isEmpty()) {
-        AccountOnboarding(importState, onImportAccount)
+        AccountOnboarding(importState, pendingShare != null, onImportAccount)
     } else {
         NoteListScreen(
             component = component,
@@ -301,7 +350,11 @@ private fun LoadingScreen() {
 }
 
 @Composable
-private fun AccountOnboarding(state: SyncUiState, onImportAccount: () -> Unit) {
+private fun AccountOnboarding(
+    state: SyncUiState,
+    sharedTextWaiting: Boolean,
+    onImportAccount: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp).testTag("onboarding"),
         verticalArrangement = Arrangement.Center
@@ -311,6 +364,14 @@ private fun AccountOnboarding(state: SyncUiState, onImportAccount: () -> Unit) {
             "Choose an account from the Nextcloud Files app to download and cache your notes.",
             modifier = Modifier.padding(vertical = 20.dp)
         )
+        // A note needs an account to belong to. Say why the shared text is not a note yet rather
+        // than leaving the sharer in front of an unexplained onboarding screen.
+        if (sharedTextWaiting) {
+            Text(
+                "The shared text is kept and becomes a note once an account has been added.",
+                modifier = Modifier.padding(bottom = 20.dp).testTag("shared-text-waiting")
+            )
+        }
         when (state) {
             SyncUiState.Refreshing -> CircularProgressIndicator()
             is SyncUiState.Failed -> Text(state.message, color = MaterialTheme.colorScheme.error)

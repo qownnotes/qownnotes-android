@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">QOwnNotes</string>
     <string name="note_label">Note</string>
+    <string name="share_to_new_note">New note</string>
 </resources>

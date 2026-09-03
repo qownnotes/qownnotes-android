@@ -40,6 +40,8 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
             component.removeLocalData(account.id)
         }
         component.cancelAccountImport()
+        // A share left waiting by a previous test would become a note in the next test's account.
+        component.takePendingShare()
         component.settings.resetNoteTextSize()
         fakeBackend.reset()
         fakeAccountImporter.reset()

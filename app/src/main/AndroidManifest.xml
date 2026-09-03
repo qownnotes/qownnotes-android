@@ -11,13 +11,25 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.QOwnNotes">
+        <!--
+            The application is one activity, and a share has to reach the instance the user is
+            looking at, so a share cannot be allowed to stack a second copy of it behind or in
+            front of the running one.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Text shared by another application becomes a new note. -->
+            <intent-filter android:label="@string/share_to_new_note">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
     </application>

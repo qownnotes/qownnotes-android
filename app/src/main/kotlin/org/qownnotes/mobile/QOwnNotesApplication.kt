@@ -16,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -29,6 +30,7 @@ import org.qownnotes.mobile.core.NoteFactory
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
+import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
@@ -81,6 +83,13 @@ class ApplicationComponent(
     val syncStates: StateFlow<Map<String, SyncUiState>> = mutableSyncStates.asStateFlow()
     private val mutableImportState = MutableStateFlow<SyncUiState>(SyncUiState.Idle)
     val importState: StateFlow<SyncUiState> = mutableImportState.asStateFlow()
+
+    /**
+     * Text another application shared that has not become a note yet. A share can arrive before
+     * there is an account to hold the note, so it waits here instead of being dropped.
+     */
+    private val mutablePendingShare = MutableStateFlow<SharedText?>(null)
+    val pendingShare: StateFlow<SharedText?> = mutablePendingShare.asStateFlow()
     private val refreshMutexes = ConcurrentHashMap<String, Mutex>()
     private val editMutexes = ConcurrentHashMap<String, Mutex>()
     private val syncJobs = ConcurrentHashMap<String, Job>()
@@ -164,12 +173,34 @@ class ApplicationComponent(
         }
     }
 
-    suspend fun createNote(accountId: String): Note {
-        val note = noteFactory.create(accountId)
+    suspend fun createNote(accountId: String): Note = persistNewNote(noteFactory.create(accountId))
+
+    /** Creates the note that text shared by another application is put into. */
+    suspend fun createSharedNote(accountId: String, shared: SharedText): Note =
+        persistNewNote(noteFactory.createFromSharedText(accountId, shared))
+
+    private suspend fun persistNewNote(note: Note): Note {
         noteRepository.save(note)
-        scheduleSync(accountId, 0)
+        scheduleSync(note.accountId, 0)
         return note
     }
+
+    /**
+     * Accepts text another application shared. The text is only held here: which account it
+     * becomes a note in, and when, is decided by the screen that can also open that note.
+     */
+    fun receiveShare(shared: SharedText) {
+        mutablePendingShare.value = shared
+    }
+
+    /**
+     * Takes the shared text that is waiting for a note, if there is one.
+     *
+     * It is taken before the note is written rather than after, because a share that is taken
+     * twice would leave a duplicate note behind, and this release cannot delete a note. Text lost
+     * to that narrow window is still held by the application that shared it.
+     */
+    fun takePendingShare(): SharedText? = mutablePendingShare.getAndUpdate { null }
 
     suspend fun beginEditing(localId: String): Note? =
         editMutexes.getOrPut(localId, ::Mutex).withLock {

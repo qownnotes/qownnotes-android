@@ -1,6 +1,7 @@
 package org.qownnotes.mobile
 
 import android.content.ClipboardManager
+import android.content.Intent
 import android.view.InputDevice
 import android.view.MotionEvent
 import android.widget.TextView
@@ -244,6 +245,82 @@ class AppLaunchTest {
                     .any { it.content.contains("Draft text") }
             }
         }
+    }
+
+    /**
+     * Sharing text from another application. The intent is sent for real, so this covers the
+     * manifest filter, the single-task delivery into the running activity, and the note it makes.
+     */
+    @Test
+    fun sharedTextBecomesANewNoteAndOpensIt() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+
+        share(text = "https://example.com/article", subject = "An article")
+
+        composeRule.waitForText("An article")
+        composeRule.waitForTag("markdown-view")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice") }.any {
+                it.title == "An article" &&
+                    it.content == "# An article\n\nhttps://example.com/article\n"
+            }
+        }
+        // The shared note is uploaded like any other locally created note.
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.pushedNotes.any { it.title == "An article" }
+        }
+    }
+
+    /** Sharing again has to add a note rather than replace the one shared before. */
+    @Test
+    fun sharingTwiceMakesTwoNotes() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+
+        share(text = "First", subject = "First share")
+        composeRule.waitForText("First share")
+        share(text = "Second", subject = "Second share")
+
+        composeRule.waitForText("Second share")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice") }.count { it.title.endsWith("share") } == 2
+        }
+    }
+
+    /**
+     * A share that arrives before an account exists must not be dropped: the sharer is told why
+     * there is no note yet, and the text becomes one as soon as onboarding produces an account.
+     */
+    @Test
+    fun sharedTextWaitsForAnAccountAndIsNotLost() {
+        share(text = "Remember this", subject = "Kept for later")
+
+        composeRule.waitForTag("shared-text-waiting")
+        composeRule.onNodeWithTag("onboarding").assertIsDisplayed()
+
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(account, pull("Existing note", "etag-1", 10))
+        accountAction("add-account")
+
+        // The waiting text becomes a note as soon as there is an account, and that note opens,
+        // so the note list is never what the sharer is left looking at.
+        composeRule.waitForText("Kept for later")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice") }.any { it.content.contains("Remember this") }
+        }
+    }
+
+    /** Rotating or restarting while the shared note is open must not make a second copy of it. */
+    @Test
+    fun sharedTextIsNotTurnedIntoASecondNoteAfterRecreation() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        share(text = "Only once", subject = "Only once")
+        composeRule.waitForText("Only once")
+
+        composeRule.activityRule.scenario.recreate()
+
+        composeRule.waitForTag("markdown-view")
+        assertEquals(1, runBlocking { notesOf("alice") }.count { it.title == "Only once" })
     }
 
     @Test
@@ -675,6 +752,26 @@ class AppLaunchTest {
 
     private fun testAccount(user: String) =
         SingleSignOnAccount(user, user, "test-token", "https://cloud.example", "nextcloud")
+
+    /**
+     * Hands the running activity the intent a sharing application sends.
+     *
+     * The intent is not started here. `ActivityScenario` owns the activity it launched, and
+     * starting the single-task activity again behind its back leaves it unable to shut that
+     * activity down afterwards. That the system delivers such an intent into the one running
+     * instance is a property of the manifest, which `ShareIntentTest` asserts instead.
+     */
+    private fun share(text: String, subject: String? = null) {
+        val intent = Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, text)
+        subject?.let { intent.putExtra(Intent.EXTRA_SUBJECT, it) }
+        composeRule.runOnUiThread { composeRule.activity.acceptShare(intent) }
+    }
+
+    private suspend fun notesOf(user: String) = application.component.noteRepository
+        .observeNotes(testAccount(user).localAccountId())
+        .first()
 
     private fun pull(title: String, etag: String, modified: Long, content: String = "# $title") =
         PullResult(

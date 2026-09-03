@@ -36,20 +36,43 @@ object NoteNames {
     fun isValid(name: String): Boolean = sanitize(name).isNotEmpty()
 }
 
+/**
+ * Text another application handed over, such as a page from a browser or a message from a chat.
+ *
+ * The subject is what the sharing application calls that text. It is not part of the text itself,
+ * most applications send one, and some do not.
+ */
+data class SharedText(val text: String, val subject: String? = null)
+
 class NoteFactory(
     private val namingPolicy: NoteNamingPolicy,
     private val clock: Clock,
     private val newId: () -> String = { UUID.randomUUID().toString() }
 ) {
-    fun create(accountId: String): Note {
-        val title = namingPolicy.createName()
-        return Note(
-            localId = newId(),
-            accountId = accountId,
-            title = title,
-            content = "# $title\n",
-            modifiedAtEpochSeconds = clock.instant().epochSecond,
-            syncState = SyncState.LOCALLY_CREATED
-        )
+    fun create(accountId: String): Note = create(accountId, namingPolicy.createName(), body = "")
+
+    /**
+     * Creates a note holding text another application shared.
+     *
+     * The sharing application's subject names the note when it sent one, because a shared page or
+     * message already carries a name its reader recognizes, and a dated name would hide it. The
+     * name is the first heading and the shared text follows it, so the note reads like any other
+     * note created here.
+     */
+    fun createFromSharedText(accountId: String, shared: SharedText): Note {
+        val name = shared.subject?.let(NoteNames::sanitize)?.takeIf(String::isNotEmpty)
+            ?: namingPolicy.createName()
+        return create(accountId, name, shared.text.trim())
     }
+
+    private fun create(accountId: String, title: String, body: String): Note = Note(
+        localId = newId(),
+        accountId = accountId,
+        title = title,
+        // Applications that have no subject to send sometimes send the text as one. Repeating it
+        // under a heading that already says it would add nothing.
+        content = if (body.isEmpty() || body == title) "# $title\n" else "# $title\n\n$body\n",
+        modifiedAtEpochSeconds = clock.instant().epochSecond,
+        syncState = SyncState.LOCALLY_CREATED
+    )
 }

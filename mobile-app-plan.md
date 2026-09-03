@@ -26,7 +26,7 @@ The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account o
 
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete; broader real-server interoperability and the configured CI device job must be verified before Phase 2 is marked fully complete.
 
-Phase 3 now has an initial end-to-end write path with offline-first note creation and Markdown source editing, asynchronous source highlighting, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: supplemental highlighting still runs on the main thread, and large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
+Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: supplemental highlighting still runs on the main thread, and large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -103,6 +103,7 @@ The first usable Android release must provide:
 - Open and render a note as Markdown.
 - Switch from rendered view to highlighted Markdown source editing.
 - Create a note with a QOwnNotes-compatible default name and initial heading.
+- Create a note from text another application shares.
 - Save editor changes locally without waiting for the network.
 - Synchronize created and edited notes in the background.
 - Show read-only notes without enabling editing.
@@ -121,7 +122,8 @@ These features are valuable but are not required before the basic view, edit, cr
 - Deleting notes
 - Trash and restoration
 - Favorites
-- Note sharing
+- Sharing a note out of the application
+- Adding shared text to an existing note, which requires choosing that note
 - Widgets
 - Multiple simultaneous backends
 - Note folder navigation and moving notes between folders
@@ -178,6 +180,20 @@ Creation rules:
 - Two locally created notes must remain distinct even if they are created within the same second.
 
 For the first release, automatic title-to-first-heading renaming applies only when creating a note. Existing Nextcloud notes can intentionally have a title different from the first content line. A later setting may provide QOwnNotes-compatible title-following behavior.
+
+## Text Shared From Another Application
+
+A note is very often something read somewhere else first, so the application is a share target for text, as Nextcloud Notes for Android is. Sharing text creates a note from it.
+
+- Accept `ACTION_SEND` with a text type. An attachment is a stream this release cannot store, and an intent carrying no text is an ordinary start, so neither creates a note.
+- Read the shared text as a `CharSequence`, because it may be styled, and keep only its characters. No sharing application promises which Markdown its styling stood for.
+- Name the note after the sharing application's subject when it sent one, sanitized by the same rule that names any other note, because a shared page or message already carries a name its reader recognizes. Without a usable subject, keep the dated default name.
+- Write the name as the first heading and the shared text under it, so the note reads like every other note created here. Text that the sharing application also sent as the subject is not repeated under it.
+- Create the note in the account currently being looked at and open it, so the shared text lands where the user can correct it.
+- Hold a share that arrives before any account exists until onboarding has produced one, and say so on the onboarding screen. A note has to belong to an account, and dropping the text silently would lose it.
+- Take the waiting share before writing the note rather than after. A share taken twice would leave a duplicate note that this release cannot delete, while text lost in that window is still held by the application that shared it.
+- Keep the activity a single task and accept a share from `onNewIntent` as well, so a share reaches the window the user is looking at instead of a second copy of the application behind it.
+- Accept a share from a first start only. A recreated activity is handed its intent again, and rotating the device would otherwise produce a second note.
 
 ## Markdown User Experience
 
@@ -784,6 +800,7 @@ Implemented:
 - Added an adjustable note text size, requested during Phase 3 rather than planned. `A-` and `A+` controls on the note screen step through discrete `sp` sizes, apply to both the rendered note and the source editor, persist in `SharedPreferences`, survive process death, and carry accessibility descriptions. Rendered headings and code rescale without re-rendering because Markwon sizes them relative to the view.
 - Added selecting and copying rendered note text, requested during Phase 3 rather than planned. The rendered view is selectable, and links stay tappable through a movement method that selects arbitrarily and only follows a link on a short, stationary touch. Device tests cover the long-press selection gesture, copying to the clipboard, and that the note still scrolls.
 - Added finding text inside the open note, requested during Phase 3 rather than planned. A find bar on the note screen marks every match in the rendered note, marks and scrolls to the current one, reports the position in the matches, and wraps around at both ends. Matching is portable policy in `core`; only the span application and the offset lookup are Android. The find highlights are a private span type, so they can be removed again without disturbing the Markdown spans they are drawn over.
+- Added creating a note from text another application shares, requested during Phase 3 rather than planned. The application is a share target for text, the sharing application's subject names the note, the shared text follows that name as the body, and the new note opens. A share arriving before any account exists waits and is explained on the onboarding screen. Which note the text becomes is portable policy in `core`; only reading the intent and delivering it into the running activity are Android. Verified on a physical Android 16 device for a cold start and for a share into the running application.
 - Added undo and redo. Toolbar controls step through an editor-owned history that groups a burst of typing, an input method rewriting its composing region, and consecutive deletions into single steps, ends a group at a line break, and makes each formatting action its own step. The grouping rules are structural rather than time-based and are unit-tested on the JVM; only replaying a change into the widget is Android. Replaying clears the composing state and restarts the input method, and a history that no longer matches the text is discarded rather than replayed at a guessed position.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
@@ -884,6 +901,7 @@ Explicitly out of scope for this phase: writing `notesPath`, creating durable em
 - Conflict detection
 - Error classification
 - Search normalization
+- Naming and content of a note made from shared text, including a missing, unusable, or repeated subject
 - Category normalization and folder-tree derivation
 - Folder scope fallback when the remembered folder no longer exists
 - Undo grouping, including typing bursts, composing-region rewrites, deletions, and line breaks
@@ -934,6 +952,7 @@ Test rendered output and editor highlighting separately because they use differe
 ### UI and Device Tests
 
 - Note list loading and offline state
+- Sharing text into the application, including a share that has to wait for an account and a share that must not be repeated by activity recreation
 - Folder navigation, scope persistence, and creating a note inside the current folder
 - Rendered-view to edit-mode transition
 - Text selection, copying, and link tapping in the rendered note
@@ -974,6 +993,7 @@ Run against supported Nextcloud/Notes server combinations and verify:
 - Highlighting never changes the stored source text.
 - Editing remains responsive on representative large notes.
 - A new note receives the QOwnNotes dated title and matching initial heading.
+- Text shared from another application becomes a new note that opens for correction.
 - A note can be created and edited while offline.
 - Offline changes synchronize after connectivity returns.
 - A server response that sanitizes a title is adopted safely.
