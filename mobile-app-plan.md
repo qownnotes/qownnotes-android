@@ -119,7 +119,6 @@ The first usable Android release must provide:
 
 These features are valuable but are not required before the basic view, edit, create, and synchronize workflow is reliable:
 
-- Deleting notes
 - Trash and restoration
 - Sharing a note out of the application
 - Adding shared text to an existing note, which requires choosing that note
@@ -870,7 +869,6 @@ Explicitly out of scope for this phase: writing `notesPath`, creating durable em
 
 ### Phase 7: Extended Features
 
-- Delete and trash behavior
 - Interactive task checkboxes
 - Images and attachments
 - Sharing

@@ -294,6 +294,23 @@ class AppLaunchTest {
     }
 
     @Test
+    fun noteViewMovesTheNoteToTrashAfterConfirmation() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.waitForTag("delete-note")
+
+        composeRule.onNodeWithTag("delete-note").performClick()
+        composeRule.onNodeWithText("Move note to trash?").assertIsDisplayed()
+        composeRule.onNodeWithTag("confirm-delete-note").performClick()
+
+        composeRule.waitForTag("note-list")
+        composeRule.onNodeWithText("Existing note").assertDoesNotExist()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.deletedRemoteIds == listOf(42L)
+        }
+    }
+
+    @Test
     fun createsAndEditsANoteOfflineFirst() {
         importAccount("alice", "Existing note", "etag-1", 10)
 

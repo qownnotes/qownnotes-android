@@ -764,6 +764,7 @@ private fun NoteDetailScreen(
     // restoring this, not merely dropping what has not been written yet.
     var contentBeforeEditing by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     var showDiscardConfirmation by rememberSaveable(localId) { mutableStateOf(false) }
+    var showDeleteConfirmation by rememberSaveable(localId) { mutableStateOf(false) }
     var renaming by rememberSaveable(localId) { mutableStateOf(false) }
     var noteName by rememberSaveable(localId) { mutableStateOf("") }
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
@@ -973,6 +974,12 @@ private fun NoteDetailScreen(
                                 },
                                 modifier = Modifier.testTag("rename-note")
                             ) { Text("Rename") }
+                        }
+                        if (current != null) {
+                            TextButton(
+                                onClick = { showDeleteConfirmation = true },
+                                modifier = Modifier.testTag("delete-note")
+                            ) { Text("Delete") }
                         }
                     }
                     if (editing) {
@@ -1282,6 +1289,35 @@ private fun NoteDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDiscardConfirmation = false }) { Text("Keep editing") }
+            }
+        )
+    }
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Move note to trash?") },
+            text = {
+                Text(
+                    "The note will disappear from this device now and move to the Nextcloud " +
+                        "trash bin when synchronization is available."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        note?.let { current ->
+                            scope.launch {
+                                component.moveNotesToTrash(current.accountId, listOf(localId))
+                                onBackToList()
+                            }
+                        }
+                    },
+                    modifier = Modifier.testTag("confirm-delete-note")
+                ) { Text("Move to trash") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
             }
         )
     }
