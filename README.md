@@ -43,6 +43,19 @@ writable note. Drafts are stored locally first and synchronized through the
 Nextcloud Notes API; updates use the last known ETag to avoid blindly
 overwriting a concurrent server edit.
 
+### Editing Offline
+
+Editing does not wait for Nextcloud. Changes are cached immediately while the app is running and
+written to Room after a 500 ms pause, when editing finishes, or when the screen stops. A persisted
+edit remains visible after restarting the app and stays queued if synchronization cannot reach the
+server. A later edit, manual refresh, or return to the note list tries synchronization again.
+
+Updates use the last known ETag. If the server copy changed in the meantime, the app keeps the
+local text and marks the note as conflicted instead of overwriting the server. Durable background
+retry and conflict resolution are not implemented yet. Because the live draft cache is in memory,
+an abrupt process kill during the 500 ms save window can lose only the newest, not-yet-persisted
+characters.
+
 ## NixOS Recipes
 
 ### Enter The Development Environment
