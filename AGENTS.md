@@ -201,6 +201,8 @@ claim device or real-server verification from compilation alone.
 - Inspect the relevant implementation, tests, ADRs, and plan section before editing.
 - Prefer the smallest correct change and follow existing patterns before adding abstractions.
 - Add tests for behavior and regressions, especially synchronization state transitions.
+- Update `CHANGELOG.md` in the same change for user-visible behavior, compatibility changes, and
+  packaging or distribution changes; do not defer all changelog work until release preparation.
 - Keep test tags stable when possible; device tests use them extensively.
 - Do not edit generated build output. Room schema JSON is generated but intentionally versioned.
 - Run `git diff --check` and formatting checks before committing.
