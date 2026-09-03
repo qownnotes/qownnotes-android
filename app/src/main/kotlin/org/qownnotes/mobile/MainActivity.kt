@@ -781,10 +781,7 @@ private fun NoteDetailScreen(
                                 fun updateScrollMetrics() {
                                     editorScrollY = view.scrollY
                                     editorViewportHeight = view.height
-                                    editorScrollRange = (
-                                        (view.layout?.height ?: 0) + view.totalPaddingTop +
-                                            view.totalPaddingBottom - view.height
-                                        ).coerceAtLeast(0)
+                                    editorScrollRange = editorMaximumScroll(view)
                                 }
                                 view.id = R.id.markdown_editor
                                 view.setTextSize(
@@ -968,7 +965,7 @@ private fun NoteDetailScreen(
 }
 
 @Composable
-private fun EditorFastScroller(
+internal fun EditorFastScroller(
     editor: MarkdownEditText?,
     scrollY: Int,
     scrollRange: Int,
@@ -977,7 +974,7 @@ private fun EditorFastScroller(
 ) {
     if (editor == null || scrollRange <= 0 || viewportHeight <= 0) return
     BoxWithConstraints(
-        modifier = modifier.fillMaxHeight().width(32.dp)
+        modifier = modifier.fillMaxHeight().width(48.dp)
             .semantics { contentDescription = "Editor fast scroll" }
             .testTag("editor-fast-scroll")
     ) {
@@ -995,31 +992,42 @@ private fun EditorFastScroller(
             editor.scrollTo(0, (scrollRange * fraction).roundToInt())
         }
         Box(
-            modifier = Modifier.fillMaxSize().pointerInput(
-                editor,
-                scrollRange,
-                trackHeight,
-                thumbHeight
-            ) {
-                detectVerticalDragGestures(
-                    onDragStart = { scrollTo(it.y) },
-                    onVerticalDrag = { change, _ ->
-                        change.consume()
-                        scrollTo(change.position.y)
-                    }
-                )
-            }
+            modifier = Modifier.fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35F))
+                .pointerInput(
+                    editor,
+                    scrollRange,
+                    trackHeight,
+                    thumbHeight
+                ) {
+                    detectVerticalDragGestures(
+                        onDragStart = { scrollTo(it.y) },
+                        onVerticalDrag = { change, _ ->
+                            change.consume()
+                            scrollTo(change.position.y)
+                        }
+                    )
+                }
         ) {
+            Box(
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(4.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
             Box(
                 modifier = Modifier.align(Alignment.TopEnd)
                     .offset { IntOffset(0, thumbOffset.roundToInt()) }
-                    .width(6.dp)
+                    .width(12.dp)
                     .height(with(density) { thumbHeight.toDp() })
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.65F))
+                    .background(MaterialTheme.colorScheme.primary)
             )
         }
     }
 }
+
+internal fun editorMaximumScroll(editor: MarkdownEditText): Int = (
+    (editor.layout?.height ?: 0) + editor.totalPaddingTop + editor.totalPaddingBottom -
+        editor.height
+    ).coerceAtLeast(0)
 
 /**
  * Remembers what a rendered note view was last rendered from.
