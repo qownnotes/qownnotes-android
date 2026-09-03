@@ -1,5 +1,30 @@
 # QOwnNotes Mobile
 
+QOwnNotes Mobile is an Android-first, offline-capable Markdown notes application. It preserves key
+QOwnNotes behavior while synchronizing through the Nextcloud Notes API.
+
+## Features
+
+- Import one or more accounts from the Nextcloud Files Android app through Single Sign-On.
+- Read, search, create, rename, edit, and delete notes while keeping Room as the offline source of
+  truth.
+- Synchronize with Nextcloud Notes API 1.2 or newer using incremental pulls, ETags, conflict-safe
+  updates, and durable pending changes.
+- Long-press notes to select several and move them to the Nextcloud trash bin together.
+- Create a note from text shared by another Android application.
+- Render CommonMark and GitHub Flavored Markdown, QOwnNotes task states, wiki links, legacy
+  `note://` links, tables, fenced code, and safe remote images.
+- Edit highlighted Markdown source with formatting actions, undo and redo, cursor preservation, and
+  local draft persistence.
+- Find text inside an open note, select and copy rendered text, and adjust the note text size.
+- Detect read-only and QOwnNotes-encrypted notes and fail closed for unsafe HTML, links, images, and
+  filesystem access.
+- Use light and dark themes on Android 9 and newer.
+
+The production application is named **QOwnNotes** and uses `org.qownnotes.mobile`. Development
+builds are named **QOwnNotes Dev** and use `org.qownnotes.mobile.dev`, so both can be installed on
+the same device. See [`CHANGELOG.md`](CHANGELOG.md) for release details.
+
 ## Nextcloud Account Setup
 
 Install the Nextcloud Files Android app, sign in to the desired server there,
