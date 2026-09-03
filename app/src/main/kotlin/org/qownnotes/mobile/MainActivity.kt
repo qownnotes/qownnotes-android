@@ -249,6 +249,7 @@ private fun NotesNavigation(
     var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedHeading by rememberSaveable { mutableStateOf<String?>(null) }
+    var editOnOpenNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var navigationRequest by rememberSaveable { mutableStateOf(0) }
     var noteHistory by rememberSaveable { mutableStateOf(emptyList<String>()) }
 
@@ -262,6 +263,7 @@ private fun NotesNavigation(
         selectedNoteId = noteHistory.lastOrNull()
         noteHistory = noteHistory.dropLast(1)
         selectedHeading = null
+        editOnOpenNoteId = null
         navigationRequest++
     }
 
@@ -290,16 +292,20 @@ private fun NotesNavigation(
                 component = component,
                 localId = noteId,
                 heading = selectedHeading,
+                startEditing = editOnOpenNoteId == noteId,
                 navigationRequest = navigationRequest,
+                onInitialEditStarted = { editOnOpenNoteId = null },
                 onBackToList = {
                     selectedNoteId = null
                     selectedHeading = null
+                    editOnOpenNoteId = null
                     noteHistory = emptyList()
                 },
                 onOpen = { destination ->
                     if (noteId != destination.localId) noteHistory = noteHistory + noteId
                     selectedNoteId = destination.localId
                     selectedHeading = destination.heading
+                    editOnOpenNoteId = null
                     navigationRequest++
                 }
             )
@@ -330,6 +336,7 @@ private fun NotesNavigation(
                     noteHistory = emptyList()
                     selectedNoteId = note.localId
                     selectedHeading = null
+                    editOnOpenNoteId = note.localId
                     navigationRequest++
                 }
             },
@@ -337,6 +344,7 @@ private fun NotesNavigation(
                 noteHistory = emptyList()
                 selectedNoteId = it
                 selectedHeading = null
+                editOnOpenNoteId = null
                 navigationRequest++
             }
         )
@@ -734,7 +742,9 @@ private fun NoteDetailScreen(
     component: ApplicationComponent,
     localId: String,
     heading: String?,
+    startEditing: Boolean,
     navigationRequest: Int,
+    onInitialEditStarted: () -> Unit,
     onBackToList: () -> Unit,
     onOpen: (ResolvedNoteLink) -> Unit
 ) {
@@ -810,6 +820,18 @@ private fun NoteDetailScreen(
     LaunchedEffect(note?.localId, note?.content) {
         if (draft == null || !editing) {
             draft = note?.let { component.draft(localId, it.content) }
+        }
+    }
+    LaunchedEffect(startEditing, note?.localId) {
+        if (!startEditing || note == null) return@LaunchedEffect
+        val editable = component.beginEditing(localId)
+        onInitialEditStarted()
+        editable?.let {
+            draft = editable.content
+            contentBeforeEditing = editable.content
+            selectionStart = editable.content.length
+            selectionEnd = selectionStart
+            editing = true
         }
     }
     LaunchedEffect(draft, editing) {

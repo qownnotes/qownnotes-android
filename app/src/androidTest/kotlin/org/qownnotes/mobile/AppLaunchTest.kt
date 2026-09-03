@@ -296,10 +296,8 @@ class AppLaunchTest {
         importAccount("alice", "Existing note", "etag-1", 10)
 
         composeRule.onNodeWithTag("create-note").performClick()
-        composeRule.waitUntil {
-            composeRule.onAllNodesWithText("Edit").fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.enterEditMode()
+        composeRule.waitForTag("markdown-editor")
+        composeRule.onNodeWithTag("finish-editing").assertIsDisplayed()
         onView(withId(R.id.markdown_editor)).perform(
             click(),
             replaceText("# Edited\n\nDraft text")
