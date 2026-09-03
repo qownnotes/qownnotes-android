@@ -465,12 +465,12 @@ class MarkdownRendererInstrumentedTest {
     private fun AppCompatTextView.touchTask(task: TaskToggleSpan) {
         val text = text as Spannable
         val line = layout.getLineForOffset(text.getSpanStart(task))
-        val x = layout.getLineLeft(line) - task.leadingMargin / 2F + totalPaddingLeft
+        val x = layout.getLineLeft(line) + 8F * resources.displayMetrics.density + totalPaddingLeft
         val y = (layout.getLineTop(line) + layout.getLineBottom(line)) / 2F + totalPaddingTop
         val time = SystemClock.uptimeMillis()
         listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP).forEach { action ->
             MotionEvent.obtain(time, time + action, action, x, y, 0).also { event ->
-                movementMethod.onTouchEvent(this, text, event)
+                dispatchTouchEvent(event)
                 event.recycle()
             }
         }

@@ -59,8 +59,17 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
             .maxByOrNull(buffer::getSpanStart) ?: return null
         val direction = layout.getParagraphDirection(line)
         val edge = if (direction > 0) layout.getLineLeft(line) else layout.getLineRight(line)
-        val start = if (direction > 0) edge - task.leadingMargin else edge
-        val end = if (direction > 0) edge else edge + task.leadingMargin
+        val center = if (direction > 0) {
+            edge - task.leadingMargin / 2F
+        } else {
+            edge + task.leadingMargin / 2F
+        }
+        val touchWidth = maxOf(
+            task.leadingMargin.toFloat(),
+            48F * widget.resources.displayMetrics.density
+        )
+        val start = center - touchWidth / 2F
+        val end = center + touchWidth / 2F
         return task.takeIf { x in start..end }
     }
 
