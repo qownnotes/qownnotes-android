@@ -66,6 +66,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -87,6 +88,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.resolveInternalNoteLink
@@ -530,6 +532,8 @@ private fun NoteDetailScreen(
     // restoring this, not merely dropping what has not been written yet.
     var contentBeforeEditing by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     var showDiscardConfirmation by rememberSaveable(localId) { mutableStateOf(false) }
+    var renaming by rememberSaveable(localId) { mutableStateOf(false) }
+    var noteName by rememberSaveable(localId) { mutableStateOf("") }
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
@@ -705,6 +709,17 @@ private fun NoteDetailScreen(
                             },
                             modifier = Modifier.testTag("find-in-note")
                         ) { Text("Find") }
+                        // The name of a note is the name of the file holding it, so it is offered
+                        // wherever the note is, not only while its text is being edited.
+                        if (current != null && !current.readOnly) {
+                            TextButton(
+                                onClick = {
+                                    noteName = current.title
+                                    renaming = true
+                                },
+                                modifier = Modifier.testTag("rename-note")
+                            ) { Text("Rename") }
+                        }
                     }
                     if (editing) {
                         TextButton(
@@ -1013,6 +1028,62 @@ private fun NoteDetailScreen(
             }
         )
     }
+    if (renaming) {
+        RenameNoteDialog(
+            name = noteName,
+            onNameChange = { noteName = it },
+            onDismiss = { renaming = false },
+            onConfirm = {
+                renaming = false
+                scope.launch { component.renameNote(localId, noteName) }
+            }
+        )
+    }
+}
+
+@Composable
+private fun RenameNoteDialog(
+    name: String,
+    onNameChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+    // The field is the only reason this dialog exists, so it takes the focus rather than asking
+    // for another tap. A dialog composes into a window of its own, so the focus is taken once the
+    // field has actually been placed rather than after a guessed number of frames.
+    var focusTaken by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename note") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = onNameChange,
+                label = { Text("File name") },
+                singleLine = true,
+                supportingText = {
+                    Text("Characters a file name cannot hold are replaced by spaces.")
+                },
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
+                    .onPlaced {
+                        if (!focusTaken) {
+                            focusTaken = true
+                            focusRequester.requestFocus()
+                        }
+                    }
+                    .testTag("note-name-field")
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = NoteNames.isValid(name),
+                modifier = Modifier.testTag("confirm-rename-note")
+            ) { Text("Rename") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable

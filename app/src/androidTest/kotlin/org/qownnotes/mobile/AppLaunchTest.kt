@@ -457,6 +457,47 @@ class AppLaunchTest {
 
         composeRule.waitForText("Read only")
         composeRule.onNodeWithTag("edit-note").assertDoesNotExist()
+        composeRule.onNodeWithTag("rename-note").assertDoesNotExist()
+    }
+
+    /** The name of a note is the name of the file holding it, so a rename has to be uploaded. */
+    @Test
+    fun renamingANoteShowsAndUploadsTheNewFileName() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+
+        composeRule.onNodeWithTag("rename-note").performClick()
+        composeRule.onNodeWithTag("note-name-field").performTextReplacement("Grocery list")
+        composeRule.onNodeWithTag("confirm-rename-note").performClick()
+
+        composeRule.waitForText("Grocery list")
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+        composeRule.waitForText("Grocery list")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.pushedNotes.any { it.title == "Grocery list" }
+        }
+        assertTrue(
+            runBlocking {
+                application.component.noteRepository
+                    .observeNotes(testAccount("alice").localAccountId())
+                    .first()
+                    .all { it.content == "# Existing note" }
+            }
+        )
+    }
+
+    /** A name that holds nothing a file system accepts would leave the note unreachable. */
+    @Test
+    fun renamingRefusesANameThatNoFileCanCarry() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+
+        composeRule.onNodeWithTag("rename-note").performClick()
+        composeRule.onNodeWithTag("note-name-field").performTextReplacement(" / ")
+        composeRule.onNodeWithTag("confirm-rename-note").assertIsNotEnabled()
+
+        composeRule.onNodeWithTag("note-name-field").performTextReplacement("Usable name")
+        composeRule.onNodeWithTag("confirm-rename-note").assertIsEnabled()
     }
 
     @Test

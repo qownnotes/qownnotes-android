@@ -19,6 +19,8 @@ interface NoteRepository {
 
     suspend fun updateDraft(localId: String, content: String, modifiedAtEpochSeconds: Long): Boolean
 
+    suspend fun updateTitle(localId: String, title: String, modifiedAtEpochSeconds: Long): Boolean
+
     suspend fun retry(localId: String): Boolean
 }
 

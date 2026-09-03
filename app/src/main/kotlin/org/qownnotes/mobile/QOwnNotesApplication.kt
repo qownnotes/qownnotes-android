@@ -26,6 +26,7 @@ import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteFactory
+import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
 import org.qownnotes.mobile.core.SyncState
@@ -194,6 +195,22 @@ class ApplicationComponent(
                 scheduleSync(note.accountId)
             }
             saved
+        }
+
+    /**
+     * Renames the file holding the note. The server sanitizes the name once more and may append a
+     * suffix when the folder already holds that name, which [pushPending] then adopts.
+     */
+    suspend fun renameNote(localId: String, title: String): Boolean =
+        editMutexes.getOrPut(localId, ::Mutex).withLock {
+            val note = noteRepository.get(localId) ?: return@withLock false
+            if (note.readOnly) return@withLock false
+            val sanitized = NoteNames.sanitize(title)
+            if (sanitized.isEmpty() || sanitized == note.title) return@withLock false
+            val renamed =
+                noteRepository.updateTitle(localId, sanitized, clock.instant().epochSecond)
+            if (renamed) scheduleSync(note.accountId)
+            renamed
         }
 
     fun cacheDraft(localId: String, content: String) {

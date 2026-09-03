@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -286,6 +287,74 @@ class RoomPullStoreTest {
         assertEquals("remote-etag", note.remoteEtag)
         assertEquals("Newer draft", note.content)
         assertEquals("Submitted", note.lastSyncedContent)
+        assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
+    }
+
+    @Test
+    fun renamingANoteQueuesItForUploadWithoutTouchingItsText() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+
+        assertTrue(notes.updateTitle("account-local-42", "Renamed", 20))
+
+        val note = notes.get("account-local-42")!!
+        assertEquals("Renamed", note.title)
+        assertEquals("Local content", note.content)
+        assertEquals(20L, note.modifiedAtEpochSeconds)
+        assertEquals(1L, note.localRevision)
+        assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
+    }
+
+    @Test
+    fun renamingAReadOnlyNoteIsRefused() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED).copy(readOnly = true))
+
+        assertFalse(notes.updateTitle("account-local-42", "Renamed", 20))
+        assertEquals("Local", notes.get("account-local-42")!!.title)
+    }
+
+    @Test
+    fun renamedNoteAdoptsTheNameTheServerStored() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+        notes.updateTitle("account-local-42", "Renamed", 20)
+
+        RoomPushStore(database).applySuccess(
+            "account-local-42",
+            1,
+            RemoteNote(42, "remote-etag", "Renamed (2)", "Local content", "Local category", 20)
+        )
+
+        val note = notes.get("account-local-42")!!
+        assertEquals("Renamed (2)", note.title)
+        assertEquals("Renamed (2)", note.lastSyncedTitle)
+        assertEquals(SyncState.SYNCHRONIZED, note.syncState)
+    }
+
+    @Test
+    fun staleRenameResponseKeepsTheNameGivenWhileTheUploadWasRunning() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+        notes.updateTitle("account-local-42", "First name", 20)
+        notes.updateTitle("account-local-42", "Second name", 30)
+
+        RoomPushStore(database).applySuccess(
+            "account-local-42",
+            1,
+            RemoteNote(42, "remote-etag", "First name", "Local content", "Local category", 20)
+        )
+
+        val note = notes.get("account-local-42")!!
+        assertEquals("Second name", note.title)
         assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
     }
 

@@ -22,11 +22,13 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
                 "Nextcloud response is missing its modified timestamp"
             }
             val etag = requireNotNull(remote.etag) { "Nextcloud response is missing its etag" }
+            // A response only describes the revision that was submitted. Adopting its name for a
+            // newer revision would undo a rename the reader made while the push was in flight.
             val unchanged = current.localRevision == submittedRevision
             database.noteDao().upsert(
                 current.copy(
                     remoteId = remote.id,
-                    title = title,
+                    title = if (unchanged) title else current.title,
                     content = if (unchanged) content else current.content,
                     category = category,
                     modifiedAtEpochSeconds =

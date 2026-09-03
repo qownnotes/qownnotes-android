@@ -31,5 +31,11 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
         modifiedAtEpochSeconds: Long
     ): Boolean = noteDao.updateDraft(localId, content, modifiedAtEpochSeconds) > 0
 
+    override suspend fun updateTitle(
+        localId: String,
+        title: String,
+        modifiedAtEpochSeconds: Long
+    ): Boolean = noteDao.updateTitle(localId, title, modifiedAtEpochSeconds) > 0
+
     override suspend fun retry(localId: String): Boolean = noteDao.retry(localId) > 0
 }

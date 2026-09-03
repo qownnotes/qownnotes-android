@@ -83,6 +83,7 @@ class FakePullBackend : NoteBackend {
     private val pulls = mutableMapOf<String, ArrayDeque<Result<PullResult>>>()
     val checkpoints = mutableListOf<Pair<String, PullCheckpoint>>()
     val validatedAccountIds = mutableListOf<String>()
+    val pushedNotes = mutableListOf<Note>()
     var validationGate: CompletableDeferred<Unit>? = null
 
     override suspend fun validateAccount(account: Account): String {
@@ -103,11 +104,15 @@ class FakePullBackend : NoteBackend {
             )
     }
 
-    override suspend fun create(account: Account, note: Note): RemoteNote =
-        canonical(note, remoteId = nextRemoteId++)
+    override suspend fun create(account: Account, note: Note): RemoteNote {
+        pushedNotes += note
+        return canonical(note, remoteId = nextRemoteId++)
+    }
 
-    override suspend fun update(account: Account, note: Note): RemoteNote =
-        canonical(note, remoteId = requireNotNull(note.remoteId))
+    override suspend fun update(account: Account, note: Note): RemoteNote {
+        pushedNotes += note
+        return canonical(note, remoteId = requireNotNull(note.remoteId))
+    }
 
     fun enqueue(account: SingleSignOnAccount, result: PullResult) {
         queue(account).add(Result.success(result))
@@ -121,6 +126,7 @@ class FakePullBackend : NoteBackend {
         pulls.clear()
         checkpoints.clear()
         validatedAccountIds.clear()
+        pushedNotes.clear()
         validationGate?.cancel()
         validationGate = null
     }

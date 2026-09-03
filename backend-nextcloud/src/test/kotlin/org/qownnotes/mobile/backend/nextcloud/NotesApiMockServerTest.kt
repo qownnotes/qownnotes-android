@@ -192,6 +192,24 @@ class NotesApiMockServerTest {
     }
 
     @Test
+    fun sendsRenamedTitleAndAdoptsTheNameTheServerStored() {
+        server.enqueue(canonicalResponse(42, "new-etag", "Renamed (2)", "# Local\n"))
+
+        val remote = updateWithApi(
+            api,
+            testNote().copy(remoteId = 42, remoteEtag = "old-etag", title = "Renamed")
+        )
+
+        val body = GsonBuilder().create().fromJson(
+            server.takeRequest().body.readUtf8(),
+            NoteWriteDto::class.java
+        )
+        assertEquals("Renamed", body.title)
+        assertEquals("# Local\n", body.content)
+        assertEquals("Renamed (2)", remote.title)
+    }
+
+    @Test
     fun classifiesWriteConflictAndInsufficientStorage() {
         server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_PRECON_FAILED))
         assertThrows(BackendException.Conflict::class.java) {
