@@ -124,7 +124,7 @@ class AppLaunchTest {
     fun reconnectPreservesCachedDataAndCheckpoint() {
         val account = importAccount("alice", "Cached note", "etag-1", 10)
         application.fakeBackend.enqueueFailure(account, BackendException.Authentication())
-        composeRule.onNodeWithTag("pull-to-refresh").performTouchInput { swipeDown() }
+        composeRule.activityRule.scenario.recreate()
         composeRule.waitForText("Reconnect")
 
         application.fakeAccountImporter.enqueue(account)
@@ -143,7 +143,7 @@ class AppLaunchTest {
     fun reconnectRejectsADifferentAccount() {
         val account = importAccount("alice", "Cached note", "etag-1", 10)
         application.fakeBackend.enqueueFailure(account, BackendException.Authentication())
-        composeRule.onNodeWithTag("pull-to-refresh").performTouchInput { swipeDown() }
+        composeRule.activityRule.scenario.recreate()
         composeRule.waitForText("Reconnect")
 
         application.fakeAccountImporter.enqueue(testAccount("bob"))
@@ -151,6 +151,16 @@ class AppLaunchTest {
 
         composeRule.waitForText("Select the same Nextcloud account to reconnect")
         composeRule.onNodeWithText("Cached note").assertIsDisplayed()
+    }
+
+    @Test
+    fun pullingTheNoteListDownFetchesFromTheServer() {
+        val account = importAccount("alice", "Cached note", "etag-1", 10)
+        application.fakeBackend.enqueue(account, pull("Updated note", "etag-2", 20))
+
+        composeRule.pullToRefresh()
+
+        composeRule.waitForText("Updated note")
     }
 
     @Test
@@ -653,6 +663,29 @@ class AppLaunchTest {
         waitUntil(timeoutMillis = 10_000) {
             onAllNodesWithTag("markdown-editor").fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    /**
+     * Pull to refresh reacts to how far a drag has travelled by the time it is released. The
+     * injected gesture and the state that measures it advance on separate coroutines, so on a
+     * loaded machine a swipe can be released before the pull has been accounted for and then
+     * refreshes nothing. Drag slowly, start below the search field so that the field cannot take
+     * the gesture for text selection, and repeat until the backend has actually been asked.
+     */
+    private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.pullToRefresh() {
+        val pullsBefore = application.fakeBackend.checkpoints.size
+        repeat(3) {
+            onNodeWithTag("pull-to-refresh").performTouchInput {
+                swipeDown(startY = centerY, endY = height * 0.95f, durationMillis = 600)
+            }
+            val reachedTheBackend = runCatching {
+                waitUntil(timeoutMillis = 3_000) {
+                    application.fakeBackend.checkpoints.size > pullsBefore
+                }
+            }.isSuccess
+            if (reachedTheBackend) return
+        }
+        throw AssertionError("pulling the note list down never reached the backend")
     }
 
     /**
