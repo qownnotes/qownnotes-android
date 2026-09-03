@@ -23,6 +23,8 @@ interface NoteRepository {
 
     suspend fun updateTitle(localId: String, title: String, modifiedAtEpochSeconds: Long): Boolean
 
+    suspend fun updateFavorite(localId: String, favorite: Boolean): Boolean
+
     suspend fun retry(localId: String): Boolean
 
     suspend fun moveToTrash(accountId: String, localIds: List<String>)

@@ -26,7 +26,7 @@ The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account o
 
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete; broader real-server interoperability and the configured CI device job must be verified before Phase 2 is marked fully complete.
 
-Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: supplemental highlighting still runs on the main thread, and large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
+Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: supplemental highlighting still runs on the main thread, and large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -121,7 +121,6 @@ These features are valuable but are not required before the basic view, edit, cr
 
 - Deleting notes
 - Trash and restoration
-- Favorites
 - Sharing a note out of the application
 - Adding shared text to an existing note, which requires choosing that note
 - Widgets
@@ -453,11 +452,12 @@ A note needs at least:
 - Modified time
 - Remote ETag
 - Read-only state
+- Favorite state
 - Synchronization state
 - Last synchronized title
 - Last synchronized content
 - Last synchronized category
-- Last synchronized favorite state when favorites are implemented
+- Last synchronized favorite state
 - Last synchronization error summary
 
 Represent synchronization state with a sealed type or enum rather than combinations of booleans:
@@ -868,7 +868,6 @@ Explicitly out of scope for this phase: writing `notesPath`, creating durable em
 ### Phase 7: Extended Features
 
 - Delete and trash behavior
-- Favorites
 - Interactive task checkboxes
 - Images and attachments
 - Sharing

@@ -109,6 +109,41 @@ class QOwnNotesDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationThreeToFourPreservesNotesAndAddsFavoriteDefaults() {
+        helper.createDatabase(DATABASE_NAME, 3).use { database ->
+            database.execSQL(
+                """INSERT INTO accounts (
+                    id, displayName, serverUrl, ssoAccountName, userId,
+                    lastModifiedEpochSeconds
+                ) VALUES (?, ?, ?, ?, ?, ?)""",
+                arrayOf("account", "Account", "https://cloud.example", "sso", "user", 0)
+            )
+            database.execSQL(
+                """INSERT INTO notes (
+                    localId, accountId, remoteId, title, content, category,
+                    modifiedAtEpochSeconds, remoteEtag, readOnly, syncState,
+                    lastSyncedTitle, lastSyncedContent, lastSyncedCategory, lastSyncError,
+                    localRevision
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                arrayOf<Any?>(
+                    "local", "account", 42, "Title", "Content", "", 10, "etag", 0,
+                    "SYNCHRONIZED", "Title", "Content", "", null, 3
+                )
+            )
+        }
+
+        helper.runMigrationsAndValidate(DATABASE_NAME, 4, true, MIGRATION_3_4).use { database ->
+            database.query("SELECT * FROM notes WHERE localId = 'local'").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("Content", cursor.string("content"))
+                assertEquals(0L, cursor.getLong(cursor.getColumnIndexOrThrow("favorite")))
+                assertNull(cursor.nullableString("lastSyncedFavorite"))
+                assertEquals(3L, cursor.getLong(cursor.getColumnIndexOrThrow("localRevision")))
+            }
+        }
+    }
+
     private fun android.database.Cursor.string(column: String) =
         getString(getColumnIndexOrThrow(column))
 

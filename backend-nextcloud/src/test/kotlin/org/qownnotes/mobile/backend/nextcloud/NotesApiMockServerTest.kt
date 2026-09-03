@@ -80,6 +80,15 @@ class NotesApiMockServerTest {
     }
 
     @Test
+    fun readsFavoriteFromPull() {
+        server.enqueue(notesResponse("""[{"id":1,"favorite":true}]"""))
+
+        val result = pullFromApi(api, PullCheckpoint())
+
+        assertTrue(result.notes.single().favorite)
+    }
+
+    @Test
     fun returnsNotModifiedOnlyForInitialRequest() {
         server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED))
 
@@ -159,7 +168,7 @@ class NotesApiMockServerTest {
     fun createsNoteAndAdoptsCanonicalResponse() {
         server.enqueue(canonicalResponse(101, "server-etag", "Sanitized title", "# Local\n"))
 
-        val remote = createWithApi(api, testNote())
+        val remote = createWithApi(api, testNote().copy(favorite = true))
 
         val request = server.takeRequest()
         assertEquals("POST", request.method)
@@ -170,6 +179,7 @@ class NotesApiMockServerTest {
         )
         assertEquals("Local", body.title)
         assertEquals("# Local\n", body.content)
+        assertTrue(body.favorite)
         assertEquals("Sanitized title", remote.title)
         assertEquals("server-etag", remote.etag)
         assertEquals(101L, remote.id)
@@ -177,7 +187,7 @@ class NotesApiMockServerTest {
 
     @Test
     fun updatesNoteWithQuotedIfMatch() {
-        server.enqueue(canonicalResponse(42, "new-etag", "Local", "Updated"))
+        server.enqueue(canonicalResponse(42, "new-etag", "Local", "Updated", favorite = true))
 
         val remote = updateWithApi(
             api,
@@ -188,7 +198,13 @@ class NotesApiMockServerTest {
         assertEquals("PUT", request.method)
         assertEquals("/index.php/apps/notes/api/v1/notes/42", request.requestUrl!!.encodedPath)
         assertEquals("\"old-etag\"", request.getHeader("If-Match"))
+        val body = GsonBuilder().create().fromJson(
+            request.body.readUtf8(),
+            NoteWriteDto::class.java
+        )
+        assertFalse(body.favorite)
         assertEquals("new-etag", remote.etag)
+        assertTrue(remote.favorite)
     }
 
     @Test
@@ -249,12 +265,17 @@ class NotesApiMockServerTest {
         .setHeader("Content-Type", "application/json")
         .setBody(body)
 
-    private fun canonicalResponse(id: Long, etag: String, title: String, content: String) =
-        notesResponse(
-            """{"id":$id,"etag":"$etag","readonly":false,"title":"$title","content":${
-                GsonBuilder().create().toJson(content)
-            },"category":"","modified":20}"""
-        )
+    private fun canonicalResponse(
+        id: Long,
+        etag: String,
+        title: String,
+        content: String,
+        favorite: Boolean = false
+    ) = notesResponse(
+        """{"id":$id,"etag":"$etag","readonly":false,"title":"$title","content":${
+            GsonBuilder().create().toJson(content)
+        },"category":"","modified":20,"favorite":$favorite}"""
+    )
 
     private fun testNote() = Note(
         localId = "local",

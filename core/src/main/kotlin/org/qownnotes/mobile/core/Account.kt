@@ -24,7 +24,8 @@ data class RemoteNote(
     val content: String?,
     val category: String?,
     val modifiedAtEpochSeconds: Long?,
-    val readOnly: Boolean = false
+    val readOnly: Boolean = false,
+    val favorite: Boolean = false
 ) {
     val isPruned: Boolean
         get() = modifiedAtEpochSeconds == null

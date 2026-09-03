@@ -35,11 +35,13 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
                     if (unchanged) modified else current.modifiedAtEpochSeconds,
                     remoteEtag = etag,
                     readOnly = remote.readOnly,
+                    favorite = if (unchanged) remote.favorite else current.favorite,
                     syncState =
                     if (unchanged) SyncState.SYNCHRONIZED else SyncState.LOCALLY_MODIFIED,
                     lastSyncedTitle = title,
                     lastSyncedContent = content,
                     lastSyncedCategory = category,
+                    lastSyncedFavorite = remote.favorite,
                     lastSyncError = null
                 )
             )

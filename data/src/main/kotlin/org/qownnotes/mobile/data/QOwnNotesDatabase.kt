@@ -16,7 +16,8 @@ import org.qownnotes.mobile.core.SyncState
 interface NoteDao {
     @Query(
         "SELECT * FROM notes WHERE accountId = :accountId " +
-            "AND syncState != 'PENDING_DELETION' ORDER BY modifiedAtEpochSeconds DESC"
+            "AND syncState != 'PENDING_DELETION' " +
+            "ORDER BY favorite DESC, modifiedAtEpochSeconds DESC, localId ASC"
     )
     fun observeAll(accountId: String): Flow<List<NoteEntity>>
 
@@ -25,7 +26,7 @@ interface NoteDao {
            AND syncState != 'PENDING_DELETION' AND
            (:query = '' OR title LIKE '%' || :query || '%' COLLATE NOCASE OR
            content LIKE '%' || :query || '%' COLLATE NOCASE)
-           ORDER BY modifiedAtEpochSeconds DESC"""
+           ORDER BY favorite DESC, modifiedAtEpochSeconds DESC, localId ASC"""
     )
     fun search(accountId: String, query: String): Flow<List<NoteEntity>>
 
@@ -79,6 +80,15 @@ interface NoteDao {
     suspend fun updateTitle(localId: String, title: String, modifiedAtEpochSeconds: Long): Int
 
     @Query(
+        """UPDATE notes SET favorite = :favorite,
+           localRevision = localRevision + 1,
+           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = NULL
+           WHERE localId = :localId AND favorite != :favorite"""
+    )
+    suspend fun updateFavorite(localId: String, favorite: Boolean): Int
+
+    @Query(
         """UPDATE notes SET
            syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
            lastSyncError = NULL
@@ -129,7 +139,7 @@ class DatabaseConverters {
     @TypeConverter fun stringToSyncState(value: String): SyncState = SyncState.valueOf(value)
 }
 
-@Database(entities = [AccountEntity::class, NoteEntity::class], version = 3, exportSchema = true)
+@Database(entities = [AccountEntity::class, NoteEntity::class], version = 4, exportSchema = true)
 @TypeConverters(DatabaseConverters::class)
 abstract class QOwnNotesDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
@@ -155,5 +165,13 @@ val MIGRATION_2_3 =
     object : Migration(2, 3) {
         override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE notes ADD COLUMN localRevision INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+val MIGRATION_3_4 =
+    object : Migration(3, 4) {
+        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE notes ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE notes ADD COLUMN lastSyncedFavorite INTEGER")
         }
     }

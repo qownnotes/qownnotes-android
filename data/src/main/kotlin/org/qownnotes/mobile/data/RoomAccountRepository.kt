@@ -47,10 +47,12 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
                             modifiedAtEpochSeconds = remote.modifiedAtEpochSeconds ?: 0,
                             remoteEtag = remote.etag,
                             readOnly = remote.readOnly,
+                            favorite = remote.favorite,
                             syncState = SyncState.SYNCHRONIZED,
                             lastSyncedTitle = remote.title.orEmpty(),
                             lastSyncedContent = remote.content.orEmpty(),
                             lastSyncedCategory = remote.category.orEmpty(),
+                            lastSyncedFavorite = remote.favorite,
                             lastSyncError = null
                         )
                     )
@@ -63,9 +65,11 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
                             modifiedAtEpochSeconds = remote.modifiedAtEpochSeconds ?: 0,
                             remoteEtag = remote.etag,
                             readOnly = remote.readOnly,
+                            favorite = remote.favorite,
                             lastSyncedTitle = remote.title.orEmpty(),
                             lastSyncedContent = remote.content.orEmpty(),
                             lastSyncedCategory = remote.category.orEmpty(),
+                            lastSyncedFavorite = remote.favorite,
                             lastSyncError = null
                         )
                     )

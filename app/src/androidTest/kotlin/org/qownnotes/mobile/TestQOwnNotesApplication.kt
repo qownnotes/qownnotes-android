@@ -16,6 +16,7 @@ import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
+import org.qownnotes.mobile.data.MIGRATION_3_4
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 
 class TestQOwnNotesApplication : QOwnNotesApplication() {
@@ -25,7 +26,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
     override fun createComponent(): ApplicationComponent {
         val database =
             Room.databaseBuilder(this, QOwnNotesDatabase::class.java, TEST_DATABASE)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .allowMainThreadQueries()
                 .build()
         // A dedicated preference file keeps device tests from reading or writing real user
@@ -81,7 +82,8 @@ class FakeAccountImportGateway : AccountImportGateway {
 }
 
 class FakePullBackend : NoteBackend {
-    override val capabilities = BackendCapabilities(categories = true, readOnlyNotes = true)
+    override val capabilities =
+        BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
     private val pulls = mutableMapOf<String, ArrayDeque<Result<PullResult>>>()
     val checkpoints = mutableListOf<Pair<String, PullCheckpoint>>()
     val validatedAccountIds = mutableListOf<String>()
@@ -149,7 +151,8 @@ class FakePullBackend : NoteBackend {
         content = note.content,
         category = note.category,
         modifiedAtEpochSeconds = note.modifiedAtEpochSeconds,
-        readOnly = false
+        readOnly = false,
+        favorite = note.favorite
     )
 
     private var nextRemoteId = 1_000L

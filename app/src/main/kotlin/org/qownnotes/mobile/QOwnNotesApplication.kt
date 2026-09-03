@@ -34,6 +34,7 @@ import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
+import org.qownnotes.mobile.data.MIGRATION_3_4
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 import org.qownnotes.mobile.data.RoomAccountRepository
 import org.qownnotes.mobile.data.RoomNoteRepository
@@ -66,7 +67,7 @@ class ApplicationComponent(
     application: Application,
     database: QOwnNotesDatabase =
         Room.databaseBuilder(application, QOwnNotesDatabase::class.java, "qownnotes.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build(),
     private val backend: NoteBackend = NextcloudBackend(application),
     val settings: AppSettings = AppSettings(application)
@@ -242,6 +243,14 @@ class ApplicationComponent(
                 noteRepository.updateTitle(localId, sanitized, clock.instant().epochSecond)
             if (renamed) scheduleSync(note.accountId)
             renamed
+        }
+
+    suspend fun setFavorite(localId: String, favorite: Boolean): Boolean =
+        editMutexes.getOrPut(localId, ::Mutex).withLock {
+            val note = noteRepository.get(localId) ?: return@withLock false
+            val changed = noteRepository.updateFavorite(localId, favorite)
+            if (changed) scheduleSync(note.accountId)
+            changed
         }
 
     fun cacheDraft(localId: String, content: String) {

@@ -36,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -602,7 +603,7 @@ private fun NoteListScreen(
                 } else {
                     items(notes!!, key = Note::localId) { note ->
                         val selected = note.localId in selectedNoteIds
-                        Column(
+                        Row(
                             modifier =
                             Modifier.fillMaxWidth().testTag("note-${note.localId}")
                                 .background(
@@ -613,30 +614,61 @@ private fun NoteListScreen(
                                     }
                                 )
                                 .semantics { this.selected = selected }
-                                .combinedClickable(
-                                    onClick = {
-                                        if (selectionActive) {
-                                            selectedNoteIds =
-                                                if (selected) {
-                                                    selectedNoteIds - note.localId
-                                                } else {
-                                                    selectedNoteIds + note.localId
-                                                }
-                                        } else {
-                                            onOpen(note.localId)
+                                .padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f)
+                                    .combinedClickable(
+                                        onClick = {
+                                            if (selectionActive) {
+                                                selectedNoteIds =
+                                                    if (selected) {
+                                                        selectedNoteIds - note.localId
+                                                    } else {
+                                                        selectedNoteIds + note.localId
+                                                    }
+                                            } else {
+                                                onOpen(note.localId)
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (!selected) selectedNoteIds += note.localId
                                         }
+                                    )
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                Text(note.title, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    note.category.ifBlank { "Uncategorized" },
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        component.setFavorite(note.localId, !note.favorite)
+                                    }
+                                },
+                                enabled = !selectionActive,
+                                modifier = Modifier.testTag("favorite-${note.localId}")
+                            ) {
+                                Icon(
+                                    Icons.Filled.Star,
+                                    contentDescription =
+                                    if (note.favorite) {
+                                        "Remove from favorites"
+                                    } else {
+                                        "Add to favorites"
                                     },
-                                    onLongClick = {
-                                        if (!selected) selectedNoteIds += note.localId
+                                    tint =
+                                    if (note.favorite) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.outlineVariant
                                     }
                                 )
-                                .padding(horizontal = 20.dp, vertical = 14.dp)
-                        ) {
-                            Text(note.title, style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                note.category.ifBlank { "Uncategorized" },
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            }
                         }
                     }
                 }

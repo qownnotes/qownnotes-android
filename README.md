@@ -11,6 +11,7 @@ QOwnNotes behavior while synchronizing through the Nextcloud Notes API.
 - Synchronize with Nextcloud Notes API 1.2 or newer using incremental pulls, ETags, conflict-safe
   updates, and durable pending changes.
 - Long-press notes to select several and move them to the Nextcloud trash bin together.
+- Favorite notes with a star and keep them above other notes, including while offline.
 - Create a note from text shared by another Android application.
 - Render CommonMark and GitHub Flavored Markdown, QOwnNotes task states, wiki links, legacy
   `note://` links, tables, fenced code, and safe remote images.

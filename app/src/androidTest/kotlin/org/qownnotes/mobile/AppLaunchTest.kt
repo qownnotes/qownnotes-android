@@ -82,6 +82,38 @@ class AppLaunchTest {
     }
 
     @Test
+    fun favoriteStarMovesANoteAboveNewerNotesAndQueuesItForUpload() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(42, "etag-old", "Older", "# Older", "", 10),
+                    RemoteNote(43, "etag-new", "Newer", "# Newer", "", 20)
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 20
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Older")
+        val older = runBlocking { notesOf("alice").first { it.title == "Older" } }
+
+        composeRule.onNodeWithTag("favorite-${older.localId}").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                val notes = notesOf("alice")
+                notes.first().title == "Older" && notes.first().favorite
+            }
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.pushedNotes.any { it.localId == older.localId && it.favorite }
+        }
+    }
+
+    @Test
     fun showsAccountImportFailureOnOnboarding() {
         application.fakeAccountImporter.enqueueFailure(IllegalStateException("Import unavailable"))
 

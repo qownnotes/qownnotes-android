@@ -43,10 +43,12 @@ data class NoteEntity(
     val modifiedAtEpochSeconds: Long,
     val remoteEtag: String?,
     val readOnly: Boolean,
+    val favorite: Boolean = false,
     val syncState: SyncState,
     val lastSyncedTitle: String?,
     val lastSyncedContent: String?,
     val lastSyncedCategory: String?,
+    val lastSyncedFavorite: Boolean? = null,
     val lastSyncError: String?,
     val localRevision: Long = 0
 )
@@ -61,10 +63,12 @@ fun NoteEntity.toDomain() = Note(
     modifiedAtEpochSeconds = modifiedAtEpochSeconds,
     remoteEtag = remoteEtag,
     readOnly = readOnly,
+    favorite = favorite,
     syncState = syncState,
     lastSyncedTitle = lastSyncedTitle,
     lastSyncedContent = lastSyncedContent,
     lastSyncedCategory = lastSyncedCategory,
+    lastSyncedFavorite = lastSyncedFavorite,
     lastSyncError = lastSyncError,
     localRevision = localRevision
 )
@@ -79,10 +83,12 @@ fun Note.toEntity() = NoteEntity(
     modifiedAtEpochSeconds = modifiedAtEpochSeconds,
     remoteEtag = remoteEtag,
     readOnly = readOnly,
+    favorite = favorite,
     syncState = syncState,
     lastSyncedTitle = lastSyncedTitle,
     lastSyncedContent = lastSyncedContent,
     lastSyncedCategory = lastSyncedCategory,
+    lastSyncedFavorite = lastSyncedFavorite,
     lastSyncError = lastSyncError,
     localRevision = localRevision
 )

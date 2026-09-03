@@ -47,7 +47,7 @@ class NextcloudBackend(context: Context) : NoteBackend {
     private val gson = GsonBuilder().create()
 
     override val capabilities =
-        BackendCapabilities(categories = true, readOnlyNotes = true)
+        BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
 
     override suspend fun validateAccount(account: Account): String = withContext(Dispatchers.IO) {
         try {
@@ -262,7 +262,8 @@ internal fun deleteWithApi(notesApi: NotesApi, remoteId: Long) {
     throw backendExceptionForHttpStatus(response.code(), NotesHttpException(response.code()))
 }
 
-private fun Note.toWriteDto() = NoteWriteDto(title, content, category, modifiedAtEpochSeconds)
+private fun Note.toWriteDto() =
+    NoteWriteDto(title, content, category, modifiedAtEpochSeconds, favorite)
 
 private fun Response<RemoteNoteDto>.toCanonicalRemoteNote(): RemoteNote {
     if (!isSuccessful) {
@@ -387,7 +388,8 @@ internal data class NoteWriteDto(
     val title: String,
     val content: String,
     val category: String,
-    val modified: Long
+    val modified: Long,
+    val favorite: Boolean
 )
 
 private data class OcsResponse(val ocs: OcsEnvelope)
@@ -403,7 +405,8 @@ internal data class RemoteNoteDto(
     val content: String? = null,
     val title: String? = null,
     val category: String? = null,
-    val modified: Long? = null
+    val modified: Long? = null,
+    val favorite: Boolean = false
 ) {
     fun toDomain() = RemoteNote(
         id = id ?: throw BackendException.Protocol("Nextcloud note is missing its id"),
@@ -412,7 +415,8 @@ internal data class RemoteNoteDto(
         content = content,
         category = category,
         modifiedAtEpochSeconds = modified,
-        readOnly = readonly
+        readOnly = readonly,
+        favorite = favorite
     )
 
     fun toCanonicalRemote() = RemoteNote(
@@ -425,7 +429,8 @@ internal data class RemoteNoteDto(
             ?: throw BackendException.Protocol("Nextcloud note is missing its category"),
         modifiedAtEpochSeconds = modified
             ?: throw BackendException.Protocol("Nextcloud note is missing its modified timestamp"),
-        readOnly = readonly
+        readOnly = readonly,
+        favorite = favorite
     )
 }
 

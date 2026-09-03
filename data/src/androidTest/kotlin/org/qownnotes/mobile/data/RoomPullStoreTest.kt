@@ -264,6 +264,76 @@ class RoomPullStoreTest {
     }
 
     @Test
+    fun favoritesSortFirstAndToggleOfflineWithoutChangingModifiedTime() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, title = "Older").copy(
+                modifiedAtEpochSeconds = 10,
+                readOnly = true
+            )
+        )
+        database.noteDao().upsert(
+            localNote(43, SyncState.SYNCHRONIZED, title = "Newer").copy(
+                modifiedAtEpochSeconds = 20
+            )
+        )
+
+        assertTrue(notes.updateFavorite("account-local-42", true))
+
+        val favorite = notes.get("account-local-42")!!
+        assertTrue(favorite.favorite)
+        assertEquals(10L, favorite.modifiedAtEpochSeconds)
+        assertEquals(1L, favorite.localRevision)
+        assertEquals(SyncState.LOCALLY_MODIFIED, favorite.syncState)
+        assertEquals(
+            listOf("Older", "Newer"),
+            notes.observeNotes("account").first().map {
+                it.title
+            }
+        )
+        assertEquals(
+            listOf("Older", "Newer"),
+            notes.searchNotes("account", "er").first().map {
+                it.title
+            }
+        )
+        assertFalse(notes.updateFavorite("account-local-42", true))
+    }
+
+    @Test
+    fun pullAndPushPreserveFavoriteRevisions() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        RoomPullStore(database).applyPull(
+            "account",
+            PullResult(
+                listOf(RemoteNote(42, "etag", "Remote", "Content", "", 10, favorite = true)),
+                "collection",
+                10
+            )
+        )
+        val pulled = database.noteDao().getByRemoteId("account", 42)!!
+        assertTrue(pulled.favorite)
+        assertEquals(true, pulled.lastSyncedFavorite)
+
+        notes.updateFavorite(pulled.localId, false)
+        notes.updateFavorite(pulled.localId, true)
+        RoomPushStore(database).applySuccess(
+            pulled.localId,
+            1,
+            RemoteNote(42, "new-etag", "Remote", "Content", "", 10, favorite = false)
+        )
+
+        val current = notes.get(pulled.localId)!!
+        assertTrue(current.favorite)
+        assertEquals(false, current.lastSyncedFavorite)
+        assertEquals(SyncState.LOCALLY_MODIFIED, current.syncState)
+    }
+
+    @Test
     fun staleCreateResponseAttachesRemoteIdentityWithoutReplacingNewerDraft() = runBlocking {
         val accounts = RoomAccountRepository(database.accountDao())
         val notes = RoomNoteRepository(database.noteDao())
