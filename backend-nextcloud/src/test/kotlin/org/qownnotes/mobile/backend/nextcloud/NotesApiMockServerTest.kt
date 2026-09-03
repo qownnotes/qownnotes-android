@@ -192,6 +192,28 @@ class NotesApiMockServerTest {
     }
 
     @Test
+    fun deletesNoteAndTreatsAnAlreadyMissingNoteAsDeleted() {
+        server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_OK))
+        server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND))
+
+        deleteWithApi(api, 42)
+        deleteWithApi(api, 43)
+
+        val first = server.takeRequest()
+        val second = server.takeRequest()
+        assertEquals("DELETE", first.method)
+        assertEquals("/index.php/apps/notes/api/v1/notes/42", first.requestUrl!!.encodedPath)
+        assertEquals("/index.php/apps/notes/api/v1/notes/43", second.requestUrl!!.encodedPath)
+    }
+
+    @Test
+    fun classifiesDeletePermissionFailure() {
+        server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_FORBIDDEN))
+
+        assertThrows(BackendException.Permission::class.java) { deleteWithApi(api, 42) }
+    }
+
+    @Test
     fun sendsRenamedTitleAndAdoptsTheNameTheServerStored() {
         server.enqueue(canonicalResponse(42, "new-etag", "Renamed (2)", "# Local\n"))
 

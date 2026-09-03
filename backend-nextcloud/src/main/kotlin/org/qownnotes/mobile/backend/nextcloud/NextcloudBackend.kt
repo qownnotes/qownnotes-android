@@ -34,6 +34,7 @@ import retrofit2.Call
 import retrofit2.NextcloudRetrofitApiBuilder
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
@@ -89,6 +90,14 @@ class NextcloudBackend(context: Context) : NoteBackend {
                 throw error.asBackendException()
             }
         }
+
+    override suspend fun delete(account: Account, remoteId: Long) = withContext(Dispatchers.IO) {
+        try {
+            withApis(account) { _, notesApi -> deleteWithApi(notesApi, remoteId) }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
 
     private fun <T> withApis(account: Account, block: (CapabilitiesApi, NotesApi) -> T): T {
         if (AccountImporter.getAccountForName(applicationContext, account.ssoAccountName) == null) {
@@ -247,6 +256,12 @@ internal fun updateWithApi(notesApi: NotesApi, note: Note): RemoteNote {
         .toCanonicalRemoteNote()
 }
 
+internal fun deleteWithApi(notesApi: NotesApi, remoteId: Long) {
+    val response = notesApi.deleteNote(remoteId).execute()
+    if (response.isSuccessful || response.code() == HttpURLConnection.HTTP_NOT_FOUND) return
+    throw backendExceptionForHttpStatus(response.code(), NotesHttpException(response.code()))
+}
+
 private fun Note.toWriteDto() = NoteWriteDto(title, content, category, modifiedAtEpochSeconds)
 
 private fun Response<RemoteNoteDto>.toCanonicalRemoteNote(): RemoteNote {
@@ -348,6 +363,9 @@ internal interface NotesApi {
         @Header("If-Match") ifMatch: String,
         @Body request: NoteWriteDto
     ): Call<RemoteNoteDto>
+
+    @DELETE("notes/{id}")
+    fun deleteNote(@Path("id") id: Long): Call<Void>
 
     @GET("notes")
     fun getNotes(

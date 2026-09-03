@@ -8,9 +8,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -74,6 +76,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -387,7 +390,7 @@ private fun AccountOnboarding(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun NoteListScreen(
     component: ApplicationComponent,
@@ -404,6 +407,8 @@ private fun NoteListScreen(
     var query by rememberSaveable { mutableStateOf("") }
     var showRemoveConfirmation by rememberSaveable(accountId) { mutableStateOf(false) }
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
+    var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
+    var selectedNoteIds by rememberSaveable(accountId) { mutableStateOf(emptyList<String>()) }
     val notesFlow = remember(accountId, query) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
@@ -416,78 +421,137 @@ private fun NoteListScreen(
     val syncState = syncStates[accountId] ?: SyncUiState.Idle
     val account = accounts.first { it.id == accountId }
     val scope = rememberCoroutineScope()
+    val selectionActive = selectedNoteIds.isNotEmpty()
 
     LaunchedEffect(accountId) { component.refresh(accountId) }
+    LaunchedEffect(notes) {
+        val visibleIds = notes?.mapTo(mutableSetOf(), Note::localId) ?: return@LaunchedEffect
+        selectedNoteIds = selectedNoteIds.filter { it in visibleIds }
+    }
+    BackHandler(enabled = selectionActive) {
+        selectionMenuOpen = false
+        selectedNoteIds = emptyList()
+    }
 
     Scaffold(
         topBar = {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                 TopAppBar(
-                    title = {
-                        Text(
-                            account.displayName,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    // What these actions act on is the account named beside them, which is why
-                    // they sit under it and say so, rather than standing next to a note action
-                    // as bare verbs that read as if they applied to the notes in the list.
-                    actions = {
-                        Box {
+                    navigationIcon = {
+                        if (selectionActive) {
                             IconButton(
-                                onClick = { accountMenuOpen = true },
-                                modifier = Modifier.testTag("account-menu")
+                                onClick = { selectedNoteIds = emptyList() },
+                                modifier = Modifier.testTag("clear-note-selection")
                             ) {
                                 Icon(
-                                    Icons.Filled.MoreVert,
-                                    contentDescription = "Account actions"
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Clear selection"
                                 )
                             }
-                            DropdownMenu(
-                                expanded = accountMenuOpen,
-                                onDismissRequest = { accountMenuOpen = false }
-                            ) {
-                                if (accounts.size > 1) {
-                                    DropdownMenuItem(
-                                        text = { Text("Switch account") },
-                                        onClick = {
-                                            accountMenuOpen = false
-                                            val next =
-                                                (accounts.indexOf(account) + 1) % accounts.size
-                                            onSelectAccount(accounts[next].id)
-                                        },
-                                        modifier = Modifier.testTag("switch-account")
+                        }
+                    },
+                    title = {
+                        if (selectionActive) {
+                            Text("${selectedNoteIds.size} selected")
+                        } else {
+                            Text(
+                                account.displayName,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    },
+                    actions = {
+                        if (selectionActive) {
+                            Box {
+                                IconButton(
+                                    onClick = { selectionMenuOpen = true },
+                                    modifier = Modifier.testTag("note-selection-menu")
+                                ) {
+                                    Icon(
+                                        Icons.Filled.MoreVert,
+                                        contentDescription = "Selected note actions"
                                     )
                                 }
-                                DropdownMenuItem(
-                                    text = { Text("Add account") },
-                                    onClick = {
-                                        accountMenuOpen = false
-                                        onImportAccount()
-                                    },
-                                    modifier = Modifier.testTag("add-account")
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Remove account") },
-                                    onClick = {
-                                        accountMenuOpen = false
-                                        showRemoveConfirmation = true
-                                    },
-                                    modifier = Modifier.testTag("remove-account")
-                                )
+                                DropdownMenu(
+                                    expanded = selectionMenuOpen,
+                                    onDismissRequest = { selectionMenuOpen = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Move to trash") },
+                                        onClick = {
+                                            val ids = selectedNoteIds
+                                            selectionMenuOpen = false
+                                            selectedNoteIds = emptyList()
+                                            scope.launch {
+                                                component.moveNotesToTrash(accountId, ids)
+                                            }
+                                        },
+                                        modifier = Modifier.testTag("move-notes-to-trash")
+                                    )
+                                }
+                            }
+                        } else {
+                            // What these actions act on is the account named beside them, which is
+                            // why they sit under it and say so, rather than standing next to a note
+                            // action as bare verbs that read as if they applied to the notes list.
+                            Box {
+                                IconButton(
+                                    onClick = { accountMenuOpen = true },
+                                    modifier = Modifier.testTag("account-menu")
+                                ) {
+                                    Icon(
+                                        Icons.Filled.MoreVert,
+                                        contentDescription = "Account actions"
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = accountMenuOpen,
+                                    onDismissRequest = { accountMenuOpen = false }
+                                ) {
+                                    if (accounts.size > 1) {
+                                        DropdownMenuItem(
+                                            text = { Text("Switch account") },
+                                            onClick = {
+                                                accountMenuOpen = false
+                                                val next =
+                                                    (accounts.indexOf(account) + 1) % accounts.size
+                                                onSelectAccount(accounts[next].id)
+                                            },
+                                            modifier = Modifier.testTag("switch-account")
+                                        )
+                                    }
+                                    DropdownMenuItem(
+                                        text = { Text("Add account") },
+                                        onClick = {
+                                            accountMenuOpen = false
+                                            onImportAccount()
+                                        },
+                                        modifier = Modifier.testTag("add-account")
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Remove account") },
+                                        onClick = {
+                                            accountMenuOpen = false
+                                            showRemoveConfirmation = true
+                                        },
+                                        modifier = Modifier.testTag("remove-account")
+                                    )
+                                }
                             }
                         }
                     }
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                        .testTag("note-list-actions")
-                ) {
-                    TextButton(
-                        onClick = { onCreate(accountId) },
-                        modifier = Modifier.testTag("create-note")
-                    ) { Text("New note") }
+                if (!selectionActive) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                            .testTag("note-list-actions")
+                    ) {
+                        TextButton(
+                            onClick = { onCreate(accountId) },
+                            modifier = Modifier.testTag("create-note")
+                        ) { Text("New note") }
+                    }
                 }
             }
         }
@@ -537,10 +601,35 @@ private fun NoteListScreen(
                     }
                 } else {
                     items(notes!!, key = Note::localId) { note ->
+                        val selected = note.localId in selectedNoteIds
                         Column(
                             modifier =
                             Modifier.fillMaxWidth().testTag("note-${note.localId}")
-                                .clickable { onOpen(note.localId) }
+                                .background(
+                                    if (selected) {
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surface
+                                    }
+                                )
+                                .semantics { this.selected = selected }
+                                .combinedClickable(
+                                    onClick = {
+                                        if (selectionActive) {
+                                            selectedNoteIds =
+                                                if (selected) {
+                                                    selectedNoteIds - note.localId
+                                                } else {
+                                                    selectedNoteIds + note.localId
+                                                }
+                                        } else {
+                                            onOpen(note.localId)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        if (!selected) selectedNoteIds += note.localId
+                                    }
+                                )
                                 .padding(horizontal = 20.dp, vertical = 14.dp)
                         ) {
                             Text(note.title, style = MaterialTheme.typography.titleMedium)

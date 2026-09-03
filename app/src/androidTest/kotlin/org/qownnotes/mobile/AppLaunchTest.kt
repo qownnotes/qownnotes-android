@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -45,8 +46,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.qownnotes.mobile.core.BackendException
+import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
+import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.markdown.NoteTextSize
 
 @RunWith(AndroidJUnit4::class)
@@ -219,6 +222,41 @@ class AppLaunchTest {
         composeRule.waitForText("Add account")
         composeRule.onNodeWithText("Add account").assertIsDisplayed()
         composeRule.onNodeWithText("Remove account").assertIsDisplayed()
+    }
+
+    @Test
+    fun longPressSelectsMultipleNotesAndMovesThemToTrash() {
+        val account = importAccount("alice", "First note", "etag-1", 10)
+        val accountId = account.localAccountId()
+        val first = runBlocking { notesOf("alice").single() }
+        runBlocking {
+            application.component.noteRepository.save(
+                Note(
+                    localId = "second-local",
+                    accountId = accountId,
+                    remoteId = 43,
+                    title = "Second note",
+                    content = "# Second note",
+                    modifiedAtEpochSeconds = 20,
+                    remoteEtag = "etag-2",
+                    syncState = SyncState.SYNCHRONIZED
+                )
+            )
+        }
+        composeRule.waitForText("Second note")
+
+        composeRule.onNodeWithTag("note-${first.localId}").performTouchInput { longClick() }
+        composeRule.onNodeWithText("1 selected").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-second-local").performClick()
+        composeRule.onNodeWithText("2 selected").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-selection-menu").performClick()
+        composeRule.onNodeWithTag("move-notes-to-trash").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.deletedRemoteIds.toSet() == setOf(42L, 43L)
+        }
+        composeRule.onNodeWithText("First note").assertDoesNotExist()
+        composeRule.onNodeWithText("Second note").assertDoesNotExist()
     }
 
     @Test

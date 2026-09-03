@@ -14,11 +14,15 @@ import org.qownnotes.mobile.core.SyncState
 
 @Dao
 interface NoteDao {
-    @Query("SELECT * FROM notes WHERE accountId = :accountId ORDER BY modifiedAtEpochSeconds DESC")
+    @Query(
+        "SELECT * FROM notes WHERE accountId = :accountId " +
+            "AND syncState != 'PENDING_DELETION' ORDER BY modifiedAtEpochSeconds DESC"
+    )
     fun observeAll(accountId: String): Flow<List<NoteEntity>>
 
     @Query(
-        """SELECT * FROM notes WHERE accountId = :accountId AND
+        """SELECT * FROM notes WHERE accountId = :accountId
+           AND syncState != 'PENDING_DELETION' AND
            (:query = '' OR title LIKE '%' || :query || '%' COLLATE NOCASE OR
            content LIKE '%' || :query || '%' COLLATE NOCASE)
            ORDER BY modifiedAtEpochSeconds DESC"""
@@ -36,6 +40,12 @@ interface NoteDao {
             "syncState IN ('LOCALLY_CREATED', 'LOCALLY_MODIFIED') ORDER BY localId"
     )
     suspend fun getPending(accountId: String): List<NoteEntity>
+
+    @Query(
+        "SELECT * FROM notes WHERE accountId = :accountId " +
+            "AND syncState = 'PENDING_DELETION' ORDER BY localId"
+    )
+    suspend fun getPendingDeletions(accountId: String): List<NoteEntity>
 
     @Upsert
     suspend fun upsert(note: NoteEntity)
@@ -75,6 +85,15 @@ interface NoteDao {
            WHERE localId = :localId AND syncState = 'FAILED'"""
     )
     suspend fun retry(localId: String): Int
+
+    @Query(
+        "UPDATE notes SET syncState = 'PENDING_DELETION', lastSyncError = NULL " +
+            "WHERE accountId = :accountId AND localId IN (:localIds)"
+    )
+    suspend fun moveToTrash(accountId: String, localIds: List<String>)
+
+    @Query("DELETE FROM notes WHERE localId = :localId")
+    suspend fun deleteByLocalId(localId: String)
 
     @Query("SELECT * FROM notes WHERE accountId = :accountId AND remoteId = :remoteId")
     suspend fun getByRemoteId(accountId: String, remoteId: Long): NoteEntity?

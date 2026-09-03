@@ -3,6 +3,7 @@ package org.qownnotes.mobile.data
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -316,6 +317,26 @@ class RoomPullStoreTest {
 
         assertFalse(notes.updateTitle("account-local-42", "Renamed", 20))
         assertEquals("Local", notes.get("account-local-42")!!.title)
+    }
+
+    @Test
+    fun movingNotesToTrashHidesAndQueuesThemUntilDeletionCompletes() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+        database.noteDao().upsert(localNote(43, SyncState.LOCALLY_MODIFIED))
+
+        notes.moveToTrash("account", listOf("account-local-42", "account-local-43"))
+
+        assertTrue(notes.observeNotes("account").first().isEmpty())
+        assertEquals(
+            listOf(42L, 43L),
+            notes.pendingDeletions("account").map { it.remoteId }
+        )
+        notes.remove("account-local-42")
+        assertNull(notes.get("account-local-42"))
+        assertNotNull(notes.get("account-local-43"))
     }
 
     @Test

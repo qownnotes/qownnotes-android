@@ -13,6 +13,8 @@ interface NoteRepository {
 
     suspend fun pending(accountId: String): List<Note>
 
+    suspend fun pendingDeletions(accountId: String): List<Note>
+
     suspend fun save(note: Note)
 
     suspend fun beginEditing(localId: String): Note?
@@ -22,6 +24,10 @@ interface NoteRepository {
     suspend fun updateTitle(localId: String, title: String, modifiedAtEpochSeconds: Long): Boolean
 
     suspend fun retry(localId: String): Boolean
+
+    suspend fun moveToTrash(accountId: String, localIds: List<String>)
+
+    suspend fun remove(localId: String)
 }
 
 interface NoteBackend {
@@ -34,6 +40,8 @@ interface NoteBackend {
     suspend fun create(account: Account, note: Note): RemoteNote
 
     suspend fun update(account: Account, note: Note): RemoteNote
+
+    suspend fun delete(account: Account, remoteId: Long)
 }
 
 interface AccountRepository {

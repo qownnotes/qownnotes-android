@@ -196,9 +196,9 @@ class ApplicationComponent(
     /**
      * Takes the shared text that is waiting for a note, if there is one.
      *
-     * It is taken before the note is written rather than after, because a share that is taken
-     * twice would leave a duplicate note behind, and this release cannot delete a note. Text lost
-     * to that narrow window is still held by the application that shared it.
+     * It is taken before the note is written rather than after, because taking a share twice would
+     * leave a duplicate note behind. Text lost to that narrow window is still held by the
+     * application that shared it.
      */
     fun takePendingShare(): SharedText? = mutablePendingShare.getAndUpdate { null }
 
@@ -261,6 +261,14 @@ class ApplicationComponent(
         if (noteRepository.retry(localId)) scheduleSync(note.accountId, 0)
     }
 
+    suspend fun moveNotesToTrash(accountId: String, localIds: List<String>) {
+        if (localIds.isEmpty()) return
+        accountMutex(accountId).withLock {
+            noteRepository.moveToTrash(accountId, localIds)
+        }
+        scheduleSync(accountId, 0)
+    }
+
     private fun scheduleSync(accountId: String, delayMillis: Long = 1_500) {
         lateinit var job: Job
         job = applicationScope.launch(start = CoroutineStart.LAZY) {
@@ -285,6 +293,7 @@ class ApplicationComponent(
                     PullCheckpoint(account.collectionEtag, account.lastModifiedEpochSeconds)
                 )
             pullStore.applyPull(accountId, result)
+            pushPendingDeletions(account)
             pushPending(account)
             updateSyncState(accountId, SyncUiState.Idle)
         } catch (error: CancellationException) {
@@ -327,6 +336,14 @@ class ApplicationComponent(
                 )
                 throw error
             }
+        }
+    }
+
+    private suspend fun pushPendingDeletions(account: Account) {
+        noteRepository.pendingDeletions(account.id).forEach { note ->
+            val remoteId = note.remoteId
+            if (remoteId != null) backend.delete(account, remoteId)
+            noteRepository.remove(note.localId)
         }
     }
 

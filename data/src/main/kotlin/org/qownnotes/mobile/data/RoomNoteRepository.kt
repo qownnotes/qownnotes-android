@@ -18,6 +18,9 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
     override suspend fun pending(accountId: String) =
         noteDao.getPending(accountId).map(NoteEntity::toDomain)
 
+    override suspend fun pendingDeletions(accountId: String) =
+        noteDao.getPendingDeletions(accountId).map(NoteEntity::toDomain)
+
     override suspend fun save(note: Note) = noteDao.upsert(note.toEntity())
 
     override suspend fun beginEditing(localId: String): Note? {
@@ -38,4 +41,9 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
     ): Boolean = noteDao.updateTitle(localId, title, modifiedAtEpochSeconds) > 0
 
     override suspend fun retry(localId: String): Boolean = noteDao.retry(localId) > 0
+
+    override suspend fun moveToTrash(accountId: String, localIds: List<String>) =
+        noteDao.moveToTrash(accountId, localIds)
+
+    override suspend fun remove(localId: String) = noteDao.deleteByLocalId(localId)
 }
