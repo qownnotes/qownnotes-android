@@ -69,6 +69,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -351,9 +352,20 @@ private fun NoteListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(account.displayName) },
-                actions = {
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            account.displayName,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                        .testTag("note-list-actions")
+                ) {
                     if (accounts.size > 1) {
                         TextButton(onClick = {
                             val next = (accounts.indexOf(account) + 1) % accounts.size
@@ -373,7 +385,7 @@ private fun NoteListScreen(
                         modifier = Modifier.testTag("add-account")
                     ) { Text("Add") }
                 }
-            )
+            }
         }
     ) { padding ->
         PullToRefreshBox(
@@ -625,30 +637,41 @@ private fun NoteDetailScreen(
     }
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(note?.title ?: "Note") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            val source = draft
-                            if (editing && source != null) {
-                                scope.launch {
-                                    if (component.saveDraft(localId, source)) onBackToList()
-                                }
-                            } else {
-                                onBackToList()
-                            }
-                        },
-                        modifier = Modifier.testTag("back-to-note-list")
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back to notes"
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            note?.title ?: "Note",
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                val source = draft
+                                if (editing && source != null) {
+                                    scope.launch {
+                                        if (component.saveDraft(localId, source)) onBackToList()
+                                    }
+                                } else {
+                                    onBackToList()
+                                }
+                            },
+                            modifier = Modifier.testTag("back-to-note-list")
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back to notes"
+                            )
+                        }
                     }
-                },
-                actions = {
-                    val current = note
+                )
+                val current = note
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                        .testTag("note-actions")
+                ) {
                     CompactActionButton(
                         label = "A-",
                         description = "Decrease note text size",
@@ -717,7 +740,7 @@ private fun NoteDetailScreen(
                         Text("Read only", modifier = Modifier.padding(horizontal = 12.dp))
                     }
                 }
-            )
+            }
         }
     ) { padding ->
         if (editing) {
