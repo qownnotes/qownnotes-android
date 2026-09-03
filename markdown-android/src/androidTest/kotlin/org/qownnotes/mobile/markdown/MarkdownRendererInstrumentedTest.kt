@@ -58,9 +58,19 @@ class MarkdownRendererInstrumentedTest {
             assertEquals(source, view.text.toString())
             assertEquals(5, view.selectionStart)
             assertEquals(10, view.selectionEnd)
-            assertEquals(
-                3,
-                view.text!!.getSpans(0, view.length(), SupplementalSyntaxSpan::class.java).size
+            val syntax = view.text!!.getSpans(
+                0,
+                view.length(),
+                SupplementalSyntaxSpan::class.java
+            ).mapTo(mutableSetOf()) { it.syntax }
+            assertTrue(
+                syntax.containsAll(
+                    setOf(
+                        MarkdownSyntax.FRONTMATTER,
+                        MarkdownSyntax.WIKI_LINK,
+                        MarkdownSyntax.COMMENT
+                    )
+                )
             )
             binding.close()
         }
