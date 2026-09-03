@@ -67,6 +67,52 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun sourceHighlightingCoversMarkdownSyntax() {
+        val source =
+            """
+                # Heading
+                Setext
+                ------
+                **strong** _emphasis_ ~~strike~~
+                > quote
+                1. [ ] task
+                `inline`
+                ```kotlin
+                val answer = 42
+                ```
+                [link](https://example.com) ![image](https://example.com/image.png)
+                | A | B |
+                [[Wiki]]
+                <!-- comment -->
+            """.trimIndent()
+        val changed = CountDownLatch(1)
+        lateinit var view: MarkdownEditText
+        lateinit var binding: MarkdownEditorBinding
+
+        instrumentation.runOnMainSync {
+            view = MarkdownEditText(textView().context)
+            binding = MarkdownEditorBinding(view.context, view) { changed.countDown() }
+            view.setText(source)
+            view.setSelection(4, 11)
+        }
+
+        assertTrue(changed.await(5, TimeUnit.SECONDS))
+        Thread.sleep(250)
+        instrumentation.runOnMainSync {
+            val syntax = view.text!!.getSpans(
+                0,
+                view.length(),
+                SupplementalSyntaxSpan::class.java
+            ).mapTo(mutableSetOf()) { it.syntax }
+            assertEquals(MarkdownSyntax.entries.toSet() - MarkdownSyntax.FRONTMATTER, syntax)
+            assertEquals(source, view.text.toString())
+            assertEquals(4, view.selectionStart)
+            assertEquals(11, view.selectionEnd)
+            binding.close()
+        }
+    }
+
+    @Test
     fun stylesBrokenInternalLinksAndDisablesClicks() {
         lateinit var view: AppCompatTextView
 

@@ -326,13 +326,44 @@ class MarkdownEditorBinding(
     }
 }
 
-internal class SupplementalSyntaxSpan : ForegroundColorSpan(Color.rgb(92, 107, 192))
+internal enum class MarkdownSyntax {
+    HEADING,
+    EMPHASIS,
+    STRIKETHROUGH,
+    LIST,
+    TASK,
+    BLOCKQUOTE,
+    CODE,
+    LINK,
+    TABLE,
+    WIKI_LINK,
+    FRONTMATTER,
+    COMMENT
+}
+
+internal class SupplementalSyntaxSpan(val syntax: MarkdownSyntax) :
+    ForegroundColorSpan(Color.rgb(92, 107, 192))
 
 private object SupplementalSyntaxWatcher : TextWatcher {
     private val patterns = listOf(
-        Regex("\\A---(?:\\r?\\n)[\\s\\S]*?(?:\\r?\\n)---(?=\\r?\\n|$)"),
-        Regex("\\[\\[[^]\\r\\n]+]]"),
-        Regex("<!--[\\s\\S]*?-->")
+        MarkdownSyntax.FRONTMATTER to
+            Regex("\\A---(?:\\r?\\n)[\\s\\S]*?(?:\\r?\\n)---(?=\\r?\\n|$)"),
+        MarkdownSyntax.COMMENT to Regex("<!--[\\s\\S]*?-->"),
+        MarkdownSyntax.WIKI_LINK to Regex("\\[\\[[^]\\r\\n]+]]"),
+        MarkdownSyntax.HEADING to Regex("(?m)^ {0,3}(?:#{1,6}(?=\\s)|(?:=+|-+)\\s*$)"),
+        MarkdownSyntax.EMPHASIS to
+            Regex(
+                "(?<!\\*)\\*{1,3}(?=\\S)|(?<=\\S)\\*{1,3}(?!\\*)|" +
+                    "(?<!_)_{1,3}(?=\\S)|(?<=\\S)_{1,3}(?!_)"
+            ),
+        MarkdownSyntax.STRIKETHROUGH to Regex("~~"),
+        MarkdownSyntax.LIST to Regex("(?m)^\\s*(?:[-+*]|\\d+[.)])(?=\\s)"),
+        MarkdownSyntax.TASK to Regex("\\[[ xX-]]"),
+        MarkdownSyntax.BLOCKQUOTE to Regex("(?m)^\\s*>+"),
+        MarkdownSyntax.CODE to
+            Regex("(?m)^\\s*(?:`{3,}|~{3,})[^\\r\\n]*|`+[^`\\r\\n]+`+"),
+        MarkdownSyntax.LINK to Regex("!?\\[[^]\\r\\n]*]\\([^\\s)]+(?:\\s+[^)]*)?\\)"),
+        MarkdownSyntax.TABLE to Regex("(?m)^\\s*\\|.*\\|\\s*$")
     )
 
     override fun beforeTextChanged(source: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -343,10 +374,10 @@ private object SupplementalSyntaxWatcher : TextWatcher {
         source ?: return
         source.getSpans(0, source.length, SupplementalSyntaxSpan::class.java)
             .forEach(source::removeSpan)
-        patterns.forEach { pattern ->
+        patterns.forEach { (syntax, pattern) ->
             pattern.findAll(source).forEach { match ->
                 source.setSpan(
-                    SupplementalSyntaxSpan(),
+                    SupplementalSyntaxSpan(syntax),
                     match.range.first,
                     match.range.last + 1,
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
