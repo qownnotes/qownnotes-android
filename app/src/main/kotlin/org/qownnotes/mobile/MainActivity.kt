@@ -33,9 +33,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -339,6 +342,7 @@ private fun NoteListScreen(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var showRemoveConfirmation by rememberSaveable(accountId) { mutableStateOf(false) }
+    var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     val notesFlow = remember(accountId, query) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
@@ -364,30 +368,65 @@ private fun NoteListScreen(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
+                    },
+                    // What these actions act on is the account named beside them, which is why
+                    // they sit under it and say so, rather than standing next to a note action
+                    // as bare verbs that read as if they applied to the notes in the list.
+                    actions = {
+                        Box {
+                            IconButton(
+                                onClick = { accountMenuOpen = true },
+                                modifier = Modifier.testTag("account-menu")
+                            ) {
+                                Icon(
+                                    Icons.Filled.MoreVert,
+                                    contentDescription = "Account actions"
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = accountMenuOpen,
+                                onDismissRequest = { accountMenuOpen = false }
+                            ) {
+                                if (accounts.size > 1) {
+                                    DropdownMenuItem(
+                                        text = { Text("Switch account") },
+                                        onClick = {
+                                            accountMenuOpen = false
+                                            val next =
+                                                (accounts.indexOf(account) + 1) % accounts.size
+                                            onSelectAccount(accounts[next].id)
+                                        },
+                                        modifier = Modifier.testTag("switch-account")
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text("Add account") },
+                                    onClick = {
+                                        accountMenuOpen = false
+                                        onImportAccount()
+                                    },
+                                    modifier = Modifier.testTag("add-account")
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Remove account") },
+                                    onClick = {
+                                        accountMenuOpen = false
+                                        showRemoveConfirmation = true
+                                    },
+                                    modifier = Modifier.testTag("remove-account")
+                                )
+                            }
+                        }
                     }
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
                         .testTag("note-list-actions")
                 ) {
-                    if (accounts.size > 1) {
-                        TextButton(onClick = {
-                            val next = (accounts.indexOf(account) + 1) % accounts.size
-                            onSelectAccount(accounts[next].id)
-                        }, modifier = Modifier.testTag("switch-account")) { Text("Switch") }
-                    }
                     TextButton(
                         onClick = { onCreate(accountId) },
                         modifier = Modifier.testTag("create-note")
-                    ) { Text("New") }
-                    TextButton(
-                        onClick = { showRemoveConfirmation = true },
-                        modifier = Modifier.testTag("remove-account")
-                    ) { Text("Remove") }
-                    TextButton(
-                        onClick = onImportAccount,
-                        modifier = Modifier.testTag("add-account")
-                    ) { Text("Add") }
+                    ) { Text("New note") }
                 }
             }
         }

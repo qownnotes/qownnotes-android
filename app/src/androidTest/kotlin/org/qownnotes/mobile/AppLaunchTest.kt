@@ -70,7 +70,7 @@ class AppLaunchTest {
         application.fakeBackend.enqueue(account, pull("Alice note", "etag-1", 10))
 
         composeRule.onNodeWithTag("onboarding").assertIsDisplayed()
-        composeRule.onNodeWithTag("add-account").performClick()
+        accountAction("add-account")
 
         composeRule.waitForText("Alice note")
         composeRule.onNodeWithText("alice @ cloud.example").assertIsDisplayed()
@@ -81,7 +81,7 @@ class AppLaunchTest {
     fun showsAccountImportFailureOnOnboarding() {
         application.fakeAccountImporter.enqueueFailure(IllegalStateException("Import unavailable"))
 
-        composeRule.onNodeWithTag("add-account").performClick()
+        accountAction("add-account")
 
         composeRule.waitForText("Import unavailable")
         composeRule.onNodeWithText("Import unavailable").assertIsDisplayed()
@@ -94,7 +94,7 @@ class AppLaunchTest {
         application.fakeBackend.validationGate = validationGate
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(account, pull("Alice note", "etag-1", 10))
-        composeRule.onNodeWithTag("add-account").performClick()
+        accountAction("add-account")
         composeRule.waitUntil {
             application.fakeBackend.validatedAccountIds.isNotEmpty()
         }
@@ -176,7 +176,7 @@ class AppLaunchTest {
             )
         )
 
-        composeRule.onNodeWithTag("add-account").performClick()
+        accountAction("add-account")
 
         composeRule.waitForText("A different Nextcloud account already uses this local identity")
         composeRule.onNodeWithText("Alice note").assertIsDisplayed()
@@ -188,22 +188,36 @@ class AppLaunchTest {
         val bob = testAccount("bob")
         application.fakeAccountImporter.enqueue(bob)
         application.fakeBackend.enqueue(bob, pull("Bob note", "etag-b", 20))
-        composeRule.onNodeWithTag("add-account").performClick()
-        composeRule.waitForText("Switch")
-        composeRule.onNodeWithTag("switch-account").performClick()
+        accountAction("add-account")
+        // Switching only becomes possible once the second account has finished being imported,
+        // which is what opening the menu waits for.
+        accountAction("switch-account")
         composeRule.waitForText("Bob note")
         composeRule.onNodeWithText("Alice note").assertDoesNotExist()
 
-        composeRule.onNodeWithTag("remove-account").performClick()
+        accountAction("remove-account")
         composeRule.onNodeWithText("server notes will not be deleted", substring = true)
             .assertIsDisplayed()
         composeRule.onNodeWithTag("confirm-remove-account").performClick()
         composeRule.waitForText("Alice note")
         composeRule.onNodeWithText("Bob note").assertDoesNotExist()
 
-        composeRule.onNodeWithTag("remove-account").performClick()
+        accountAction("remove-account")
         composeRule.onNodeWithTag("confirm-remove-account").performClick()
         composeRule.waitForText("Your Nextcloud notes, offline")
+    }
+
+    /** An action has to say what it acts on: a note is made here, the others change the account. */
+    @Test
+    fun theNoteListNamesWhatItsActionsActOn() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+
+        composeRule.onNodeWithText("New note").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("account-menu").performClick()
+        composeRule.waitForText("Add account")
+        composeRule.onNodeWithText("Add account").assertIsDisplayed()
+        composeRule.onNodeWithText("Remove account").assertIsDisplayed()
     }
 
     @Test
@@ -460,7 +474,7 @@ class AppLaunchTest {
                 lastModifiedEpochSeconds = 10
             )
         )
-        composeRule.onNodeWithTag("add-account").performClick()
+        accountAction("add-account")
         composeRule.waitForText("Shared note")
 
         composeRule.onNodeWithText("Shared note").performClick()
@@ -641,9 +655,22 @@ class AppLaunchTest {
         val account = testAccount(user)
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(account, pull(title, etag, modified, content))
-        composeRule.onNodeWithTag("add-account").performClick()
+        accountAction("add-account")
         composeRule.waitForText(title)
         return account
+    }
+
+    /**
+     * Account actions live in a menu on the account they act on, so they have to be opened first.
+     * Onboarding has no account yet and offers the only action it has directly. Waiting for the
+     * item covers actions that appear once another account has finished being imported.
+     */
+    private fun accountAction(tag: String) {
+        if (composeRule.onAllNodesWithTag("account-menu").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithTag("account-menu").performClick()
+            composeRule.waitForTag(tag)
+        }
+        composeRule.onNodeWithTag(tag).performClick()
     }
 
     private fun testAccount(user: String) =
