@@ -332,6 +332,26 @@ class AppLaunchTest {
     }
 
     @Test
+    fun editingStartsNearTheCurrentReadingPosition() {
+        val content = (1..80).joinToString("\n\n") {
+            "Paragraph $it of a note that is longer than a screen."
+        }
+        importAccount("alice", "Long note", "etag-1", 10, content)
+        composeRule.onNodeWithText("Long note").performClick()
+        composeRule.waitForTag("markdown-view")
+        composeRule.onNodeWithTag("markdown-view").performTouchInput { swipeUp() }
+
+        composeRule.enterEditMode()
+
+        var selection = 0
+        onView(withId(R.id.markdown_editor)).check { view, _ ->
+            selection = (view as TextView).selectionStart
+        }
+        assertTrue("expected selection after the start of the note", selection > 0)
+        assertTrue("expected selection before the end of the note", selection < content.length)
+    }
+
+    @Test
     fun noteTextSizeStopsAtItsSmallestStep() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()

@@ -537,6 +537,12 @@ private fun NoteDetailScreen(
         // spans rescale without re-rendering the note.
         renderedView?.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
     }
+    LaunchedEffect(editing, editor) {
+        val view = editor ?: return@LaunchedEffect
+        if (!editing) return@LaunchedEffect
+        repeat(2) { withFrameNanos { } }
+        view.bringPointIntoView(selectionStart)
+    }
     val latestDraft by rememberUpdatedState(draft)
     val latestNote by rememberUpdatedState(note)
     val latestEditing by rememberUpdatedState(editing)
@@ -678,8 +684,12 @@ private fun NoteDetailScreen(
                                     scope.launch {
                                         component.beginEditing(localId)?.let { editable ->
                                             draft = editable.content
-                                            selectionStart = editable.content.length
-                                            selectionEnd = editable.content.length
+                                            selectionStart = sourceOffsetForReadingPosition(
+                                                renderedView,
+                                                scrollState.value,
+                                                editable.content
+                                            )
+                                            selectionEnd = selectionStart
                                             editing = true
                                         }
                                     }
@@ -908,6 +918,21 @@ private class RenderedNote {
         this.key = key
         return true
     }
+}
+
+private fun sourceOffsetForReadingPosition(
+    view: AppCompatTextView?,
+    scrollY: Int,
+    markdown: String
+): Int {
+    val layout = view?.layout ?: return markdown.length
+    val renderedLength = view.text.length
+    if (renderedLength == 0 || markdown.isEmpty()) return 0
+    val line = layout.getLineForVertical(scrollY.coerceIn(0, layout.height))
+    val renderedOffset = layout.getLineStart(line)
+    val approximateOffset = (renderedOffset.toLong() * markdown.length / renderedLength).toInt()
+    if (approximateOffset == 0) return 0
+    return markdown.lastIndexOf('\n', (approximateOffset - 1).coerceAtLeast(0)) + 1
 }
 
 /**
