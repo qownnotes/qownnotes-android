@@ -101,4 +101,34 @@ class MarkdownRendererTest {
         assertNull(canonicalSafeImageDestination("https%3A%2F%2Fexample.com/image.png"))
         assertNull(canonicalSafeImageDestination("https://user@example.com/image.png"))
     }
+
+    @Test
+    fun togglesRenderedTaskMarkersByIndex() {
+        val markdown =
+            """
+                ---
+                example: "- [ ] metadata"
+                ---
+                - [ ] open
+                * [x] done
+                  1. [-] partial
+
+                ```text
+                - [ ] code
+                ```
+                > - [ ] quoted
+            """.trimIndent()
+
+        assertEquals(markdown.replaceFirst("[ ] open", "[x] open"), toggleTaskListItem(markdown, 0))
+        assertEquals(markdown.replaceFirst("[x] done", "[ ] done"), toggleTaskListItem(markdown, 1))
+        assertEquals(
+            markdown.replaceFirst("[-] partial", "[x] partial"),
+            toggleTaskListItem(markdown, 2)
+        )
+        assertEquals(
+            markdown.replaceFirst("[ ] quoted", "[x] quoted"),
+            toggleTaskListItem(markdown, 3)
+        )
+        assertNull(toggleTaskListItem(markdown, 4))
+    }
 }

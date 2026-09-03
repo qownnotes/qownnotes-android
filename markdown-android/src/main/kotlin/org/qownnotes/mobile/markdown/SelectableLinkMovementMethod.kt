@@ -31,6 +31,10 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
             }
             MotionEvent.ACTION_UP -> {
                 if (isTap(widget, event)) {
+                    taskAt(widget, buffer, event)?.let { task ->
+                        task.toggle(task.index)
+                        return true
+                    }
                     linkAt(widget, buffer, event)?.let { link ->
                         link.onClick(widget)
                         return true
@@ -39,6 +43,25 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
             }
         }
         return super.onTouchEvent(widget, buffer, event)
+    }
+
+    private fun taskAt(widget: TextView, buffer: Spannable, event: MotionEvent): TaskToggleSpan? {
+        val layout = widget.layout ?: return null
+        val x = event.x - widget.totalPaddingLeft + widget.scrollX
+        val y = event.y - widget.totalPaddingTop + widget.scrollY
+        if (y < 0 || y > layout.height) return null
+        val line = layout.getLineForVertical(y.toInt())
+        val task = buffer.getSpans(
+            layout.getLineStart(line),
+            layout.getLineEnd(line),
+            TaskToggleSpan::class.java
+        ).filter { layout.getLineForOffset(buffer.getSpanStart(it)) == line }
+            .maxByOrNull(buffer::getSpanStart) ?: return null
+        val direction = layout.getParagraphDirection(line)
+        val edge = if (direction > 0) layout.getLineLeft(line) else layout.getLineRight(line)
+        val start = if (direction > 0) edge - task.leadingMargin else edge
+        val end = if (direction > 0) edge else edge + task.leadingMargin
+        return task.takeIf { x in start..end }
     }
 
     /**

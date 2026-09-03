@@ -136,6 +136,32 @@ class MarkdownRendererInstrumentedTest {
         assertEquals(expected, opened)
     }
 
+    @Test
+    fun tappingARenderedCheckboxDispatchesItsTaskIndex() {
+        var toggledTask = -1
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer(view.context).render(
+                view = view,
+                markdown = "- [ ] first\n- [x] second",
+                onTaskToggle = { toggledTask = it }
+            )
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+            val text = view.text as Spanned
+            val task = text.getSpans(0, text.length, TaskToggleSpan::class.java)
+                .single { it.index == 1 }
+            view.touchTask(task)
+        }
+
+        assertEquals(1, toggledTask)
+    }
+
     /** A press that is long enough to start a selection must not also follow the link under it. */
     @Test
     fun pressingALinkLongEnoughToSelectDoesNotOpenIt() {
@@ -433,6 +459,20 @@ class MarkdownRendererInstrumentedTest {
         ).forEach { event ->
             movementMethod.onTouchEvent(this, text as Spannable, event)
             event.recycle()
+        }
+    }
+
+    private fun AppCompatTextView.touchTask(task: TaskToggleSpan) {
+        val text = text as Spannable
+        val line = layout.getLineForOffset(text.getSpanStart(task))
+        val x = layout.getLineLeft(line) - task.leadingMargin / 2F + totalPaddingLeft
+        val y = (layout.getLineTop(line) + layout.getLineBottom(line)) / 2F + totalPaddingTop
+        val time = SystemClock.uptimeMillis()
+        listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP).forEach { action ->
+            MotionEvent.obtain(time, time + action, action, x, y, 0).also { event ->
+                movementMethod.onTouchEvent(this, text, event)
+                event.recycle()
+            }
         }
     }
 

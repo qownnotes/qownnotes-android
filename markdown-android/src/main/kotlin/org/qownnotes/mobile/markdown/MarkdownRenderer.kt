@@ -20,6 +20,7 @@ import io.noties.markwon.core.spans.LinkSpan
 import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
+import io.noties.markwon.ext.tasklist.TaskListSpan
 import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.image.SchemeHandler
 import io.noties.markwon.image.destination.ImageDestinationProcessor
@@ -62,6 +63,7 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
         markdown: String,
         resolveInternalLink: (InternalNoteLink) -> ResolvedNoteLink? = { null },
         onInternalLink: (ResolvedNoteLink) -> Unit = {},
+        onTaskToggle: ((Int) -> Unit)? = null,
         heading: String? = null,
         onHeadingPositioned: (Int?) -> Unit = {},
         loadRemoteImages: Boolean = false
@@ -81,6 +83,7 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
         val markwon = if (loadRemoteImages) imageMarkwon else textMarkwon
         markwon.setMarkdown(view, safeMarkdown.withoutFrontmatter().withInternalLinks())
         styleBrokenInternalLinks(view, resolveInternalLink)
+        attachTaskToggleSpans(view, onTaskToggle)
         if (heading != null) {
             view.post { onHeadingPositioned(findHeadingTop(view, heading)) }
         }
@@ -178,6 +181,23 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
             setSize(size, size)
         }
     }
+}
+
+internal class TaskToggleSpan(val index: Int, val leadingMargin: Int, val toggle: (Int) -> Unit)
+
+private fun attachTaskToggleSpans(view: AppCompatTextView, onTaskToggle: ((Int) -> Unit)?) {
+    if (onTaskToggle == null) return
+    val text = view.text as? Spannable ?: return
+    text.getSpans(0, text.length, TaskListSpan::class.java)
+        .sortedWith(compareBy({ text.getSpanStart(it) }, { text.getSpanEnd(it) }))
+        .forEachIndexed { index, task ->
+            text.setSpan(
+                TaskToggleSpan(index, task.getLeadingMargin(true), onTaskToggle),
+                text.getSpanStart(task),
+                text.getSpanEnd(task),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
 }
 
 private const val BLOCKED_IMAGE_DESTINATION = "qon-blocked-image:blocked"
@@ -396,3 +416,56 @@ internal fun String.withoutFrontmatter(): String {
     val end = indexOf("\n---\n", startIndex = 4)
     return if (end < 0) this else substring(end + 5)
 }
+
+fun toggleTaskListItem(markdown: String, taskIndex: Int): String? {
+    if (taskIndex < 0) return null
+    var index = 0
+    var lineStart = markdown.bodyStartAfterFrontmatter()
+    var fenceCharacter: Char? = null
+    var fenceLength = 0
+    while (lineStart < markdown.length) {
+        val newline = markdown.indexOf('\n', lineStart)
+        val lineEnd = if (newline < 0) markdown.length else newline
+        val line = markdown.substring(lineStart, lineEnd)
+        val fence = line.fenceMarker()
+        if (fenceCharacter != null) {
+            if (fence != null && fence.first == fenceCharacter && fence.second >= fenceLength &&
+                line.dropWhile { it == ' ' }.drop(fence.second).isBlank()
+            ) {
+                fenceCharacter = null
+                fenceLength = 0
+            }
+        } else if (fence != null) {
+            fenceCharacter = fence.first
+            fenceLength = fence.second
+        } else {
+            val task = TASK_LIST_MARKER.find(line)
+            if (task != null) {
+                if (index == taskIndex) {
+                    val marker = lineStart + task.groups[1]!!.range.first
+                    val toggled = if (markdown[marker] == 'x' ||
+                        markdown[marker] == 'X'
+                    ) {
+                        ' '
+                    } else {
+                        'x'
+                    }
+                    return markdown.replaceRange(marker, marker + 1, toggled.toString())
+                }
+                index++
+            }
+        }
+        if (newline < 0) break
+        lineStart = newline + 1
+    }
+    return null
+}
+
+private fun String.bodyStartAfterFrontmatter(): Int {
+    if (!startsWith("---\n")) return 0
+    val end = indexOf("\n---\n", startIndex = 4)
+    return if (end < 0) 0 else end + 5
+}
+
+private val TASK_LIST_MARKER =
+    Regex("^(?: {0,3}>[ \\t]?)*[ \\t]*(?:[-+*]|\\d+[.)])[ \\t]+\\[([ xX-])]")

@@ -81,6 +81,7 @@ import org.qownnotes.mobile.markdown.NoteSearchColors
 import org.qownnotes.mobile.markdown.NoteTextSize
 import org.qownnotes.mobile.markdown.highlightNoteSearchMatches
 import org.qownnotes.mobile.markdown.noteSearchMatchTop
+import org.qownnotes.mobile.markdown.toggleTaskListItem
 
 class MainActivity : ComponentActivity() {
     private var reconnectAccountId: String? = null
@@ -505,6 +506,7 @@ private fun NoteDetailScreen(
     var pendingHeading by remember(localId, heading, navigationRequest) { mutableStateOf(heading) }
     var loadRemoteImages by remember(localId) { mutableStateOf(false) }
     var finding by rememberSaveable(localId) { mutableStateOf(false) }
+    var togglingTask by remember(localId) { mutableStateOf(false) }
     var findQuery by rememberSaveable(localId) { mutableStateOf("") }
     var currentMatch by rememberSaveable(localId) { mutableStateOf(0) }
     var matches by remember(localId) { mutableStateOf(emptyList<IntRange>()) }
@@ -835,6 +837,21 @@ private fun NoteDetailScreen(
                                         }
                                     },
                                     onInternalLink = onOpen,
+                                    onTaskToggle = if (source != null && !source.readOnly) {
+                                        { taskIndex ->
+                                            if (!togglingTask) {
+                                                toggleTaskListItem(source.content, taskIndex)?.let {
+                                                    togglingTask = true
+                                                    scope.launch {
+                                                        component.saveDraft(localId, it)
+                                                        togglingTask = false
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        null
+                                    },
                                     heading = if (source != null) pendingHeading else null,
                                     onHeadingPositioned = { top ->
                                         if (pendingHeading != null) {
