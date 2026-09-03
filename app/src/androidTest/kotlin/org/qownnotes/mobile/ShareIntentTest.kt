@@ -80,15 +80,28 @@ class ShareIntentTest {
      */
     @Test
     fun offersItselfAsASingleInstancedShareTargetForText() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-
-        val target = context.packageManager
-            .queryIntentActivities(sendIntent("text/plain").setPackage(context.packageName), 0)
-            .map { it.activityInfo }
-            .firstOrNull { it.name == MainActivity::class.java.name }
+        val target = shareTargetFor("text/plain")
 
         assertNotNull("the application is not offered as a share target", target)
         assertEquals(ActivityInfo.LAUNCH_SINGLE_TASK, target?.launchMode)
+    }
+
+    /**
+     * An application that shares a page or a message may label its text with a subtype other than
+     * `text/plain`, and missing from its share sheet is indistinguishable from being broken.
+     */
+    @Test
+    fun offersItselfForTextSubtypesOtherThanPlain() {
+        assertNotNull("no share target for text/html", shareTargetFor("text/html"))
+        assertNotNull("no share target for text/markdown", shareTargetFor("text/markdown"))
+    }
+
+    private fun shareTargetFor(type: String): ActivityInfo? {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        return context.packageManager
+            .queryIntentActivities(sendIntent(type).setPackage(context.packageName), 0)
+            .map { it.activityInfo }
+            .firstOrNull { it.name == MainActivity::class.java.name }
     }
 
     private fun sendIntent(type: String) = Intent(Intent.ACTION_SEND).setType(type)

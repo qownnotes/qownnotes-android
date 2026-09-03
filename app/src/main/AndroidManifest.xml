@@ -25,11 +25,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Text shared by another application becomes a new note. -->
+            <!--
+                Text shared by another application becomes a new note. Every text type is
+                accepted, not only `text/plain`, because an application sharing a page or a
+                message may label it `text/html` or another subtype while still sending the
+                text itself in the intent, and what is read from it is plain text either way.
+            -->
             <intent-filter android:label="@string/share_to_new_note">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/*" />
             </intent-filter>
         </activity>
     </application>
