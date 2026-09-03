@@ -3,6 +3,7 @@ name: CI
 on:
   pull_request:
   push:
+    branches-ignore: [release]
 
 permissions:
   contents: read
