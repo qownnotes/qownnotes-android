@@ -33,4 +33,30 @@ class MarkdownFormattingTest {
 
         assertEquals("> one\r\n> two\r\nthree", edit.text)
     }
+
+    @Test
+    fun continuesBulletsNumberedListsAndTasks() {
+        assertContinuation("  - item\n", "  - item\n  - ")
+        assertContinuation("3. item\n", "3. item\n4. ")
+        assertContinuation("- [x] done\n", "- [x] done\n- [ ] ")
+    }
+
+    @Test
+    fun returnOnAnEmptyItemEndsTheList() {
+        assertContinuation("first\n  - \n", "first\n\n")
+        assertContinuation("1. \n", "\n")
+    }
+
+    @Test
+    fun doesNotContinuePlainTextOrListsInsideCodeFences() {
+        assertEquals(null, continueMarkdownList("plain\n", 5))
+        assertEquals(null, continueMarkdownList("```\n- code\n", 10))
+    }
+
+    private fun assertContinuation(source: String, expected: String) {
+        val edit = requireNotNull(continueMarkdownList(source, source.lastIndex))
+        assertEquals(expected, edit.text)
+        assertEquals(expected.length, edit.selectionStart)
+        assertEquals(expected.length, edit.selectionEnd)
+    }
 }

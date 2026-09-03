@@ -94,6 +94,50 @@ private fun String.prefixLines(start: Int, end: Int, prefix: String): MarkdownTe
     )
 }
 
+fun continueMarkdownList(source: String, newlineOffset: Int): MarkdownTextEdit? {
+    if (newlineOffset !in source.indices || source[newlineOffset] != '\n') return null
+    val lineStart = source.lastIndexOf('\n', newlineOffset - 1).let { if (it < 0) 0 else it + 1 }
+    if (source.isInsideFence(lineStart)) return null
+    val line = source.substring(lineStart, newlineOffset).removeSuffix("\r")
+    val unordered = UNORDERED_LIST.matchEntire(line)
+    val ordered = ORDERED_LIST.matchEntire(line)
+    val content = unordered?.groupValues?.get(6) ?: ordered?.groupValues?.get(5) ?: return null
+    if (content.isBlank()) {
+        val text = source.removeRange(lineStart, newlineOffset)
+        return MarkdownTextEdit(text, lineStart + 1, lineStart + 1)
+    }
+    val prefix = if (unordered != null) {
+        val task = unordered.groupValues[4]
+        unordered.groupValues[1] + unordered.groupValues[2] + unordered.groupValues[3] +
+            if (task.isEmpty()) "" else "[ ]${unordered.groupValues[5]}"
+    } else {
+        val match = requireNotNull(ordered)
+        val nextNumber = match.groupValues[2].toLongOrNull()?.plus(1) ?: return null
+        match.groupValues[1] + nextNumber + match.groupValues[3] + match.groupValues[4]
+    }
+    val insertionPoint = newlineOffset + 1
+    val text = source.substring(0, insertionPoint) + prefix + source.substring(insertionPoint)
+    val caret = insertionPoint + prefix.length
+    return MarkdownTextEdit(text, caret, caret)
+}
+
+private fun String.isInsideFence(beforeOffset: Int): Boolean {
+    var fence: Char? = null
+    substring(0, beforeOffset).lineSequence().forEach { line ->
+        val marker = FENCE.matchEntire(line)?.groupValues?.get(1) ?: return@forEach
+        if (fence == null) {
+            fence = marker.first()
+        } else if (fence == marker.first()) {
+            fence = null
+        }
+    }
+    return fence != null
+}
+
+private val UNORDERED_LIST = Regex("^([ \\t]*)([-+*])([ \\t]+)(?:\\[([ xX-])]([ \\t]+))?(.*)$")
+private val ORDERED_LIST = Regex("^([ \\t]*)(\\d+)([.)])([ \\t]+)(.*)$")
+private val FENCE = Regex("^ {0,3}(`{3,}|~{3,})(?:[^`]*)$")
+
 class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
     AppCompatEditText(context, attrs) {
     var onSelectionChanged: ((Int, Int) -> Unit)? = null
@@ -228,6 +272,7 @@ class MarkdownEditorBinding(
 
             override fun afterTextChanged(source: Editable?) = Unit
         }
+    private val listContinuationWatcher = ListContinuationWatcher(editText)
 
     /**
      * Records what the writer changes. Highlighting only adds spans, which does not reach a
@@ -261,6 +306,7 @@ class MarkdownEditorBinding(
         // Recorded before the other watchers run, so the history holds the change even if
         // highlighting a pathological note fails.
         editText.addTextChangedListener(historyWatcher)
+        editText.addTextChangedListener(listContinuationWatcher)
         editText.addTextChangedListener(highlightWatcher)
         editText.addTextChangedListener(sourceWatcher)
         editText.addTextChangedListener(SupplementalSyntaxWatcher)
@@ -283,6 +329,7 @@ class MarkdownEditorBinding(
     override fun close() {
         editText.onEditBoundary = null
         editText.removeTextChangedListener(historyWatcher)
+        editText.removeTextChangedListener(listContinuationWatcher)
         editText.removeTextChangedListener(sourceWatcher)
         editText.removeTextChangedListener(highlightWatcher)
         editText.removeTextChangedListener(SupplementalSyntaxWatcher)
@@ -323,6 +370,36 @@ class MarkdownEditorBinding(
 
     private companion object {
         val highlightExecutor = Executors.newFixedThreadPool(2)
+    }
+}
+
+private class ListContinuationWatcher(private val editText: MarkdownEditText) : TextWatcher {
+    private var newlineOffset: Int? = null
+    private var applying = false
+
+    override fun beforeTextChanged(source: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+    override fun onTextChanged(source: CharSequence?, start: Int, before: Int, count: Int) {
+        newlineOffset =
+            if (!applying && before == 0 && count == 1 && source?.getOrNull(start) == '\n') {
+                start
+            } else {
+                null
+            }
+    }
+
+    override fun afterTextChanged(source: Editable?) {
+        source ?: return
+        val offset = newlineOffset ?: return
+        newlineOffset = null
+        val edit = continueMarkdownList(source.toString(), offset) ?: return
+        applying = true
+        try {
+            replaceChangedRange(source, source.toString(), edit.text)
+            editText.setSelection(edit.selectionStart, edit.selectionEnd)
+        } finally {
+            applying = false
+        }
     }
 }
 

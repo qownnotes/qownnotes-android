@@ -288,6 +288,8 @@ Editor requirements:
 - Remain responsive for large notes.
 - Preserve undo and redo behavior.
 - Provide a mobile formatting toolbar for common Markdown operations.
+- Continue unordered, ordered, and task-list markers when Return starts a new item, and leave the
+  list when Return is pressed on an empty item.
 - Keep editor draft persistence separate from remote synchronization.
 
 ### Undo and Redo

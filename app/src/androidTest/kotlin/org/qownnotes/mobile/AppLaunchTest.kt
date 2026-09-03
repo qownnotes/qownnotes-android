@@ -505,6 +505,18 @@ class AppLaunchTest {
     }
 
     @Test
+    fun returnContinuesAMarkdownListItem() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText("- item"))
+
+        onView(withId(R.id.markdown_editor)).perform(typeText("\n"))
+
+        awaitEditorText("- item\n- ")
+    }
+
+    @Test
     fun toolbarFormattingKeepsInputFocusInTheEditor() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
