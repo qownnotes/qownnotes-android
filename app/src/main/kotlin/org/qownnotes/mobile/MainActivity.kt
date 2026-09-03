@@ -37,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -327,6 +328,7 @@ private fun NoteListScreen(
     val syncStates by component.syncStates.collectAsStateWithLifecycle()
     val syncState = syncStates[accountId] ?: SyncUiState.Idle
     val account = accounts.first { it.id == accountId }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(accountId) { component.refresh(accountId) }
 
@@ -357,37 +359,50 @@ private fun NoteListScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (importState is SyncUiState.Failed) {
-                Text(
-                    importState.message,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("Search title and content") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-                    .testTag("note-search")
-            )
-            SyncStatus(syncState, refresh = {
-                component.refresh(accountId)
-            }, reconnect = { onReconnectAccount(accountId) })
-            if (notes == null) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(24.dp).testTag("notes-loading")
-                )
-            } else if (notes!!.isEmpty()) {
-                Text(
-                    if (query.isBlank()) "No cached notes" else "No matching notes",
-                    modifier = Modifier.padding(24.dp),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().testTag("note-list")) {
+        PullToRefreshBox(
+            isRefreshing = syncState is SyncUiState.Refreshing,
+            onRefresh = { scope.launch { component.refresh(accountId) } },
+            modifier = Modifier.fillMaxSize().padding(padding).testTag("pull-to-refresh")
+        ) {
+            LazyColumn(modifier = Modifier.fillMaxSize().testTag("note-list")) {
+                if (importState is SyncUiState.Failed) {
+                    item {
+                        Text(
+                            importState.message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+                }
+                item {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        label = { Text("Search title and content") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .testTag("note-search")
+                    )
+                }
+                item {
+                    SyncStatus(syncState, reconnect = { onReconnectAccount(accountId) })
+                }
+                if (notes == null) {
+                    item {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(24.dp).testTag("notes-loading")
+                        )
+                    }
+                } else if (notes!!.isEmpty()) {
+                    item {
+                        Text(
+                            if (query.isBlank()) "No cached notes" else "No matching notes",
+                            modifier = Modifier.padding(24.dp),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                } else {
                     items(notes!!, key = Note::localId) { note ->
                         Column(
                             modifier =
@@ -434,8 +449,7 @@ private fun NoteListScreen(
 }
 
 @Composable
-private fun SyncStatus(state: SyncUiState, refresh: suspend () -> Unit, reconnect: () -> Unit) {
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
+private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween
@@ -445,7 +459,7 @@ private fun SyncStatus(state: SyncUiState, refresh: suspend () -> Unit, reconnec
                 "Available offline",
                 style = MaterialTheme.typography.labelMedium
             )
-            SyncUiState.Refreshing -> CircularProgressIndicator()
+            SyncUiState.Refreshing -> Text("Refreshing")
             is SyncUiState.Failed -> Text(state.message, color = MaterialTheme.colorScheme.error)
             is SyncUiState.AuthenticationRequired ->
                 Text(state.message, color = MaterialTheme.colorScheme.error)
@@ -454,13 +468,8 @@ private fun SyncStatus(state: SyncUiState, refresh: suspend () -> Unit, reconnec
         }
         val reconnectRequired = state is SyncUiState.AuthenticationRequired ||
             state is SyncUiState.AccountRemoved
-        TextButton(
-            onClick = {
-                if (reconnectRequired) reconnect() else scope.launch { refresh() }
-            },
-            enabled = state !is SyncUiState.Refreshing
-        ) {
-            Text(if (reconnectRequired) "Reconnect" else "Refresh")
+        if (reconnectRequired) {
+            TextButton(onClick = reconnect) { Text("Reconnect") }
         }
     }
 }

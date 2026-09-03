@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.ViewAction
@@ -123,7 +124,7 @@ class AppLaunchTest {
     fun reconnectPreservesCachedDataAndCheckpoint() {
         val account = importAccount("alice", "Cached note", "etag-1", 10)
         application.fakeBackend.enqueueFailure(account, BackendException.Authentication())
-        composeRule.onNodeWithText("Refresh").performClick()
+        composeRule.onNodeWithTag("pull-to-refresh").performTouchInput { swipeDown() }
         composeRule.waitForText("Reconnect")
 
         application.fakeAccountImporter.enqueue(account)
@@ -142,7 +143,7 @@ class AppLaunchTest {
     fun reconnectRejectsADifferentAccount() {
         val account = importAccount("alice", "Cached note", "etag-1", 10)
         application.fakeBackend.enqueueFailure(account, BackendException.Authentication())
-        composeRule.onNodeWithText("Refresh").performClick()
+        composeRule.onNodeWithTag("pull-to-refresh").performTouchInput { swipeDown() }
         composeRule.waitForText("Reconnect")
 
         application.fakeAccountImporter.enqueue(testAccount("bob"))
