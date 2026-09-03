@@ -9,6 +9,7 @@ import android.text.TextWatcher
 import android.text.style.ForegroundColorSpan
 import android.util.AttributeSet
 import android.view.Gravity
+import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.widget.AppCompatEditText
@@ -97,6 +98,12 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
     AppCompatEditText(context, attrs) {
     var onSelectionChanged: ((Int, Int) -> Unit)? = null
 
+    /**
+     * Invoked before an edit the writer did not type, such as a formatting action, so that an undo
+     * history can close the current group and make that edit a single step.
+     */
+    var onEditBoundary: (() -> Unit)? = null
+
     init {
         gravity = Gravity.TOP or Gravity.START
         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
@@ -136,6 +143,7 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
 
     fun applyFormat(action: MarkdownFormatAction) {
         val editable = text ?: return
+        onEditBoundary?.invoke()
         val source = editable.toString()
         val edit = applyMarkdownFormat(
             source,
@@ -150,6 +158,14 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
             edit.selectionStart.coerceIn(0, editable.length),
             edit.selectionEnd.coerceIn(0, editable.length)
         )
+    }
+
+    /**
+     * Tells the input method to read the editor again, after the text moved underneath whatever it
+     * was composing.
+     */
+    fun resetInputMethod() {
+        inputMethodManager()?.restartInput(this)
     }
 
     override fun onSelectionChanged(selStart: Int, selEnd: Int) {
@@ -179,8 +195,12 @@ internal fun replaceChangedRange(target: Editable, before: String, after: String
 class MarkdownEditorBinding(
     context: Context,
     private val editText: MarkdownEditText,
+    private val onHistoryChanged: (canUndo: Boolean, canRedo: Boolean) -> Unit = { _, _ -> },
     onSourceChanged: (String) -> Unit
 ) : AutoCloseable {
+    private val history = TextEditHistory()
+    private var replaying = false
+    private var replaced = ""
     private val markwon =
         Markwon.builder(context)
             .usePlugin(StrikethroughPlugin.create())
@@ -209,16 +229,96 @@ class MarkdownEditorBinding(
             override fun afterTextChanged(source: Editable?) = Unit
         }
 
+    /**
+     * Records what the writer changes. Highlighting only adds spans, which does not reach a
+     * `TextWatcher`, so the history sees genuine text changes and nothing else.
+     */
+    private val historyWatcher =
+        object : TextWatcher {
+            override fun beforeTextChanged(
+                source: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int
+            ) {
+                if (!replaying) replaced = source.textAt(start, count)
+            }
+
+            override fun onTextChanged(source: CharSequence?, start: Int, before: Int, count: Int) {
+                if (replaying) return
+                history.record(TextEdit(start, replaced, source.textAt(start, count)))
+                publishHistory()
+            }
+
+            override fun afterTextChanged(source: Editable?) = Unit
+        }
+
+    val canUndo: Boolean get() = history.canUndo
+
+    val canRedo: Boolean get() = history.canRedo
+
     init {
+        // Recorded before the other watchers run, so the history holds the change even if
+        // highlighting a pathological note fails.
+        editText.addTextChangedListener(historyWatcher)
         editText.addTextChangedListener(highlightWatcher)
         editText.addTextChangedListener(sourceWatcher)
         editText.addTextChangedListener(SupplementalSyntaxWatcher)
+        editText.onEditBoundary = history::breakGroup
+        publishHistory()
+    }
+
+    /** Reverses the last change, and reports whether there was one. */
+    fun undo(): Boolean {
+        val edit = history.undo() ?: return false
+        return replay(edit.start, edit.after, edit.before)
+    }
+
+    /** Reapplies the last reversed change, and reports whether there was one. */
+    fun redo(): Boolean {
+        val edit = history.redo() ?: return false
+        return replay(edit.start, edit.before, edit.after)
     }
 
     override fun close() {
+        editText.onEditBoundary = null
+        editText.removeTextChangedListener(historyWatcher)
         editText.removeTextChangedListener(sourceWatcher)
         editText.removeTextChangedListener(highlightWatcher)
         editText.removeTextChangedListener(SupplementalSyntaxWatcher)
+    }
+
+    private fun replay(start: Int, remove: String, insert: String): Boolean {
+        val editable = editText.text ?: return false
+        val end = start + remove.length
+        if (start < 0 || end > editable.length || editable.textAt(start, remove.length) != remove) {
+            // The text no longer holds what the history says was there, and replacing a range that
+            // now contains something else would destroy content. Forget the history instead.
+            history.clear()
+            publishHistory()
+            return false
+        }
+        replaying = true
+        try {
+            // An input method composing over the replaced range would otherwise go on composing
+            // over text that is no longer there.
+            BaseInputConnection.removeComposingSpans(editable)
+            editable.replace(start, end, insert)
+            editText.setSelection((start + insert.length).coerceIn(0, editText.length()))
+        } finally {
+            replaying = false
+        }
+        editText.resetInputMethod()
+        publishHistory()
+        return true
+    }
+
+    private fun publishHistory() = onHistoryChanged(history.canUndo, history.canRedo)
+
+    private fun CharSequence?.textAt(start: Int, count: Int): String {
+        this ?: return ""
+        val from = start.coerceIn(0, length)
+        return subSequence(from, (from + count).coerceIn(from, length)).toString()
     }
 
     private companion object {

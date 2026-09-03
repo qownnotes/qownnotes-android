@@ -481,6 +481,8 @@ private fun NoteDetailScreen(
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
     var renderedView by remember { mutableStateOf<AppCompatTextView?>(null) }
     var editorBinding by remember { mutableStateOf<MarkdownEditorBinding?>(null) }
+    var canUndo by remember(localId) { mutableStateOf(false) }
+    var canRedo by remember(localId) { mutableStateOf(false) }
     var pendingHeading by remember(localId, heading, navigationRequest) { mutableStateOf(heading) }
     var loadRemoteImages by remember(localId) { mutableStateOf(false) }
     var finding by rememberSaveable(localId) { mutableStateOf(false) }
@@ -661,6 +663,13 @@ private fun NoteDetailScreen(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
                         .testTag("format-toolbar")
                 ) {
+                    // First in the row, so stepping back does not require scrolling the toolbar.
+                    EditorHistoryButton("Undo", "undo-edit", canUndo, editor) {
+                        editorBinding?.undo()
+                    }
+                    EditorHistoryButton("Redo", "redo-edit", canRedo, editor) {
+                        editorBinding?.redo()
+                    }
                     FormatButton("B", MarkdownFormatAction.BOLD, editor)
                     FormatButton("I", MarkdownFormatAction.ITALIC, editor)
                     FormatButton("S", MarkdownFormatAction.STRIKETHROUGH, editor)
@@ -686,7 +695,14 @@ private fun NoteDetailScreen(
                                 selectionStart = start
                                 selectionEnd = end
                             }
-                            editorBinding = MarkdownEditorBinding(context, view) {
+                            editorBinding = MarkdownEditorBinding(
+                                context,
+                                view,
+                                onHistoryChanged = { undoable, redoable ->
+                                    canUndo = undoable
+                                    canRedo = redoable
+                                }
+                            ) {
                                 component.cacheDraft(localId, it)
                                 draft = it
                             }
@@ -923,5 +939,28 @@ private fun FormatButton(label: String, action: MarkdownFormatAction, editor: Ma
             // the keyboard. Hand focus back so formatting does not interrupt typing.
             editor?.focusForInput()
         }
+    ) { Text(label) }
+}
+
+/**
+ * Undo or redo. The framework editor has an undo buffer of its own, but it can only be reached
+ * with a hardware keyboard, so the writer needs a control that a phone can actually reach.
+ */
+@Composable
+private fun EditorHistoryButton(
+    label: String,
+    testTag: String,
+    enabled: Boolean,
+    editor: MarkdownEditText?,
+    onClick: () -> Unit
+) {
+    TextButton(
+        onClick = {
+            onClick()
+            // Like formatting, this moves focus out of the embedded editor. Hand it back.
+            editor?.focusForInput()
+        },
+        enabled = enabled,
+        modifier = Modifier.testTag(testTag)
     ) { Text(label) }
 }

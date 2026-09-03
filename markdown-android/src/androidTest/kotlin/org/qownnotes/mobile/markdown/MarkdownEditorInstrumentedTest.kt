@@ -6,6 +6,7 @@ import android.view.ContextThemeWrapper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -75,6 +76,94 @@ class MarkdownEditorInstrumentedTest {
             assertEquals(9, view.selectionEnd)
         }
     }
+
+    @Test
+    fun undoStepsBackOverTypingAndRedoBringsItBack() {
+        lateinit var view: MarkdownEditText
+        lateinit var binding: MarkdownEditorBinding
+
+        instrumentation.runOnMainSync {
+            view = editor()
+            view.setText("note")
+            binding = MarkdownEditorBinding(view.context, view) {}
+            view.setSelection(4)
+            "!?".forEach { view.text!!.append(it) }
+        }
+
+        instrumentation.runOnMainSync {
+            assertEquals("note!?", view.text.toString())
+            assertTrue("typing must be undoable", binding.canUndo)
+
+            assertTrue(binding.undo())
+            assertEquals("note", view.text.toString())
+            assertEquals("the caret belongs where the undone text was", 4, view.selectionStart)
+            assertFalse("one burst of typing is one step", binding.canUndo)
+
+            assertTrue(binding.redo())
+            assertEquals("note!?", view.text.toString())
+            assertEquals(6, view.selectionStart)
+            assertFalse(binding.canRedo)
+            binding.close()
+        }
+    }
+
+    @Test
+    fun aFormattingActionIsASingleUndoStep() {
+        lateinit var view: MarkdownEditText
+        lateinit var binding: MarkdownEditorBinding
+
+        instrumentation.runOnMainSync {
+            view = editor()
+            view.setText("alpha beta gamma")
+            binding = MarkdownEditorBinding(view.context, view) {}
+            view.setSelection(6, 10)
+            view.applyFormat(MarkdownFormatAction.BOLD)
+        }
+
+        instrumentation.runOnMainSync {
+            assertEquals("alpha **beta** gamma", view.text.toString())
+
+            assertTrue(binding.undo())
+
+            assertEquals("alpha beta gamma", view.text.toString())
+            assertFalse("formatting must not leave a half-undone step", binding.canUndo)
+            binding.close()
+        }
+    }
+
+    @Test
+    fun historyAvailabilityIsReportedToTheToolbar() {
+        val reported = mutableListOf<Pair<Boolean, Boolean>>()
+        lateinit var view: MarkdownEditText
+        lateinit var binding: MarkdownEditorBinding
+
+        instrumentation.runOnMainSync {
+            view = editor()
+            binding = MarkdownEditorBinding(
+                view.context,
+                view,
+                onHistoryChanged = { canUndo, canRedo -> reported += canUndo to canRedo }
+            ) {}
+            view.text!!.append("x")
+            binding.undo()
+        }
+
+        instrumentation.runOnMainSync {
+            assertEquals(
+                listOf(false to false, true to false, false to true),
+                reported
+            )
+            binding.close()
+        }
+    }
+
+    /** A binding builds Markwon, which resolves its styles from AppCompat theme attributes. */
+    private fun editor() = MarkdownEditText(
+        ContextThemeWrapper(
+            instrumentation.targetContext,
+            androidx.appcompat.R.style.Theme_AppCompat
+        )
+    )
 
     private fun recordingWatcher(changes: MutableList<Triple<Int, Int, Int>>) =
         object : TextWatcher {

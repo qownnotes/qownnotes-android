@@ -265,6 +265,30 @@ class AppLaunchTest {
             .check(matches(hasFocus()))
     }
 
+    /**
+     * The framework editor has an undo buffer of its own, but only a hardware keyboard can reach
+     * it, so the toolbar controls are what makes undo usable on a phone at all.
+     */
+    @Test
+    fun toolbarUndoAndRedoStepThroughEditing() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        composeRule.onNodeWithTag("undo-edit").assertIsNotEnabled()
+
+        onView(withId(R.id.markdown_editor)).perform(click(), typeText("regretted"))
+        awaitEditorText("regretted")
+        composeRule.onNodeWithTag("undo-edit").performClick()
+        awaitEditorText("regretted", present = false)
+
+        composeRule.onNodeWithTag("redo-edit").performClick()
+        awaitEditorText("regretted")
+        // Undoing must not take the note away from the writer.
+        onView(withId(R.id.markdown_editor))
+            .check(matches(withText(containsString("Existing note"))))
+            .check(matches(hasFocus()))
+    }
+
     @Test
     fun noteTextSizeCanBeIncreasedAndSurvivesRecreation() {
         importAccount("alice", "Existing note", "etag-1", 10)
@@ -500,12 +524,12 @@ class AppLaunchTest {
      * not cover that cross-process round trip, so the last characters of [typeText] can still be in
      * flight when the action returns. Poll the editor instead of asserting once.
      */
-    private fun awaitEditorText(substring: String) {
+    private fun awaitEditorText(substring: String, present: Boolean = true) {
         composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.runOnIdle {
                 composeRule.activity.findViewById<TextView>(R.id.markdown_editor)
                     ?.text
-                    ?.contains(substring) == true
+                    ?.contains(substring) == present
             }
         }
     }

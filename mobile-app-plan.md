@@ -26,7 +26,7 @@ The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account o
 
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete; broader real-server interoperability and the configured CI device job must be verified before Phase 2 is marked fully complete.
 
-Phase 3 now has an initial end-to-end write path with offline-first note creation and Markdown source editing, asynchronous source highlighting, a formatting toolbar, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: undo and redo are still missing, supplemental highlighting still runs on the main thread, and large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
+Phase 3 now has an initial end-to-end write path with offline-first note creation and Markdown source editing, asynchronous source highlighting, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: supplemental highlighting still runs on the main thread, and large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -272,6 +272,18 @@ Editor requirements:
 - Preserve undo and redo behavior.
 - Provide a mobile formatting toolbar for common Markdown operations.
 - Keep editor draft persistence separate from remote synchronization.
+
+### Undo and Redo
+
+The framework `EditText` keeps an undo buffer, but only a hardware keyboard can reach it, so a phone needs explicit controls.
+
+- Put undo and redo at the start of the formatting toolbar, where the writer already is, and disable them when there is nothing to step through.
+- Group changes so one undo steps back over a burst of typing rather than over a single character. Continued typing, an input method rewriting its composing region, and a correction made inside what was just typed all belong to the step that produced that text. Consecutive deletions belong together. A line break ends a group. A formatting action is always its own step.
+- Group structurally rather than by elapsed time, so the same edits produce the same steps on a fast and a slow device and the rules can be tested without a clock.
+- Record from a text watcher. Highlighting only adds spans, which no text watcher sees, so the history cannot fill up with the editor's own presentation work.
+- Keep the history out of the note. It describes an editing session, so it is bounded in length, it is not persisted, and it starts empty each time the editor opens.
+- Clear the composing state before replaying a change, otherwise the input method goes on composing over text that is no longer there.
+- If the text no longer matches what the history describes, forget the history rather than replay a change at a guessed position.
 
 ### Recommended Markdown Implementation
 
@@ -746,6 +758,7 @@ Status: In progress
 - Add the highlighted Markdown source editor.
 - Add asynchronous, stale-result-safe highlighting.
 - Add the Markdown formatting toolbar.
+- Add undo and redo controls.
 - Add draft persistence and editor state restoration.
 - Implement the QOwnNotes default naming policy.
 - Create notes offline with a stable local identity.
@@ -771,12 +784,13 @@ Implemented:
 - Added an adjustable note text size, requested during Phase 3 rather than planned. `A-` and `A+` controls on the note screen step through discrete `sp` sizes, apply to both the rendered note and the source editor, persist in `SharedPreferences`, survive process death, and carry accessibility descriptions. Rendered headings and code rescale without re-rendering because Markwon sizes them relative to the view.
 - Added selecting and copying rendered note text, requested during Phase 3 rather than planned. The rendered view is selectable, and links stay tappable through a movement method that selects arbitrarily and only follows a link on a short, stationary touch. Device tests cover the long-press selection gesture, copying to the clipboard, and that the note still scrolls.
 - Added finding text inside the open note, requested during Phase 3 rather than planned. A find bar on the note screen marks every match in the rendered note, marks and scrolls to the current one, reports the position in the matches, and wraps around at both ends. Matching is portable policy in `core`; only the span application and the offset lookup are Android. The find highlights are a private span type, so they can be removed again without disturbing the Markdown spans they are drawn over.
+- Added undo and redo. Toolbar controls step through an editor-owned history that groups a burst of typing, an input method rewriting its composing region, and consecutive deletions into single steps, ends a group at a line break, and makes each formatting action its own step. The grouping rules are structural rather than time-based and are unit-tested on the JVM; only replaying a change into the widget is Android. Replaying clears the composing state and restarts the input method, and a history that no longer matches the text is discarded rather than replayed at a guessed position.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 
 Known scope gaps:
 
-- Undo and redo are not implemented. The editor requirements in this document call for preserving undo and redo, and only the framework `EditText` undo buffer exists. It has no on-screen affordance and is unreachable on a phone without a hardware keyboard. Decide whether Phase 3 ships a toolbar undo/redo control or whether the requirement moves to a later phase.
+- The undo history covers an editing session, not the note. It starts empty every time the editor opens, so leaving edit mode, rotating the device, or process death all discard it. Persisted editor text is unaffected. Decide whether a longer-lived history is worth serializing before this is called finished.
 - Supplemental QOwnNotes highlighting runs on the main thread. `SupplementalSyntaxWatcher.afterTextChanged` scans the whole document with three regular expressions and rewrites its spans on every keystroke, so its cost grows with note length. The Markwon highlighting beside it is already pre-rendered off the main thread. This is the most likely cause of poor large-note typing latency and should be measured before being redesigned.
 - Editor highlighting has not been audited against the syntax list in the Editing Mode section of this document. Coverage of Setext headings, fence language identifiers, images, and tables in the source view is assumed from the Markwon editor plugins rather than asserted by a test.
 - Finding text works while reading a note but not while editing one. The editor shows the Markdown source, so it needs its own matching pass and its own way of moving the caret to a match, and the find bar would compete with the formatting toolbar and the keyboard for space. Decide whether the editor gets its own find affordance before this is called complete.
@@ -872,6 +886,7 @@ Explicitly out of scope for this phase: writing `notesPath`, creating durable em
 - Search normalization
 - Category normalization and folder-tree derivation
 - Folder scope fallback when the remembered folder no longer exists
+- Undo grouping, including typing bursts, composing-region rewrites, deletions, and line breaks
 
 ### API Tests
 
@@ -923,6 +938,7 @@ Test rendered output and editor highlighting separately because they use differe
 - Rendered-view to edit-mode transition
 - Text selection, copying, and link tapping in the rendered note
 - Cursor and selection stability during highlighting
+- Undo and redo from the toolbar, including that a formatting action is a single step
 - Input methods, composing text, and non-Latin text
 - Large-note responsiveness
 - Rotation and process recreation
