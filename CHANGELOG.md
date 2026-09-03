@@ -18,6 +18,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Existing note content is now syntax-highlighted immediately when edit mode opens, without waiting
+  for the first text change.
 - Continuous and stable release signing now validate missing GitHub secrets before installing the
   build environment, with documented commands for generating and configuring signing keys.
 - Newly created notes now open directly in edit mode with the cursor after the generated heading.

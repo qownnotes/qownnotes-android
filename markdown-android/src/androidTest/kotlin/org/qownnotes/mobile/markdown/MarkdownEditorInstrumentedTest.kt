@@ -37,6 +37,31 @@ class MarkdownEditorInstrumentedTest {
     }
 
     @Test
+    fun existingSourceIsHighlightedWhenBindingAttaches() {
+        lateinit var view: MarkdownEditText
+        lateinit var binding: MarkdownEditorBinding
+        var sourceChanges = 0
+
+        instrumentation.runOnMainSync {
+            view = editor()
+            view.setText("# Existing heading")
+            binding = MarkdownEditorBinding(view.context, view) { sourceChanges++ }
+        }
+
+        instrumentation.runOnMainSync {
+            val syntax = view.text!!.getSpans(
+                0,
+                view.length(),
+                SupplementalSyntaxSpan::class.java
+            ).map { it.syntax }
+            assertTrue(MarkdownSyntax.HEADING in syntax)
+            assertEquals("attaching the binding is not a source edit", 0, sourceChanges)
+            assertFalse("initial source must not be undoable", binding.canUndo)
+            binding.close()
+        }
+    }
+
+    @Test
     fun formattingReplacesOnlyTheChangedRange() {
         lateinit var view: MarkdownEditText
         val changes = mutableListOf<Triple<Int, Int, Int>>()

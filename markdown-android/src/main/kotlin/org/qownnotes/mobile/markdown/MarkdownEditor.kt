@@ -311,6 +311,11 @@ class MarkdownEditorBinding(
         editText.addTextChangedListener(sourceWatcher)
         editText.addTextChangedListener(SupplementalSyntaxWatcher)
         editText.onEditBoundary = history::breakGroup
+        // The app populates the view before attaching this binding, so the watchers do not see
+        // that initial change. Highlight the existing source without creating an undo entry or
+        // reporting it as a user edit.
+        highlightWatcher.afterTextChanged(editText.text)
+        SupplementalSyntaxWatcher.afterTextChanged(editText.text)
         publishHistory()
     }
 
