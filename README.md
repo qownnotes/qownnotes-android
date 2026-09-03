@@ -171,9 +171,11 @@ app/build/outputs/apk/release/app-release.apk
 app/build/outputs/bundle/release/app-release.aab
 ```
 
-CI runs checks and uploads a debug APK for every commit on every branch. Pushes
-to the `release` branch additionally build signed release packages. Configure
-the following GitHub Actions repository secrets:
+CI runs checks and uploads a debug APK for every commit on every branch. A push to the `release`
+branch reads the committed version, builds signed packages, extracts that version's section from
+`CHANGELOG.md`, and publishes an immutable GitHub release tagged `v<version>`. Before pushing to the
+release branch, increment both values in `version.properties` and add the matching changelog
+section. Configure the following GitHub Actions repository secrets:
 
 ```text
 ANDROID_KEYSTORE_BASE64
