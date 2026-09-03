@@ -142,6 +142,18 @@ this repository.
 Dependency versions are centralized in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
 Verify maintenance status, compatibility, and licensing before adding or upgrading dependencies.
 
+## Versioning
+
+The application version is defined once in [`version.properties`](version.properties):
+
+- `VERSION_NAME` is the public release version.
+- `VERSION_CODE` is Android's monotonically increasing integer version. It must be greater than the
+  code of every previously published release.
+
+Bump both values when preparing a release. Do not hardcode versions in module build files.
+`ANDROID_VERSION_CODE` may override the code for automated continuous builds, but stable releases
+must use the committed value.
+
 ## Build And Test Workflow
 
 Use the reproducible environment when available:

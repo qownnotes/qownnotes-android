@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,11 @@ plugins {
     alias(libs.plugins.licensee)
 }
 
+val versionProperties = Properties().apply {
+    rootProject.file("version.properties").inputStream().use(::load)
+}
+val releaseVersionName = requireNotNull(versionProperties.getProperty("VERSION_NAME"))
+val releaseVersionCode = requireNotNull(versionProperties.getProperty("VERSION_CODE")).toInt()
 val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
 
 android {
@@ -15,8 +22,9 @@ android {
         applicationId = "org.qownnotes.mobile"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = providers.environmentVariable("ANDROID_VERSION_CODE").orNull?.toInt()
+            ?: releaseVersionCode
+        versionName = releaseVersionName
         testInstrumentationRunner = "org.qownnotes.mobile.QOwnNotesTestRunner"
     }
 
