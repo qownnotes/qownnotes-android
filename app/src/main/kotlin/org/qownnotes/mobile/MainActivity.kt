@@ -8,15 +8,23 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -42,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,10 +63,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -66,6 +78,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -502,6 +515,9 @@ private fun NoteDetailScreen(
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
+    var editorScrollY by remember(localId) { mutableIntStateOf(0) }
+    var editorScrollRange by remember(localId) { mutableIntStateOf(0) }
+    var editorViewportHeight by remember(localId) { mutableIntStateOf(0) }
     var renderedView by remember { mutableStateOf<AppCompatTextView?>(null) }
     var editorBinding by remember { mutableStateOf<MarkdownEditorBinding?>(null) }
     var canUndo by remember(localId) { mutableStateOf(false) }
@@ -735,48 +751,75 @@ private fun NoteDetailScreen(
                     FormatButton("Task", MarkdownFormatAction.TASK, editor)
                     FormatButton("Quote", MarkdownFormatAction.QUOTE, editor)
                 }
-                AndroidView(
-                    factory = { context ->
-                        MarkdownEditText(context).also { view ->
-                            view.id = R.id.markdown_editor
-                            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
-                            view.setText(draft.orEmpty())
-                            view.setSelection(
-                                selectionStart.coerceIn(0, view.length()),
-                                selectionEnd.coerceIn(0, view.length())
-                            )
-                            view.onSelectionChanged = { start, end ->
-                                selectionStart = start
-                                selectionEnd = end
-                            }
-                            editorBinding = MarkdownEditorBinding(
-                                context,
-                                view,
-                                onHistoryChanged = { undoable, redoable ->
-                                    canUndo = undoable
-                                    canRedo = redoable
+                Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    AndroidView(
+                        factory = { context ->
+                            MarkdownEditText(context).also { view ->
+                                fun updateScrollMetrics() {
+                                    editorScrollY = view.scrollY
+                                    editorViewportHeight = view.height
+                                    editorScrollRange = (
+                                        (view.layout?.height ?: 0) + view.totalPaddingTop +
+                                            view.totalPaddingBottom - view.height
+                                        ).coerceAtLeast(0)
                                 }
-                            ) {
-                                component.cacheDraft(localId, it)
-                                draft = it
+                                view.id = R.id.markdown_editor
+                                view.setTextSize(
+                                    TypedValue.COMPLEX_UNIT_SP,
+                                    noteTextSizeSp.toFloat()
+                                )
+                                view.setText(draft.orEmpty())
+                                view.setSelection(
+                                    selectionStart.coerceIn(0, view.length()),
+                                    selectionEnd.coerceIn(0, view.length())
+                                )
+                                view.onSelectionChanged = { start, end ->
+                                    selectionStart = start
+                                    selectionEnd = end
+                                }
+                                view.setOnScrollChangeListener { _, _, _, _, _ ->
+                                    updateScrollMetrics()
+                                }
+                                view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                                    updateScrollMetrics()
+                                }
+                                editorBinding = MarkdownEditorBinding(
+                                    context,
+                                    view,
+                                    onHistoryChanged = { undoable, redoable ->
+                                        canUndo = undoable
+                                        canRedo = redoable
+                                    }
+                                ) {
+                                    component.cacheDraft(localId, it)
+                                    draft = it
+                                }
+                                editor = view
+                                view.focusForInput()
                             }
-                            editor = view
-                            view.focusForInput()
-                        }
-                    },
-                    update = { view ->
-                        if (view.currentTextColor != editorTextColor) {
-                            view.setTextColor(editorTextColor)
-                        }
-                    },
-                    onRelease = { view ->
-                        editorBinding?.close()
-                        editorBinding = null
-                        editor = null
-                        view.releaseInputFocus()
-                    },
-                    modifier = Modifier.fillMaxSize().padding(16.dp).testTag("markdown-editor")
-                )
+                        },
+                        update = { view ->
+                            if (view.currentTextColor != editorTextColor) {
+                                view.setTextColor(editorTextColor)
+                            }
+                        },
+                        onRelease = { view ->
+                            editorBinding?.close()
+                            editorBinding = null
+                            editor = null
+                            view.setOnScrollChangeListener(null)
+                            view.releaseInputFocus()
+                        },
+                        modifier = Modifier.fillMaxSize().testTag("markdown-editor")
+                    )
+                    EditorFastScroller(
+                        editor = editor,
+                        scrollY = editorScrollY,
+                        scrollRange = editorScrollRange,
+                        viewportHeight = editorViewportHeight,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                }
             }
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -897,6 +940,60 @@ private fun NoteDetailScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EditorFastScroller(
+    editor: MarkdownEditText?,
+    scrollY: Int,
+    scrollRange: Int,
+    viewportHeight: Int,
+    modifier: Modifier = Modifier
+) {
+    if (editor == null || scrollRange <= 0 || viewportHeight <= 0) return
+    BoxWithConstraints(
+        modifier = modifier.fillMaxHeight().width(32.dp)
+            .semantics { contentDescription = "Editor fast scroll" }
+            .testTag("editor-fast-scroll")
+    ) {
+        val density = LocalDensity.current
+        val trackHeight = constraints.maxHeight.toFloat()
+        val contentHeight = viewportHeight + scrollRange
+        val thumbHeight = maxOf(
+            with(density) { 48.dp.toPx() },
+            trackHeight * viewportHeight / contentHeight
+        ).coerceAtMost(trackHeight)
+        val travel = trackHeight - thumbHeight
+        val thumbOffset = if (scrollRange == 0) 0F else travel * scrollY / scrollRange
+        fun scrollTo(pointerY: Float) {
+            val fraction = ((pointerY - thumbHeight / 2F) / travel).coerceIn(0F, 1F)
+            editor.scrollTo(0, (scrollRange * fraction).roundToInt())
+        }
+        Box(
+            modifier = Modifier.fillMaxSize().pointerInput(
+                editor,
+                scrollRange,
+                trackHeight,
+                thumbHeight
+            ) {
+                detectVerticalDragGestures(
+                    onDragStart = { scrollTo(it.y) },
+                    onVerticalDrag = { change, _ ->
+                        change.consume()
+                        scrollTo(change.position.y)
+                    }
+                )
+            }
+        ) {
+            Box(
+                modifier = Modifier.align(Alignment.TopEnd)
+                    .offset { IntOffset(0, thumbOffset.roundToInt()) }
+                    .width(6.dp)
+                    .height(with(density) { thumbHeight.toDp() })
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.65F))
+            )
         }
     }
 }

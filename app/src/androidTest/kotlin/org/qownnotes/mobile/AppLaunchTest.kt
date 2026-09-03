@@ -349,6 +349,13 @@ class AppLaunchTest {
         }
         assertTrue("expected selection after the start of the note", selection > 0)
         assertTrue("expected selection before the end of the note", selection < content.length)
+
+        val before = scrollYOf(R.id.markdown_editor)
+        composeRule.onNodeWithTag("editor-fast-scroll").assertIsDisplayed()
+            .performTouchInput { swipeDown() }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            scrollYOf(R.id.markdown_editor) > before
+        }
     }
 
     @Test
@@ -631,6 +638,12 @@ class AppLaunchTest {
             top = IntArray(2).also(view::getLocationOnScreen)[1]
         }
         return top
+    }
+
+    private fun scrollYOf(viewId: Int): Int {
+        var scrollY = 0
+        onView(withId(viewId)).check { view, _ -> scrollY = view.scrollY }
+        return scrollY
     }
 
     private fun textSizeOf(viewId: Int): Float {
