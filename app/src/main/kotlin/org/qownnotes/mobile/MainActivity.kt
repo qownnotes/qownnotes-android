@@ -73,6 +73,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -769,6 +770,7 @@ private fun NoteDetailScreen(
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
     val editorScrollState = rememberScrollState()
+    var editorViewportHeight by remember { mutableIntStateOf(0) }
     var renderedView by remember { mutableStateOf<AppCompatTextView?>(null) }
     var editorBinding by remember { mutableStateOf<MarkdownEditorBinding?>(null) }
     var canUndo by remember(localId) { mutableStateOf(false) }
@@ -804,15 +806,24 @@ private fun NoteDetailScreen(
         // spans rescale without re-rendering the note.
         renderedView?.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
     }
-    // The editor is taller than its scrolling container, so the container is what has to move to
-    // the caret. Its range only exists once the editor has been measured.
-    LaunchedEffect(editing, editor) {
+    // The editor is taller than its scrolling container, so keep its caret line inside the outer
+    // viewport as typing, formatting, and history actions move the selection.
+    LaunchedEffect(editing, editor, selectionStart, editorViewportHeight) {
         val view = editor ?: return@LaunchedEffect
-        if (!editing) return@LaunchedEffect
-        repeat(2) { withFrameNanos { } }
+        if (!editing || editorViewportHeight == 0) return@LaunchedEffect
+        withFrameNanos { }
         val layout = view.layout ?: return@LaunchedEffect
         val line = layout.getLineForOffset(selectionStart.coerceIn(0, view.length()))
-        editorScrollState.scrollTo(layout.getLineTop(line) + view.totalPaddingTop)
+        val caretTop = layout.getLineTop(line) + view.totalPaddingTop
+        val caretBottom = layout.getLineBottom(line) + view.totalPaddingTop
+        val viewportTop = editorScrollState.value
+        val viewportBottom = viewportTop + editorViewportHeight
+        val target = when {
+            caretTop < viewportTop -> caretTop
+            caretBottom > viewportBottom -> caretBottom - editorViewportHeight
+            else -> null
+        }
+        target?.let { editorScrollState.scrollTo(it.coerceIn(0, editorScrollState.maxValue)) }
     }
     val latestDraft by rememberUpdatedState(draft)
     val latestNote by rememberUpdatedState(note)
@@ -1057,7 +1068,10 @@ private fun NoteDetailScreen(
                     // so scrolling a long note by hand would otherwise crawl line by line. It
                     // still covers at least the viewport, so tapping below a short note keeps
                     // opening the keyboard at the end of the text.
-                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    BoxWithConstraints(
+                        modifier = Modifier.fillMaxSize()
+                            .onSizeChanged { editorViewportHeight = it.height }
+                    ) {
                         val viewportHeight = maxHeight
                         Column(
                             modifier = Modifier.fillMaxSize().verticalScroll(editorScrollState)

@@ -283,6 +283,7 @@ Editor requirements:
 
 - Preserve the exact Markdown text while styling it.
 - Preserve the cursor and selection while highlighting is reapplied.
+- Scroll the editor as the caret moves so the active line remains visible while typing.
 - Run expensive parsing or highlighting away from the main thread.
 - Discard stale highlighting results if the text changed while parsing.
 - Remain responsive for large notes.

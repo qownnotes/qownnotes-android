@@ -3,6 +3,7 @@ package org.qownnotes.mobile
 import android.content.ClipboardManager
 import android.content.Intent
 import android.view.InputDevice
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.widget.TextView
 import androidx.compose.ui.test.assertIsDisplayed
@@ -26,6 +27,7 @@ import androidx.test.espresso.action.GeneralClickAction
 import androidx.test.espresso.action.Press
 import androidx.test.espresso.action.Tap
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.pressKey
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -576,6 +578,28 @@ class AppLaunchTest {
         val before = screenTopOf(R.id.markdown_editor)
         composeRule.onNodeWithTag("editor-fast-scroll").assertIsDisplayed()
             .performTouchInput { swipeDown() }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            screenTopOf(R.id.markdown_editor) < before
+        }
+    }
+
+    @Test
+    fun editorScrollsToKeepTheTypingCursorVisible() {
+        val content = (1..80).joinToString("\n") { "Line $it" }
+        importAccount("alice", "Long note", "etag-1", 10, content)
+        composeRule.onNodeWithText("Long note").performClick()
+        composeRule.enterEditMode()
+        val before = screenTopOf(R.id.markdown_editor)
+        lateinit var editor: org.qownnotes.mobile.markdown.MarkdownEditText
+        onView(withId(R.id.markdown_editor)).check { view, _ ->
+            editor = view as org.qownnotes.mobile.markdown.MarkdownEditText
+        }
+
+        onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
+        composeRule.runOnUiThread { editor.setSelection(editor.length()) }
+        onView(withId(R.id.markdown_editor)).perform(pressKey(KeyEvent.KEYCODE_X))
+
+        composeRule.waitUntil(timeoutMillis = 10_000) { editor.length() > content.length }
         composeRule.waitUntil(timeoutMillis = 10_000) {
             screenTopOf(R.id.markdown_editor) < before
         }
