@@ -41,6 +41,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -210,23 +211,25 @@ private fun NotesNavigation(
     if (loadedAccounts == null) {
         LoadingScreen()
     } else if (noteId != null) {
-        NoteDetailScreen(
-            component = component,
-            localId = noteId,
-            heading = selectedHeading,
-            navigationRequest = navigationRequest,
-            onBackToList = {
-                selectedNoteId = null
-                selectedHeading = null
-                noteHistory = emptyList()
-            },
-            onOpen = { destination ->
-                if (noteId != destination.localId) noteHistory = noteHistory + noteId
-                selectedNoteId = destination.localId
-                selectedHeading = destination.heading
-                navigationRequest++
-            }
-        )
+        key(noteId) {
+            NoteDetailScreen(
+                component = component,
+                localId = noteId,
+                heading = selectedHeading,
+                navigationRequest = navigationRequest,
+                onBackToList = {
+                    selectedNoteId = null
+                    selectedHeading = null
+                    noteHistory = emptyList()
+                },
+                onOpen = { destination ->
+                    if (noteId != destination.localId) noteHistory = noteHistory + noteId
+                    selectedNoteId = destination.localId
+                    selectedHeading = destination.heading
+                    navigationRequest++
+                }
+            )
+        }
     } else if (loadedAccounts.isEmpty()) {
         AccountOnboarding(importState, onImportAccount)
     } else {
@@ -858,8 +861,9 @@ private fun NoteDetailScreen(
                                             if (top != null) {
                                                 scope.launch {
                                                     // The Android view is laid out before Compose
-                                                    // updates the containing scroll range.
-                                                    withFrameNanos { }
+                                                    // updates the containing scroll range. Wait
+                                                    // through its follow-up measurement frame.
+                                                    repeat(2) { withFrameNanos { } }
                                                     scrollState.scrollTo(top)
                                                     pendingHeading = null
                                                 }
