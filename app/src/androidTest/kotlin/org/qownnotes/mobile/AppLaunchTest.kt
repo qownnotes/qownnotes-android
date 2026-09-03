@@ -221,6 +221,20 @@ class AppLaunchTest {
         }
     }
 
+    @Test
+    fun backButtonReturnsToNoteListFromViewAndEditModes() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+
+        composeRule.onNodeWithTag("back-to-note-list").assertIsDisplayed().performClick()
+        composeRule.onNodeWithTag("note-list").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        composeRule.onNodeWithTag("back-to-note-list").assertIsDisplayed().performClick()
+        composeRule.waitForTag("note-list")
+    }
+
     /**
      * Regression test for the editor that could be displayed but never typed into. Espresso's
      * `typeText` taps the view and then injects key events into whichever view holds input focus,

@@ -21,10 +21,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -209,6 +213,11 @@ private fun NotesNavigation(
             localId = noteId,
             heading = selectedHeading,
             navigationRequest = navigationRequest,
+            onBackToList = {
+                selectedNoteId = null
+                selectedHeading = null
+                noteHistory = emptyList()
+            },
             onOpen = { destination ->
                 if (noteId != destination.localId) noteHistory = noteHistory + noteId
                 selectedNoteId = destination.localId
@@ -463,6 +472,7 @@ private fun NoteDetailScreen(
     localId: String,
     heading: String?,
     navigationRequest: Int,
+    onBackToList: () -> Unit,
     onOpen: (ResolvedNoteLink) -> Unit
 ) {
     val note by component.noteRepository.observeNote(localId)
@@ -581,6 +591,26 @@ private fun NoteDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text(note?.title ?: "Note") },
+                navigationIcon = {
+                    IconButton(
+                        onClick = {
+                            val source = draft
+                            if (editing && source != null) {
+                                scope.launch {
+                                    if (component.saveDraft(localId, source)) onBackToList()
+                                }
+                            } else {
+                                onBackToList()
+                            }
+                        },
+                        modifier = Modifier.testTag("back-to-note-list")
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back to notes"
+                        )
+                    }
+                },
                 actions = {
                     val current = note
                     CompactActionButton(
