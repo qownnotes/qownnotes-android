@@ -641,8 +641,8 @@ class AppLaunchTest {
 
         composeRule.activityRule.scenario.recreate()
 
-        onView(withId(R.id.markdown_editor))
-            .check(matches(withText(containsString("Unsaved draft"))))
+        // A recreated activity composes the editor again, so the view only exists a moment later.
+        awaitEditorText("Unsaved draft")
     }
 
     private fun importAccount(
