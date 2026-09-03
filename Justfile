@@ -3,9 +3,16 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 default:
     @just --list
 
-# Build the debug APK.
-build:
+# Build the development APK.
+build: build-dev
+
+# Build the development APK.
+build-dev:
     ./gradlew assembleDebug
+
+# Build the signed release APK.
+build-release: _require-release-signing
+    ./gradlew assembleRelease
 
 # Run all JVM unit tests.
 test:
@@ -32,11 +39,7 @@ check:
     ./gradlew spotlessCheck test assembleDebug lintDebug :app:licensee
 
 # Run all checks and build signed release packages.
-release:
-    test -n "$ANDROID_KEYSTORE_PATH"
-    test -n "$ANDROID_KEYSTORE_PASSWORD"
-    test -n "$ANDROID_KEY_ALIAS"
-    test -n "$ANDROID_KEY_PASSWORD"
+release: _require-release-signing
     ./gradlew --no-configuration-cache spotlessCheck test lintRelease :app:licensee assembleRelease bundleRelease
 
 # Create the project-local API 36 emulator.
@@ -54,9 +57,17 @@ start-emulator: create-avd
       unset LD_LIBRARY_PATH; \
       emulator -avd qownnotes-api36 -no-snapshot -no-boot-anim
 
-# Install and launch the debug app on a connected device.
-run: build _wait-for-android
+# Install and launch the development app on a connected device.
+run: deploy-dev
+
+# Install and launch the development app on a connected device.
+deploy-dev: build-dev _wait-for-android
     ./gradlew installDebug
+    adb shell am start -n org.qownnotes.mobile.dev/org.qownnotes.mobile.MainActivity
+
+# Install and launch the signed release app on a connected device.
+deploy-release: build-release _wait-for-android
+    ./gradlew installRelease
     adb shell am start -n org.qownnotes.mobile/.MainActivity
 
 # Run instrumented tests on a connected device.
@@ -68,6 +79,14 @@ device-test: _wait-for-android
 _wait-for-android:
     adb wait-for-device
     timeout 300 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ] && adb shell cmd package path android >/dev/null 2>&1; do sleep 2; done'
+
+# Verify the release signing environment is complete.
+[private]
+_require-release-signing:
+    test -n "$ANDROID_KEYSTORE_PATH"
+    test -n "$ANDROID_KEYSTORE_PASSWORD"
+    test -n "$ANDROID_KEY_ALIAS"
+    test -n "$ANDROID_KEY_PASSWORD"
 
 # Remove Gradle build outputs.
 clean:

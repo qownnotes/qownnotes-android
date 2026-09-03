@@ -165,7 +165,10 @@ devenv shell
 Preferred commands are defined in [`Justfile`](Justfile):
 
 ```sh
-just build          # Debug APK
+just build-dev      # Development APK
+just build-release  # Signed release APK; requires signing environment variables
+just deploy-dev     # Build, install, and launch QOwnNotes Dev over ADB
+just deploy-release # Build, install, and launch signed QOwnNotes over ADB
 just test           # JVM tests
 just format         # Apply Spotless formatting
 just format-check   # Verify formatting

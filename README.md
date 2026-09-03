@@ -58,11 +58,13 @@ List the available recipes:
 just
 ```
 
-### Build The Debug APK
+### Build The Development APK
 
 ```sh
-just build
+just build-dev
 ```
+
+`just build` is an alias for `just build-dev`.
 
 The APK is written to:
 
@@ -84,12 +86,14 @@ Start it in one `devenv shell`:
 just start-emulator
 ```
 
-In another `devenv shell`, install and launch the app. The recipe waits until
+In another `devenv shell`, install and launch the development app. The recipe waits until
 Android's package manager is ready:
 
 ```sh
-just run
+just deploy-dev
 ```
+
+`just run` is an alias for `just deploy-dev`.
 
 ### Run On A Physical Android Device
 
@@ -109,10 +113,18 @@ prompt, and verify the connection:
 adb devices
 ```
 
-Install and launch the app:
+Install and launch the development app:
 
 ```sh
-just run
+just deploy-dev
+```
+
+After configuring the release signing variables described below, build and deploy the production
+application over USB with:
+
+```sh
+just build-release
+just deploy-release
 ```
 
 ### Run JVM Tests
