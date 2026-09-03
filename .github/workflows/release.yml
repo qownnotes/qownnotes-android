@@ -32,9 +32,11 @@ jobs:
           . ./version.properties
           [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]
           [[ "$VERSION_CODE" =~ ^[1-9][0-9]*$ ]]
-          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
-          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
-          echo "RELEASE_TAG=v$VERSION_NAME" >> "$GITHUB_ENV"
+          {
+            echo "VERSION_NAME=$VERSION_NAME"
+            echo "VERSION_CODE=$VERSION_CODE"
+            echo "RELEASE_TAG=v$VERSION_NAME"
+          } >> "$GITHUB_ENV"
       - name: Verify release does not exist
         env:
           GH_TOKEN: ${{ github.token }}
@@ -69,6 +71,8 @@ jobs:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/qownnotes-release.jks
         run: |
           devenv shell -- just release
+          # ANDROID_HOME is intentionally expanded inside the devenv shell.
+          # shellcheck disable=SC2016
           devenv shell -- bash -c \
             '"$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$1"' \
             _ app/build/outputs/apk/release/app-release.apk
