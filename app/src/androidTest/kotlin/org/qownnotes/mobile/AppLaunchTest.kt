@@ -476,7 +476,10 @@ class AppLaunchTest {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
 
+        // Opening a note loads it from the repository, so its actions appear a recomposition later.
+        composeRule.waitForTag("rename-note")
         composeRule.onNodeWithTag("rename-note").performClick()
+        composeRule.waitForTag("note-name-field")
         composeRule.onNodeWithTag("note-name-field").performTextReplacement("Grocery list")
         composeRule.onNodeWithTag("confirm-rename-note").performClick()
 
@@ -502,7 +505,9 @@ class AppLaunchTest {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
 
+        composeRule.waitForTag("rename-note")
         composeRule.onNodeWithTag("rename-note").performClick()
+        composeRule.waitForTag("note-name-field")
         composeRule.onNodeWithTag("note-name-field").performTextReplacement(" / ")
         composeRule.onNodeWithTag("confirm-rename-note").assertIsNotEnabled()
 
