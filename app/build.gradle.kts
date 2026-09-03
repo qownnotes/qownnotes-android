@@ -12,6 +12,7 @@ val versionProperties = Properties().apply {
 }
 val releaseVersionName = requireNotNull(versionProperties.getProperty("VERSION_NAME"))
 val releaseVersionCode = requireNotNull(versionProperties.getProperty("VERSION_CODE")).toInt()
+val developmentKeystorePath = providers.environmentVariable("ANDROID_DEV_KEYSTORE_PATH").orNull
 val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
 
 android {
@@ -29,6 +30,14 @@ android {
     }
 
     signingConfigs {
+        if (developmentKeystorePath != null) {
+            create("development") {
+                storeFile = file(developmentKeystorePath)
+                storePassword = providers.environmentVariable("ANDROID_DEV_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("ANDROID_DEV_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("ANDROID_DEV_KEY_PASSWORD").get()
+            }
+        }
         if (releaseKeystorePath != null) {
             create("release") {
                 storeFile = file(releaseKeystorePath)
@@ -44,6 +53,7 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             resValue("string", "app_name", "QOwnNotes Dev")
+            signingConfigs.findByName("development")?.let { signingConfig = it }
         }
         getByName("release") {
             signingConfig = signingConfigs.findByName("release")

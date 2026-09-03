@@ -188,6 +188,17 @@ Generate `ANDROID_KEYSTORE_BASE64` on NixOS with:
 base64 -w 0 /absolute/path/to/release.jks
 ```
 
+Pushes to `main` also replace the GitHub prerelease tagged `continuous` with a signed **QOwnNotes
+Dev** APK and its SHA-256 checksum. Use a separate development key so publishing continuous builds
+does not expose the stable release key to the `main` workflow. Configure these additional secrets:
+
+```text
+ANDROID_DEV_KEYSTORE_BASE64
+ANDROID_DEV_KEYSTORE_PASSWORD
+ANDROID_DEV_KEY_ALIAS
+ANDROID_DEV_KEY_PASSWORD
+```
+
 ### Clean Build Outputs
 
 ```sh

@@ -1,0 +1,68 @@
+name: Continuous Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: continuous-release
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANDROID_DEV_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_DEV_KEYSTORE_PASSWORD }}
+      ANDROID_DEV_KEY_ALIAS: ${{ secrets.ANDROID_DEV_KEY_ALIAS }}
+      ANDROID_DEV_KEY_PASSWORD: ${{ secrets.ANDROID_DEV_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      - name: Install devenv
+        run: nix profile add nixpkgs#devenv
+      - name: Restore development signing keystore
+        env:
+          ANDROID_DEV_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEV_KEYSTORE_BASE64 }}
+          ANDROID_DEV_KEYSTORE_PATH: ${{ runner.temp }}/qownnotes-development.jks
+        run: |
+          test -n "$ANDROID_DEV_KEYSTORE_BASE64"
+          printf '%s' "$ANDROID_DEV_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_DEV_KEYSTORE_PATH"
+          echo "ANDROID_DEV_KEYSTORE_PATH=$ANDROID_DEV_KEYSTORE_PATH" >> "$GITHUB_ENV"
+      - name: Set monotonically increasing development version
+        run: echo "ANDROID_VERSION_CODE=$(date -u +%s)" >> "$GITHUB_ENV"
+      - name: Check and build development APK
+        run: devenv shell -- just check
+      - name: Prepare continuous release files
+        run: |
+          mkdir release-files
+          cp app/build/outputs/apk/debug/app-debug.apk release-files/QOwnNotes-Mobile-Dev.apk
+          (cd release-files && sha256sum QOwnNotes-Mobile-Dev.apk \
+            > QOwnNotes-Mobile-Dev.apk.sha256)
+          cat > continuous-notes.md <<EOF
+          Continuous development build from [\`${GITHUB_SHA::7}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}).
+
+          This is an automatically published prerelease from the latest commit on \`main\`. It is
+          named **QOwnNotes Dev** and can be installed beside the stable application.
+          EOF
+      - name: Replace continuous GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete continuous --yes --cleanup-tag || true
+          git push origin :refs/tags/continuous || true
+          gh release create continuous \
+            release-files/QOwnNotes-Mobile-Dev.apk \
+            release-files/QOwnNotes-Mobile-Dev.apk.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "Continuous build" \
+            --notes-file continuous-notes.md \
+            --prerelease
