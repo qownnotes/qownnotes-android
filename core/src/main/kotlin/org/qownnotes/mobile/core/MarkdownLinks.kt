@@ -7,7 +7,8 @@ import java.util.Locale
 
 enum class InternalNoteLinkKind {
     WIKI,
-    LEGACY
+    LEGACY,
+    MARKDOWN
 }
 
 data class InternalNoteLink(
@@ -54,6 +55,24 @@ fun parseLegacyNoteLink(destination: String): InternalNoteLink? {
     return InternalNoteLink(InternalNoteLinkKind.LEGACY, encodedTarget, heading = heading)
 }
 
+fun parseMarkdownNoteLink(destination: String): InternalNoteLink? {
+    val uri = runCatching { URI(destination) }.getOrNull() ?: return null
+    if (uri.isAbsolute || uri.rawAuthority != null || uri.rawQuery != null) return null
+    val target = uri.path?.removePrefix("./") ?: return null
+    if (target.startsWith('/') || !target.endsWith(".md", ignoreCase = true)) return null
+    val path = target.dropLast(3)
+    val parts = path.split('/')
+    if (parts.any { it.isBlank() || it == "." || it == ".." }) return null
+    val noteName = parts.last()
+    val category = parts.dropLast(1).joinToString("/").ifBlank { null }
+    return InternalNoteLink(
+        kind = InternalNoteLinkKind.MARKDOWN,
+        noteName = noteName,
+        category = category,
+        heading = uri.fragment?.ifBlank { null }
+    )
+}
+
 fun isSafeExternalUrl(destination: String): Boolean = runCatching {
     val uri = URI(destination)
     uri.scheme?.lowercase(Locale.ROOT) in setOf("http", "https") && !uri.host.isNullOrBlank()
@@ -66,7 +85,8 @@ fun resolveInternalNoteLink(
 ): ResolvedNoteLink? {
     val candidates = accountNotes.filter { it.accountId == source.accountId }
     val matches = when (link.kind) {
-        InternalNoteLinkKind.WIKI -> resolveWikiCandidates(source, candidates, link)
+        InternalNoteLinkKind.WIKI,
+        InternalNoteLinkKind.MARKDOWN -> resolveWikiCandidates(source, candidates, link)
         InternalNoteLinkKind.LEGACY -> candidates.filter {
             legacyNameMatches(link.noteName, it.title)
         }

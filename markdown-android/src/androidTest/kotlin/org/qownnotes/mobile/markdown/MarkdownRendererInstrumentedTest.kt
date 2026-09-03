@@ -137,6 +137,30 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun tappingARelativeMarkdownNoteLinkOpensItsHeading() {
+        val expected = ResolvedNoteLink("target", "Information")
+        var resolved: InternalNoteLink? = null
+        var opened: ResolvedNoteLink? = null
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = laidOutView(
+                "[QOwnNotes](QOwnNotes.md#Information)",
+                resolve = {
+                    resolved = it
+                    expected
+                },
+                open = { opened = it }
+            )
+            view.touch(offset = 3, durationMillis = 20)
+        }
+
+        assertEquals("QOwnNotes", resolved?.noteName)
+        assertEquals("Information", resolved?.heading)
+        assertEquals(expected, opened)
+    }
+
+    @Test
     fun tappingARenderedCheckboxDispatchesItsTaskIndex() {
         var toggledTask = -1
         lateinit var view: AppCompatTextView

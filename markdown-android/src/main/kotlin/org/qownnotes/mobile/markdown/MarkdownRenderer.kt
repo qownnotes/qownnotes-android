@@ -37,6 +37,7 @@ import org.qownnotes.mobile.core.InternalNoteLink
 import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.isSafeExternalUrl
 import org.qownnotes.mobile.core.parseLegacyNoteLink
+import org.qownnotes.mobile.core.parseMarkdownNoteLink
 import org.qownnotes.mobile.core.parseWikiLink
 import org.qownnotes.mobile.core.redactEncryptedMarkdown
 
@@ -127,6 +128,9 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
                                     dispatchInternalLink(view, destination)
                                 }
                                 parseLegacyNoteLink(destination) != null -> {
+                                    dispatchInternalLink(view, destination)
+                                }
+                                parseMarkdownNoteLink(destination) != null -> {
                                     dispatchInternalLink(view, destination)
                                 }
                                 isSafeExternalUrl(destination) -> openExternal(destination)
@@ -256,7 +260,7 @@ private fun parseInternalLink(destination: String): InternalNoteLink? =
     if (destination.startsWith(WIKI_SCHEME)) {
         decodeWikiLink(destination)
     } else {
-        parseLegacyNoteLink(destination)
+        parseLegacyNoteLink(destination) ?: parseMarkdownNoteLink(destination)
     }
 
 private fun AppCompatTextView.brokenLinkColor(): Int {

@@ -43,6 +43,35 @@ class MarkdownLinksTest {
     }
 
     @Test
+    fun parsesRelativeMarkdownNoteLinksAndEncodedHeadings() {
+        assertEquals(
+            InternalNoteLink(
+                InternalNoteLinkKind.MARKDOWN,
+                noteName = "QOwnNotes Todo Backlog",
+                heading = "Important information"
+            ),
+            parseMarkdownNoteLink("QOwnNotes%20Todo%20Backlog.md#Important%20information")
+        )
+        assertEquals(
+            InternalNoteLink(
+                InternalNoteLinkKind.MARKDOWN,
+                noteName = "QOwnNotes",
+                category = "archive"
+            ),
+            parseMarkdownNoteLink("./archive/QOwnNotes.md")
+        )
+    }
+
+    @Test
+    fun rejectsExternalAndUnsafeMarkdownNoteLinks() {
+        assertNull(parseMarkdownNoteLink("https://example.com/QOwnNotes.md"))
+        assertNull(parseMarkdownNoteLink("/QOwnNotes.md"))
+        assertNull(parseMarkdownNoteLink("../QOwnNotes.md"))
+        assertNull(parseMarkdownNoteLink("QOwnNotes.txt"))
+        assertNull(parseMarkdownNoteLink("QOwnNotes.md?download=true"))
+    }
+
+    @Test
     fun allowsOnlyHttpAndHttpsExternalUrlsWithHosts() {
         assertTrue(isSafeExternalUrl("https://example.com/path"))
         assertTrue(isSafeExternalUrl("HTTP://example.com"))
@@ -76,6 +105,22 @@ class MarkdownLinksTest {
         assertEquals(
             ResolvedNoteLink("target", null),
             resolveInternalNoteLink(source, listOf(target), parseWikiLink("android/Design")!!)
+        )
+    }
+
+    @Test
+    fun resolvesMarkdownLinksWithinTheCurrentCategory() {
+        val source = note("source", "Source", "projects", 1)
+        val root = note("root", "QOwnNotes", "", 20)
+        val nearby = note("nearby", "QOwnNotes", "projects", 10)
+
+        assertEquals(
+            ResolvedNoteLink("nearby", "Information"),
+            resolveInternalNoteLink(
+                source,
+                listOf(root, nearby),
+                parseMarkdownNoteLink("QOwnNotes.md#Information")!!
+            )
         )
     }
 
