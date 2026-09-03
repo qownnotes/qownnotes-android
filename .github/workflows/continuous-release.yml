@@ -18,10 +18,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      ANDROID_DEV_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEV_KEYSTORE_BASE64 }}
       ANDROID_DEV_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_DEV_KEYSTORE_PASSWORD }}
       ANDROID_DEV_KEY_ALIAS: ${{ secrets.ANDROID_DEV_KEY_ALIAS }}
       ANDROID_DEV_KEY_PASSWORD: ${{ secrets.ANDROID_DEV_KEY_PASSWORD }}
     steps:
+      - name: Validate development signing secrets
+        run: |
+          missing=()
+          for name in \
+            ANDROID_DEV_KEYSTORE_BASE64 \
+            ANDROID_DEV_KEYSTORE_PASSWORD \
+            ANDROID_DEV_KEY_ALIAS \
+            ANDROID_DEV_KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} )); then
+            printf 'Missing GitHub Actions repository secret: %s\n' "${missing[@]}" >&2
+            echo 'See README.md#build-a-signed-release for setup instructions.' >&2
+            exit 1
+          fi
       - uses: actions/checkout@v5
       - uses: cachix/install-nix-action@v31
       - uses: cachix/cachix-action@v16
@@ -31,10 +49,8 @@ jobs:
         run: nix profile add nixpkgs#devenv
       - name: Restore development signing keystore
         env:
-          ANDROID_DEV_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEV_KEYSTORE_BASE64 }}
           ANDROID_DEV_KEYSTORE_PATH: ${{ runner.temp }}/qownnotes-development.jks
         run: |
-          test -n "$ANDROID_DEV_KEYSTORE_BASE64"
           printf '%s' "$ANDROID_DEV_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_DEV_KEYSTORE_PATH"
           echo "ANDROID_DEV_KEYSTORE_PATH=$ANDROID_DEV_KEYSTORE_PATH" >> "$GITHUB_ENV"
       - name: Set monotonically increasing development version

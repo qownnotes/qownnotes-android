@@ -210,11 +210,28 @@ ANDROID_KEY_ALIAS
 ANDROID_KEY_PASSWORD
 ```
 
-Generate `ANDROID_KEYSTORE_BASE64` on NixOS with:
+If QOwnNotes Mobile has already been distributed, use its existing release or upload key. Android
+will not accept updates signed by a replacement key. For a first release, create and configure a
+key from the repository root with:
 
 ```sh
-base64 -w 0 /absolute/path/to/release.jks
+mkdir -p .signing
+keytool -genkeypair \
+  -keystore .signing/qownnotes-release.jks \
+  -storetype PKCS12 \
+  -alias qownnotes-release \
+  -keyalg RSA \
+  -keysize 4096 \
+  -validity 10000
+base64 -w 0 .signing/qownnotes-release.jks | gh secret set ANDROID_KEYSTORE_BASE64
+printf '%s' 'qownnotes-release' | gh secret set ANDROID_KEY_ALIAS
+gh secret set ANDROID_KEYSTORE_PASSWORD
+gh secret set ANDROID_KEY_PASSWORD
 ```
+
+The final two commands prompt without putting the passwords in shell history. PKCS12 normally uses
+the same password for the keystore and key. Store the `.jks` file and password in a durable password
+manager backup; losing them can prevent future application updates.
 
 Pushes to `main` also replace the GitHub prerelease tagged `continuous` with a signed **QOwnNotes
 Dev** APK and its SHA-256 checksum. Use a separate development key so publishing continuous builds
@@ -226,6 +243,35 @@ ANDROID_DEV_KEYSTORE_PASSWORD
 ANDROID_DEV_KEY_ALIAS
 ANDROID_DEV_KEY_PASSWORD
 ```
+
+Create and configure a development key from the repository root with `keytool` and the GitHub CLI:
+
+```sh
+mkdir -p .signing
+keytool -genkeypair \
+  -keystore .signing/qownnotes-development.jks \
+  -storetype PKCS12 \
+  -alias qownnotes-development \
+  -keyalg RSA \
+  -keysize 4096 \
+  -validity 10000
+base64 -w 0 .signing/qownnotes-development.jks | gh secret set ANDROID_DEV_KEYSTORE_BASE64
+printf '%s' 'qownnotes-development' | gh secret set ANDROID_DEV_KEY_ALIAS
+gh secret set ANDROID_DEV_KEYSTORE_PASSWORD
+gh secret set ANDROID_DEV_KEY_PASSWORD
+```
+
+The final two commands prompt for the passwords without putting them in shell history. PKCS12
+normally uses the same password for the keystore and key, so enter the password chosen by `keytool`
+for both secrets. Keep the `.jks` file and its password in a secure backup: every continuous APK
+must use the same key for Android to accept it as an update. The `.signing/` directory is ignored by
+Git.
+
+The Base64 variables contain the binary keystores in a text form GitHub Actions can store. The
+keystore-password, alias, and key-password variables select and unlock the private key inside each
+keystore. `ANDROID_KEYSTORE_PATH` and `ANDROID_DEV_KEYSTORE_PATH` are local or temporary file paths,
+not repository secrets. `ANDROID_VERSION_CODE` is also not a secret: continuous CI sets it to the
+current Unix timestamp so every development build has a higher Android version code.
 
 ### Clean Build Outputs
 
