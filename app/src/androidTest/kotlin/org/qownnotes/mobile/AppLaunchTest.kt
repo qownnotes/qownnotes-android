@@ -237,6 +237,58 @@ class AppLaunchTest {
     }
 
     /**
+     * Editing writes continuously, so leaving without keeping the changes has to restore the note
+     * rather than merely drop what has not been written yet.
+     */
+    @Test
+    fun cancellingEditingRestoresTheNoteAfterConfirmation() {
+        importAccount("alice", "Existing note", "etag-1", 10, "# Existing note\n\nOriginal body")
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(
+            click(),
+            replaceText("# Existing note\n\nAbandoned body")
+        )
+        awaitEditorText("Abandoned body")
+
+        composeRule.onNodeWithTag("cancel-editing").performClick()
+        composeRule.onNodeWithText("This note was modified", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("confirm-discard-changes").performClick()
+
+        composeRule.waitForTag("markdown-view")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                application.component.noteRepository
+                    .observeNotes(testAccount("alice").localAccountId())
+                    .first()
+                    .any { it.content.contains("Original body") }
+            }
+        }
+        assertTrue(
+            runBlocking {
+                application.component.noteRepository
+                    .observeNotes(testAccount("alice").localAccountId())
+                    .first()
+                    .none { it.content.contains("Abandoned body") }
+            }
+        )
+    }
+
+    /** Leaving an unchanged note must not interrupt the writer with a question. */
+    @Test
+    fun cancellingWithoutChangesLeavesEditingImmediately() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        composeRule.onNodeWithTag("cancel-editing").performClick()
+
+        composeRule.waitForTag("markdown-view")
+        composeRule.onNodeWithTag("confirm-discard-changes").assertDoesNotExist()
+        composeRule.onNodeWithTag("edit-note").assertIsDisplayed()
+    }
+
+    /**
      * Regression test for the editor that could be displayed but never typed into. Espresso's
      * `typeText` taps the view and then injects key events into whichever view holds input focus,
      * so it fails unless the editor is genuinely focusable in touch mode. `replaceText` sets the
@@ -350,11 +402,13 @@ class AppLaunchTest {
         assertTrue("expected selection after the start of the note", selection > 0)
         assertTrue("expected selection before the end of the note", selection < content.length)
 
-        val before = scrollYOf(R.id.markdown_editor)
+        // The editor is taller than its scrolling container, so dragging the rail moves the
+        // editor itself upwards rather than scrolling text inside a fixed view.
+        val before = screenTopOf(R.id.markdown_editor)
         composeRule.onNodeWithTag("editor-fast-scroll").assertIsDisplayed()
             .performTouchInput { swipeDown() }
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            scrollYOf(R.id.markdown_editor) > before
+            screenTopOf(R.id.markdown_editor) < before
         }
     }
 
@@ -638,12 +692,6 @@ class AppLaunchTest {
             top = IntArray(2).also(view::getLocationOnScreen)[1]
         }
         return top
-    }
-
-    private fun scrollYOf(viewId: Int): Int {
-        var scrollY = 0
-        onView(withId(viewId)).check { view, _ -> scrollY = view.scrollY }
-        return scrollY
     }
 
     private fun textSizeOf(viewId: Int): Float {

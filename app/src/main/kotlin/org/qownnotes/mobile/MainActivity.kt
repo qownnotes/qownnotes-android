@@ -8,6 +8,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -524,12 +526,14 @@ private fun NoteDetailScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     var editing by rememberSaveable(localId) { mutableStateOf(false) }
     var draft by remember(localId) { mutableStateOf<String?>(null) }
+    // What the note held when editing started. Typing is saved continuously, so discarding means
+    // restoring this, not merely dropping what has not been written yet.
+    var contentBeforeEditing by rememberSaveable(localId) { mutableStateOf<String?>(null) }
+    var showDiscardConfirmation by rememberSaveable(localId) { mutableStateOf(false) }
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
-    var editorScrollY by remember(localId) { mutableIntStateOf(0) }
-    var editorScrollRange by remember(localId) { mutableIntStateOf(0) }
-    var editorViewportHeight by remember(localId) { mutableIntStateOf(0) }
+    val editorScrollState = rememberScrollState()
     var renderedView by remember { mutableStateOf<AppCompatTextView?>(null) }
     var editorBinding by remember { mutableStateOf<MarkdownEditorBinding?>(null) }
     var canUndo by remember(localId) { mutableStateOf(false) }
@@ -565,11 +569,15 @@ private fun NoteDetailScreen(
         // spans rescale without re-rendering the note.
         renderedView?.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
     }
+    // The editor is taller than its scrolling container, so the container is what has to move to
+    // the caret. Its range only exists once the editor has been measured.
     LaunchedEffect(editing, editor) {
         val view = editor ?: return@LaunchedEffect
         if (!editing) return@LaunchedEffect
         repeat(2) { withFrameNanos { } }
-        view.bringPointIntoView(selectionStart)
+        val layout = view.layout ?: return@LaunchedEffect
+        val line = layout.getLineForOffset(selectionStart.coerceIn(0, view.length()))
+        editorScrollState.scrollTo(layout.getLineTop(line) + view.totalPaddingTop)
     }
     val latestDraft by rememberUpdatedState(draft)
     val latestNote by rememberUpdatedState(note)
@@ -701,6 +709,16 @@ private fun NoteDetailScreen(
                     if (editing) {
                         TextButton(
                             onClick = {
+                                if (draft != contentBeforeEditing) {
+                                    showDiscardConfirmation = true
+                                } else {
+                                    editing = false
+                                }
+                            },
+                            modifier = Modifier.testTag("cancel-editing")
+                        ) { Text("Cancel") }
+                        TextButton(
+                            onClick = {
                                 val source = draft
                                 if (source != null) {
                                     scope.launch {
@@ -723,6 +741,7 @@ private fun NoteDetailScreen(
                                     scope.launch {
                                         component.beginEditing(localId)?.let { editable ->
                                             draft = editable.content
+                                            contentBeforeEditing = editable.content
                                             selectionStart = sourceOffsetForReadingPosition(
                                                 renderedView,
                                                 scrollState.value,
@@ -775,68 +794,67 @@ private fun NoteDetailScreen(
                     FormatButton("Quote", MarkdownFormatAction.QUOTE, editor)
                 }
                 Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    AndroidView(
-                        factory = { context ->
-                            MarkdownEditText(context).also { view ->
-                                fun updateScrollMetrics() {
-                                    editorScrollY = view.scrollY
-                                    editorViewportHeight = view.height
-                                    editorScrollRange = editorMaximumScroll(view)
-                                }
-                                view.id = R.id.markdown_editor
-                                view.setTextSize(
-                                    TypedValue.COMPLEX_UNIT_SP,
-                                    noteTextSizeSp.toFloat()
-                                )
-                                view.setText(draft.orEmpty())
-                                view.setSelection(
-                                    selectionStart.coerceIn(0, view.length()),
-                                    selectionEnd.coerceIn(0, view.length())
-                                )
-                                view.onSelectionChanged = { start, end ->
-                                    selectionStart = start
-                                    selectionEnd = end
-                                }
-                                view.setOnScrollChangeListener { _, _, _, _, _ ->
-                                    updateScrollMetrics()
-                                }
-                                view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-                                    updateScrollMetrics()
-                                }
-                                editorBinding = MarkdownEditorBinding(
-                                    context,
-                                    view,
-                                    onHistoryChanged = { undoable, redoable ->
-                                        canUndo = undoable
-                                        canRedo = redoable
+                    // The editor is laid out at its full text height inside a scrolling
+                    // container. An `EditText` only drag-scrolls its own text and never flings,
+                    // so scrolling a long note by hand would otherwise crawl line by line. It
+                    // still covers at least the viewport, so tapping below a short note keeps
+                    // opening the keyboard at the end of the text.
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val viewportHeight = maxHeight
+                        Column(
+                            modifier = Modifier.fillMaxSize().verticalScroll(editorScrollState)
+                        ) {
+                            AndroidView(
+                                factory = { context ->
+                                    MarkdownEditText(context).also { view ->
+                                        view.id = R.id.markdown_editor
+                                        view.setTextSize(
+                                            TypedValue.COMPLEX_UNIT_SP,
+                                            noteTextSizeSp.toFloat()
+                                        )
+                                        view.setText(draft.orEmpty())
+                                        view.setSelection(
+                                            selectionStart.coerceIn(0, view.length()),
+                                            selectionEnd.coerceIn(0, view.length())
+                                        )
+                                        view.onSelectionChanged = { start, end ->
+                                            selectionStart = start
+                                            selectionEnd = end
+                                        }
+                                        editorBinding = MarkdownEditorBinding(
+                                            context,
+                                            view,
+                                            onHistoryChanged = { undoable, redoable ->
+                                                canUndo = undoable
+                                                canRedo = redoable
+                                            }
+                                        ) {
+                                            component.cacheDraft(localId, it)
+                                            draft = it
+                                        }
+                                        editor = view
+                                        view.focusForInput()
                                     }
-                                ) {
-                                    component.cacheDraft(localId, it)
-                                    draft = it
-                                }
-                                editor = view
-                                view.focusForInput()
-                            }
-                        },
-                        update = { view ->
-                            if (view.currentTextColor != editorTextColor) {
-                                view.setTextColor(editorTextColor)
-                            }
-                        },
-                        onRelease = { view ->
-                            editorBinding?.close()
-                            editorBinding = null
-                            editor = null
-                            view.setOnScrollChangeListener(null)
-                            view.releaseInputFocus()
-                        },
-                        modifier = Modifier.fillMaxSize().testTag("markdown-editor")
-                    )
+                                },
+                                update = { view ->
+                                    if (view.currentTextColor != editorTextColor) {
+                                        view.setTextColor(editorTextColor)
+                                    }
+                                },
+                                onRelease = { view ->
+                                    editorBinding?.close()
+                                    editorBinding = null
+                                    editor = null
+                                    view.releaseInputFocus()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                                    .heightIn(min = viewportHeight)
+                                    .testTag("markdown-editor")
+                            )
+                        }
+                    }
                     EditorFastScroller(
-                        editor = editor,
-                        scrollY = editorScrollY,
-                        scrollRange = editorScrollRange,
-                        viewportHeight = editorViewportHeight,
+                        scrollState = editorScrollState,
                         modifier = Modifier.align(Alignment.CenterEnd)
                     )
                 }
@@ -962,17 +980,46 @@ private fun NoteDetailScreen(
             }
         }
     }
+    if (showDiscardConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirmation = false },
+            title = { Text("Discard changes?") },
+            text = {
+                Text(
+                    "This note was modified. Discarding restores it to the text it had when " +
+                        "editing started."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardConfirmation = false
+                        val restored = contentBeforeEditing
+                        if (restored != null) {
+                            scope.launch {
+                                component.saveDraft(localId, restored)
+                                draft = restored
+                                editing = false
+                            }
+                        } else {
+                            editing = false
+                        }
+                    },
+                    modifier = Modifier.testTag("confirm-discard-changes")
+                ) { Text("Discard") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirmation = false }) { Text("Keep editing") }
+            }
+        )
+    }
 }
 
 @Composable
-internal fun EditorFastScroller(
-    editor: MarkdownEditText?,
-    scrollY: Int,
-    scrollRange: Int,
-    viewportHeight: Int,
-    modifier: Modifier = Modifier
-) {
-    if (editor == null || scrollRange <= 0 || viewportHeight <= 0) return
+internal fun EditorFastScroller(scrollState: ScrollState, modifier: Modifier = Modifier) {
+    val scrollRange = scrollState.maxValue
+    if (scrollRange <= 0) return
+    val scope = rememberCoroutineScope()
     BoxWithConstraints(
         modifier = modifier.fillMaxHeight().width(48.dp)
             .semantics { contentDescription = "Editor fast scroll" }
@@ -980,26 +1027,22 @@ internal fun EditorFastScroller(
     ) {
         val density = LocalDensity.current
         val trackHeight = constraints.maxHeight.toFloat()
+        val viewportHeight = trackHeight
         val contentHeight = viewportHeight + scrollRange
         val thumbHeight = maxOf(
             with(density) { 48.dp.toPx() },
             trackHeight * viewportHeight / contentHeight
         ).coerceAtMost(trackHeight)
         val travel = trackHeight - thumbHeight
-        val thumbOffset = if (scrollRange == 0) 0F else travel * scrollY / scrollRange
+        val thumbOffset = if (scrollRange == 0) 0F else travel * scrollState.value / scrollRange
         fun scrollTo(pointerY: Float) {
             val fraction = ((pointerY - thumbHeight / 2F) / travel).coerceIn(0F, 1F)
-            editor.scrollTo(0, (scrollRange * fraction).roundToInt())
+            scope.launch { scrollState.scrollTo((scrollRange * fraction).roundToInt()) }
         }
         Box(
             modifier = Modifier.fillMaxSize()
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35F))
-                .pointerInput(
-                    editor,
-                    scrollRange,
-                    trackHeight,
-                    thumbHeight
-                ) {
+                .pointerInput(scrollState, scrollRange, trackHeight, thumbHeight) {
                     detectVerticalDragGestures(
                         onDragStart = { scrollTo(it.y) },
                         onVerticalDrag = { change, _ ->
@@ -1023,11 +1066,6 @@ internal fun EditorFastScroller(
         }
     }
 }
-
-internal fun editorMaximumScroll(editor: MarkdownEditText): Int = (
-    (editor.layout?.height ?: 0) + editor.totalPaddingTop + editor.totalPaddingBottom -
-        editor.height
-    ).coerceAtLeast(0)
 
 /**
  * Remembers what a rendered note view was last rendered from.
