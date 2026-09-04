@@ -867,7 +867,11 @@ private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
                 style = MaterialTheme.typography.labelMedium
             )
             SyncUiState.Refreshing -> Text("Refreshing")
-            is SyncUiState.Failed -> Text(state.message, color = MaterialTheme.colorScheme.error)
+            is SyncUiState.Failed -> ExpandableSyncError(
+                message = state.message,
+                testTag = "account-sync-error",
+                modifier = Modifier.weight(1f)
+            )
             is SyncUiState.AuthenticationRequired ->
                 Text(state.message, color = MaterialTheme.colorScheme.error)
             is SyncUiState.AccountRemoved ->
@@ -1388,10 +1392,10 @@ private fun NoteDetailScreen(
     ) { padding ->
         if (editing) {
             Column(modifier = Modifier.fillMaxSize().padding(padding).imePadding()) {
-                note?.lastSyncError?.let {
-                    Text(
-                        it,
-                        color = MaterialTheme.colorScheme.error,
+                note?.lastSyncError?.let { message ->
+                    ExpandableSyncError(
+                        message = message,
+                        testTag = "note-sync-error",
                         modifier = Modifier.padding(16.dp)
                     )
                 }
@@ -1589,10 +1593,10 @@ private fun NoteDetailScreen(
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(scrollState)
                 ) {
-                    note?.lastSyncError?.let {
-                        Text(
-                            it,
-                            color = MaterialTheme.colorScheme.error,
+                    note?.lastSyncError?.let { message ->
+                        ExpandableSyncError(
+                            message = message,
+                            testTag = "note-sync-error",
                             modifier = Modifier.padding(16.dp)
                         )
                     }
@@ -2013,6 +2017,45 @@ private fun findMatchStatus(query: String, matchCount: Int, currentMatch: Int): 
     query.isBlank() -> ""
     matchCount == 0 -> "No matches"
     else -> "${currentMatch.coerceIn(0, matchCount - 1) + 1} of $matchCount"
+}
+
+@Composable
+private fun ExpandableSyncError(message: String, testTag: String, modifier: Modifier = Modifier) {
+    val explanation = syncErrorExplanation(message)
+    var expanded by rememberSaveable(message) { mutableStateOf(false) }
+    Column(modifier = modifier) {
+        Text(
+            message,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.testTag("$testTag-summary")
+        )
+        if (explanation != null) {
+            TextButton(
+                onClick = { expanded = !expanded },
+                modifier = Modifier.testTag("$testTag-toggle")
+            ) {
+                Text(if (expanded) "Hide details" else "Details")
+            }
+            if (expanded) {
+                Text(
+                    explanation,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("$testTag-details")
+                )
+            }
+        }
+    }
+}
+
+private fun syncErrorExplanation(message: String): String? = when (message) {
+    "The server could not be reached" ->
+        "Synchronization stopped before the server responded. Local edits remain saved on this " +
+            "device. For a local server, check the phone's Wi-Fi or VPN and confirm that " +
+            "Nextcloud Files can reach the account. Verify the server address and port in a " +
+            "browser and ensure its HTTPS certificate is trusted by Android. Plain HTTP " +
+            "connections can be blocked by Android. Then retry synchronization."
+    else -> null
 }
 
 @Composable

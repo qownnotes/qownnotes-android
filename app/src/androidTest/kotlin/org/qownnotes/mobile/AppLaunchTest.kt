@@ -157,7 +157,29 @@ class AppLaunchTest {
         composeRule.activityRule.scenario.recreate()
 
         composeRule.waitForText("The server could not be reached")
+        composeRule.onNodeWithTag("account-sync-error-details").assertDoesNotExist()
+        composeRule.onNodeWithTag("account-sync-error-toggle").performClick()
+        composeRule.waitForText("phone's Wi-Fi or VPN", substring = true)
+        composeRule.onNodeWithText("offline", substring = true).assertDoesNotExist()
         composeRule.onNodeWithText("Cached note").assertIsDisplayed()
+    }
+
+    @Test
+    fun noteSyncErrorCanBeExplainedWhileEditing() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking { notesOf("alice").single() }
+        runBlocking {
+            application.component.noteRepository.save(
+                note.copy(lastSyncError = "The server could not be reached")
+            )
+        }
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        composeRule.onNodeWithTag("note-sync-error-details").assertDoesNotExist()
+        composeRule.onNodeWithTag("note-sync-error-toggle").performClick()
+
+        composeRule.waitForText("Local edits remain saved", substring = true)
     }
 
     @Test
@@ -1194,10 +1216,11 @@ class AppLaunchTest {
     }
 
     private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.waitForText(
-        text: String
+        text: String,
+        substring: Boolean = false
     ) {
         waitUntil(timeoutMillis = 10_000) {
-            onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+            onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
         }
     }
 }
