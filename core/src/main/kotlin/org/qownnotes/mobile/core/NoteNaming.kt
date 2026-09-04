@@ -71,7 +71,7 @@ class NoteFactory(
         title = title,
         // Applications that have no subject to send sometimes send the text as one. Repeating it
         // under a heading that already says it would add nothing.
-        content = if (body.isEmpty() || body == title) "# $title\n" else "# $title\n\n$body\n",
+        content = if (body.isEmpty() || body == title) "# $title\n\n" else "# $title\n\n$body\n",
         modifiedAtEpochSeconds = clock.instant().epochSecond,
         syncState = SyncState.LOCALLY_CREATED
     )

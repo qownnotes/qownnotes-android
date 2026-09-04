@@ -25,7 +25,7 @@ class NoteFactoryTest {
         val note = factory().create("account")
 
         assertEquals("Note 2026-08-31 14h08s27", note.title)
-        assertEquals("# Note 2026-08-31 14h08s27\n", note.content)
+        assertEquals("# Note 2026-08-31 14h08s27\n\n", note.content)
         assertEquals(SyncState.LOCALLY_CREATED, note.syncState)
     }
 
@@ -80,7 +80,7 @@ class NoteFactoryTest {
         )
 
         assertEquals("Buy milk", note.title)
-        assertEquals("# Buy milk\n", note.content)
+        assertEquals("# Buy milk\n\n", note.content)
     }
 
     @Test
@@ -91,7 +91,7 @@ class NoteFactoryTest {
         )
 
         assertEquals("Reminder", note.title)
-        assertEquals("# Reminder\n", note.content)
+        assertEquals("# Reminder\n\n", note.content)
     }
 
     @Test

@@ -477,6 +477,13 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("create-note").performClick()
         composeRule.waitForTag("markdown-editor")
         composeRule.onNodeWithTag("finish-editing").assertIsDisplayed()
+        onView(withId(R.id.markdown_editor)).check { view, _ ->
+            val editor = view as TextView
+            assertTrue(editor.text.toString().startsWith("# Note "))
+            assertTrue(editor.text.toString().endsWith("\n\n"))
+            assertEquals(editor.length(), editor.selectionStart)
+            assertEquals(editor.length(), editor.selectionEnd)
+        }
         onView(withId(R.id.markdown_editor)).perform(
             click(),
             replaceText("# Edited\n\nDraft text")

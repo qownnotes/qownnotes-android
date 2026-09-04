@@ -171,10 +171,10 @@ Creation rules:
 - Localize the word `Note`.
 - Create and persist the note locally immediately, including while offline.
 - Assign a stable local UUID before attempting server synchronization.
-- Open a note created from the note list directly in editing mode with the cursor after its initial
-  heading.
+- Open a note created from the note list directly in editing mode with the cursor on a blank body
+  line below its initial heading.
 - Send the generated name as the Nextcloud note title.
-- Send the generated heading as the initial content.
+- Send the generated heading and a blank body line as the initial content.
 - Adopt the sanitized title returned by the Nextcloud server.
 - If the server changes the title because of invalid filename characters or a collision, update the local title without rewriting unrelated user content.
 - Two locally created notes must remain distinct even if they are created within the same second.
