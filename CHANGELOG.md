@@ -20,6 +20,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A newly added Nextcloud account now becomes the active account immediately.
 - The note view now keeps Find and Edit as icon buttons and moves secondary actions into a compact
   three-dot menu.
 - Existing note content is now syntax-highlighted immediately when edit mode opens, without waiting

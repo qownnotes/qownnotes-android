@@ -262,6 +262,7 @@ private fun NotesNavigation(
     val importState by component.importState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    var observedAccountIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var selectedNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedHeading by rememberSaveable { mutableStateOf<String?>(null) }
     var editOnOpenNoteId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -270,8 +271,13 @@ private fun NotesNavigation(
 
     LaunchedEffect(accounts, selectedAccountId) {
         val loadedAccounts = accounts ?: return@LaunchedEffect
-        if (loadedAccounts.isNotEmpty() && loadedAccounts.none { it.id == selectedAccountId }) {
-            selectedAccountId = loadedAccounts.first().id
+        val loadedAccountIds = loadedAccounts.map(Account::id)
+        val addedAccountIds = loadedAccountIds.filterNot(observedAccountIds::contains)
+        observedAccountIds = loadedAccountIds
+        when {
+            addedAccountIds.size == 1 -> selectedAccountId = addedAccountIds.single()
+            loadedAccounts.isNotEmpty() && loadedAccounts.none { it.id == selectedAccountId } ->
+                selectedAccountId = loadedAccounts.first().id
         }
     }
     BackHandler(enabled = selectedNoteId != null) {

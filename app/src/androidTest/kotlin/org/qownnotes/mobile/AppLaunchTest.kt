@@ -229,8 +229,14 @@ class AppLaunchTest {
         application.fakeAccountImporter.enqueue(bob)
         application.fakeBackend.enqueue(bob, pull("Bob note", "etag-b", 20))
         accountAction("add-account")
-        // Switching only becomes possible once the second account has finished being imported,
-        // which is what opening the menu waits for.
+
+        composeRule.waitForText("Bob note")
+        composeRule.onNodeWithText("Alice note").assertDoesNotExist()
+
+        accountAction("switch-account")
+        composeRule.waitForText("Alice note")
+        composeRule.onNodeWithText("Bob note").assertDoesNotExist()
+
         accountAction("switch-account")
         composeRule.waitForText("Bob note")
         composeRule.onNodeWithText("Alice note").assertDoesNotExist()
