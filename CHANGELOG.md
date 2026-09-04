@@ -24,6 +24,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   for the first text change.
 - Continuous and stable release signing now validate missing GitHub secrets before installing the
   build environment, with documented commands for generating and configuring signing keys.
+- Local development and release builds now retrieve their keystore and signing environment
+  attachments from Vaultwarden and validate the variables through SecretSpec without retaining
+  local copies.
 - Newly created notes now open directly in edit mode with the cursor after the generated heading.
 - The Markdown editor now scrolls as the cursor moves to keep the active line visible.
 - Markdown source highlighting now explicitly covers headings, emphasis, strikethrough, lists,

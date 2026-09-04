@@ -6,13 +6,13 @@ default:
 # Build the development APK.
 build: build-dev
 
-# Build the development APK.
+# Build the signed development APK with signing material from Vaultwarden.
 build-dev:
-    ./gradlew assembleDebug
+    ./scripts/with-android-signing development ./gradlew assembleDebug
 
-# Build the signed release APK.
-build-release: _require-release-signing
-    ./gradlew assembleRelease
+# Build the signed release APK with signing material from Vaultwarden.
+build-release:
+    ./scripts/with-android-signing release ./gradlew assembleRelease
 
 # Run all JVM unit tests.
 test:
@@ -38,9 +38,9 @@ license-check:
 check:
     ./gradlew spotlessCheck test assembleDebug lintDebug :app:licensee
 
-# Run all checks and build signed release packages.
-release: _require-release-signing
-    ./gradlew --no-configuration-cache spotlessCheck test lintRelease :app:licensee assembleRelease bundleRelease
+# Run all checks and build signed release packages with signing material from Vaultwarden.
+release:
+    ./scripts/with-android-signing release ./gradlew --no-configuration-cache spotlessCheck test lintRelease :app:licensee assembleRelease bundleRelease
 
 # Create the project-local API 36 emulator.
 create-avd:
@@ -60,14 +60,14 @@ start-emulator: create-avd
 # Install and launch the development app on a connected device.
 run: deploy-dev
 
-# Install and launch the development app on a connected device.
-deploy-dev: build-dev _wait-for-android
-    ./gradlew installDebug
+# Install and launch the signed development app on a connected device.
+deploy-dev: _wait-for-android
+    ./scripts/with-android-signing development ./gradlew assembleDebug installDebug
     adb shell am start -n org.qownnotes.mobile.dev/org.qownnotes.mobile.MainActivity
 
 # Install and launch the signed release app on a connected device.
-deploy-release: build-release _wait-for-android
-    ./gradlew installRelease
+deploy-release: _wait-for-android
+    ./scripts/with-android-signing release ./gradlew assembleRelease installRelease
     adb shell am start -n org.qownnotes.mobile/.MainActivity
 
 # Run instrumented tests on a connected device.
@@ -79,14 +79,6 @@ device-test: _wait-for-android
 _wait-for-android:
     adb wait-for-device
     timeout 300 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ] && adb shell cmd package path android >/dev/null 2>&1; do sleep 2; done'
-
-# Verify the release signing environment is complete.
-[private]
-_require-release-signing:
-    test -n "$ANDROID_KEYSTORE_PATH"
-    test -n "$ANDROID_KEYSTORE_PASSWORD"
-    test -n "$ANDROID_KEY_ALIAS"
-    test -n "$ANDROID_KEY_PASSWORD"
 
 # Remove Gradle build outputs.
 clean:

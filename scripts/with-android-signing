@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+variant="${1:?Usage: with-android-signing <development|release> <command> [args...]}"
+shift
+
+case "$variant" in
+  development)
+    profile="development"
+    android_prefix="ANDROID_DEV_"
+    vaultwarden_prefix="VAULTWARDEN_DEV_"
+    default_keystore_attachment="qownnotes-development.jks"
+    default_environment_attachment="qownnotes-development.env"
+    ;;
+  release)
+    profile="release"
+    android_prefix="ANDROID_"
+    vaultwarden_prefix="VAULTWARDEN_"
+    default_keystore_attachment="qownnotes-release.jks"
+    default_environment_attachment="qownnotes-release.env"
+    ;;
+  *)
+    printf 'Unknown signing variant: %s\n' "$variant" >&2
+    exit 1
+    ;;
+esac
+
+keystore_path_variable="${android_prefix}KEYSTORE_PATH"
+keystore_password_variable="${android_prefix}KEYSTORE_PASSWORD"
+key_alias_variable="${android_prefix}KEY_ALIAS"
+key_password_variable="${android_prefix}KEY_PASSWORD"
+signing_item_variable="${vaultwarden_prefix}SIGNING_ITEM"
+keystore_attachment_variable="${vaultwarden_prefix}KEYSTORE_ATTACHMENT"
+environment_attachment_variable="${vaultwarden_prefix}SIGNING_ENV_ATTACHMENT"
+
+if [[ -v "$keystore_path_variable" && -n "${!keystore_path_variable}" ]]; then
+  for variable in "$keystore_password_variable" "$key_alias_variable" "$key_password_variable"; do
+    [[ -v "$variable" && -n "${!variable}" ]] || { printf 'Set %s\n' "$variable" >&2; exit 1; }
+  done
+  exec env \
+    -u BW_SESSION \
+    -u VAULTWARDEN_DEV_SIGNING_ITEM \
+    -u VAULTWARDEN_DEV_KEYSTORE_ATTACHMENT \
+    -u VAULTWARDEN_DEV_SIGNING_ENV_ATTACHMENT \
+    -u VAULTWARDEN_SIGNING_ITEM \
+    -u VAULTWARDEN_KEYSTORE_ATTACHMENT \
+    -u VAULTWARDEN_SIGNING_ENV_ATTACHMENT \
+    "$@"
+fi
+
+if [[ -z "${BW_SESSION:-}" ]]; then
+  vault_status="$(bw status | jq -er '.status')"
+  if [[ "$vault_status" == "unauthenticated" ]]; then
+    printf 'Log in to Vaultwarden with: bw login\n' >&2
+    exit 1
+  fi
+  export BW_SESSION="$(bw unlock --raw)"
+fi
+[[ -v "$signing_item_variable" && -n "${!signing_item_variable}" ]] || {
+  printf 'Set %s to the signing item name or UUID\n' "$signing_item_variable" >&2
+  exit 1
+}
+
+keystore_attachment="${!keystore_attachment_variable:-$default_keystore_attachment}"
+environment_attachment="${!environment_attachment_variable:-$default_environment_attachment}"
+[[ "$keystore_attachment" != */* ]] || { printf 'Keystore attachment must be a filename\n' >&2; exit 1; }
+[[ "$environment_attachment" != */* ]] || { printf 'Signing environment attachment must be a filename\n' >&2; exit 1; }
+temporary_directory="$(mktemp -d)"
+trap 'rm -rf "$temporary_directory"' EXIT
+
+item_id="$(bw get item "${!signing_item_variable}" | jq -er '.id')"
+keystore_path="$temporary_directory/$keystore_attachment"
+environment_path="$temporary_directory/$environment_attachment"
+
+bw get attachment "$keystore_attachment" --itemid "$item_id" --output "$keystore_path" >/dev/null
+bw get attachment "$environment_attachment" --itemid "$item_id" --output "$environment_path" >/dev/null
+
+secretspec run \
+  --reason "Build signed Android $variant variant" \
+  --profile "$profile" \
+  --provider "dotenv://$environment_path" \
+  -- env \
+    -u BW_SESSION \
+    -u VAULTWARDEN_DEV_SIGNING_ITEM \
+    -u VAULTWARDEN_DEV_KEYSTORE_ATTACHMENT \
+    -u VAULTWARDEN_DEV_SIGNING_ENV_ATTACHMENT \
+    -u VAULTWARDEN_SIGNING_ITEM \
+    -u VAULTWARDEN_KEYSTORE_ATTACHMENT \
+    -u VAULTWARDEN_SIGNING_ENV_ATTACHMENT \
+    "$keystore_path_variable=$keystore_path" \
+    "$@"

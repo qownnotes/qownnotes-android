@@ -80,7 +80,8 @@ just
 just build-dev
 ```
 
-`just build` is an alias for `just build-dev`.
+`just build` is an alias for `just build-dev`. Configure local development signing as described
+below before running either recipe.
 
 The APK is written to:
 
@@ -180,21 +181,81 @@ and authenticated Nextcloud Files app.
 just check
 ```
 
-### Build A Signed Release
+### Build Signed Development And Release Variants
 
-Release builds require these environment variables:
+Local development and release builds retrieve signing files from a private Vaultwarden instance.
+Create one item for each signing identity with these attachments:
+
+```text
+Development item:
+qownnotes-development.jks
+qownnotes-development.env
+
+Release item:
+qownnotes-release.jks
+qownnotes-release.env
+```
+
+The development dotenv attachment must contain:
+
+```dotenv
+ANDROID_DEV_KEYSTORE_PASSWORD=...
+ANDROID_DEV_KEY_ALIAS=...
+ANDROID_DEV_KEY_PASSWORD=...
+```
+
+The release dotenv attachment must contain:
+
+```dotenv
+ANDROID_KEYSTORE_PASSWORD=...
+ANDROID_KEY_ALIAS=...
+ANDROID_KEY_PASSWORD=...
+```
+
+Configure the Bitwarden CLI for Vaultwarden and log in once:
 
 ```sh
-export ANDROID_KEYSTORE_PATH=/absolute/path/to/release.jks
-export ANDROID_KEYSTORE_PASSWORD=...
-export ANDROID_KEY_ALIAS=...
-export ANDROID_KEY_PASSWORD=...
+bw logout
+bw config server https://vaultwarden.example.com
+bw login
+just build-dev
+just deploy-dev
+just build-release
+just deploy-release
 just release
 ```
+
+When the vault is locked, a signing recipe runs `bw unlock --raw` and prompts for the master
+password itself. The resulting `BW_SESSION` exists only inside the wrapper, so it does not need to
+be exported manually or stored in shell configuration. An already exported `BW_SESSION` is still
+accepted for automation.
+
+The public `devenv.nix` configuration sets `VAULTWARDEN_DEV_SIGNING_ITEM` and
+`VAULTWARDEN_SIGNING_ITEM` to the item names above. The variables may instead contain item UUIDs and
+may name the same item when all four attachments are stored together. Attachment names can be
+overridden locally:
+
+```text
+VAULTWARDEN_DEV_KEYSTORE_ATTACHMENT
+VAULTWARDEN_DEV_SIGNING_ENV_ATTACHMENT
+VAULTWARDEN_KEYSTORE_ATTACHMENT
+VAULTWARDEN_SIGNING_ENV_ATTACHMENT
+```
+
+The signing wrapper downloads the selected attachments into a private temporary directory, uses
+the matching SecretSpec profile to validate and inject the dotenv values, sets the corresponding
+keystore path, and removes both files when Gradle exits. It never sources the downloaded dotenv file
+as shell code, and Gradle does not inherit the Vaultwarden session or item configuration.
+
+The reproducible `devenv` shell provides `bw`, `jq`, and `secretspec`. Outside that shell, install
+the Bitwarden Password Manager CLI, `jq`, and SecretSpec separately. GitHub Actions continues using
+its existing `ANDROID_DEV_*` and `ANDROID_*` repository secrets. When either complete signing
+environment is already present, the wrapper skips Vaultwarden and SecretSpec.
 
 The signed outputs are written to:
 
 ```text
+app/build/outputs/apk/debug/app-debug.apk
 app/build/outputs/apk/release/app-release.apk
 app/build/outputs/bundle/release/app-release.aab
 ```

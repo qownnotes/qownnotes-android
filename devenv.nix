@@ -19,7 +19,12 @@
     sources.enable = true;
   };
 
-  packages = [ pkgs.gradle pkgs.just ];
+  packages = [ pkgs.bitwarden-cli pkgs.gradle pkgs.jq pkgs.just ];
+
+  env = {
+    VAULTWARDEN_DEV_SIGNING_ITEM = "QOwnNotes Android development signing";
+    VAULTWARDEN_SIGNING_ITEM = "QOwnNotes Android release signing";
+  };
 
   enterShell = ''
     echo "Android SDK: $ANDROID_HOME"
