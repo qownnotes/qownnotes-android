@@ -635,7 +635,7 @@ class AppLaunchTest {
         onView(withId(R.id.markdown_editor)).perform(click(), typeText("bold me"))
         // Format the fully typed text, not whatever part of it the input method has committed.
         awaitEditorText("bold me")
-        composeRule.onNodeWithText("B").performClick()
+        composeRule.onNodeWithTag("format-bold").performClick()
 
         onView(withId(R.id.markdown_editor))
             .check(matches(withText(containsString("**"))))

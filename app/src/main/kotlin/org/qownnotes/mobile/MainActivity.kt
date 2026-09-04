@@ -35,10 +35,30 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FormatBold
+import androidx.compose.material.icons.filled.FormatItalic
+import androidx.compose.material.icons.filled.FormatListNumbered
+import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StrikethroughS
+import androidx.compose.material.icons.filled.TextDecrease
+import androidx.compose.material.icons.filled.TextIncrease
+import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -73,6 +93,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
@@ -587,7 +608,14 @@ private fun NoteListScreen(
                         TextButton(
                             onClick = { onCreate(accountId) },
                             modifier = Modifier.testTag("create-note")
-                        ) { Text("New note") }
+                        ) {
+                            Icon(
+                                Icons.Filled.Add,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Text("New note")
+                        }
                         TextButton(
                             onClick = {
                                 val requestId = ++trashRequestId
@@ -610,7 +638,14 @@ private fun NoteListScreen(
                                 }
                             },
                             modifier = Modifier.testTag("remote-trash")
-                        ) { Text("Trash") }
+                        ) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Text("Trash")
+                        }
                     }
                 }
             }
@@ -1305,31 +1340,36 @@ private fun NoteDetailScreen(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
                             .testTag("note-actions")
                     ) {
-                        CompactActionButton(
-                            label = "A-",
+                        ActionIconButton(
+                            icon = Icons.Filled.TextDecrease,
                             description = "Decrease note text size",
                             testTag = "decrease-note-text-size",
                             enabled = NoteTextSize.canDecrease(noteTextSizeSp),
                             onClick = component.settings::decreaseNoteTextSize
                         )
-                        CompactActionButton(
-                            label = "A+",
+                        ActionIconButton(
+                            icon = Icons.Filled.TextIncrease,
                             description = "Increase note text size",
                             testTag = "increase-note-text-size",
                             enabled = NoteTextSize.canIncrease(noteTextSizeSp),
                             onClick = component.settings::increaseNoteTextSize
                         )
-                        TextButton(
+                        ActionIconButton(
+                            icon = Icons.Filled.Close,
+                            description = "Cancel editing",
+                            testTag = "cancel-editing",
                             onClick = {
                                 if (draft != contentBeforeEditing) {
                                     showDiscardConfirmation = true
                                 } else {
                                     editing = false
                                 }
-                            },
-                            modifier = Modifier.testTag("cancel-editing")
-                        ) { Text("Cancel") }
-                        TextButton(
+                            }
+                        )
+                        ActionIconButton(
+                            icon = Icons.Filled.Done,
+                            description = "Finish editing",
+                            testTag = "finish-editing",
                             onClick = {
                                 val source = draft
                                 if (source != null) {
@@ -1337,9 +1377,8 @@ private fun NoteDetailScreen(
                                         if (component.saveDraft(localId, source)) editing = false
                                     }
                                 }
-                            },
-                            modifier = Modifier.testTag("finish-editing")
-                        ) { Text("Done") }
+                            }
+                        )
                     }
                 } else if (current?.readOnly == true) {
                     Text("Read only", modifier = Modifier.padding(horizontal = 12.dp))
@@ -1361,34 +1400,94 @@ private fun NoteDetailScreen(
                         .testTag("format-toolbar")
                 ) {
                     // First in the row, so stepping back does not require scrolling the toolbar.
-                    EditorHistoryButton("Undo", "undo-edit", canUndo, editor) {
+                    EditorHistoryButton(
+                        Icons.AutoMirrored.Filled.Undo,
+                        "Undo",
+                        "undo-edit",
+                        canUndo,
+                        editor
+                    ) {
                         editorBinding?.undo()
                     }
-                    EditorHistoryButton("Redo", "redo-edit", canRedo, editor) {
+                    EditorHistoryButton(
+                        Icons.AutoMirrored.Filled.Redo,
+                        "Redo",
+                        "redo-edit",
+                        canRedo,
+                        editor
+                    ) {
                         editorBinding?.redo()
                     }
                     FormatButton(
-                        "- List",
+                        Icons.AutoMirrored.Filled.FormatListBulleted,
                         MarkdownFormatAction.BULLET,
                         editor,
                         "Create list item",
                         "format-list"
                     )
                     FormatButton(
-                        "[ ] List",
+                        Icons.Filled.Checklist,
                         MarkdownFormatAction.TASK,
                         editor,
                         "Create checkbox list item",
                         "format-checkbox-list"
                     )
-                    FormatButton("B", MarkdownFormatAction.BOLD, editor)
-                    FormatButton("I", MarkdownFormatAction.ITALIC, editor)
-                    FormatButton("S", MarkdownFormatAction.STRIKETHROUGH, editor)
-                    FormatButton("Code", MarkdownFormatAction.CODE, editor)
-                    FormatButton("Link", MarkdownFormatAction.LINK, editor)
-                    FormatButton("H", MarkdownFormatAction.HEADING, editor)
-                    FormatButton("1.", MarkdownFormatAction.NUMBERED, editor)
-                    FormatButton("Quote", MarkdownFormatAction.QUOTE, editor)
+                    FormatButton(
+                        Icons.Filled.FormatBold,
+                        MarkdownFormatAction.BOLD,
+                        editor,
+                        "Bold",
+                        "format-bold"
+                    )
+                    FormatButton(
+                        Icons.Filled.FormatItalic,
+                        MarkdownFormatAction.ITALIC,
+                        editor,
+                        "Italic",
+                        "format-italic"
+                    )
+                    FormatButton(
+                        Icons.Filled.StrikethroughS,
+                        MarkdownFormatAction.STRIKETHROUGH,
+                        editor,
+                        "Strikethrough",
+                        "format-strikethrough"
+                    )
+                    FormatButton(
+                        Icons.Filled.Code,
+                        MarkdownFormatAction.CODE,
+                        editor,
+                        "Inline code",
+                        "format-code"
+                    )
+                    FormatButton(
+                        Icons.Filled.Link,
+                        MarkdownFormatAction.LINK,
+                        editor,
+                        "Insert link",
+                        "format-link"
+                    )
+                    FormatButton(
+                        Icons.Filled.Title,
+                        MarkdownFormatAction.HEADING,
+                        editor,
+                        "Heading",
+                        "format-heading"
+                    )
+                    FormatButton(
+                        Icons.Filled.FormatListNumbered,
+                        MarkdownFormatAction.NUMBERED,
+                        editor,
+                        "Create numbered list item",
+                        "format-numbered-list"
+                    )
+                    FormatButton(
+                        Icons.Filled.FormatQuote,
+                        MarkdownFormatAction.QUOTE,
+                        editor,
+                        "Create block quote",
+                        "format-quote"
+                    )
                 }
                 Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                     // The editor is laid out at its full text height inside a scrolling
@@ -1882,22 +1981,22 @@ private fun FindInNoteBar(
             },
             modifier = Modifier.weight(1f).focusRequester(focusRequester).testTag("note-find-field")
         )
-        CompactActionButton(
-            label = "<",
+        ActionIconButton(
+            icon = Icons.Filled.KeyboardArrowUp,
             description = "Previous match",
             testTag = "find-previous",
             enabled = matchCount > 0,
             onClick = onPrevious
         )
-        CompactActionButton(
-            label = ">",
+        ActionIconButton(
+            icon = Icons.Filled.KeyboardArrowDown,
             description = "Next match",
             testTag = "find-next",
             enabled = matchCount > 0,
             onClick = onNext
         )
-        CompactActionButton(
-            label = "X",
+        ActionIconButton(
+            icon = Icons.Filled.Close,
             description = "Close find",
             testTag = "close-find",
             enabled = true,
@@ -1916,43 +2015,42 @@ private fun findMatchStatus(query: String, matchCount: Int, currentMatch: Int): 
     else -> "${currentMatch.coerceIn(0, matchCount - 1) + 1} of $matchCount"
 }
 
-/**
- * A button labelled with punctuation or a single letter, such as `A+` or `>`. A screen reader
- * cannot announce those usefully, so every caller supplies a description.
- */
 @Composable
-private fun CompactActionButton(
-    label: String,
+private fun ActionIconButton(
+    icon: ImageVector,
     description: String,
     testTag: String,
-    enabled: Boolean,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    TextButton(
+    IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.testTag(testTag).semantics { contentDescription = description }
-    ) { Text(label) }
+        modifier = Modifier.testTag(testTag)
+    ) {
+        Icon(icon, contentDescription = description)
+    }
 }
 
 @Composable
 private fun FormatButton(
-    label: String,
+    icon: ImageVector,
     action: MarkdownFormatAction,
     editor: MarkdownEditText?,
-    description: String = label,
-    tag: String? = null
+    description: String,
+    tag: String
 ) {
-    val modifier = if (tag == null) Modifier else Modifier.testTag(tag)
-    TextButton(
+    IconButton(
         onClick = {
             editor?.applyFormat(action)
             // Tapping a Compose button moves focus away from the embedded editor, which closes
             // the keyboard. Hand focus back so formatting does not interrupt typing.
             editor?.focusForInput()
         },
-        modifier = modifier.semantics { contentDescription = description }
-    ) { Text(label) }
+        modifier = Modifier.testTag(tag)
+    ) {
+        Icon(icon, contentDescription = description)
+    }
 }
 
 /**
@@ -1961,13 +2059,14 @@ private fun FormatButton(
  */
 @Composable
 private fun EditorHistoryButton(
-    label: String,
+    icon: ImageVector,
+    description: String,
     testTag: String,
     enabled: Boolean,
     editor: MarkdownEditText?,
     onClick: () -> Unit
 ) {
-    TextButton(
+    IconButton(
         onClick = {
             onClick()
             // Like formatting, this moves focus out of the embedded editor. Hand it back.
@@ -1975,5 +2074,7 @@ private fun EditorHistoryButton(
         },
         enabled = enabled,
         modifier = Modifier.testTag(testTag)
-    ) { Text(label) }
+    ) {
+        Icon(icon, contentDescription = description)
+    }
 }

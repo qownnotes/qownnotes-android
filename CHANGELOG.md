@@ -21,8 +21,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - A newly added Nextcloud account now becomes the active account immediately.
-- The editor toolbar now keeps clearly labeled list and checkbox-list controls beside Undo and Redo
-  so they are available without scrolling through the other formatting actions.
+- Horizontal action bars now use recognizable icons with accessible descriptions; list and
+  checkbox-list tools remain directly beside Undo and Redo in the editor.
 - The note view now keeps Find and Edit as icon buttons and moves secondary actions into a compact
   three-dot menu.
 - Existing note content is now syntax-highlighted immediately when edit mode opens, without waiting
