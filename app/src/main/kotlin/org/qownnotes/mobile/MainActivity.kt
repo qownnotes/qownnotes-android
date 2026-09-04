@@ -1367,15 +1367,27 @@ private fun NoteDetailScreen(
                     EditorHistoryButton("Redo", "redo-edit", canRedo, editor) {
                         editorBinding?.redo()
                     }
+                    FormatButton(
+                        "- List",
+                        MarkdownFormatAction.BULLET,
+                        editor,
+                        "Create list item",
+                        "format-list"
+                    )
+                    FormatButton(
+                        "[ ] List",
+                        MarkdownFormatAction.TASK,
+                        editor,
+                        "Create checkbox list item",
+                        "format-checkbox-list"
+                    )
                     FormatButton("B", MarkdownFormatAction.BOLD, editor)
                     FormatButton("I", MarkdownFormatAction.ITALIC, editor)
                     FormatButton("S", MarkdownFormatAction.STRIKETHROUGH, editor)
                     FormatButton("Code", MarkdownFormatAction.CODE, editor)
                     FormatButton("Link", MarkdownFormatAction.LINK, editor)
                     FormatButton("H", MarkdownFormatAction.HEADING, editor)
-                    FormatButton("List", MarkdownFormatAction.BULLET, editor)
                     FormatButton("1.", MarkdownFormatAction.NUMBERED, editor)
-                    FormatButton("Task", MarkdownFormatAction.TASK, editor)
                     FormatButton("Quote", MarkdownFormatAction.QUOTE, editor)
                 }
                 Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -1924,14 +1936,22 @@ private fun CompactActionButton(
 }
 
 @Composable
-private fun FormatButton(label: String, action: MarkdownFormatAction, editor: MarkdownEditText?) {
+private fun FormatButton(
+    label: String,
+    action: MarkdownFormatAction,
+    editor: MarkdownEditText?,
+    description: String = label,
+    tag: String? = null
+) {
+    val modifier = if (tag == null) Modifier else Modifier.testTag(tag)
     TextButton(
         onClick = {
             editor?.applyFormat(action)
             // Tapping a Compose button moves focus away from the embedded editor, which closes
             // the keyboard. Hand focus back so formatting does not interrupt typing.
             editor?.focusForInput()
-        }
+        },
+        modifier = modifier.semantics { contentDescription = description }
     ) { Text(label) }
 }
 

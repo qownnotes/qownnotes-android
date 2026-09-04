@@ -642,6 +642,21 @@ class AppLaunchTest {
             .check(matches(hasFocus()))
     }
 
+    @Test
+    fun toolbarCreatesListAndCheckboxListItems() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText("item"))
+        composeRule.onNodeWithTag("format-list").performClick()
+        awaitEditorText("- item")
+
+        onView(withId(R.id.markdown_editor)).perform(replaceText("task"))
+        composeRule.onNodeWithTag("format-checkbox-list").performClick()
+        awaitEditorText("- [ ] task")
+    }
+
     /**
      * The framework editor has an undo buffer of its own, but only a hardware keyboard can reach
      * it, so the toolbar controls are what makes undo usable on a phone at all.
