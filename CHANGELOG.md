@@ -21,8 +21,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - A newly added Nextcloud account now becomes the active account immediately.
-- Unreachable-server errors in the note list and editor now offer expandable, local-server-focused
-  troubleshooting details while confirming that local edits remain saved.
+- Unreachable-server errors in the note list and editor now offer a details dialog with
+  local-server troubleshooting, sanitized exception text, and a copy action while confirming that
+  local edits remain saved.
 - Horizontal action bars now use recognizable icons with accessible descriptions; list and
   checkbox-list tools remain directly beside Undo and Redo in the editor.
 - The note view now keeps Find and Edit as icon buttons and moves secondary actions into a compact

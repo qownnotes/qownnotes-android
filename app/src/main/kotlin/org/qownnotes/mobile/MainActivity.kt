@@ -1,5 +1,7 @@
 package org.qownnotes.mobile
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Bundle
 import android.util.TypedValue
@@ -32,6 +34,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -103,6 +106,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -869,6 +873,7 @@ private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
             SyncUiState.Refreshing -> Text("Refreshing")
             is SyncUiState.Failed -> ExpandableSyncError(
                 message = state.message,
+                technicalDetails = state.diagnostic,
                 testTag = "account-sync-error",
                 modifier = Modifier.weight(1f)
             )
@@ -1012,6 +1017,7 @@ private fun NoteDetailScreen(
 ) {
     val note by component.noteRepository.observeNote(localId)
         .collectAsStateWithLifecycle(initialValue = null)
+    val noteSyncDiagnostics by component.noteSyncDiagnostics.collectAsStateWithLifecycle()
     val accountNotesFlow = remember(note?.accountId) {
         note?.accountId?.let(component.noteRepository::observeNotes) ?: flowOf(emptyList())
     }
@@ -1395,6 +1401,7 @@ private fun NoteDetailScreen(
                 note?.lastSyncError?.let { message ->
                     ExpandableSyncError(
                         message = message,
+                        technicalDetails = noteSyncDiagnostics[localId],
                         testTag = "note-sync-error",
                         modifier = Modifier.padding(16.dp)
                     )
@@ -1596,6 +1603,7 @@ private fun NoteDetailScreen(
                     note?.lastSyncError?.let { message ->
                         ExpandableSyncError(
                             message = message,
+                            technicalDetails = noteSyncDiagnostics[localId],
                             testTag = "note-sync-error",
                             modifier = Modifier.padding(16.dp)
                         )
@@ -2020,31 +2028,84 @@ private fun findMatchStatus(query: String, matchCount: Int, currentMatch: Int): 
 }
 
 @Composable
-private fun ExpandableSyncError(message: String, testTag: String, modifier: Modifier = Modifier) {
+private fun ExpandableSyncError(
+    message: String,
+    technicalDetails: String? = null,
+    testTag: String,
+    modifier: Modifier = Modifier
+) {
     val explanation = syncErrorExplanation(message)
-    var expanded by rememberSaveable(message) { mutableStateOf(false) }
+    val context = LocalContext.current
+    var showDetails by rememberSaveable(message) { mutableStateOf(false) }
     Column(modifier = modifier) {
         Text(
             message,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.testTag("$testTag-summary")
         )
-        if (explanation != null) {
+        if (explanation != null || technicalDetails != null) {
             TextButton(
-                onClick = { expanded = !expanded },
+                onClick = { showDetails = true },
                 modifier = Modifier.testTag("$testTag-toggle")
             ) {
-                Text(if (expanded) "Hide details" else "Details")
-            }
-            if (expanded) {
-                Text(
-                    explanation,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.testTag("$testTag-details")
-                )
+                Text("Details")
             }
         }
+    }
+    if (showDetails) {
+        AlertDialog(
+            onDismissRequest = { showDetails = false },
+            title = { Text("Synchronization details") },
+            text = {
+                Column(
+                    modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())
+                        .testTag("$testTag-details")
+                ) {
+                    explanation?.let { Text(it) }
+                    technicalDetails?.let { diagnostic ->
+                        val topPadding = if (explanation == null) 0.dp else 16.dp
+                        Text(
+                            "Exception text",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(top = topPadding)
+                        )
+                        SelectionContainer {
+                            Text(
+                                diagnostic,
+                                fontFamily = FontFamily.Monospace,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("$testTag-diagnostic")
+                            )
+                        }
+                        Text(
+                            "Exception text can contain server or account information. Review it " +
+                                "before sharing.",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(top = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                technicalDetails?.let { diagnostic ->
+                    TextButton(
+                        onClick = {
+                            context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
+                                ClipData.newPlainText("Synchronization exception", diagnostic)
+                            )
+                        },
+                        modifier = Modifier.testTag("$testTag-copy")
+                    ) { Text("Copy exception") }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDetails = false },
+                    modifier = Modifier.testTag("$testTag-close")
+                ) { Text("Close") }
+            },
+            modifier = Modifier.testTag("$testTag-dialog")
+        )
     }
 }
 

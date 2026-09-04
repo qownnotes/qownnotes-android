@@ -843,6 +843,9 @@ Implemented:
   restoration becomes a normal local edit and uses the existing ETag-protected upload path; trash
   restoration runs on the server and is followed by a normal Notes refresh. The feature reads but
   never writes the Notes app's configured path and suffix.
+- Added opt-in synchronization details in the note list and editor. The dialog explains local-server
+  connectivity checks and, while the current application process retains it, shows a bounded,
+  secret-redacted exception chain that can be copied for a bug report without telemetry.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 

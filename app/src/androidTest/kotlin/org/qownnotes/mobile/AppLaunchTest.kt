@@ -151,35 +151,47 @@ class AppLaunchTest {
         val account = importAccount("alice", "Cached note", "etag-1", 10)
         application.fakeBackend.enqueueFailure(
             account,
-            BackendException.Retryable(IOException("offline"))
+            BackendException.Retryable(IOException("offline access_token=top-secret"))
         )
 
         composeRule.activityRule.scenario.recreate()
 
         composeRule.waitForText("The server could not be reached")
         composeRule.onNodeWithTag("account-sync-error-details").assertDoesNotExist()
+        composeRule.onNodeWithText("top-secret", substring = true).assertDoesNotExist()
         composeRule.onNodeWithTag("account-sync-error-toggle").performClick()
         composeRule.waitForText("phone's Wi-Fi or VPN", substring = true)
-        composeRule.onNodeWithText("offline", substring = true).assertDoesNotExist()
+        composeRule.waitForText(
+            "java.io.IOException: offline access_token=<redacted>",
+            substring = true
+        )
+        composeRule.onNodeWithText("top-secret", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("account-sync-error-copy").performClick()
+        val copied = clipboardText()
+        assertTrue(copied.contains("java.io.IOException: offline access_token=<redacted>"))
+        assertTrue(!copied.contains("top-secret"))
         composeRule.onNodeWithText("Cached note").assertIsDisplayed()
     }
 
     @Test
     fun noteSyncErrorCanBeExplainedWhileEditing() {
         importAccount("alice", "Existing note", "etag-1", 10)
-        val note = runBlocking { notesOf("alice").single() }
-        runBlocking {
-            application.component.noteRepository.save(
-                note.copy(lastSyncError = "The server could not be reached")
-            )
-        }
+        application.fakeBackend.updateFailure =
+            BackendException.Retryable(IOException("connection refused"))
         composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText("# Changed locally"))
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.waitForText("The server could not be reached")
         composeRule.enterEditMode()
 
         composeRule.onNodeWithTag("note-sync-error-details").assertDoesNotExist()
         composeRule.onNodeWithTag("note-sync-error-toggle").performClick()
 
         composeRule.waitForText("Local edits remain saved", substring = true)
+        composeRule.waitForText("java.io.IOException: connection refused", substring = true)
+        composeRule.onNodeWithTag("note-sync-error-copy").performClick()
+        assertTrue(clipboardText().contains("java.io.IOException: connection refused"))
     }
 
     @Test
@@ -1150,6 +1162,10 @@ class AppLaunchTest {
             assertTrue("selecting the note produced no selection", view.hasSelection())
             view.onTextContextMenuItem(android.R.id.copy)
         }
+        return clipboardText()
+    }
+
+    private fun clipboardText(): String {
         val clipboard = composeRule.activity.getSystemService(ClipboardManager::class.java)
         return clipboard.primaryClip
             ?.getItemAt(0)

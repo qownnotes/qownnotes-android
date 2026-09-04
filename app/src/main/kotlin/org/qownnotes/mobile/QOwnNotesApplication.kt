@@ -16,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -59,7 +60,7 @@ sealed interface SyncUiState {
 
     data object Refreshing : SyncUiState
 
-    data class Failed(val message: String) : SyncUiState
+    data class Failed(val message: String, val diagnostic: String? = null) : SyncUiState
 
     data class AuthenticationRequired(val message: String) : SyncUiState
 
@@ -86,6 +87,9 @@ class ApplicationComponent(
         NoteFactory(QOwnNotesNamingPolicy(application.getString(R.string.note_label), clock), clock)
     private val mutableSyncStates = MutableStateFlow<Map<String, SyncUiState>>(emptyMap())
     val syncStates: StateFlow<Map<String, SyncUiState>> = mutableSyncStates.asStateFlow()
+    private val mutableNoteSyncDiagnostics = MutableStateFlow<Map<String, String>>(emptyMap())
+    val noteSyncDiagnostics: StateFlow<Map<String, String>> =
+        mutableNoteSyncDiagnostics.asStateFlow()
     private val mutableImportState = MutableStateFlow<SyncUiState>(SyncUiState.Idle)
     val importState: StateFlow<SyncUiState> = mutableImportState.asStateFlow()
 
@@ -173,8 +177,10 @@ class ApplicationComponent(
 
     suspend fun removeLocalData(accountId: String) {
         accountMutex(accountId).withLock {
+            val localNoteIds = noteRepository.observeNotes(accountId).first().map(Note::localId)
             accountRepository.remove(accountId)
             mutableSyncStates.update { it - accountId }
+            mutableNoteSyncDiagnostics.update { it - localNoteIds }
         }
     }
 
@@ -356,15 +362,21 @@ class ApplicationComponent(
                         backend.update(account, note)
                     }
                 pushStore.applySuccess(note.localId, note.localRevision, remote)
+                clearNoteSyncDiagnostic(note.localId)
             } catch (error: BackendException.Conflict) {
+                recordNoteSyncDiagnostic(note.localId, error)
                 pushStore.recordFailure(note.localId, error.message.orEmpty(), conflict = true)
             } catch (error: BackendException.RemoteMissing) {
+                recordNoteSyncDiagnostic(note.localId, error)
                 pushStore.recordFailure(note.localId, error.message.orEmpty(), terminal = true)
             } catch (error: BackendException.Permission) {
+                recordNoteSyncDiagnostic(note.localId, error)
                 pushStore.recordFailure(note.localId, error.message.orEmpty(), terminal = true)
             } catch (error: BackendException.InsufficientStorage) {
+                recordNoteSyncDiagnostic(note.localId, error)
                 pushStore.recordFailure(note.localId, error.message.orEmpty())
             } catch (error: Exception) {
+                recordNoteSyncDiagnostic(note.localId, error)
                 val requestMayHaveCompleted =
                     error !is BackendException.Authentication &&
                         error !is BackendException.AuthorizationRequired &&
@@ -377,6 +389,14 @@ class ApplicationComponent(
                 throw error
             }
         }
+    }
+
+    private fun recordNoteSyncDiagnostic(localId: String, error: Throwable) {
+        mutableNoteSyncDiagnostics.update { it + (localId to error.toSyncDiagnosticText()) }
+    }
+
+    private fun clearNoteSyncDiagnostic(localId: String) {
+        mutableNoteSyncDiagnostics.update { it - localId }
     }
 
     private suspend fun pushPendingDeletions(account: Account) {
@@ -426,5 +446,46 @@ private fun Exception.toSyncUiState(message: String): SyncUiState = when (this) 
     is BackendException.Authentication, is BackendException.AuthorizationRequired ->
         SyncUiState.AuthenticationRequired(message)
     is BackendException.AccountRemoved -> SyncUiState.AccountRemoved(message)
-    else -> SyncUiState.Failed(message)
+    else -> SyncUiState.Failed(message, toSyncDiagnosticText())
 }
+
+internal fun Throwable.toSyncDiagnosticText(): String {
+    val diagnostics = buildList {
+        val seen = java.util.Collections.newSetFromMap(
+            java.util.IdentityHashMap<Throwable, Boolean>()
+        )
+        var current: Throwable? = this@toSyncDiagnosticText
+        var depth = 0
+        while (current != null && depth < MAX_DIAGNOSTIC_CAUSES && seen.add(current)) {
+            val prefix = if (depth == 0) "" else "Caused by: "
+            val message = current.message?.sanitizeDiagnosticText()?.trim().orEmpty()
+            add(prefix + current.javaClass.name + if (message.isEmpty()) "" else ": $message")
+            current = current.cause
+            depth++
+        }
+        if (current != null) add("Caused by: <additional causes omitted>")
+    }.joinToString("\n")
+    return if (diagnostics.length <= MAX_DIAGNOSTIC_LENGTH) {
+        diagnostics
+    } else {
+        diagnostics.take(MAX_DIAGNOSTIC_LENGTH - 14) + "\n<truncated>"
+    }
+}
+
+private fun String.sanitizeDiagnosticText(): String {
+    val printable = filter { it == '\n' || it == '\t' || !Character.isISOControl(it) }
+    return DIAGNOSTIC_NAMED_SECRET.replace(
+        DIAGNOSTIC_BEARER_SECRET.replace(printable, "Bearer <redacted>")
+    ) {
+        "${it.groupValues[1]}${it.groupValues[2]}<redacted>"
+    }
+}
+
+private val DIAGNOSTIC_NAMED_SECRET = Regex(
+    "(?i)\\b(authorization|cookie|set-cookie|access[_-]?token|refresh[_-]?token|" +
+        "requesttoken|password|passwd|secret|session(?:id)?|api[_-]?key)" +
+        "(\\s*[:=]\\s*)(?:\\\"[^\\\"]*\\\"|'[^']*'|[^\\s,;]+)"
+)
+private val DIAGNOSTIC_BEARER_SECRET = Regex("(?i)Bearer\\s+[^\\s,;]+")
+private const val MAX_DIAGNOSTIC_CAUSES = 8
+private const val MAX_DIAGNOSTIC_LENGTH = 8_192

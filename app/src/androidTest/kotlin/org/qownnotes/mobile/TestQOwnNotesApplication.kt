@@ -104,6 +104,7 @@ class FakePullBackend :
     val trashCategoryRequests = mutableListOf<Set<String>>()
     val restoredTrash = mutableListOf<TrashedNote>()
     var validationGate: CompletableDeferred<Unit>? = null
+    var updateFailure: Throwable? = null
 
     override suspend fun validateAccount(account: Account): String {
         validatedAccountIds += account.id
@@ -129,6 +130,10 @@ class FakePullBackend :
     }
 
     override suspend fun update(account: Account, note: Note): RemoteNote {
+        updateFailure?.let {
+            updateFailure = null
+            throw it
+        }
         pushedNotes += note
         return canonical(note, remoteId = requireNotNull(note.remoteId))
     }
@@ -173,6 +178,7 @@ class FakePullBackend :
         restoredTrash.clear()
         validationGate?.cancel()
         validationGate = null
+        updateFailure = null
     }
 
     private fun queue(account: SingleSignOnAccount) =
