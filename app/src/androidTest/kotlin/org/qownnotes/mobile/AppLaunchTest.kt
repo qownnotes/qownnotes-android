@@ -681,6 +681,10 @@ class AppLaunchTest {
         onView(withId(R.id.markdown_editor)).perform(typeText("\n"))
 
         awaitEditorText("- item\n- ")
+
+        onView(withId(R.id.markdown_editor)).perform(typeText("\n"))
+
+        awaitEditorText("- item\n\n")
     }
 
     @Test

@@ -402,6 +402,16 @@ private class ListContinuationWatcher(private val editText: MarkdownEditText) : 
         try {
             replaceChangedRange(source, source.toString(), edit.text)
             editText.setSelection(edit.selectionStart, edit.selectionEnd)
+            // Some input methods update the selection after TextWatchers return, using the
+            // position where they inserted Return. Restore the caret after that update so a
+            // second Return acts on the continued empty item rather than before its marker.
+            if (editText.isAttachedToWindow) {
+                editText.post {
+                    if (editText.text?.toString() == edit.text) {
+                        editText.setSelection(edit.selectionStart, edit.selectionEnd)
+                    }
+                }
+            }
         } finally {
             applying = false
         }

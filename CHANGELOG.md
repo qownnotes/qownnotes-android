@@ -46,6 +46,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Development and release build and deployment recipes now target their corresponding application
   variants.
 
+### Fixed
+
+- Pressing Return on an automatically opened empty list or checklist item now removes its marker
+  even when the keyboard resets the caret after inserting the preceding line break.
+
 ## [0.1.0] - 2026-09-03
 
 ### Added
