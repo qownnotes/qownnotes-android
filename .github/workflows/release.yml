@@ -75,8 +75,8 @@ jobs:
             $0 == heading || index($0, heading " - ") == 1 { capture = 1 }
             capture { print }
             END { if (!capture) exit 1 }
-          ' CHANGELOG.md > release-notes.md
-          test -s release-notes.md
+          ' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+          test -s "$RUNNER_TEMP/release-notes.md"
       - name: Restore signing keystore
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/qownnotes-release.jks
@@ -86,7 +86,8 @@ jobs:
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/qownnotes-release.jks
         run: |
-          devenv shell -- just release
+          devenv shell -- ./gradlew --no-configuration-cache \
+            spotlessCheck test lintRelease :app:licensee assembleRelease bundleRelease
           # ANDROID_HOME is intentionally expanded inside the devenv shell.
           # shellcheck disable=SC2016
           devenv shell -- bash -c \
@@ -112,7 +113,7 @@ jobs:
             release-files/SHA256SUMS \
             --target "$GITHUB_SHA" \
             --title "QOwnNotes Mobile $VERSION_NAME" \
-            --notes-file release-notes.md \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
             --draft
       - name: Publish GitHub release
         env:
