@@ -655,6 +655,18 @@ class AppLaunchTest {
         onView(withId(R.id.markdown_editor)).perform(replaceText("task"))
         composeRule.onNodeWithTag("format-checkbox-list").performClick()
         awaitEditorText("- [ ] task")
+
+        onView(withId(R.id.markdown_editor)).perform(replaceText(""))
+        composeRule.onNodeWithTag("format-list").performClick()
+        awaitEditorText("- ")
+        onView(withId(R.id.markdown_editor)).perform(typeText("\n"))
+        onView(withId(R.id.markdown_editor)).check(matches(withText("\n")))
+
+        onView(withId(R.id.markdown_editor)).perform(replaceText(""))
+        composeRule.onNodeWithTag("format-checkbox-list").performClick()
+        awaitEditorText("- [ ] ")
+        onView(withId(R.id.markdown_editor)).perform(typeText("\n"))
+        onView(withId(R.id.markdown_editor)).check(matches(withText("\n")))
     }
 
     /**

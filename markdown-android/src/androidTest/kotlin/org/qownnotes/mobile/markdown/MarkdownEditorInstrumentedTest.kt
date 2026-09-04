@@ -103,6 +103,35 @@ class MarkdownEditorInstrumentedTest {
     }
 
     @Test
+    fun enterRemovesEmptyListAndChecklistMarkers() {
+        lateinit var listView: MarkdownEditText
+        lateinit var listBinding: MarkdownEditorBinding
+        lateinit var checklistView: MarkdownEditText
+        lateinit var checklistBinding: MarkdownEditorBinding
+
+        instrumentation.runOnMainSync {
+            listView = editor()
+            listBinding = MarkdownEditorBinding(listView.context, listView) {}
+            listView.applyFormat(MarkdownFormatAction.BULLET)
+            listView.text!!.append('\n')
+
+            checklistView = editor()
+            checklistBinding = MarkdownEditorBinding(checklistView.context, checklistView) {}
+            checklistView.applyFormat(MarkdownFormatAction.TASK)
+            checklistView.text!!.append('\n')
+        }
+
+        instrumentation.runOnMainSync {
+            assertEquals("\n", listView.text.toString())
+            assertEquals(1, listView.selectionStart)
+            assertEquals("\n", checklistView.text.toString())
+            assertEquals(1, checklistView.selectionStart)
+            listBinding.close()
+            checklistBinding.close()
+        }
+    }
+
+    @Test
     fun undoStepsBackOverTypingAndRedoBringsItBack() {
         lateinit var view: MarkdownEditText
         lateinit var binding: MarkdownEditorBinding

@@ -43,6 +43,8 @@ class MarkdownFormattingTest {
 
     @Test
     fun returnOnAnEmptyItemEndsTheList() {
+        assertContinuation("- \n", "\n")
+        assertContinuation("- [ ] \n", "\n")
         assertContinuation("first\n  - \n", "first\n\n")
         assertContinuation("1. \n", "\n")
     }
