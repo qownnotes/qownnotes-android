@@ -299,7 +299,7 @@ class AppLaunchTest {
     fun noteViewMovesTheNoteToTrashAfterConfirmation() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
-        composeRule.waitForTag("delete-note")
+        composeRule.openNoteMenu()
 
         composeRule.onNodeWithTag("delete-note").performClick()
         composeRule.onNodeWithText("Move note to trash?").assertIsDisplayed()
@@ -319,7 +319,7 @@ class AppLaunchTest {
             RemoteNoteVersion(5, "Yesterday", "Historical content")
         )
         composeRule.onNodeWithText("Existing note").performClick()
-        composeRule.waitForTag("note-versions")
+        composeRule.openNoteMenu()
 
         composeRule.onNodeWithTag("note-versions").performClick()
         composeRule.waitForText("Historical content")
@@ -667,6 +667,7 @@ class AppLaunchTest {
         composeRule.waitForTag("markdown-view")
 
         val initial = textSizeOf(R.id.markdown_view)
+        composeRule.openNoteMenu()
         composeRule.onNodeWithTag("increase-note-text-size").performClick()
         val increased = textSizeOf(R.id.markdown_view)
         assertTrue("expected $increased to exceed $initial", increased > initial)
@@ -744,11 +745,13 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.waitForTag("markdown-view")
 
-        // Clicking past the smallest step must saturate rather than shrink without bound.
-        repeat(NoteTextSize.steps.size + 2) {
+        // Step down to the minimum and verify the menu prevents shrinking any further.
+        repeat(NoteTextSize.steps.indexOf(NoteTextSize.DEFAULT_SP)) {
+            composeRule.openNoteMenu()
             composeRule.onNodeWithTag("decrease-note-text-size").performClick()
         }
 
+        composeRule.openNoteMenu()
         composeRule.onNodeWithTag("decrease-note-text-size").assertIsNotEnabled()
         // Reading stays possible at the smallest step, and enlarging is still offered.
         composeRule.onNodeWithTag("increase-note-text-size").assertIsEnabled()
@@ -783,7 +786,23 @@ class AppLaunchTest {
 
         composeRule.waitForText("Read only")
         composeRule.onNodeWithTag("edit-note").assertDoesNotExist()
+        composeRule.openNoteMenu()
         composeRule.onNodeWithTag("rename-note").assertDoesNotExist()
+    }
+
+    @Test
+    fun noteViewKeepsFindAndEditVisibleAndSecondaryActionsInTheMenu() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+
+        composeRule.waitForTag("edit-note")
+        composeRule.onNodeWithTag("find-in-note").assertIsDisplayed()
+        composeRule.onNodeWithTag("edit-note").assertIsDisplayed()
+        composeRule.onNodeWithTag("rename-note").assertDoesNotExist()
+
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("rename-note").assertIsDisplayed()
+        composeRule.onNodeWithTag("delete-note").assertIsDisplayed()
     }
 
     /** The name of a note is the name of the file holding it, so a rename has to be uploaded. */
@@ -793,7 +812,7 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Existing note").performClick()
 
         // Opening a note loads it from the repository, so its actions appear a recomposition later.
-        composeRule.waitForTag("rename-note")
+        composeRule.openNoteMenu()
         composeRule.onNodeWithTag("rename-note").performClick()
         composeRule.waitForTag("note-name-field")
         composeRule.onNodeWithTag("note-name-field").performTextReplacement("Grocery list")
@@ -821,7 +840,7 @@ class AppLaunchTest {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
 
-        composeRule.waitForTag("rename-note")
+        composeRule.openNoteMenu()
         composeRule.onNodeWithTag("rename-note").performClick()
         composeRule.waitForTag("note-name-field")
         composeRule.onNodeWithTag("note-name-field").performTextReplacement(" / ")
@@ -1017,6 +1036,11 @@ class AppLaunchTest {
         waitUntil(timeoutMillis = 10_000) {
             onAllNodesWithTag("markdown-editor").fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.openNoteMenu() {
+        waitForTag("note-menu")
+        onNodeWithTag("note-menu").performClick()
     }
 
     /**

@@ -218,6 +218,10 @@ Viewing mode displays fully rendered Markdown and must support:
 - QOwnNotes wiki links
 - Legacy `note://` links
 
+Keep Find and Edit directly accessible as icon buttons in the note top bar. Put less frequent note
+actions, including text size, versions, rename, trash, and retry, in the three-dot overflow menu so
+the view controls do not require a horizontally scrolling action row.
+
 External links should open through the operating system. Internal note links should navigate inside the application. Broken internal links should be visually distinguishable.
 
 ### Selecting and Copying Rendered Text

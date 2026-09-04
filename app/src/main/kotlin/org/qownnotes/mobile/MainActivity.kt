@@ -35,7 +35,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -980,6 +982,7 @@ private fun NoteDetailScreen(
     var showDiscardConfirmation by rememberSaveable(localId) { mutableStateOf(false) }
     var showDeleteConfirmation by rememberSaveable(localId) { mutableStateOf(false) }
     var renaming by rememberSaveable(localId) { mutableStateOf(false) }
+    var noteMenuOpen by rememberSaveable(localId) { mutableStateOf(false) }
     var noteName by rememberSaveable(localId) { mutableStateOf("") }
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
@@ -1121,6 +1124,19 @@ private fun NoteDetailScreen(
             }
         top?.let { scrollState.scrollTo(it) }
     }
+    val showVersions = {
+        val requestId = ++versionsRequestId
+        versionsState = ArchiveLoadState.Loading
+        scope.launch {
+            val result = runCatching { component.noteVersions(localId) }.fold(
+                onSuccess = { ArchiveLoadState.Loaded(it) },
+                onFailure = {
+                    ArchiveLoadState.Failed(it.message ?: "Could not load note versions")
+                }
+            )
+            if (versionsRequestId == requestId) versionsState = result
+        }
+    }
     Scaffold(
         topBar = {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
@@ -1151,79 +1167,152 @@ private fun NoteDetailScreen(
                                 contentDescription = "Back to notes"
                             )
                         }
+                    },
+                    actions = {
+                        val current = note
+                        if (!editing) {
+                            IconButton(
+                                onClick = {
+                                    finding = !finding
+                                    if (!finding) {
+                                        findQuery = ""
+                                        currentMatch = 0
+                                    }
+                                },
+                                modifier = Modifier.testTag("find-in-note")
+                            ) {
+                                Icon(Icons.Filled.Search, contentDescription = "Find in note")
+                            }
+                            if (
+                                current != null &&
+                                !current.readOnly &&
+                                !hasEncryptedContent &&
+                                (current.syncState != SyncState.FAILED || current.remoteId != null)
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        scope.launch {
+                                            component.beginEditing(localId)?.let { editable ->
+                                                draft = editable.content
+                                                contentBeforeEditing = editable.content
+                                                selectionStart = sourceOffsetForReadingPosition(
+                                                    renderedView,
+                                                    scrollState.value,
+                                                    editable.content
+                                                )
+                                                selectionEnd = selectionStart
+                                                editing = true
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("edit-note")
+                                ) {
+                                    Icon(Icons.Filled.Edit, contentDescription = "Edit note")
+                                }
+                            }
+                            Box {
+                                IconButton(
+                                    onClick = { noteMenuOpen = true },
+                                    modifier = Modifier.testTag("note-menu")
+                                ) {
+                                    Icon(
+                                        Icons.Filled.MoreVert,
+                                        contentDescription = "More note actions"
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = noteMenuOpen,
+                                    onDismissRequest = { noteMenuOpen = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Decrease text size") },
+                                        onClick = {
+                                            noteMenuOpen = false
+                                            component.settings.decreaseNoteTextSize()
+                                        },
+                                        enabled = NoteTextSize.canDecrease(noteTextSizeSp),
+                                        modifier = Modifier.testTag("decrease-note-text-size")
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Increase text size") },
+                                        onClick = {
+                                            noteMenuOpen = false
+                                            component.settings.increaseNoteTextSize()
+                                        },
+                                        enabled = NoteTextSize.canIncrease(noteTextSizeSp),
+                                        modifier = Modifier.testTag("increase-note-text-size")
+                                    )
+                                    if (current?.remoteId != null) {
+                                        DropdownMenuItem(
+                                            text = { Text("Versions") },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                showVersions()
+                                            },
+                                            modifier = Modifier.testTag("note-versions")
+                                        )
+                                    }
+                                    if (current != null && !current.readOnly) {
+                                        DropdownMenuItem(
+                                            text = { Text("Rename") },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                noteName = current.title
+                                                renaming = true
+                                            },
+                                            modifier = Modifier.testTag("rename-note")
+                                        )
+                                    }
+                                    if (current != null) {
+                                        DropdownMenuItem(
+                                            text = { Text("Move to trash") },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                showDeleteConfirmation = true
+                                            },
+                                            modifier = Modifier.testTag("delete-note")
+                                        )
+                                    }
+                                    if (
+                                        current != null &&
+                                        !current.readOnly &&
+                                        !hasEncryptedContent &&
+                                        current.syncState == SyncState.FAILED
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Retry sync") },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                scope.launch { component.retryNote(localId) }
+                                            },
+                                            modifier = Modifier.testTag("retry-note")
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 )
                 val current = note
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                        .testTag("note-actions")
-                ) {
-                    CompactActionButton(
-                        label = "A-",
-                        description = "Decrease note text size",
-                        testTag = "decrease-note-text-size",
-                        enabled = NoteTextSize.canDecrease(noteTextSizeSp),
-                        onClick = component.settings::decreaseNoteTextSize
-                    )
-                    CompactActionButton(
-                        label = "A+",
-                        description = "Increase note text size",
-                        testTag = "increase-note-text-size",
-                        enabled = NoteTextSize.canIncrease(noteTextSizeSp),
-                        onClick = component.settings::increaseNoteTextSize
-                    )
-                    if (!editing) {
-                        if (current?.remoteId != null) {
-                            TextButton(
-                                onClick = {
-                                    val requestId = ++versionsRequestId
-                                    versionsState = ArchiveLoadState.Loading
-                                    scope.launch {
-                                        val result = runCatching {
-                                            component.noteVersions(localId)
-                                        }.fold(
-                                            onSuccess = { ArchiveLoadState.Loaded(it) },
-                                            onFailure = {
-                                                ArchiveLoadState.Failed(
-                                                    it.message ?: "Could not load note versions"
-                                                )
-                                            }
-                                        )
-                                        if (versionsRequestId == requestId) versionsState = result
-                                    }
-                                },
-                                modifier = Modifier.testTag("note-versions")
-                            ) { Text("Versions") }
-                        }
-                        TextButton(
-                            onClick = {
-                                finding = !finding
-                                if (!finding) {
-                                    findQuery = ""
-                                    currentMatch = 0
-                                }
-                            },
-                            modifier = Modifier.testTag("find-in-note")
-                        ) { Text("Find") }
-                        // The name of a note is the name of the file holding it, so it is offered
-                        // wherever the note is, not only while its text is being edited.
-                        if (current != null && !current.readOnly) {
-                            TextButton(
-                                onClick = {
-                                    noteName = current.title
-                                    renaming = true
-                                },
-                                modifier = Modifier.testTag("rename-note")
-                            ) { Text("Rename") }
-                        }
-                        if (current != null) {
-                            TextButton(
-                                onClick = { showDeleteConfirmation = true },
-                                modifier = Modifier.testTag("delete-note")
-                            ) { Text("Delete") }
-                        }
-                    }
-                    if (editing) {
+                if (editing) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                            .testTag("note-actions")
+                    ) {
+                        CompactActionButton(
+                            label = "A-",
+                            description = "Decrease note text size",
+                            testTag = "decrease-note-text-size",
+                            enabled = NoteTextSize.canDecrease(noteTextSizeSp),
+                            onClick = component.settings::decreaseNoteTextSize
+                        )
+                        CompactActionButton(
+                            label = "A+",
+                            description = "Increase note text size",
+                            testTag = "increase-note-text-size",
+                            enabled = NoteTextSize.canIncrease(noteTextSizeSp),
+                            onClick = component.settings::increaseNoteTextSize
+                        )
                         TextButton(
                             onClick = {
                                 if (draft != contentBeforeEditing) {
@@ -1245,36 +1334,9 @@ private fun NoteDetailScreen(
                             },
                             modifier = Modifier.testTag("finish-editing")
                         ) { Text("Done") }
-                    } else if (current != null && !current.readOnly && !hasEncryptedContent) {
-                        if (current.syncState == SyncState.FAILED) {
-                            TextButton(
-                                onClick = { scope.launch { component.retryNote(localId) } },
-                                modifier = Modifier.testTag("retry-note")
-                            ) { Text("Retry") }
-                        }
-                        if (current.syncState != SyncState.FAILED || current.remoteId != null) {
-                            TextButton(
-                                onClick = {
-                                    scope.launch {
-                                        component.beginEditing(localId)?.let { editable ->
-                                            draft = editable.content
-                                            contentBeforeEditing = editable.content
-                                            selectionStart = sourceOffsetForReadingPosition(
-                                                renderedView,
-                                                scrollState.value,
-                                                editable.content
-                                            )
-                                            selectionEnd = selectionStart
-                                            editing = true
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.testTag("edit-note")
-                            ) { Text("Edit") }
-                        }
-                    } else if (current?.readOnly == true) {
-                        Text("Read only", modifier = Modifier.padding(horizontal = 12.dp))
                     }
+                } else if (current?.readOnly == true) {
+                    Text("Read only", modifier = Modifier.padding(horizontal = 12.dp))
                 }
             }
         }

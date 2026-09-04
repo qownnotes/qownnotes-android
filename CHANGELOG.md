@@ -20,6 +20,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The note view now keeps Find and Edit as icon buttons and moves secondary actions into a compact
+  three-dot menu.
 - Existing note content is now syntax-highlighted immediately when edit mode opens, without waiting
   for the first text change.
 - Continuous and stable release signing now validate missing GitHub secrets before installing the
