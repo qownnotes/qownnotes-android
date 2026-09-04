@@ -52,8 +52,11 @@ Android instrumentation verifies:
 - Reauthorization with the previous pull checkpoint.
 - Account-scoped switching and local-data removal.
 
-The CI `device-test` job runs all module instrumentation tests on an API 36 emulator. Actual SSO
-remains a manual test because it requires an installed and authenticated Nextcloud Files app.
+The CI `device-test` job runs all module instrumentation tests on an API 36 emulator. It passed
+alongside the host-side `check` job at commit `3a7344c` on 2026-09-04 in
+[CI run 33853889503](https://github.com/qownnotes/qownnotes-android/actions/runs/33853889503).
+Actual SSO remains a manual test because it requires an installed and authenticated Nextcloud Files
+app.
 
 ## Manual Server Checklist
 

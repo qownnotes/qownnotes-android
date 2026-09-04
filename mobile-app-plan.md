@@ -24,7 +24,7 @@ Implemented in the initial Phase 1 foundation:
 
 The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account onboarding for the Phase 2 read path.
 
-Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete; broader real-server interoperability and the configured CI device job must be verified before Phase 2 is marked fully complete.
+Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, account switching, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete, including the configured CI device job; broader real-server interoperability must be verified before Phase 2 is marked fully complete.
 
 Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: supplemental highlighting still runs on the main thread, and large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
 
@@ -798,7 +798,11 @@ Implemented:
 Remaining verification before Phase 2 is complete:
 
 - Record server, Notes app, and Nextcloud Files versions for supported real-server combinations, including an incremental update and a collection large enough to exercise chunking.
-- Confirm the new emulator device-test job passes in GitHub Actions.
+
+CI verification completed:
+
+- The API 36 emulator `device-test` job and the host-side `check` job passed in GitHub Actions at
+  commit `3a7344c` on 2026-09-04: <https://github.com/qownnotes/qownnotes-android/actions/runs/33853889503>.
 
 ### Phase 3: Highlighted Editing and Creation
 
