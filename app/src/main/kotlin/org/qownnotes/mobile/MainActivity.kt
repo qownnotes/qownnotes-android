@@ -72,6 +72,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -461,6 +462,7 @@ private fun NoteListScreen(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var showRemoveConfirmation by rememberSaveable(accountId) { mutableStateOf(false) }
+    var showAccountChooser by rememberSaveable(accountId) { mutableStateOf(false) }
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectedNoteIds by rememberSaveable(accountId) { mutableStateOf(emptyList<String>()) }
@@ -576,9 +578,14 @@ private fun NoteListScreen(
                                             text = { Text("Switch account") },
                                             onClick = {
                                                 accountMenuOpen = false
-                                                val next =
-                                                    (accounts.indexOf(account) + 1) % accounts.size
-                                                onSelectAccount(accounts[next].id)
+                                                if (accounts.size > 2) {
+                                                    showAccountChooser = true
+                                                } else {
+                                                    val next =
+                                                        (accounts.indexOf(account) + 1) %
+                                                            accounts.size
+                                                    onSelectAccount(accounts[next].id)
+                                                }
                                             },
                                             modifier = Modifier.testTag("switch-account")
                                         )
@@ -772,6 +779,36 @@ private fun NoteListScreen(
                 }
             }
         }
+    }
+    if (showAccountChooser) {
+        AlertDialog(
+            onDismissRequest = { showAccountChooser = false },
+            title = { Text("Switch account") },
+            text = {
+                Column {
+                    accounts.forEach { choice ->
+                        Row(
+                            modifier =
+                            Modifier.fillMaxWidth()
+                                .clickable {
+                                    showAccountChooser = false
+                                    onSelectAccount(choice.id)
+                                }
+                                .testTag("account-choice-${choice.id}"),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = choice.id == accountId, onClick = null)
+                            Text(choice.displayName)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showAccountChooser = false }) { Text("Cancel") }
+            },
+            modifier = Modifier.testTag("account-chooser")
+        )
     }
     if (showRemoveConfirmation) {
         AlertDialog(

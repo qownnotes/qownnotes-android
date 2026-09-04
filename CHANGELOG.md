@@ -20,6 +20,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Switching accounts now opens an account chooser when more than two accounts are configured,
+  while two-account switching remains a direct toggle.
 - A newly added Nextcloud account now becomes the active account immediately.
 - Unreachable-server errors in the note list and editor now offer a details dialog with
   local-server troubleshooting, sanitized exception text, and a copy action while confirming that

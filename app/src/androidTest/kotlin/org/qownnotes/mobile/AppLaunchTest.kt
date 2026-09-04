@@ -287,6 +287,22 @@ class AppLaunchTest {
         composeRule.waitForText("Your Nextcloud notes, offline")
     }
 
+    @Test
+    fun switchingAmongThreeAccountsLetsTheUserChooseTheAccount() {
+        val alice = importAccount("alice", "Alice note", "etag-a", 10)
+        importAccount("bob", "Bob note", "etag-b", 20)
+        importAccount("charlie", "Charlie note", "etag-c", 30)
+
+        accountAction("switch-account")
+
+        composeRule.onNodeWithTag("account-chooser").assertIsDisplayed()
+        composeRule.onNodeWithTag("account-choice-${alice.localAccountId()}").performClick()
+        composeRule.waitForText("Alice note")
+        composeRule.onNodeWithText("Bob note").assertDoesNotExist()
+        composeRule.onNodeWithText("Charlie note").assertDoesNotExist()
+        composeRule.onNodeWithTag("account-chooser").assertDoesNotExist()
+    }
+
     /** An action has to say what it acts on: a note is made here, the others change the account. */
     @Test
     fun theNoteListNamesWhatItsActionsActOn() {
