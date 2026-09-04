@@ -97,9 +97,11 @@ import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteNames
+import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncState
+import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.core.resolveInternalNoteLink
 import org.qownnotes.mobile.markdown.MarkdownEditText
 import org.qownnotes.mobile.markdown.MarkdownEditorBinding
@@ -214,6 +216,16 @@ internal fun sharedTextOf(intent: Intent?): SharedText? {
     val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT)?.takeIf { it.isNotBlank() }
     if (text.isBlank() && subject == null) return null
     return SharedText(text = text, subject = subject)
+}
+
+private sealed interface ArchiveLoadState<out T> {
+    data object Idle : ArchiveLoadState<Nothing>
+
+    data object Loading : ArchiveLoadState<Nothing>
+
+    data class Loaded<T>(val items: List<T>) : ArchiveLoadState<T>
+
+    data class Failed(val message: String) : ArchiveLoadState<Nothing>
 }
 
 @Composable
@@ -419,6 +431,13 @@ private fun NoteListScreen(
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectedNoteIds by rememberSaveable(accountId) { mutableStateOf(emptyList<String>()) }
+    var trashState by remember(accountId) {
+        mutableStateOf<ArchiveLoadState<TrashedNote>>(ArchiveLoadState.Idle)
+    }
+    var trashToRestore by remember(accountId) { mutableStateOf<TrashedNote?>(null) }
+    var trashRequestId by remember(accountId) { mutableIntStateOf(0) }
+    val allNotesFlow = remember(accountId) { component.noteRepository.observeNotes(accountId) }
+    val allNotes by allNotesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val notesFlow = remember(accountId, query) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
@@ -561,6 +580,29 @@ private fun NoteListScreen(
                             onClick = { onCreate(accountId) },
                             modifier = Modifier.testTag("create-note")
                         ) { Text("New note") }
+                        TextButton(
+                            onClick = {
+                                val requestId = ++trashRequestId
+                                trashState = ArchiveLoadState.Loading
+                                scope.launch {
+                                    val result = runCatching {
+                                        component.trashedNotes(
+                                            accountId,
+                                            allNotes.mapTo(mutableSetOf(), Note::category)
+                                        )
+                                    }.fold(
+                                        onSuccess = { ArchiveLoadState.Loaded(it) },
+                                        onFailure = {
+                                            ArchiveLoadState.Failed(
+                                                it.message ?: "Could not load remote trash"
+                                            )
+                                        }
+                                    )
+                                    if (trashRequestId == requestId) trashState = result
+                                }
+                            },
+                            modifier = Modifier.testTag("remote-trash")
+                        ) { Text("Trash") }
                     }
                 }
             }
@@ -709,6 +751,65 @@ private fun NoteListScreen(
             }
         )
     }
+    if (trashToRestore == null) {
+        when (val state = trashState) {
+            ArchiveLoadState.Idle -> Unit
+            ArchiveLoadState.Loading -> ArchiveLoadingDialog(
+                title = "Remote trash",
+                onDismiss = {
+                    trashRequestId++
+                    trashState = ArchiveLoadState.Idle
+                }
+            )
+            is ArchiveLoadState.Failed -> ArchiveErrorDialog(
+                title = "Remote trash",
+                message = state.message,
+                onDismiss = { trashState = ArchiveLoadState.Idle }
+            )
+            is ArchiveLoadState.Loaded -> TrashedNotesDialog(
+                notes = state.items,
+                onDismiss = { trashState = ArchiveLoadState.Idle },
+                onRestore = { trashToRestore = it }
+            )
+        }
+    }
+    trashToRestore?.let { trashed ->
+        AlertDialog(
+            onDismissRequest = { trashToRestore = null },
+            title = { Text("Restore ${trashed.name}?") },
+            text = { Text("The note and its server versions will be restored in Nextcloud.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        trashToRestore = null
+                        val requestId = ++trashRequestId
+                        trashState = ArchiveLoadState.Loading
+                        scope.launch {
+                            val result = runCatching {
+                                component.restoreTrashedNote(accountId, trashed)
+                                component.trashedNotes(
+                                    accountId,
+                                    allNotes.mapTo(mutableSetOf(), Note::category)
+                                )
+                            }.fold(
+                                onSuccess = { ArchiveLoadState.Loaded(it) },
+                                onFailure = {
+                                    ArchiveLoadState.Failed(
+                                        it.message ?: "Could not restore the trashed note"
+                                    )
+                                }
+                            )
+                            if (trashRequestId == requestId) trashState = result
+                        }
+                    },
+                    modifier = Modifier.testTag("confirm-restore-trashed-note")
+                ) { Text("Restore") }
+            },
+            dismissButton = {
+                TextButton(onClick = { trashToRestore = null }) { Text("Cancel") }
+            }
+        )
+    }
 }
 
 @Composable
@@ -735,6 +836,119 @@ private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
             TextButton(onClick = reconnect) { Text("Reconnect") }
         }
     }
+}
+
+@Composable
+private fun ArchiveLoadingDialog(title: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { CircularProgressIndicator(modifier = Modifier.testTag("archive-loading")) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
+@Composable
+private fun ArchiveErrorDialog(title: String, message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(message, color = MaterialTheme.colorScheme.error) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
+@Composable
+private fun NoteVersionsDialog(
+    versions: List<RemoteNoteVersion>,
+    restoreEnabled: Boolean,
+    onDismiss: () -> Unit,
+    onRestore: (RemoteNoteVersion) -> Unit
+) {
+    var selected by remember(versions) { mutableStateOf(versions.firstOrNull()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Note versions") },
+        text = {
+            if (versions.isEmpty()) {
+                Text("No versions were found for this note.")
+            } else {
+                Column(modifier = Modifier.heightIn(max = 520.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        versions.forEach { version ->
+                            TextButton(
+                                onClick = { selected = version },
+                                modifier = Modifier.fillMaxWidth()
+                                    .testTag("note-version-${version.timestamp}")
+                            ) { Text(version.displayTimestamp) }
+                        }
+                    }
+                    Text(
+                        selected?.content.orEmpty(),
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                            .verticalScroll(rememberScrollState()).testTag("note-version-preview")
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { selected?.let(onRestore) },
+                enabled = restoreEnabled && selected != null,
+                modifier = Modifier.testTag("restore-note-version")
+            ) { Text("Restore") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
+@Composable
+private fun TrashedNotesDialog(
+    notes: List<TrashedNote>,
+    onDismiss: () -> Unit,
+    onRestore: (TrashedNote) -> Unit
+) {
+    var selected by remember(notes) { mutableStateOf(notes.firstOrNull()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Remote trash") },
+        text = {
+            if (notes.isEmpty()) {
+                Text("No trashed notes were found on the server.")
+            } else {
+                Column(modifier = Modifier.heightIn(max = 520.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        notes.forEach { note ->
+                            TextButton(
+                                onClick = { selected = note },
+                                modifier = Modifier.fillMaxWidth()
+                                    .testTag("trashed-note-${note.timestamp}")
+                            ) { Text("${note.name} - ${note.displayTimestamp}") }
+                        }
+                    }
+                    Text(
+                        selected?.content.orEmpty(),
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                            .verticalScroll(rememberScrollState()).testTag("trashed-note-preview")
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { selected?.let(onRestore) },
+                enabled = selected != null,
+                modifier = Modifier.testTag("restore-trashed-note")
+            ) { Text("Restore") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -783,6 +997,11 @@ private fun NoteDetailScreen(
     var findQuery by rememberSaveable(localId) { mutableStateOf("") }
     var currentMatch by rememberSaveable(localId) { mutableStateOf(0) }
     var matches by remember(localId) { mutableStateOf(emptyList<IntRange>()) }
+    var versionsState by remember(localId) {
+        mutableStateOf<ArchiveLoadState<RemoteNoteVersion>>(ArchiveLoadState.Idle)
+    }
+    var versionToRestore by remember(localId) { mutableStateOf<RemoteNoteVersion?>(null) }
+    var versionsRequestId by remember(localId) { mutableIntStateOf(0) }
     val renderedNote = remember(localId) { RenderedNote() }
     val hasRemoteImages = remember(note?.content) {
         component.markdownRenderer.hasRemoteImages(note?.content.orEmpty())
@@ -954,6 +1173,28 @@ private fun NoteDetailScreen(
                         onClick = component.settings::increaseNoteTextSize
                     )
                     if (!editing) {
+                        if (current?.remoteId != null) {
+                            TextButton(
+                                onClick = {
+                                    val requestId = ++versionsRequestId
+                                    versionsState = ArchiveLoadState.Loading
+                                    scope.launch {
+                                        val result = runCatching {
+                                            component.noteVersions(localId)
+                                        }.fold(
+                                            onSuccess = { ArchiveLoadState.Loaded(it) },
+                                            onFailure = {
+                                                ArchiveLoadState.Failed(
+                                                    it.message ?: "Could not load note versions"
+                                                )
+                                            }
+                                        )
+                                        if (versionsRequestId == requestId) versionsState = result
+                                    }
+                                },
+                                modifier = Modifier.testTag("note-versions")
+                            ) { Text("Versions") }
+                        }
                         TextButton(
                             onClick = {
                                 finding = !finding
@@ -1329,6 +1570,69 @@ private fun NoteDetailScreen(
             onConfirm = {
                 renaming = false
                 scope.launch { component.renameNote(localId, noteName) }
+            }
+        )
+    }
+    if (versionToRestore == null) {
+        when (val state = versionsState) {
+            ArchiveLoadState.Idle -> Unit
+            ArchiveLoadState.Loading -> ArchiveLoadingDialog(
+                title = "Note versions",
+                onDismiss = {
+                    versionsRequestId++
+                    versionsState = ArchiveLoadState.Idle
+                }
+            )
+            is ArchiveLoadState.Failed -> ArchiveErrorDialog(
+                title = "Note versions",
+                message = state.message,
+                onDismiss = { versionsState = ArchiveLoadState.Idle }
+            )
+            is ArchiveLoadState.Loaded -> NoteVersionsDialog(
+                versions = state.items,
+                restoreEnabled = note?.readOnly == false,
+                onDismiss = { versionsState = ArchiveLoadState.Idle },
+                onRestore = { versionToRestore = it }
+            )
+        }
+    }
+    versionToRestore?.let { version ->
+        AlertDialog(
+            onDismissRequest = { versionToRestore = null },
+            title = { Text("Restore this version?") },
+            text = {
+                Text(
+                    "The current note content will be replaced and synchronized as a new edit."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        versionToRestore = null
+                        val requestId = ++versionsRequestId
+                        versionsState = ArchiveLoadState.Loading
+                        scope.launch {
+                            val restored = runCatching {
+                                check(component.restoreNoteVersion(localId, version)) {
+                                    "The note could not be updated"
+                                }
+                            }
+                            val result = restored.fold(
+                                onSuccess = { ArchiveLoadState.Idle },
+                                onFailure = {
+                                    ArchiveLoadState.Failed(
+                                        it.message ?: "Could not restore the note version"
+                                    )
+                                }
+                            )
+                            if (versionsRequestId == requestId) versionsState = result
+                        }
+                    },
+                    modifier = Modifier.testTag("confirm-restore-note-version")
+                ) { Text("Restore") }
+            },
+            dismissButton = {
+                TextButton(onClick = { versionToRestore = null }) { Text("Cancel") }
             }
         )
     }

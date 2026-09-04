@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonParseException
+import com.google.gson.annotations.SerializedName
 import com.google.gson.stream.MalformedJsonException
 import com.nextcloud.android.sso.AccountImporter
 import com.nextcloud.android.sso.api.NextcloudAPI
@@ -26,10 +27,13 @@ import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
+import org.qownnotes.mobile.core.RemoteNoteVersion
+import org.qownnotes.mobile.core.TrashedNote
 import retrofit2.Call
 import retrofit2.NextcloudRetrofitApiBuilder
 import retrofit2.Response
@@ -42,7 +46,9 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-class NextcloudBackend(context: Context) : NoteBackend {
+class NextcloudBackend(context: Context) :
+    NoteBackend,
+    NoteArchiveBackend {
     private val applicationContext = context.applicationContext
     private val gson = GsonBuilder().create()
 
@@ -51,7 +57,7 @@ class NextcloudBackend(context: Context) : NoteBackend {
 
     override suspend fun validateAccount(account: Account): String = withContext(Dispatchers.IO) {
         try {
-            withApis(account) { capabilitiesApi, _ ->
+            withApis(account) { capabilitiesApi, _, _ ->
                 val response = capabilitiesApi.getCapabilities().blockingSingle().response
                 val notes = response.ocs.data.capabilities?.getAsJsonObject("notes")
                     ?: throw BackendException.NotesAppMissing()
@@ -67,7 +73,7 @@ class NextcloudBackend(context: Context) : NoteBackend {
     override suspend fun pull(account: Account, checkpoint: PullCheckpoint): PullResult =
         withContext(Dispatchers.IO) {
             try {
-                withApis(account) { _, notesApi -> pullFromApi(notesApi, checkpoint) }
+                withApis(account) { _, notesApi, _ -> pullFromApi(notesApi, checkpoint) }
             } catch (error: Throwable) {
                 throw error.asBackendException()
             }
@@ -76,7 +82,7 @@ class NextcloudBackend(context: Context) : NoteBackend {
     override suspend fun create(account: Account, note: Note): RemoteNote =
         withContext(Dispatchers.IO) {
             try {
-                withApis(account) { _, notesApi -> createWithApi(notesApi, note) }
+                withApis(account) { _, notesApi, _ -> createWithApi(notesApi, note) }
             } catch (error: Throwable) {
                 throw error.asBackendException()
             }
@@ -85,7 +91,7 @@ class NextcloudBackend(context: Context) : NoteBackend {
     override suspend fun update(account: Account, note: Note): RemoteNote =
         withContext(Dispatchers.IO) {
             try {
-                withApis(account) { _, notesApi -> updateWithApi(notesApi, note) }
+                withApis(account) { _, notesApi, _ -> updateWithApi(notesApi, note) }
             } catch (error: Throwable) {
                 throw error.asBackendException()
             }
@@ -93,13 +99,53 @@ class NextcloudBackend(context: Context) : NoteBackend {
 
     override suspend fun delete(account: Account, remoteId: Long) = withContext(Dispatchers.IO) {
         try {
-            withApis(account) { _, notesApi -> deleteWithApi(notesApi, remoteId) }
+            withApis(account) { _, notesApi, _ -> deleteWithApi(notesApi, remoteId) }
         } catch (error: Throwable) {
             throw error.asBackendException()
         }
     }
 
-    private fun <T> withApis(account: Account, block: (CapabilitiesApi, NotesApi) -> T): T {
+    override suspend fun versions(account: Account, note: Note): List<RemoteNoteVersion> =
+        withContext(Dispatchers.IO) {
+            try {
+                withApis(account) { _, notesApi, archiveApi ->
+                    loadVersionsFromApis(notesApi, archiveApi, note)
+                }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun trashedNotes(
+        account: Account,
+        categories: Set<String>
+    ): List<TrashedNote> = withContext(Dispatchers.IO) {
+        try {
+            withApis(account) { _, notesApi, archiveApi ->
+                loadTrashedNotesFromApis(notesApi, archiveApi, categories)
+            }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun restoreTrashedNote(account: Account, note: TrashedNote) =
+        withContext(Dispatchers.IO) {
+            try {
+                withApis(account) { _, notesApi, archiveApi ->
+                    val settings = notesApi.getSettings().execute().requiredBody("settings")
+                    verifyArchiveSupport(archiveApi, settings, requireVersions = false)
+                    restoreTrashedNoteWithApi(archiveApi, note)
+                }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    private fun <T> withApis(
+        account: Account,
+        block: (CapabilitiesApi, NotesApi, QOwnNotesApi) -> T
+    ): T {
         if (AccountImporter.getAccountForName(applicationContext, account.ssoAccountName) == null) {
             throw BackendException.AccountRemoved()
         }
@@ -112,7 +158,9 @@ class NextcloudBackend(context: Context) : NoteBackend {
         return try {
             block(
                 NextcloudRetrofitApiBuilder(api, OCS_ENDPOINT).create(CapabilitiesApi::class.java),
-                NextcloudRetrofitApiBuilder(api, NOTES_ENDPOINT).create(NotesApi::class.java)
+                NextcloudRetrofitApiBuilder(api, NOTES_ENDPOINT).create(NotesApi::class.java),
+                NextcloudRetrofitApiBuilder(api, QOWNNOTES_API_ENDPOINT)
+                    .create(QOwnNotesApi::class.java)
             )
         } finally {
             api.close()
@@ -122,6 +170,7 @@ class NextcloudBackend(context: Context) : NoteBackend {
     private companion object {
         const val OCS_ENDPOINT = "/ocs/v2.php/cloud/"
         const val NOTES_ENDPOINT = "/index.php/apps/notes/api/v1/"
+        const val QOWNNOTES_API_ENDPOINT = "/index.php/apps/qownnotesapi/api/v1/"
     }
 }
 
@@ -137,6 +186,9 @@ internal object NextcloudProtocol {
 
     fun selectSupportedVersion(versions: List<String>): String? =
         versions.filter(::isSupported).maxWithOrNull(::compareVersions)
+
+    fun isAtLeast(version: String, minimum: String): Boolean =
+        version.isNotBlank() && compareVersions(version, minimum) >= 0
 
     private fun isSupported(version: String): Boolean {
         val parts = versionParts(version)
@@ -262,6 +314,162 @@ internal fun deleteWithApi(notesApi: NotesApi, remoteId: Long) {
     throw backendExceptionForHttpStatus(response.code(), NotesHttpException(response.code()))
 }
 
+internal fun loadVersionsFromApis(
+    notesApi: NotesApi,
+    archiveApi: QOwnNotesApi,
+    note: Note
+): List<RemoteNoteVersion> {
+    val remoteId = note.remoteId
+    if (remoteId == null) {
+        throw BackendException.FeatureUnavailable("Versions are available after the note is synced")
+    }
+    val settings = notesApi.getSettings().execute().requiredBody("settings")
+    verifyArchiveSupport(archiveApi, settings, requireVersions = true)
+    val remotePath = notesApi.getNote(remoteId).execute().requiredBody("note").internalPath
+        ?.validatedRemotePath()
+        ?: throw BackendException.Protocol("Nextcloud note is missing its internal path")
+    val response = archiveApi.getVersions(remotePath).execute()
+        .requiredBody("note versions", missingArchiveIsUnavailable = true)
+    if (response.errorMessages.isNotEmpty()) {
+        throw BackendException.Protocol(response.errorMessages.joinToString("\n"))
+    }
+    return response.versions.map { version ->
+        RemoteNoteVersion(
+            timestamp = version.timestamp
+                ?: throw BackendException.Protocol("QOwnNotesAPI version is missing its timestamp"),
+            displayTimestamp = version.humanReadableTimestamp
+                ?.takeIf(String::isNotBlank)
+                ?: version.timestamp.toString(),
+            content = version.data
+                ?: throw BackendException.Protocol("QOwnNotesAPI version is missing its content")
+        )
+    }
+}
+
+internal fun loadTrashedNotesFromApis(
+    notesApi: NotesApi,
+    archiveApi: QOwnNotesApi,
+    categories: Set<String>
+): List<TrashedNote> {
+    val settings = notesApi.getSettings().execute().requiredBody("settings")
+    verifyArchiveSupport(archiveApi, settings, requireVersions = false)
+    val directories = (categories + "").map { settings.remoteDirectory(it) }.distinct()
+    return directories.flatMap { directory ->
+        archiveApi.getTrashedNotes(
+            directory,
+            (NOTES_FILE_EXTENSIONS + settings.validatedSuffix().removePrefix("."))
+                .distinct()
+        ).execute()
+            .requiredBody("trashed notes", missingArchiveIsUnavailable = true)
+            .notes.map { note -> note.toDomain(directory) }
+    }.distinctBy { it.fileName to it.timestamp }.sortedByDescending(TrashedNote::timestamp)
+}
+
+internal fun restoreTrashedNoteWithApi(archiveApi: QOwnNotesApi, note: TrashedNote) {
+    val result = archiveApi.restoreTrashedNote(note.remotePath, note.timestamp).execute()
+        .requiredBody<RestoreTrashedNoteDto>("trash restore", missingArchiveIsUnavailable = true)
+    if (!result.result) {
+        throw BackendException.Protocol(
+            "Nextcloud did not restore the trashed note"
+        )
+    }
+}
+
+private fun verifyArchiveSupport(
+    archiveApi: QOwnNotesApi,
+    settings: NotesSettingsDto,
+    requireVersions: Boolean
+) {
+    val info = archiveApi.getAppInfo(settings.remoteDirectory("")).execute()
+        .requiredBody<QOwnNotesAppInfoDto>(
+            "QOwnNotesAPI app info",
+            missingArchiveIsUnavailable = true
+        )
+    if (!NextcloudProtocol.isAtLeast(info.appVersion.orEmpty(), MIN_QOWNNOTES_API_VERSION)) {
+        throw BackendException.FeatureUnavailable(
+            "QOwnNotesAPI $MIN_QOWNNOTES_API_VERSION or newer is required"
+        )
+    }
+    if (!info.notesPathExists) {
+        throw BackendException.FeatureUnavailable(
+            "The configured Nextcloud notes folder was not found"
+        )
+    }
+    if (requireVersions && (!info.versioning || !info.versionsApp)) {
+        throw BackendException.FeatureUnavailable(
+            "Enable the Nextcloud Versions app to access note versions"
+        )
+    }
+    if (!requireVersions && !info.trashApp) {
+        throw BackendException.FeatureUnavailable(
+            "Enable the Nextcloud Deleted files app to access trashed notes"
+        )
+    }
+}
+
+private fun NotesSettingsDto.remoteDirectory(category: String): String =
+    "/" + listOf(notesPath, category).flatMap { path ->
+        path.trim('/').split('/').filter(String::isNotEmpty).map {
+            safePathPart(it, "notes path")
+        }
+    }.joinToString("/")
+
+private fun NotesSettingsDto.validatedSuffix(): String {
+    val suffix = fileSuffix
+    if (suffix.isBlank() || !suffix.startsWith('.') || '/' in suffix || '\\' in suffix) {
+        throw BackendException.Protocol("Nextcloud returned an invalid note file suffix")
+    }
+    return suffix
+}
+
+private fun safePathPart(value: String, description: String): String {
+    if (value.isBlank() || value == "." || value == ".." || '/' in value || '\\' in value) {
+        throw BackendException.Protocol("Nextcloud returned an invalid $description")
+    }
+    return value
+}
+
+private fun String.validatedRemotePath(): String {
+    if (!startsWith('/') || endsWith('/')) {
+        throw BackendException.Protocol("Nextcloud returned an invalid note path")
+    }
+    split('/').drop(1).forEach { safePathPart(it, "note path") }
+    return this
+}
+
+private fun TrashedNoteDto.toDomain(directory: String): TrashedNote {
+    val name = noteName?.takeIf(String::isNotBlank)
+        ?: throw BackendException.Protocol("QOwnNotesAPI trashed note is missing its name")
+    val remoteFileName = fileName?.let { safePathPart(it, "trashed note file name") }
+        ?: throw BackendException.Protocol("QOwnNotesAPI trashed note is missing its file name")
+    val deletedAt = timestamp
+        ?: throw BackendException.Protocol("QOwnNotesAPI trashed note is missing its timestamp")
+    return TrashedNote(
+        name = name,
+        fileName = remoteFileName,
+        timestamp = deletedAt,
+        displayTimestamp = dateString?.takeIf(String::isNotBlank) ?: deletedAt.toString(),
+        content = data
+            ?: throw BackendException.Protocol("QOwnNotesAPI trashed note is missing its content"),
+        remotePath = "$directory/$remoteFileName"
+    )
+}
+
+private fun <T> Response<T>.requiredBody(
+    description: String,
+    missingArchiveIsUnavailable: Boolean = false
+): T {
+    if (!isSuccessful) {
+        if (missingArchiveIsUnavailable && code() == HttpURLConnection.HTTP_NOT_FOUND) {
+            throw BackendException.FeatureUnavailable(
+                "Install and enable the QOwnNotesAPI app on Nextcloud"
+            )
+        }
+        throw backendExceptionForHttpStatus(code(), NotesHttpException(code()))
+    }
+    return body() ?: throw BackendException.Protocol("Nextcloud returned empty $description")
+}
+
 private fun Note.toWriteDto() =
     NoteWriteDto(title, content, category, modifiedAtEpochSeconds, favorite)
 
@@ -348,6 +556,8 @@ private const val SSO_TRANSPORT_ERROR = 900
 private const val HTTP_LOCKED = 423
 private const val HTTP_TOO_MANY_REQUESTS = 429
 private const val HTTP_INSUFFICIENT_STORAGE = 507
+private const val MIN_QOWNNOTES_API_VERSION = "0.4.4"
+private val NOTES_FILE_EXTENSIONS = listOf("md", "txt", "org", "markdown", "note")
 
 private interface CapabilitiesApi {
     @GET("capabilities?format=json")
@@ -355,6 +565,12 @@ private interface CapabilitiesApi {
 }
 
 internal interface NotesApi {
+    @GET("settings")
+    fun getSettings(): Call<NotesSettingsDto>
+
+    @GET("notes/{id}")
+    fun getNote(@Path("id") id: Long): Call<RemoteNoteDto>
+
     @POST("notes")
     fun createNote(@Body request: NoteWriteDto): Call<RemoteNoteDto>
 
@@ -384,6 +600,59 @@ internal interface NotesApi {
     ): Call<List<RemoteNoteDto>>
 }
 
+internal interface QOwnNotesApi {
+    @GET("note/app_info?format=json")
+    fun getAppInfo(@Query("notes_path") notesPath: String): Call<QOwnNotesAppInfoDto>
+
+    @GET("note/versions?format=json")
+    fun getVersions(@Query("file_name") fileName: String): Call<NoteVersionsDto>
+
+    @GET("note/trashed?format=json")
+    fun getTrashedNotes(
+        @Query("dir") directory: String,
+        @Query("extensions[]") extensions: List<String>
+    ): Call<TrashedNotesDto>
+
+    @GET("note/restore_trashed?format=json")
+    fun restoreTrashedNote(
+        @Query("file_name") fileName: String,
+        @Query("timestamp") timestamp: Long
+    ): Call<RestoreTrashedNoteDto>
+}
+
+internal data class NotesSettingsDto(val notesPath: String, val fileSuffix: String)
+
+internal data class QOwnNotesAppInfoDto(
+    @SerializedName("versions_app") val versionsApp: Boolean = false,
+    @SerializedName("trash_app") val trashApp: Boolean = false,
+    val versioning: Boolean = false,
+    @SerializedName("app_version") val appVersion: String? = null,
+    @SerializedName("notes_path_exists") val notesPathExists: Boolean = false
+)
+
+internal data class NoteVersionsDto(
+    val versions: List<NoteVersionDto> = emptyList(),
+    @SerializedName("error_messages") val errorMessages: List<String> = emptyList()
+)
+
+internal data class NoteVersionDto(
+    val timestamp: Long? = null,
+    val humanReadableTimestamp: String? = null,
+    val data: String? = null
+)
+
+internal data class TrashedNotesDto(val notes: List<TrashedNoteDto> = emptyList())
+
+internal data class TrashedNoteDto(
+    val noteName: String? = null,
+    val fileName: String? = null,
+    val timestamp: Long? = null,
+    val dateString: String? = null,
+    val data: String? = null
+)
+
+internal data class RestoreTrashedNoteDto(val result: Boolean = false)
+
 internal data class NoteWriteDto(
     val title: String,
     val content: String,
@@ -406,7 +675,8 @@ internal data class RemoteNoteDto(
     val title: String? = null,
     val category: String? = null,
     val modified: Long? = null,
-    val favorite: Boolean = false
+    val favorite: Boolean = false,
+    val internalPath: String? = null
 ) {
     fun toDomain() = RemoteNote(
         id = id ?: throw BackendException.Protocol("Nextcloud note is missing its id"),

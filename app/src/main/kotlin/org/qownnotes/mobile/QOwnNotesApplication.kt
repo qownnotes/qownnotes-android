@@ -25,13 +25,16 @@ import org.qownnotes.mobile.backend.nextcloud.NextcloudBackend
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteFactory
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
+import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncState
+import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
@@ -70,6 +73,7 @@ class ApplicationComponent(
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build(),
     private val backend: NoteBackend = NextcloudBackend(application),
+    private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
     val settings: AppSettings = AppSettings(application)
 ) {
     val noteRepository = RoomNoteRepository(database.noteDao())
@@ -278,6 +282,32 @@ class ApplicationComponent(
         scheduleSync(accountId, 0)
     }
 
+    suspend fun noteVersions(localId: String): List<RemoteNoteVersion> {
+        val accountId = noteRepository.get(localId)?.accountId ?: error("The note no longer exists")
+        return accountMutex(accountId).withLock {
+            val note = noteRepository.get(localId) ?: error("The note no longer exists")
+            val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+            requireArchiveBackend().versions(account, note)
+        }
+    }
+
+    suspend fun restoreNoteVersion(localId: String, version: RemoteNoteVersion): Boolean =
+        saveDraft(localId, version.content)
+
+    suspend fun trashedNotes(accountId: String, categories: Set<String>): List<TrashedNote> =
+        accountMutex(accountId).withLock {
+            val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+            requireArchiveBackend().trashedNotes(account, categories)
+        }
+
+    suspend fun restoreTrashedNote(accountId: String, note: TrashedNote) {
+        accountMutex(accountId).withLock {
+            val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+            requireArchiveBackend().restoreTrashedNote(account, note)
+            refreshLocked(accountId, propagateFailure = true)
+        }
+    }
+
     private fun scheduleSync(accountId: String, delayMillis: Long = 1_500) {
         lateinit var job: Job
         job = applicationScope.launch(start = CoroutineStart.LAZY) {
@@ -289,7 +319,7 @@ class ApplicationComponent(
         job.start()
     }
 
-    private suspend fun refreshLocked(accountId: String) {
+    private suspend fun refreshLocked(accountId: String, propagateFailure: Boolean = false) {
         var account = accountRepository.get(accountId) ?: return
         updateSyncState(accountId, SyncUiState.Refreshing)
         try {
@@ -312,6 +342,7 @@ class ApplicationComponent(
             val message = error.message ?: "Synchronization failed"
             accountRepository.updateSyncError(accountId, message)
             updateSyncState(accountId, error.toSyncUiState(message))
+            if (propagateFailure) throw error
         }
     }
 
@@ -373,6 +404,11 @@ class ApplicationComponent(
     }
 
     private fun accountMutex(accountId: String): Mutex = refreshMutexes.getOrPut(accountId, ::Mutex)
+
+    private fun requireArchiveBackend(): NoteArchiveBackend = archiveBackend
+        ?: throw BackendException.FeatureUnavailable(
+            "This account backend does not provide note versions or remote trash"
+        )
 }
 
 private fun SingleSignOnAccount.displayName(): String =

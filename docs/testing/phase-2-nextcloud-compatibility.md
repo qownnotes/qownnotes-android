@@ -37,6 +37,13 @@ manual test. Record them before declaring a broad compatibility matrix.
 - Forward-compatible and malformed JSON handling.
 - HTTP error classification and interrupted chunked pulls.
 
+`QOwnNotesApiMockServerTest` verifies:
+
+- Notes settings and canonical internal-path lookup before requesting versions.
+- QOwnNotesAPI absence and feature discovery.
+- Root and known-category trash queries with every Notes file extension.
+- Version and trash response mapping and server-side trash restoration.
+
 Android instrumentation verifies:
 
 - Database migration and transactional pull behavior.
@@ -64,3 +71,9 @@ tested combination.
 8. Restart offline and confirm cached search, rendering, and account switching work.
 9. Revoke authorization, reconnect the same account, and confirm its cache and checkpoint remain.
 10. Remove local data and confirm neither the Nextcloud Files account nor server notes are deleted.
+11. With QOwnNotesAPI 0.4.4 or newer and the Versions app enabled, view a note's history and restore
+    one version; confirm the restored content synchronizes as a new guarded edit.
+12. With the Deleted files app enabled, browse remote trash, preview a note, restore it, and confirm
+    it returns through a normal Notes refresh with its versions preserved.
+13. Disable QOwnNotesAPI and confirm versions and trash report that the companion app is required
+    without interrupting ordinary note synchronization.

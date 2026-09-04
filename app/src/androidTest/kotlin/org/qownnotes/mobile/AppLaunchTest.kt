@@ -51,7 +51,9 @@ import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
+import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.SyncState
+import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.markdown.NoteTextSize
 
 @RunWith(AndroidJUnit4::class)
@@ -308,6 +310,108 @@ class AppLaunchTest {
         composeRule.waitUntil(timeoutMillis = 10_000) {
             application.fakeBackend.deletedRemoteIds == listOf(42L)
         }
+    }
+
+    @Test
+    fun viewsAndRestoresANoteVersion() {
+        importAccount("alice", "Existing note", "etag-1", 10, "Current content")
+        application.fakeBackend.noteVersions = listOf(
+            RemoteNoteVersion(5, "Yesterday", "Historical content")
+        )
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.waitForTag("note-versions")
+
+        composeRule.onNodeWithTag("note-versions").performClick()
+        composeRule.waitForText("Historical content")
+        composeRule.onNodeWithTag("restore-note-version").performClick()
+        composeRule.onNodeWithTag("confirm-restore-note-version").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").single().content == "Historical content" }
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.pushedNotes.any { it.content == "Historical content" }
+        }
+    }
+
+    @Test
+    fun viewsAndRestoresRemoteTrash() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val trashed = TrashedNote(
+            name = "Deleted note",
+            fileName = "Deleted note.md",
+            timestamp = 5,
+            displayTimestamp = "Yesterday",
+            content = "Deleted content",
+            remotePath = "/Notes/Deleted note.md"
+        )
+        application.fakeBackend.trash = listOf(trashed)
+
+        composeRule.onNodeWithTag("remote-trash").performClick()
+        composeRule.waitForText("Deleted content")
+        composeRule.onNodeWithTag("restore-trashed-note").performClick()
+        composeRule.onNodeWithTag("confirm-restore-trashed-note").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.restoredTrash == listOf(trashed)
+        }
+        composeRule.waitForText("No trashed notes were found on the server.")
+    }
+
+    @Test
+    fun remoteTrashUsesAllCachedFoldersWhileSearchIsActive() {
+        val account = importAccount("alice", "Visible note", "etag-1", 10)
+        runBlocking {
+            application.component.noteRepository.save(
+                Note(
+                    localId = "work-note",
+                    accountId = account.localAccountId(),
+                    remoteId = 43,
+                    title = "Filtered note",
+                    content = "Not in the search",
+                    category = "Work",
+                    modifiedAtEpochSeconds = 20,
+                    remoteEtag = "etag-2",
+                    syncState = SyncState.SYNCHRONIZED
+                )
+            )
+        }
+        composeRule.waitForText("Filtered note")
+        composeRule.onNodeWithTag("note-search").performTextInput("Visible")
+        composeRule.onNodeWithText("Filtered note").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("remote-trash").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.trashCategoryRequests.lastOrNull() == setOf("", "Work")
+        }
+    }
+
+    @Test
+    fun trashRestoreReportsWhenTheRequiredRefreshFails() {
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
+        application.fakeBackend.trash = listOf(
+            TrashedNote(
+                "Deleted note",
+                "Deleted note.md",
+                5,
+                "Yesterday",
+                "Deleted content",
+                "/Notes/Deleted note.md"
+            )
+        )
+        application.fakeBackend.enqueueFailure(
+            account,
+            BackendException.Retryable(IOException("offline"))
+        )
+
+        composeRule.onNodeWithTag("remote-trash").performClick()
+        composeRule.waitForText("Deleted content")
+        composeRule.onNodeWithTag("restore-trashed-note").performClick()
+        composeRule.onNodeWithTag("confirm-restore-trashed-note").performClick()
+
+        composeRule.waitForText("The server could not be reached")
+        assertEquals(1, application.fakeBackend.restoredTrash.size)
     }
 
     @Test

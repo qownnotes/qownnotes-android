@@ -67,5 +67,7 @@ sealed class BackendException(message: String, cause: Throwable? = null) :
     class InsufficientStorage(cause: Throwable? = null) :
         BackendException("The server does not have enough storage", cause)
 
+    class FeatureUnavailable(message: String) : BackendException(message)
+
     class Protocol(message: String, cause: Throwable? = null) : BackendException(message, cause)
 }

@@ -543,6 +543,31 @@ Relevant operations:
 - Later: `DELETE /notes/{id}`
 - Optional capability-gated attachment operations from API 1.4
 
+### QOwnNotesAPI Versions and Trash
+
+The optional Nextcloud QOwnNotesAPI app provides server-side note versions and remote trash under:
+
+```text
+/index.php/apps/qownnotesapi/api/v1/
+```
+
+Use Notes `GET /settings` to read `notesPath` and `fileSuffix`; never write those settings. Probe
+QOwnNotesAPI `note/app_info` on demand and require version 0.4.4 or newer plus the corresponding
+Nextcloud Versions or Deleted files app. QOwnNotesAPI absence must not prevent normal Notes API
+synchronization.
+
+Version and trash responses contain complete note contents and have no pagination, so load them
+only while their dialogs are open and do not make them a second offline source of truth. Build
+version paths from the canonical `internalPath` returned by `GET /notes/{id}` because existing files
+can have a different extension than the current default suffix. Restoring a version writes its
+content through the normal local revision and ETag-protected synchronization path. Restoring a
+trashed note uses QOwnNotesAPI on the server and then performs a normal Notes API refresh so Room
+remains the source of truth.
+
+QOwnNotesAPI filters trash by an exact remote directory. Until folder navigation provides an active
+scope, query the notes root and every category represented by the cached account notes, merge the
+results, and document that a deleted note from an otherwise empty category may not be discoverable.
+
 ### Pull Synchronization
 
 - Request server capabilities and choose the highest supported compatible Notes API version.
@@ -806,6 +831,10 @@ Implemented:
 - Added finding text inside the open note, requested during Phase 3 rather than planned. A find bar on the note screen marks every match in the rendered note, marks and scrolls to the current one, reports the position in the matches, and wraps around at both ends. Matching is portable policy in `core`; only the span application and the offset lookup are Android. The find highlights are a private span type, so they can be removed again without disturbing the Markdown spans they are drawn over.
 - Added creating a note from text another application shares, requested during Phase 3 rather than planned. The application is a share target for text, the sharing application's subject names the note, the shared text follows that name as the body, and the new note opens. A share arriving before any account exists waits and is explained on the onboarding screen. Which note the text becomes is portable policy in `core`; only reading the intent and delivering it into the running activity are Android. Verified on a physical Android 16 device for a cold start and for a share into the running application.
 - Added undo and redo. Toolbar controls step through an editor-owned history that groups a burst of typing, an input method rewriting its composing region, and consecutive deletions into single steps, ends a group at a line break, and makes each formatting action its own step. The grouping rules are structural rather than time-based and are unit-tested on the JVM; only replaying a change into the widget is Android. Replaying clears the composing state and restarts the input method, and a history that no longer matches the text is discarded rather than replayed at a guessed position.
+- Added on-demand note version and remote trash access through QOwnNotesAPI 0.4.4 or newer. Version
+  restoration becomes a normal local edit and uses the existing ETag-protected upload path; trash
+  restoration runs on the server and is followed by a normal Notes refresh. The feature reads but
+  never writes the Notes app's configured path and suffix.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 

@@ -46,6 +46,25 @@ interface NoteBackend {
     suspend fun delete(account: Account, remoteId: Long)
 }
 
+interface NoteArchiveBackend {
+    suspend fun versions(account: Account, note: Note): List<RemoteNoteVersion>
+
+    suspend fun trashedNotes(account: Account, categories: Set<String>): List<TrashedNote>
+
+    suspend fun restoreTrashedNote(account: Account, note: TrashedNote)
+}
+
+data class RemoteNoteVersion(val timestamp: Long, val displayTimestamp: String, val content: String)
+
+data class TrashedNote(
+    val name: String,
+    val fileName: String,
+    val timestamp: Long,
+    val displayTimestamp: String,
+    val content: String,
+    val remotePath: String
+)
+
 interface AccountRepository {
     fun observeAccounts(): Flow<List<Account>>
 

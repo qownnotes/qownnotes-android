@@ -14,6 +14,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A confirmed **Move to trash** action in the open note view.
 - Automatic continuation for unordered, ordered, and task-list items when Return is pressed, with
   empty items ending the list.
+- On-demand note version history and remote trash browsing through the optional Nextcloud
+  QOwnNotesAPI app, including restoring versions and trashed notes.
 - Continuous development APK publishing and versioned, signed GitHub release automation.
 
 ### Changed

@@ -10,10 +10,13 @@ import kotlinx.coroutines.flow.first
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
+import org.qownnotes.mobile.core.RemoteNoteVersion
+import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
@@ -31,7 +34,12 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
                 .build()
         // A dedicated preference file keeps device tests from reading or writing real user
         // settings, and lets `reset` restore defaults without touching the production store.
-        return ApplicationComponent(this, database, fakeBackend, AppSettings(this, TEST_SETTINGS))
+        return ApplicationComponent(
+            this,
+            database,
+            fakeBackend,
+            settings = AppSettings(this, TEST_SETTINGS)
+        )
     }
 
     override fun createAccountImportGateway(): AccountImportGateway = fakeAccountImporter
@@ -81,7 +89,9 @@ class FakeAccountImportGateway : AccountImportGateway {
     ) = Unit
 }
 
-class FakePullBackend : NoteBackend {
+class FakePullBackend :
+    NoteBackend,
+    NoteArchiveBackend {
     override val capabilities =
         BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
     private val pulls = mutableMapOf<String, ArrayDeque<Result<PullResult>>>()
@@ -89,6 +99,10 @@ class FakePullBackend : NoteBackend {
     val validatedAccountIds = mutableListOf<String>()
     val pushedNotes = mutableListOf<Note>()
     val deletedRemoteIds = mutableListOf<Long>()
+    var noteVersions = emptyList<RemoteNoteVersion>()
+    var trash = emptyList<TrashedNote>()
+    val trashCategoryRequests = mutableListOf<Set<String>>()
+    val restoredTrash = mutableListOf<TrashedNote>()
     var validationGate: CompletableDeferred<Unit>? = null
 
     override suspend fun validateAccount(account: Account): String {
@@ -123,6 +137,22 @@ class FakePullBackend : NoteBackend {
         deletedRemoteIds += remoteId
     }
 
+    override suspend fun versions(account: Account, note: Note): List<RemoteNoteVersion> =
+        noteVersions
+
+    override suspend fun trashedNotes(
+        account: Account,
+        categories: Set<String>
+    ): List<TrashedNote> {
+        trashCategoryRequests += categories
+        return trash
+    }
+
+    override suspend fun restoreTrashedNote(account: Account, note: TrashedNote) {
+        restoredTrash += note
+        trash = trash - note
+    }
+
     fun enqueue(account: SingleSignOnAccount, result: PullResult) {
         queue(account).add(Result.success(result))
     }
@@ -137,6 +167,10 @@ class FakePullBackend : NoteBackend {
         validatedAccountIds.clear()
         pushedNotes.clear()
         deletedRemoteIds.clear()
+        noteVersions = emptyList()
+        trash = emptyList()
+        trashCategoryRequests.clear()
+        restoredTrash.clear()
         validationGate?.cancel()
         validationGate = null
     }
