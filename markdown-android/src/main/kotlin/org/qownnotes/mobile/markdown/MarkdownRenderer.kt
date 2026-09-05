@@ -25,6 +25,9 @@ import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.image.SchemeHandler
 import io.noties.markwon.image.destination.ImageDestinationProcessor
 import io.noties.markwon.movement.MovementMethodPlugin
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.Locale
@@ -41,14 +44,32 @@ import org.qownnotes.mobile.core.parseMarkdownNoteLink
 import org.qownnotes.mobile.core.parseWikiLink
 import org.qownnotes.mobile.core.redactEncryptedMarkdown
 
-class MarkdownRenderer private constructor(context: Context, imageSchemeHandler: SchemeHandler) {
+class MarkdownRenderer private constructor(
+    context: Context,
+    imageSchemeHandler: SchemeHandler,
+    private val attachmentHttpClient: NextcloudAttachmentHttpClient?,
+    private val attachmentSchemeHandler: NextcloudAttachmentSchemeHandler?
+) {
     constructor(context: Context) : this(
         context,
-        SafeHttpsImageSchemeHandler(context.applicationContext.resources)
+        SafeHttpsImageSchemeHandler(context.applicationContext.resources),
+        null,
+        null
+    )
+
+    constructor(
+        context: Context,
+        httpClient: NextcloudAttachmentHttpClient
+    ) : this(
+        context,
+        SafeHttpsImageSchemeHandler(context.applicationContext.resources),
+        httpClient,
+        NextcloudAttachmentSchemeHandler(context.applicationContext.resources, httpClient)
     )
 
     private val applicationContext = context.applicationContext
     private val linkHandlers = WeakHashMap<AppCompatTextView, InternalLinkHandler>()
+    private val attachmentDestinationProcessor = AttachmentDestinationProcessor()
     private val textMarkwon = createMarkwon()
     private val imageMarkwon = createMarkwon(imageSchemeHandler)
 
@@ -56,7 +77,7 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
         private val IMAGE_EXECUTOR = Executors.newFixedThreadPool(2)
 
         fun forTest(context: Context, imageSchemeHandler: SchemeHandler): MarkdownRenderer =
-            MarkdownRenderer(context, imageSchemeHandler)
+            MarkdownRenderer(context, imageSchemeHandler, null, null)
     }
 
     fun render(
@@ -67,8 +88,17 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
         onTaskToggle: ((Int) -> Unit)? = null,
         heading: String? = null,
         onHeadingPositioned: (Int?) -> Unit = {},
-        loadRemoteImages: Boolean = false
+        loadRemoteImages: Boolean = false,
+        remoteId: Long? = null,
+        accountName: String = ""
     ) {
+        android.util.Log.d(
+            "QOwnNotes",
+            "render: loadRemoteImages=$loadRemoteImages, remoteId=$remoteId, " +
+                "accountName=$accountName, hasAttachmentHandler=${attachmentSchemeHandler != null}"
+        )
+        attachmentDestinationProcessor.setNoteContext(remoteId)
+        attachmentSchemeHandler?.accountName = accountName
         linkHandlers[view] = InternalLinkHandler(resolveInternalLink, onInternalLink)
         // Reading a note includes taking text out of it, and copying needs a selection. This is
         // applied before the Markdown because `setTextIsSelectable` re-sets both the text and the
@@ -98,7 +128,8 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
         document.accept(
             object : AbstractVisitor() {
                 override fun visit(image: Image) {
-                    if (canonicalSafeImageDestination(image.destination) != null) found = true
+                    val destination = attachmentDestinationProcessor.process(image.destination)
+                    if (destination != BLOCKED_IMAGE_DESTINATION) found = true
                 }
             }
         )
@@ -115,13 +146,7 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
                 object : AbstractMarkwonPlugin() {
                     override fun configureConfiguration(builder: MarkwonConfiguration.Builder) {
                         builder.syntaxHighlight(BoundedSyntaxHighlight(applicationContext))
-                        builder.imageDestinationProcessor(
-                            object : ImageDestinationProcessor() {
-                                override fun process(destination: String): String =
-                                    canonicalSafeImageDestination(destination)
-                                        ?: BLOCKED_IMAGE_DESTINATION
-                            }
-                        )
+                        builder.imageDestinationProcessor(attachmentDestinationProcessor)
                         builder.linkResolver { view, destination ->
                             when {
                                 destination.startsWith(WIKI_SCHEME) -> {
@@ -151,6 +176,7 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
                     images.removeSchemeHandler("http")
                     images.removeSchemeHandler("data")
                     images.addSchemeHandler(imageSchemeHandler)
+                    attachmentSchemeHandler?.let { images.addSchemeHandler(it) }
                     images.executorService(IMAGE_EXECUTOR)
                     images.errorHandler { _, _ -> blockedImageDrawable() }
                 }
@@ -184,6 +210,42 @@ class MarkdownRenderer private constructor(context: Context, imageSchemeHandler:
             setStroke((2 * applicationContext.resources.displayMetrics.density).toInt(), Color.RED)
             setSize(size, size)
         }
+    }
+}
+
+/**
+ * Rewrites image destinations for Markwon.
+ *
+ * HTTPS destinations pass through unchanged. Relative destinations (such as QOwnNotes `media/`
+ * paths) are rewritten to `nextcloud-attachment:` URLs when a server URL and note ID are set,
+ * allowing the [NextcloudAttachmentSchemeHandler] to fetch them via SSO authentication.
+ */
+private class AttachmentDestinationProcessor : ImageDestinationProcessor() {
+    @Volatile private var remoteId: Long? = null
+
+    fun setNoteContext(remoteId: Long?) {
+        this.remoteId = remoteId
+    }
+
+    override fun process(destination: String): String {
+        canonicalSafeImageDestination(destination)?.let { return it }
+        val id = remoteId
+        if (id != null && destination.isNotBlank() &&
+            !destination.startsWith("http://") &&
+            !destination.startsWith("https://") &&
+            !destination.startsWith("file://") &&
+            !destination.startsWith(ATTACHMENT_SCHEME)
+        ) {
+            val result = "$ATTACHMENT_SCHEME:/index.php/apps/notes/api/v1/attachment/$id" +
+                "?path=" + URLEncoder.encode(destination, StandardCharsets.UTF_8.name())
+            android.util.Log.d("QOwnNotes", "Rewrote image destination: $destination -> $result")
+            return result
+        }
+        android.util.Log.d(
+            "QOwnNotes",
+            "Blocked image destination: $destination (remoteId=$remoteId)"
+        )
+        return BLOCKED_IMAGE_DESTINATION
     }
 }
 

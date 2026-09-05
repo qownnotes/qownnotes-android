@@ -53,7 +53,12 @@ class NextcloudBackend(context: Context) :
     private val gson = GsonBuilder().create()
 
     override val capabilities =
-        BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
+        BackendCapabilities(
+            categories = true,
+            favorites = true,
+            attachments = true,
+            readOnlyNotes = true
+        )
 
     override suspend fun validateAccount(account: Account): String = withContext(Dispatchers.IO) {
         try {

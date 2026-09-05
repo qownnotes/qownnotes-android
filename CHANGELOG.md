@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Remote images now load automatically in the note view. Local media images from Nextcloud notes
+  are displayed using the Notes API attachment endpoint with SSO authentication. A **Load images**
+  toggle in the note menu allows disabling image loading per note.
+
 ### Fixed
 
 - Checkboxes in nested task lists can now be toggled in view mode; previously only top-level

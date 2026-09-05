@@ -1115,6 +1115,11 @@ private fun NoteDetailScreen(
         note?.accountId?.let(component.noteRepository::observeNotes) ?: flowOf(emptyList())
     }
     val accountNotes by accountNotesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val accounts by component.accountRepository.observeAccounts()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val account = remember(note?.accountId, accounts) {
+        accounts.firstOrNull { it.id == note?.accountId }
+    }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -1138,7 +1143,7 @@ private fun NoteDetailScreen(
     var canUndo by remember(localId) { mutableStateOf(false) }
     var canRedo by remember(localId) { mutableStateOf(false) }
     var pendingHeading by remember(localId, heading, navigationRequest) { mutableStateOf(heading) }
-    var loadRemoteImages by remember(localId) { mutableStateOf(false) }
+    var loadImages by remember(localId) { mutableStateOf(true) }
     var finding by rememberSaveable(localId) { mutableStateOf(false) }
     var togglingTask by remember(localId) { mutableStateOf(false) }
     var findQuery by rememberSaveable(localId) { mutableStateOf("") }
@@ -1150,9 +1155,6 @@ private fun NoteDetailScreen(
     var versionToRestore by remember(localId) { mutableStateOf<RemoteNoteVersion?>(null) }
     var versionsRequestId by remember(localId) { mutableIntStateOf(0) }
     val renderedNote = remember(localId) { RenderedNote() }
-    val hasRemoteImages = remember(note?.content) {
-        component.markdownRenderer.hasRemoteImages(note?.content.orEmpty())
-    }
     val hasEncryptedContent = remember(note?.content) {
         component.markdownRenderer.hasEncryptedContent(note?.content.orEmpty())
     }
@@ -1385,6 +1387,19 @@ private fun NoteDetailScreen(
                                         },
                                         enabled = NoteTextSize.canIncrease(noteTextSizeSp),
                                         modifier = Modifier.testTag("increase-note-text-size")
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Checkbox(
+                                                    checked = loadImages,
+                                                    onCheckedChange = { loadImages = it }
+                                                )
+                                                Text("Load images")
+                                            }
+                                        },
+                                        onClick = { loadImages = !loadImages },
+                                        modifier = Modifier.testTag("toggle-load-images")
                                     )
                                     if (current?.remoteId != null) {
                                         DropdownMenuItem(
@@ -1701,11 +1716,6 @@ private fun NoteDetailScreen(
                             modifier = Modifier.padding(16.dp)
                         )
                     }
-                    if (hasRemoteImages && !loadRemoteImages) {
-                        TextButton(onClick = { loadRemoteImages = true }) {
-                            Text("Load remote images")
-                        }
-                    }
                     AndroidView(
                         factory = { context ->
                             AppCompatTextView(context).also {
@@ -1724,7 +1734,14 @@ private fun NoteDetailScreen(
                             // re-runs while the reader types a find query. Parse the note again
                             // only when what it renders to can actually have changed.
                             val renderKey =
-                                listOf(source, accountNotes, pendingHeading, loadRemoteImages)
+                                listOf(
+                                    source,
+                                    accountNotes,
+                                    pendingHeading,
+                                    loadImages,
+                                    source?.remoteId,
+                                    account?.ssoAccountName
+                                )
                             if (renderedNote.needsRendering(view, renderKey)) {
                                 component.markdownRenderer.render(
                                     view = view,
@@ -1767,7 +1784,9 @@ private fun NoteDetailScreen(
                                             }
                                         }
                                     },
-                                    loadRemoteImages = loadRemoteImages
+                                    loadRemoteImages = loadImages,
+                                    remoteId = source?.remoteId,
+                                    accountName = account?.ssoAccountName.orEmpty()
                                 )
                             }
                             val found = highlightNoteSearchMatches(

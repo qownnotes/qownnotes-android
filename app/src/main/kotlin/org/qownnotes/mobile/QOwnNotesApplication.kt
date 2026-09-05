@@ -1,7 +1,12 @@
 package org.qownnotes.mobile
 
 import android.app.Application
+import android.content.Context
 import androidx.room.Room
+import com.google.gson.GsonBuilder
+import com.nextcloud.android.sso.AccountImporter
+import com.nextcloud.android.sso.aidl.NextcloudRequest
+import com.nextcloud.android.sso.api.NextcloudAPI
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import java.time.Clock
 import java.util.UUID
@@ -45,6 +50,7 @@ import org.qownnotes.mobile.data.RoomNoteRepository
 import org.qownnotes.mobile.data.RoomPullStore
 import org.qownnotes.mobile.data.RoomPushStore
 import org.qownnotes.mobile.markdown.MarkdownRenderer
+import org.qownnotes.mobile.markdown.NextcloudAttachmentHttpClient
 
 open class QOwnNotesApplication : Application() {
     open fun createComponent() = ApplicationComponent(this)
@@ -79,7 +85,12 @@ class ApplicationComponent(
 ) {
     val noteRepository = RoomNoteRepository(database.noteDao())
     val accountRepository = RoomAccountRepository(database.accountDao())
-    val markdownRenderer = MarkdownRenderer(application)
+    val markdownRenderer = MarkdownRenderer(
+        application,
+        NextcloudAttachmentHttpClient { url, accountName ->
+            fetchAttachment(url, accountName, application)
+        }
+    )
     private val pullStore = RoomPullStore(database)
     private val pushStore = RoomPushStore(database)
     private val clock = Clock.systemDefaultZone()
@@ -436,6 +447,71 @@ private fun SingleSignOnAccount.displayName(): String =
 
 internal fun SingleSignOnAccount.localAccountId(): String =
     UUID.nameUUIDFromBytes(name.toByteArray()).toString()
+
+private fun fetchAttachment(
+    url: String,
+    accountName: String,
+    context: Context
+): java.io.InputStream? {
+    return try {
+        val ssoAccount = AccountImporter.getSingleSignOnAccount(context, accountName)
+            ?: return null
+        val gson = GsonBuilder().create()
+        val api = NextcloudAPI(context, ssoAccount, gson)
+        // The SSO library resolves relative paths against the account's server URL.
+        // Read the full response body eagerly because closing the API invalidates the stream.
+        val bytes = try {
+            // Split path and query string manually to avoid Uri.parse issues with relative URLs.
+            val queryIndex = url.indexOf('?')
+            val path = if (queryIndex >= 0) url.substring(0, queryIndex) else url
+            val queryString = if (queryIndex >= 0) url.substring(queryIndex + 1) else ""
+            val queryParams = queryString.split('&')
+                .filter { it.isNotBlank() }
+                .map { param ->
+                    val eq = param.indexOf('=')
+                    if (eq >= 0) {
+                        com.nextcloud.android.sso.QueryParam(
+                            java.net.URLDecoder.decode(
+                                param.substring(0, eq),
+                                java.nio.charset.StandardCharsets.UTF_8.name()
+                            ),
+                            java.net.URLDecoder.decode(
+                                param.substring(eq + 1),
+                                java.nio.charset.StandardCharsets.UTF_8.name()
+                            )
+                        )
+                    } else {
+                        com.nextcloud.android.sso.QueryParam(param, "")
+                    }
+                }
+            android.util.Log.d(
+                "QOwnNotes",
+                "fetchAttachment: path=$path, params=$queryParams, account=$accountName"
+            )
+            val request = NextcloudRequest.Builder()
+                .setMethod("GET")
+                .setUrl(path)
+                .setParameter(queryParams)
+                .build()
+            val response = api.performNetworkRequestV2(request)
+            val body = response.body
+            val headers = response.plainHeaders.joinToString { "${it.name}: ${it.value}" }
+            android.util.Log.d(
+                "QOwnNotes",
+                "fetchAttachment response: headers=$headers, bodyNull=${body == null}"
+            )
+            body?.use { stream ->
+                stream.readBytes()
+            }
+        } finally {
+            api.close()
+        }
+        bytes?.let { java.io.ByteArrayInputStream(it) }
+    } catch (error: Exception) {
+        android.util.Log.w("QOwnNotes", "Failed to fetch attachment: $url", error)
+        null
+    }
+}
 
 private fun Account.matches(ssoAccount: SingleSignOnAccount): Boolean =
     ssoAccountName == ssoAccount.name &&
