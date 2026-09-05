@@ -58,11 +58,16 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
         ).filter { layout.getLineForOffset(buffer.getSpanStart(it)) == line }
             .maxByOrNull(buffer::getSpanStart) ?: return null
         val direction = layout.getParagraphDirection(line)
-        val edge = if (direction > 0) layout.getLineLeft(line) else layout.getLineRight(line)
+        // The checkbox sits in the leading margin directly before the task's text. Nested items
+        // stack a leading margin per list level, so the paragraph edge (`getLineLeft` /
+        // `getLineRight`) stays at the outermost margin and cannot locate a nested checkbox. The
+        // horizontal position of the task's first character includes every level's margin, which
+        // places the checkbox of any nesting level half a margin before it.
+        val textStart = layout.getPrimaryHorizontal(buffer.getSpanStart(task))
         val center = if (direction > 0) {
-            edge - task.leadingMargin / 2F
+            textStart - task.leadingMargin / 2F
         } else {
-            edge + task.leadingMargin / 2F
+            textStart + task.leadingMargin / 2F
         }
         val touchWidth = maxOf(
             task.leadingMargin.toFloat(),

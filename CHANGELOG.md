@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Checkboxes in nested task lists can now be toggled in view mode; previously only top-level
+  checkboxes responded to taps because the tap target was measured from the outermost list margin
+  instead of the checkbox's actual position.
+
 ## [0.2.1] - 2026-09-04
 
 ### Fixed

@@ -242,6 +242,38 @@ class MarkdownRendererInstrumentedTest {
         assertEquals(1, toggledTask)
     }
 
+    @Test
+    fun tappingANestedCheckboxTogglesThatNestedTask() {
+        val markdown = "- [ ] first\n  - [ ] second\n    - [x] third\n- [ ] fourth"
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+        }
+
+        // Tap each checkbox where it is actually drawn and check that its own task toggles.
+        for (target in 0..3) {
+            var toggledTask = -1
+            instrumentation.runOnMainSync {
+                MarkdownRenderer(view.context).render(
+                    view = view,
+                    markdown = markdown,
+                    onTaskToggle = { toggledTask = it }
+                )
+                view.measure(
+                    View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                )
+                view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+                val text = view.text as Spanned
+                val task = text.getSpans(0, text.length, TaskToggleSpan::class.java)
+                    .single { it.index == target }
+                view.touchTask(task)
+            }
+            assertEquals(target, toggledTask)
+        }
+    }
+
     /** A press that is long enough to start a selection must not also follow the link under it. */
     @Test
     fun pressingALinkLongEnoughToSelectDoesNotOpenIt() {
@@ -542,10 +574,16 @@ class MarkdownRendererInstrumentedTest {
         }
     }
 
+    /**
+     * Taps where the checkbox is actually drawn: centered in the leading margin just before the
+     * task's text. Using the text start (which includes every nested list indent) rather than the
+     * paragraph edge is what makes this exercise nested checkboxes the way a user taps them.
+     */
     private fun AppCompatTextView.touchTask(task: TaskToggleSpan) {
         val text = text as Spannable
-        val line = layout.getLineForOffset(text.getSpanStart(task))
-        val x = layout.getLineLeft(line) + 8F * resources.displayMetrics.density + totalPaddingLeft
+        val start = text.getSpanStart(task)
+        val line = layout.getLineForOffset(start)
+        val x = layout.getPrimaryHorizontal(start) - task.leadingMargin / 2F + totalPaddingLeft
         val y = (layout.getLineTop(line) + layout.getLineBottom(line)) / 2F + totalPaddingTop
         val time = SystemClock.uptimeMillis()
         listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP).forEach { action ->
