@@ -90,14 +90,15 @@ class MarkdownRenderer private constructor(
         onHeadingPositioned: (Int?) -> Unit = {},
         loadRemoteImages: Boolean = false,
         remoteId: Long? = null,
+        category: String = "",
         accountName: String = ""
     ) {
         android.util.Log.d(
             "QOwnNotes",
             "render: loadRemoteImages=$loadRemoteImages, remoteId=$remoteId, " +
-                "accountName=$accountName, hasAttachmentHandler=${attachmentSchemeHandler != null}"
+                "category=$category, accountName=$accountName, hasAttachmentHandler=${attachmentSchemeHandler != null}"
         )
-        attachmentDestinationProcessor.setNoteContext(remoteId)
+        attachmentDestinationProcessor.setNoteContext(remoteId, category)
         attachmentSchemeHandler?.accountName = accountName
         linkHandlers[view] = InternalLinkHandler(resolveInternalLink, onInternalLink)
         // Reading a note includes taking text out of it, and copying needs a selection. This is
@@ -219,12 +220,19 @@ class MarkdownRenderer private constructor(
  * HTTPS destinations pass through unchanged. Relative destinations (such as QOwnNotes `media/`
  * paths) are rewritten to `nextcloud-attachment:` URLs when a server URL and note ID are set,
  * allowing the [NextcloudAttachmentSchemeHandler] to fetch them via SSO authentication.
+ *
+ * For notes in subcategories, `media/` paths are rewritten to use `../` prefixes so they resolve
+ * to the global media folder at the notes root, since the Nextcloud attachment endpoint resolves
+ * paths relative to the note's category folder.
  */
 private class AttachmentDestinationProcessor : ImageDestinationProcessor() {
     @Volatile private var remoteId: Long? = null
 
-    fun setNoteContext(remoteId: Long?) {
+    @Volatile private var category: String = ""
+
+    fun setNoteContext(remoteId: Long?, category: String) {
         this.remoteId = remoteId
+        this.category = category
     }
 
     override fun process(destination: String): String {
@@ -236,16 +244,24 @@ private class AttachmentDestinationProcessor : ImageDestinationProcessor() {
             !destination.startsWith("file://") &&
             !destination.startsWith(ATTACHMENT_SCHEME)
         ) {
+            val rewrittenDestination = rewriteMediaPath(destination, category)
             val result = "$ATTACHMENT_SCHEME:/index.php/apps/notes/api/v1/attachment/$id" +
-                "?path=" + URLEncoder.encode(destination, StandardCharsets.UTF_8.name())
+                "?path=" + URLEncoder.encode(rewrittenDestination, StandardCharsets.UTF_8.name())
             android.util.Log.d("QOwnNotes", "Rewrote image destination: $destination -> $result")
             return result
         }
         android.util.Log.d(
             "QOwnNotes",
-            "Blocked image destination: $destination (remoteId=$remoteId)"
+            "Blocked image destination: $destination (remoteId=$remoteId, category=$category)"
         )
         return BLOCKED_IMAGE_DESTINATION
+    }
+
+    private fun rewriteMediaPath(destination: String, category: String): String {
+        if (!destination.startsWith("media/")) return destination
+        val depth = category.count { it == '/' } + if (category.isNotBlank()) 1 else 0
+        if (depth == 0) return destination
+        return "../".repeat(depth) + destination
     }
 }
 

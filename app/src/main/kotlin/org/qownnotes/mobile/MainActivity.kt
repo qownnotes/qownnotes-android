@@ -1786,6 +1786,7 @@ private fun NoteDetailScreen(
                                     },
                                     loadRemoteImages = loadImages,
                                     remoteId = source?.remoteId,
+                                    category = source?.category.orEmpty(),
                                     accountName = account?.ssoAccountName.orEmpty()
                                 )
                             }
