@@ -28,6 +28,12 @@ The production application is named **QOwnNotes** and uses `org.qownnotes.mobile
 builds are named **QOwnNotes Dev** and use `org.qownnotes.mobile.dev`, so both can be installed on
 the same device. See [`CHANGELOG.md`](CHANGELOG.md) for release details.
 
+## Screenshots
+
+| Note list | Note view | Note edit |
+| --- | --- | --- |
+| ![Note list](docs/screenshots/note-list.webp) | ![Note view](docs/screenshots/note-view.webp) | ![Note edit](docs/screenshots/note-edit.webp) |
+
 ## Nextcloud Account Setup
 
 Install the Nextcloud Files Android app, sign in to the desired server there,
