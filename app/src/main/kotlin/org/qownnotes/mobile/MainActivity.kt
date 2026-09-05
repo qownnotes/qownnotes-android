@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -64,6 +65,7 @@ import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -124,6 +126,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteExcerpt
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.ResolvedNoteLink
@@ -486,6 +489,8 @@ private fun NoteListScreen(
     val account = accounts.first { it.id == accountId }
     val scope = rememberCoroutineScope()
     val selectionActive = selectedNoteIds.isNotEmpty()
+    val showNotePreview by component.settings.showNotePreview.collectAsStateWithLifecycle()
+    val showCategory by component.settings.showCategory.collectAsStateWithLifecycle()
 
     LaunchedEffect(accountId) { component.refresh(accountId) }
     LaunchedEffect(notes) {
@@ -573,6 +578,41 @@ private fun NoteListScreen(
                                     expanded = accountMenuOpen,
                                     onDismissRequest = { accountMenuOpen = false }
                                 ) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Checkbox(
+                                                    checked = showNotePreview,
+                                                    onCheckedChange = {
+                                                        component.settings.setShowNotePreview(it)
+                                                    }
+                                                )
+                                                Text("Show note preview")
+                                            }
+                                        },
+                                        onClick = {
+                                            component.settings.setShowNotePreview(!showNotePreview)
+                                        },
+                                        modifier = Modifier.testTag("toggle-note-preview")
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Checkbox(
+                                                    checked = showCategory,
+                                                    onCheckedChange = {
+                                                        component.settings.setShowCategory(it)
+                                                    }
+                                                )
+                                                Text("Show category")
+                                            }
+                                        },
+                                        onClick = {
+                                            component.settings.setShowCategory(!showCategory)
+                                        },
+                                        modifier = Modifier.testTag("toggle-category")
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     if (accounts.size > 1) {
                                         DropdownMenuItem(
                                             text = { Text("Switch account") },
@@ -744,10 +784,26 @@ private fun NoteListScreen(
                                     .padding(vertical = 8.dp)
                             ) {
                                 Text(note.title, style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    note.category.ifBlank { "Uncategorized" },
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                if (showCategory) {
+                                    Text(
+                                        note.category.ifBlank { "Uncategorized" },
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                if (showNotePreview) {
+                                    val excerpt = remember(note.content, note.title) {
+                                        NoteExcerpt.of(note.content, note.title)
+                                    }
+                                    if (excerpt.isNotBlank()) {
+                                        Text(
+                                            excerpt,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
                             }
                             IconButton(
                                 onClick = {

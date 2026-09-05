@@ -38,8 +38,34 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableNoteTextSizeSp.value = coerced
     }
 
+    private val mutableShowNotePreview =
+        MutableStateFlow(preferences.getBoolean(SHOW_NOTE_PREVIEW, true))
+
+    /** Whether the note list shows a plain-text preview of each note's content. */
+    val showNotePreview: StateFlow<Boolean> = mutableShowNotePreview.asStateFlow()
+
+    fun setShowNotePreview(enabled: Boolean) {
+        if (enabled == mutableShowNotePreview.value) return
+        preferences.edit().putBoolean(SHOW_NOTE_PREVIEW, enabled).apply()
+        mutableShowNotePreview.value = enabled
+    }
+
+    private val mutableShowCategory =
+        MutableStateFlow(preferences.getBoolean(SHOW_CATEGORY, false))
+
+    /** Whether the note list shows each note's category. */
+    val showCategory: StateFlow<Boolean> = mutableShowCategory.asStateFlow()
+
+    fun setShowCategory(enabled: Boolean) {
+        if (enabled == mutableShowCategory.value) return
+        preferences.edit().putBoolean(SHOW_CATEGORY, enabled).apply()
+        mutableShowCategory.value = enabled
+    }
+
     private companion object {
         const val PREFERENCES = "qownnotes-settings"
         const val NOTE_TEXT_SIZE_SP = "noteTextSizeSp"
+        const val SHOW_NOTE_PREVIEW = "showNotePreview"
+        const val SHOW_CATEGORY = "showCategory"
     }
 }
