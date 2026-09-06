@@ -9,6 +9,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- An **About** menu item in the note list account menu shows the version number and short git
+  commit hash. Both values link to the project's GitHub releases and commit page respectively.
 - Renaming a note can optionally update the first Markdown heading to match the new file name.
   The rename dialog includes an **Update heading 1** checkbox that is enabled by default.
 

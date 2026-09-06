@@ -27,6 +27,11 @@ android {
             ?: releaseVersionCode
         versionName = releaseVersionName
         testInstrumentationRunner = "org.qownnotes.mobile.QOwnNotesTestRunner"
+
+        val gitCommitHash = providers.exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+        }.standardOutput.asText.get().trim()
+        buildConfigField("String", "GIT_COMMIT", "\"$gitCommitHash\"")
     }
 
     signingConfigs {
@@ -61,7 +66,10 @@ android {
         }
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17

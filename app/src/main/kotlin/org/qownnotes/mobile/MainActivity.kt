@@ -3,6 +3,8 @@ package org.qownnotes.mobile
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import androidx.activity.ComponentActivity
@@ -124,6 +126,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import org.qownnotes.mobile.BuildConfig
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteExcerpt
@@ -466,6 +469,7 @@ private fun NoteListScreen(
     var query by rememberSaveable { mutableStateOf("") }
     var showRemoveConfirmation by rememberSaveable(accountId) { mutableStateOf(false) }
     var showAccountChooser by rememberSaveable(accountId) { mutableStateOf(false) }
+    var showAbout by rememberSaveable(accountId) { mutableStateOf(false) }
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectedNoteIds by rememberSaveable(accountId) { mutableStateOf(emptyList<String>()) }
@@ -645,6 +649,15 @@ private fun NoteListScreen(
                                             showRemoveConfirmation = true
                                         },
                                         modifier = Modifier.testTag("remove-account")
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    DropdownMenuItem(
+                                        text = { Text("About") },
+                                        onClick = {
+                                            accountMenuOpen = false
+                                            showAbout = true
+                                        },
+                                        modifier = Modifier.testTag("about")
                                     )
                                 }
                             }
@@ -888,6 +901,46 @@ private fun NoteListScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showRemoveConfirmation = false }) { Text("Cancel") }
+            }
+        )
+    }
+    if (showAbout) {
+        val context = LocalContext.current
+        val packageInfo = remember {
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        }
+        val repoUrl = "https://github.com/qownnotes/qownnotes-android"
+        AlertDialog(
+            onDismissRequest = { showAbout = false },
+            title = { Text("About QOwnNotes") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Version: ${packageInfo.versionName}",
+                        modifier = Modifier.clickable {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("$repoUrl/releases/tag/v${packageInfo.versionName}")
+                                )
+                            )
+                        }
+                    )
+                    Text(
+                        "Commit: ${BuildConfig.GIT_COMMIT}",
+                        modifier = Modifier.clickable {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("$repoUrl/commit/${BuildConfig.GIT_COMMIT}")
+                                )
+                            )
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAbout = false }) { Text("Close") }
             }
         )
     }
