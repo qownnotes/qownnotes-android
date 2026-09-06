@@ -34,6 +34,18 @@ object NoteNames {
         .trim()
 
     fun isValid(name: String): Boolean = sanitize(name).isNotEmpty()
+
+    private val FIRST_HEADING = Regex("""(?m)^#[^#].*$""")
+
+    fun replaceFirstHeading(content: String, newTitle: String): String {
+        if (content.isBlank()) return content
+        val match = FIRST_HEADING.find(content) ?: return content
+        val lineStart = content.lastIndexOf('\n', match.range.first - 1) + 1
+        val lineEnd = content.indexOf('\n', match.range.last + 1).let {
+            if (it < 0) content.length else it
+        }
+        return content.substring(0, lineStart) + "# $newTitle" + content.substring(lineEnd)
+    }
 }
 
 /**

@@ -39,4 +39,45 @@ class NoteNamesTest {
         assertFalse(NoteNames.isValid("/"))
         assertTrue(NoteNames.isValid("Note"))
     }
+
+    @Test
+    fun `replaces the first heading with the new title`() {
+        val content = "# Old title\n\nSome body text.\n"
+        val result = NoteNames.replaceFirstHeading(content, "New title")
+        assertEquals("# New title\n\nSome body text.\n", result)
+    }
+
+    @Test
+    fun `replaces heading when body is empty`() {
+        val content = "# Old title\n\n"
+        val result = NoteNames.replaceFirstHeading(content, "Renamed")
+        assertEquals("# Renamed\n\n", result)
+    }
+
+    @Test
+    fun `leaves content unchanged when no heading exists`() {
+        val content = "Just some text without a heading.\n"
+        val result = NoteNames.replaceFirstHeading(content, "New title")
+        assertEquals(content, result)
+    }
+
+    @Test
+    fun `leaves blank content unchanged`() {
+        assertEquals("", NoteNames.replaceFirstHeading("", "New title"))
+        assertEquals("  \n", NoteNames.replaceFirstHeading("  \n", "New title"))
+    }
+
+    @Test
+    fun `replaces only the first heading`() {
+        val content = "# First\n## Second\n### Third\n"
+        val result = NoteNames.replaceFirstHeading(content, "Replaced")
+        assertEquals("# Replaced\n## Second\n### Third\n", result)
+    }
+
+    @Test
+    fun `preserves content after the heading`() {
+        val content = "# Title\n\nLine 1\nLine 2\nLine 3\n"
+        val result = NoteNames.replaceFirstHeading(content, "Updated")
+        assertEquals("# Updated\n\nLine 1\nLine 2\nLine 3\n", result)
+    }
 }

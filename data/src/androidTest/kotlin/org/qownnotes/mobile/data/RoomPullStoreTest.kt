@@ -390,6 +390,32 @@ class RoomPullStoreTest {
     }
 
     @Test
+    fun renamingANoteWithHeadingUpdateChangesTitleAndContent() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED).copy(content = "# Local\n\nBody text.\n")
+        )
+
+        assertTrue(
+            notes.updateTitleAndContent(
+                "account-local-42",
+                "Renamed",
+                "# Renamed\n\nBody text.\n",
+                20
+            )
+        )
+
+        val note = notes.get("account-local-42")!!
+        assertEquals("Renamed", note.title)
+        assertEquals("# Renamed\n\nBody text.\n", note.content)
+        assertEquals(20L, note.modifiedAtEpochSeconds)
+        assertEquals(1L, note.localRevision)
+        assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
+    }
+
+    @Test
     fun movingNotesToTrashHidesAndQueuesThemUntilDeletionCompletes() = runBlocking {
         val accounts = RoomAccountRepository(database.accountDao())
         val notes = RoomNoteRepository(database.noteDao())

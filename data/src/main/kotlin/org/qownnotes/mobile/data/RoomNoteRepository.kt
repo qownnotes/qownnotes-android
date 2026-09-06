@@ -40,6 +40,13 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
         modifiedAtEpochSeconds: Long
     ): Boolean = noteDao.updateTitle(localId, title, modifiedAtEpochSeconds) > 0
 
+    override suspend fun updateTitleAndContent(
+        localId: String,
+        title: String,
+        content: String,
+        modifiedAtEpochSeconds: Long
+    ): Boolean = noteDao.updateTitleAndContent(localId, title, content, modifiedAtEpochSeconds) > 0
+
     override suspend fun updateFavorite(localId: String, favorite: Boolean): Boolean =
         noteDao.updateFavorite(localId, favorite) > 0
 

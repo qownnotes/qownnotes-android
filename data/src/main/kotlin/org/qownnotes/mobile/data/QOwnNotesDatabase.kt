@@ -80,6 +80,21 @@ interface NoteDao {
     suspend fun updateTitle(localId: String, title: String, modifiedAtEpochSeconds: Long): Int
 
     @Query(
+        """UPDATE notes SET title = :title, content = :content,
+           modifiedAtEpochSeconds = :modifiedAtEpochSeconds,
+           localRevision = localRevision + 1,
+           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = NULL
+           WHERE localId = :localId AND readOnly = 0 AND (title != :title OR content != :content)"""
+    )
+    suspend fun updateTitleAndContent(
+        localId: String,
+        title: String,
+        content: String,
+        modifiedAtEpochSeconds: Long
+    ): Int
+
+    @Query(
         """UPDATE notes SET favorite = :favorite,
            localRevision = localRevision + 1,
            syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,

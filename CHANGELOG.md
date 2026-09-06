@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Renaming a note can optionally update the first Markdown heading to match the new file name.
+  The rename dialog includes an **Update heading 1** checkbox that is enabled by default.
+
 ### Changed
 
 - Remote images now load automatically in the note view. Local media images from Nextcloud notes

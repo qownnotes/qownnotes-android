@@ -23,6 +23,13 @@ interface NoteRepository {
 
     suspend fun updateTitle(localId: String, title: String, modifiedAtEpochSeconds: Long): Boolean
 
+    suspend fun updateTitleAndContent(
+        localId: String,
+        title: String,
+        content: String,
+        modifiedAtEpochSeconds: Long
+    ): Boolean
+
     suspend fun updateFavorite(localId: String, favorite: Boolean): Boolean
 
     suspend fun retry(localId: String): Boolean

@@ -1133,6 +1133,7 @@ private fun NoteDetailScreen(
     var renaming by rememberSaveable(localId) { mutableStateOf(false) }
     var noteMenuOpen by rememberSaveable(localId) { mutableStateOf(false) }
     var noteName by rememberSaveable(localId) { mutableStateOf("") }
+    var updateHeading by rememberSaveable(localId) { mutableStateOf(true) }
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
@@ -1417,6 +1418,7 @@ private fun NoteDetailScreen(
                                             onClick = {
                                                 noteMenuOpen = false
                                                 noteName = current.title
+                                                updateHeading = true
                                                 renaming = true
                                             },
                                             modifier = Modifier.testTag("rename-note")
@@ -1869,10 +1871,15 @@ private fun NoteDetailScreen(
         RenameNoteDialog(
             name = noteName,
             onNameChange = { noteName = it },
+            updateHeading = updateHeading,
+            onUpdateHeadingChange = { updateHeading = it },
             onDismiss = { renaming = false },
             onConfirm = {
                 renaming = false
-                scope.launch { component.renameNote(localId, noteName) }
+                scope.launch {
+                    component.renameNote(localId, noteName, updateHeading)
+                }
+                updateHeading = true
             }
         )
     }
@@ -1945,6 +1952,8 @@ private fun NoteDetailScreen(
 private fun RenameNoteDialog(
     name: String,
     onNameChange: (String) -> Unit,
+    updateHeading: Boolean,
+    onUpdateHeadingChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -1961,18 +1970,33 @@ private fun RenameNoteDialog(
         onDismissRequest = onDismiss,
         title = { Text("Rename note") },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = onNameChange,
-                label = { Text("File name") },
-                singleLine = true,
-                supportingText = {
-                    Text("Characters a file name cannot hold are replaced by spaces.")
-                },
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
-                    .onPlaced { fieldPlaced = true }
-                    .testTag("note-name-field")
-            )
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = onNameChange,
+                    label = { Text("File name") },
+                    singleLine = true,
+                    supportingText = {
+                        Text("Characters a file name cannot hold are replaced by spaces.")
+                    },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
+                        .onPlaced { fieldPlaced = true }
+                        .testTag("note-name-field")
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                        .testTag("update-heading-checkbox")
+                ) {
+                    Checkbox(
+                        checked = updateHeading,
+                        onCheckedChange = onUpdateHeadingChange
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Update heading 1")
+                }
+            }
         },
         confirmButton = {
             TextButton(

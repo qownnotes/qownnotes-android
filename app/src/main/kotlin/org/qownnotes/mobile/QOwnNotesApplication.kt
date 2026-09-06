@@ -251,20 +251,34 @@ class ApplicationComponent(
         }
 
     /**
-     * Renames the file holding the note. The server sanitizes the name once more and may append a
-     * suffix when the folder already holds that name, which [pushPending] then adopts.
+     * Renames the file holding the note. When [updateHeading] is true the first Markdown heading
+     * in the content is replaced to match the new title. The server sanitizes the name once more
+     * and may append a suffix when the folder already holds that name, which [pushPending] then
+     * adopts.
      */
-    suspend fun renameNote(localId: String, title: String): Boolean =
-        editMutexes.getOrPut(localId, ::Mutex).withLock {
-            val note = noteRepository.get(localId) ?: return@withLock false
-            if (note.readOnly) return@withLock false
-            val sanitized = NoteNames.sanitize(title)
-            if (sanitized.isEmpty() || sanitized == note.title) return@withLock false
-            val renamed =
-                noteRepository.updateTitle(localId, sanitized, clock.instant().epochSecond)
-            if (renamed) scheduleSync(note.accountId)
-            renamed
+    suspend fun renameNote(
+        localId: String,
+        title: String,
+        updateHeading: Boolean = false
+    ): Boolean = editMutexes.getOrPut(localId, ::Mutex).withLock {
+        val note = noteRepository.get(localId) ?: return@withLock false
+        if (note.readOnly) return@withLock false
+        val sanitized = NoteNames.sanitize(title)
+        if (sanitized.isEmpty() || sanitized == note.title) return@withLock false
+        val renamed = if (updateHeading) {
+            val newContent = NoteNames.replaceFirstHeading(note.content, sanitized)
+            noteRepository.updateTitleAndContent(
+                localId,
+                sanitized,
+                newContent,
+                clock.instant().epochSecond
+            )
+        } else {
+            noteRepository.updateTitle(localId, sanitized, clock.instant().epochSecond)
         }
+        if (renamed) scheduleSync(note.accountId)
+        renamed
+    }
 
     suspend fun setFavorite(localId: String, favorite: Boolean): Boolean =
         editMutexes.getOrPut(localId, ::Mutex).withLock {
