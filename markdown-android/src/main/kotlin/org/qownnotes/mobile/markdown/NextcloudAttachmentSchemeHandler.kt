@@ -29,10 +29,6 @@ internal class NextcloudAttachmentSchemeHandler(
 
     override fun handle(raw: String, uri: Uri): ImageItem {
         val url = uri.toString().removePrefix("$SCHEME:")
-        android.util.Log.d(
-            "QOwnNotes",
-            "Attachment handle: raw=$raw, uri=$uri, url=$url, account=$accountName"
-        )
         val inputStream = httpClient.fetch(url, accountName)
             ?: error("Failed to fetch attachment: $url (account=$accountName)")
         return inputStream.use { ImageItem.withResult(it.decodeBoundedDrawable(resources)) }

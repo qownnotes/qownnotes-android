@@ -498,10 +498,6 @@ private fun fetchAttachment(
                         com.nextcloud.android.sso.QueryParam(param, "")
                     }
                 }
-            android.util.Log.d(
-                "QOwnNotes",
-                "fetchAttachment: path=$path, params=$queryParams, account=$accountName"
-            )
             val request = NextcloudRequest.Builder()
                 .setMethod("GET")
                 .setUrl(path)
@@ -509,11 +505,6 @@ private fun fetchAttachment(
                 .build()
             val response = api.performNetworkRequestV2(request)
             val body = response.body
-            val headers = response.plainHeaders.joinToString { "${it.name}: ${it.value}" }
-            android.util.Log.d(
-                "QOwnNotes",
-                "fetchAttachment response: headers=$headers, bodyNull=${body == null}"
-            )
             body?.use { stream ->
                 stream.readBytes()
             }

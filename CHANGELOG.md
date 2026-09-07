@@ -22,6 +22,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Local `media/` images in Nextcloud notes now use the versioned Notes attachment endpoint instead
+  of failing to load as red placeholders.
 - Checkboxes in nested task lists can now be toggled in view mode; previously only top-level
   checkboxes responded to taps because the tap target was measured from the outermost list margin
   instead of the checkbox's actual position.

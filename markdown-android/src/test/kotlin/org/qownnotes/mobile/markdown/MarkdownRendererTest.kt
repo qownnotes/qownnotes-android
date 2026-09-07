@@ -103,6 +103,27 @@ class MarkdownRendererTest {
     }
 
     @Test
+    fun buildsVersionedNextcloudAttachmentDestinationForLocalMedia() {
+        assertEquals(
+            "nextcloud-attachment:/index.php/apps/notes/api/v1.4/attachment/42" +
+                "?path=media%2F972323754.png",
+            nextcloudAttachmentDestination("media/972323754.png", 42)
+        )
+        assertEquals(
+            "nextcloud-attachment:/index.php/apps/notes/api/v1.4/attachment/42" +
+                "?path=media%2Fimage+one.png",
+            nextcloudAttachmentDestination("media/image one.png", 42)
+        )
+    }
+
+    @Test
+    fun doesNotBuildNextcloudAttachmentDestinationWithoutRemoteContext() {
+        assertNull(nextcloudAttachmentDestination("media/image.png", null))
+        assertNull(nextcloudAttachmentDestination("https://example.com/image.png", 42))
+        assertNull(nextcloudAttachmentDestination("file:///sdcard/image.png", 42))
+    }
+
+    @Test
     fun togglesRenderedTaskMarkersByIndex() {
         val markdown =
             """

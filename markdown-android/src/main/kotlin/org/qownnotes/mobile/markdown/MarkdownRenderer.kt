@@ -25,8 +25,6 @@ import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.image.SchemeHandler
 import io.noties.markwon.image.destination.ImageDestinationProcessor
 import io.noties.markwon.movement.MovementMethodPlugin
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Base64
@@ -47,13 +45,11 @@ import org.qownnotes.mobile.core.redactEncryptedMarkdown
 class MarkdownRenderer private constructor(
     context: Context,
     imageSchemeHandler: SchemeHandler,
-    private val attachmentHttpClient: NextcloudAttachmentHttpClient?,
     private val attachmentSchemeHandler: NextcloudAttachmentSchemeHandler?
 ) {
     constructor(context: Context) : this(
         context,
         SafeHttpsImageSchemeHandler(context.applicationContext.resources),
-        null,
         null
     )
 
@@ -63,7 +59,6 @@ class MarkdownRenderer private constructor(
     ) : this(
         context,
         SafeHttpsImageSchemeHandler(context.applicationContext.resources),
-        httpClient,
         NextcloudAttachmentSchemeHandler(context.applicationContext.resources, httpClient)
     )
 
@@ -77,7 +72,7 @@ class MarkdownRenderer private constructor(
         private val IMAGE_EXECUTOR = Executors.newFixedThreadPool(2)
 
         fun forTest(context: Context, imageSchemeHandler: SchemeHandler): MarkdownRenderer =
-            MarkdownRenderer(context, imageSchemeHandler, null, null)
+            MarkdownRenderer(context, imageSchemeHandler, null)
     }
 
     fun render(
@@ -92,11 +87,6 @@ class MarkdownRenderer private constructor(
         remoteId: Long? = null,
         accountName: String = ""
     ) {
-        android.util.Log.d(
-            "QOwnNotes",
-            "render: loadRemoteImages=$loadRemoteImages, remoteId=$remoteId, " +
-                "accountName=$accountName, hasAttachmentHandler=${attachmentSchemeHandler != null}"
-        )
         attachmentDestinationProcessor.setNoteContext(remoteId)
         attachmentSchemeHandler?.accountName = accountName
         linkHandlers[view] = InternalLinkHandler(resolveInternalLink, onInternalLink)
@@ -229,24 +219,22 @@ private class AttachmentDestinationProcessor : ImageDestinationProcessor() {
 
     override fun process(destination: String): String {
         canonicalSafeImageDestination(destination)?.let { return it }
-        val id = remoteId
-        if (id != null && destination.isNotBlank() &&
-            !destination.startsWith("http://") &&
-            !destination.startsWith("https://") &&
-            !destination.startsWith("file://") &&
-            !destination.startsWith(ATTACHMENT_SCHEME)
-        ) {
-            val result = "$ATTACHMENT_SCHEME:/index.php/apps/notes/api/v1/attachment/$id" +
-                "?path=" + URLEncoder.encode(destination, StandardCharsets.UTF_8.name())
-            android.util.Log.d("QOwnNotes", "Rewrote image destination: $destination -> $result")
-            return result
-        }
-        android.util.Log.d(
-            "QOwnNotes",
-            "Blocked image destination: $destination (remoteId=$remoteId)"
-        )
-        return BLOCKED_IMAGE_DESTINATION
+        return nextcloudAttachmentDestination(destination, remoteId)
+            ?: BLOCKED_IMAGE_DESTINATION
     }
+}
+
+internal fun nextcloudAttachmentDestination(destination: String, remoteId: Long?): String? {
+    if (remoteId == null || destination.isBlank() ||
+        destination.startsWith("http://") ||
+        destination.startsWith("https://") ||
+        destination.startsWith("file://") ||
+        destination.startsWith(ATTACHMENT_SCHEME)
+    ) {
+        return null
+    }
+    return "$ATTACHMENT_SCHEME:/index.php/apps/notes/api/v1.4/attachment/$remoteId" +
+        "?path=" + URLEncoder.encode(destination, StandardCharsets.UTF_8.name())
 }
 
 internal class TaskToggleSpan(val index: Int, val leadingMargin: Int, val toggle: (Int) -> Unit)
