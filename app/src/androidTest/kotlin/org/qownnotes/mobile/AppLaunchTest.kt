@@ -1174,6 +1174,48 @@ class AppLaunchTest {
     }
 
     @Test
+    fun anOlderEditorSaveCannotReplaceANewerDraft() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking { notesOf("alice").single() }
+        application.component.cacheDraft(note.localId, "older")
+        application.component.cacheDraft(note.localId, "newer")
+
+        runBlocking { application.component.saveDraft(note.localId, "older") }
+
+        assertEquals(
+            "# Existing note",
+            runBlocking { application.component.noteRepository.get(note.localId)?.content }
+        )
+
+        runBlocking { application.component.saveDraft(note.localId, "newer") }
+        runBlocking { application.component.saveDraft(note.localId, "older") }
+
+        assertEquals(
+            "newer",
+            runBlocking { application.component.noteRepository.get(note.localId)?.content }
+        )
+    }
+
+    @Test
+    fun editorDraftIsSavedWhenTheEditorLosesFocus() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking { notesOf("alice").single() }
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(
+            click(),
+            replaceText("# Edited\n\nSaved on focus loss")
+        )
+
+        onView(withId(R.id.markdown_editor)).check { view, _ -> view.clearFocus() }
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { application.component.noteRepository.get(note.localId)?.content } ==
+                "# Edited\n\nSaved on focus loss"
+        }
+    }
+
+    @Test
     fun editorDraftSurvivesActivityRecreation() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()

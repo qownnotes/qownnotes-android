@@ -1822,6 +1822,16 @@ private fun NoteDetailScreen(
                                             selectionStart = start
                                             selectionEnd = end
                                         }
+                                        view.setOnFocusChangeListener { focusedView, hasFocus ->
+                                            if (!hasFocus && editing) {
+                                                component.checkpointDraftInBackground(
+                                                    localId,
+                                                    (focusedView as MarkdownEditText).text
+                                                        ?.toString()
+                                                        .orEmpty()
+                                                )
+                                            }
+                                        }
                                         editorBinding = MarkdownEditorBinding(
                                             context,
                                             view,
@@ -1941,7 +1951,7 @@ private fun NoteDetailScreen(
                                                 toggleTaskListItem(source.content, taskIndex)?.let {
                                                     togglingTask = true
                                                     scope.launch {
-                                                        component.saveDraft(localId, it)
+                                                        component.replaceNoteContent(localId, it)
                                                         togglingTask = false
                                                     }
                                                 }
@@ -2003,7 +2013,7 @@ private fun NoteDetailScreen(
                         val restored = contentBeforeEditing
                         if (restored != null) {
                             scope.launch {
-                                component.saveDraft(localId, restored)
+                                component.replaceNoteContent(localId, restored)
                                 draft = restored
                                 leaveEditMode()
                             }

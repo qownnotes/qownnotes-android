@@ -114,7 +114,7 @@ class ApplicationComponent(
     private val refreshMutexes = ConcurrentHashMap<String, Mutex>()
     private val editMutexes = ConcurrentHashMap<String, Mutex>()
     private val syncJobs = ConcurrentHashMap<String, Job>()
-    private val editorDrafts = ConcurrentHashMap<String, String>()
+    private val editorDrafts = EditorDraftCache()
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     fun launchAccountImport(ssoAccount: SingleSignOnAccount, expectedAccountId: String? = null) {
@@ -191,6 +191,7 @@ class ApplicationComponent(
         accountMutex(accountId).withLock {
             val localNoteIds = noteRepository.observeNotes(accountId).first().map(Note::localId)
             accountRepository.remove(accountId)
+            editorDrafts.remove(localNoteIds)
             settings.removeNoteCategoryScope(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
@@ -229,39 +230,62 @@ class ApplicationComponent(
 
     suspend fun beginEditing(localId: String): Note? =
         editMutexes.getOrPut(localId, ::Mutex).withLock {
-            noteRepository.beginEditing(localId)?.also { cacheDraft(localId, it.content) }
+            noteRepository.beginEditing(localId)?.let { note ->
+                note.copy(content = editorDrafts.restore(localId, note.content))
+            }
         }
 
     suspend fun saveDraft(localId: String, content: String): Boolean =
         editMutexes.getOrPut(localId, ::Mutex).withLock {
-            val note = noteRepository.get(localId) ?: return@withLock false
-            if (note.readOnly) return@withLock false
-            if (note.content == content) {
-                editorDrafts.remove(localId, content)
-                if (note.syncState == SyncState.LOCALLY_MODIFIED ||
-                    note.syncState == SyncState.LOCALLY_CREATED
-                ) {
-                    scheduleSync(note.accountId)
-                }
-                return@withLock true
+            if (!editorDrafts.current(localId, content)) return@withLock true
+            saveDraftLocked(localId, content)
+        }
+
+    suspend fun replaceNoteContent(localId: String, content: String): Boolean =
+        editMutexes.getOrPut(localId, ::Mutex).withLock {
+            saveDraftLocked(localId, content).also { saved ->
+                if (saved) editorDrafts.replaceWithPersisted(localId, content)
             }
-            val saved = noteRepository.updateDraft(localId, content, clock.instant().epochSecond)
-            if (saved) {
-                editorDrafts.remove(localId, content)
+        }
+
+    private suspend fun saveDraftLocked(localId: String, content: String): Boolean {
+        val note = noteRepository.get(localId) ?: return false
+        if (note.readOnly) return false
+        if (note.content == content) {
+            editorDrafts.markPersisted(localId, content)
+            if (note.syncState == SyncState.LOCALLY_MODIFIED ||
+                note.syncState == SyncState.LOCALLY_CREATED
+            ) {
                 scheduleSync(note.accountId)
             }
-            saved
+            return true
         }
+        val saved = noteRepository.updateDraft(localId, content, clock.instant().epochSecond)
+        if (saved) {
+            editorDrafts.markPersisted(localId, content)
+            scheduleSync(note.accountId)
+        }
+        return saved
+    }
 
     /** Persists an editing checkpoint without coupling the local save cadence to network work. */
     suspend fun checkpointDraft(localId: String, content: String): Boolean =
         editMutexes.getOrPut(localId, ::Mutex).withLock {
             // A checkpoint captured before a newer text callback must never overwrite that text.
-            if (editorDrafts[localId]?.let { it != content } == true) return@withLock true
+            if (!editorDrafts.current(localId, content)) return@withLock true
             val note = noteRepository.get(localId) ?: return@withLock false
             if (note.readOnly) return@withLock false
-            if (note.content == content) return@withLock true
-            noteRepository.updateDraft(localId, content, clock.instant().epochSecond)
+            if (note.content == content) {
+                editorDrafts.markPersisted(localId, content)
+                return@withLock true
+            }
+            noteRepository.updateDraft(
+                localId,
+                content,
+                clock.instant().epochSecond
+            ).also { saved ->
+                if (saved) editorDrafts.markPersisted(localId, content)
+            }
         }
 
     /**
@@ -303,15 +327,18 @@ class ApplicationComponent(
         }
 
     fun cacheDraft(localId: String, content: String) {
-        editorDrafts[localId] = content
+        editorDrafts.cache(localId, content)
     }
 
     fun draft(localId: String, persistedContent: String): String =
-        editorDrafts[localId] ?: persistedContent
+        editorDrafts.restore(localId, persistedContent)
 
     fun saveDraftInBackground(localId: String, content: String) {
-        cacheDraft(localId, content)
         applicationScope.launch { saveDraft(localId, content) }
+    }
+
+    fun checkpointDraftInBackground(localId: String, content: String) {
+        applicationScope.launch { checkpointDraft(localId, content) }
     }
 
     suspend fun retryNote(localId: String) {
@@ -337,7 +364,7 @@ class ApplicationComponent(
     }
 
     suspend fun restoreNoteVersion(localId: String, version: RemoteNoteVersion): Boolean =
-        saveDraft(localId, version.content)
+        replaceNoteContent(localId, version.content)
 
     suspend fun trashedNotes(accountId: String, categories: Set<String>): List<TrashedNote> =
         accountMutex(accountId).withLock {

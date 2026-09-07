@@ -852,6 +852,9 @@ Implemented:
 - Moved supplemental QOwnNotes source highlighting off the main thread. Each result is applied only
   if its request and source are still current, and explicit tests cover every required source syntax
   plus a large generated document.
+- Made editor draft persistence reject stale snapshots even after a newer snapshot has finished
+  saving, and added a local-only checkpoint when the editor loses focus. Direct content operations
+  such as task toggling and version restoration remain separate from editor snapshot ordering.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 

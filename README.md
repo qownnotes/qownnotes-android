@@ -56,9 +56,9 @@ overwriting a concurrent server edit.
 
 Editing does not wait for Nextcloud. Changes are cached immediately while the app is running and
 written to Room after a 500 ms pause, at least every five seconds during continuous typing, when
-editing finishes, or when the screen stops. A persisted edit remains visible after restarting the
-app and stays queued if synchronization cannot reach the server. A later edit, manual refresh, or
-return to the note list tries synchronization again.
+the editor loses focus, when editing finishes, or when the screen stops. A persisted edit remains
+visible after restarting the app and stays queued if synchronization cannot reach the server. A
+later edit, manual refresh, or return to the note list tries synchronization again.
 
 Updates use the last known ETag. If the server copy changed in the meantime, the app keeps the
 local text and marks the note as conflicted instead of overwriting the server. Durable background
