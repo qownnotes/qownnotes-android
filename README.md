@@ -61,9 +61,11 @@ visible after restarting the app and stays queued if synchronization cannot reac
 later edit, manual refresh, or return to the note list tries synchronization again.
 
 Updates use the last known ETag. If the server copy changed in the meantime, the app keeps the
-local text and marks the note as conflicted instead of overwriting the server. Durable background
-retry and conflict resolution are not implemented yet. Because the live draft cache is in memory,
-an abrupt process kill can lose only the characters entered since the latest idle or periodic Room
+local text and marks the note as conflicted instead of overwriting the server. Open the conflict in
+the note view and choose **Resolve conflict** to load the server version or first preserve the local
+version as a new note. If the server cannot be reached, the local conflict remains untouched.
+Durable background retry is not implemented yet. Because the live draft cache is in memory, an
+abrupt process kill can lose only the characters entered since the latest idle or periodic Room
 checkpoint.
 
 ## NixOS Recipes

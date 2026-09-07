@@ -89,6 +89,24 @@ class NotesApiMockServerTest {
     }
 
     @Test
+    fun loadsCurrentNoteForConflictResolution() {
+        server.enqueue(
+            MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody(
+                """{"id":42,"etag":"server-etag","title":"Server","content":"Server text","category":"Work","modified":20,"favorite":true}"""
+            )
+        )
+
+        val note = getNoteFromApi(api, 42)
+
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/index.php/apps/notes/api/v1/notes/42", request.requestUrl!!.encodedPath)
+        assertEquals("Server text", note.content)
+        assertEquals("server-etag", note.etag)
+        assertTrue(note.favorite)
+    }
+
+    @Test
     fun returnsNotModifiedOnlyForInitialRequest() {
         server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED))
 

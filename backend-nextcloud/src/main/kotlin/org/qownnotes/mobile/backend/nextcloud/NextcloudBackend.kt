@@ -84,6 +84,15 @@ class NextcloudBackend(context: Context) :
             }
         }
 
+    override suspend fun get(account: Account, remoteId: Long): RemoteNote =
+        withContext(Dispatchers.IO) {
+            try {
+                withApis(account) { _, notesApi, _ -> getNoteFromApi(notesApi, remoteId) }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
     override suspend fun create(account: Account, note: Note): RemoteNote =
         withContext(Dispatchers.IO) {
             try {
@@ -301,6 +310,9 @@ internal fun pullFromApi(notesApi: NotesApi, checkpoint: PullCheckpoint): PullRe
 
 internal fun createWithApi(notesApi: NotesApi, note: Note): RemoteNote =
     notesApi.createNote(note.toWriteDto()).execute().toCanonicalRemoteNote()
+
+internal fun getNoteFromApi(notesApi: NotesApi, remoteId: Long): RemoteNote =
+    notesApi.getNote(remoteId).execute().toCanonicalRemoteNote()
 
 internal fun updateWithApi(notesApi: NotesApi, note: Note): RemoteNote {
     val remoteId = note.remoteId

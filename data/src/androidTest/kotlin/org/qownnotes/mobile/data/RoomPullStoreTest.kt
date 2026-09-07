@@ -536,6 +536,62 @@ class RoomPullStoreTest {
         assertEquals(SyncState.LOCALLY_CREATED, notes.get("account-local-42")!!.syncState)
     }
 
+    @Test
+    fun resolvingConflictAtomicallyKeepsLocalCopyAndAdoptsServerNote() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        val conflicted = localNote(42, SyncState.CONFLICT)
+        database.noteDao().upsert(conflicted)
+        val localCopy = conflicted.toDomain().copy(
+            localId = "local-copy",
+            remoteId = null,
+            title = "Local (local conflict copy)",
+            remoteEtag = null,
+            syncState = SyncState.LOCALLY_CREATED,
+            lastSyncedTitle = null,
+            lastSyncedContent = null,
+            lastSyncedCategory = null,
+            lastSyncedFavorite = null,
+            lastSyncError = null,
+            localRevision = 0
+        )
+
+        assertTrue(
+            RoomPushStore(database).resolveConflict(
+                conflicted.localId,
+                RemoteNote(42, "server-etag", "Server", "Server content", "Remote", 20),
+                localCopy
+            )
+        )
+
+        val resolved = notes.get(conflicted.localId)!!
+        assertEquals("Server content", resolved.content)
+        assertEquals("server-etag", resolved.remoteEtag)
+        assertEquals(SyncState.SYNCHRONIZED, resolved.syncState)
+        assertNull(resolved.lastSyncError)
+        assertEquals("Local content", notes.get("local-copy")!!.content)
+        assertEquals(SyncState.LOCALLY_CREATED, notes.get("local-copy")!!.syncState)
+    }
+
+    @Test
+    fun conflictResolutionDoesNotReplaceANoteThatIsNoLongerConflicted() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.LOCALLY_MODIFIED))
+
+        assertFalse(
+            RoomPushStore(database).resolveConflict(
+                "account-local-42",
+                RemoteNote(42, "server-etag", "Server", "Server content", "", 20),
+                null
+            )
+        )
+
+        assertEquals("Local content", notes.get("account-local-42")!!.content)
+    }
+
     private fun testAccount(id: String = "account") = org.qownnotes.mobile.core.Account(
         id,
         "Account $id",

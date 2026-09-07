@@ -382,6 +382,42 @@ class ApplicationComponent(
         if (noteRepository.retry(localId)) scheduleSync(note.accountId, 0)
     }
 
+    suspend fun resolveNoteConflict(localId: String, keepLocalCopy: Boolean): Boolean {
+        val accountId = noteRepository.get(localId)?.accountId ?: return false
+        return accountMutex(accountId).withLock {
+            val note = noteRepository.get(localId) ?: return@withLock false
+            if (note.syncState != SyncState.CONFLICT) return@withLock false
+            val account = accountRepository.get(accountId) ?: return@withLock false
+            val remote = backend.get(account, requireNotNull(note.remoteId))
+            val localCopy = if (keepLocalCopy) {
+                note.copy(
+                    localId = UUID.randomUUID().toString(),
+                    remoteId = null,
+                    title = NoteNames.sanitize("${note.title.take(95)} (local conflict copy)"),
+                    remoteEtag = null,
+                    readOnly = false,
+                    syncState = SyncState.LOCALLY_CREATED,
+                    lastSyncedTitle = null,
+                    lastSyncedContent = null,
+                    lastSyncedCategory = null,
+                    lastSyncedFavorite = null,
+                    lastSyncError = null,
+                    localRevision = 0
+                )
+            } else {
+                null
+            }
+            pushStore.resolveConflict(localId, remote, localCopy).also { resolved ->
+                if (resolved) {
+                    editorDrafts.replaceWithPersisted(localId, requireNotNull(remote.content))
+                    editReservations.remove(localId)
+                    clearNoteSyncDiagnostic(localId)
+                    if (localCopy != null) scheduleSync(accountId, 0)
+                }
+            }
+        }
+    }
+
     suspend fun moveNotesToTrash(accountId: String, localIds: List<String>) {
         if (localIds.isEmpty()) return
         accountMutex(accountId).withLock {

@@ -828,6 +828,8 @@ Implemented:
 - Added debounced and periodic Room draft persistence, lifecycle flushing, and application-scoped draft retention across activity recreation.
 - Added Room schema version 3 with monotonically increasing local revisions so stale write responses cannot replace newer editor content.
 - Added Notes API `POST` creation and `PUT` updates with quoted `If-Match` ETags, strict canonical-response validation, and explicit conflict, missing-note, and insufficient-storage failures.
+- Added conflict resolution that fetches the current note directly and either adopts it or first
+  preserves the local version as a new note. A failed fetch leaves the conflict unchanged.
 - Added transactional canonical response application that adopts server IDs, ETags, and sanitized titles while preserving newer local content.
 - Added API, migration, repository, formatting, highlighting, read-only, creation, editing, and recreation coverage.
 - Fixed the editor focus and IME defect recorded on 2026-09-01. `AppCompatEditText` resolves its default style from the AppCompat `editTextStyle` theme attribute, which only exists in `Theme.AppCompat` descendants. The application theme derived from the framework `Theme.Material.Light.NoActionBar`, so `Widget.AppCompat.EditText` was never applied and the editor was left focusable but not focusable in touch mode, making a cursor and keyboard unreachable by tapping.
@@ -888,7 +890,8 @@ Resolved physical-device issue recorded on 2026-09-01:
 - Separate retryable errors from user-action-required errors.
 - Handle read-only notes.
 - Handle deleted remote notes safely.
-- Add conflict storage and conflict-resolution screens.
+- Expand conflict storage and resolution with side-by-side review and three-way merging. The
+  initial resolution UI can adopt the server note or preserve local changes as a new note first.
 - Verify no local edit can be replaced by an older pull or push result.
 - Add telemetry-free diagnostics suitable for user bug reports.
 

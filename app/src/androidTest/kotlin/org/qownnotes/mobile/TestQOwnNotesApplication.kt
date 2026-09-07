@@ -106,6 +106,7 @@ class FakePullBackend :
     val restoredTrash = mutableListOf<TrashedNote>()
     var validationGate: CompletableDeferred<Unit>? = null
     var updateFailure: Throwable? = null
+    val remoteNotes = mutableMapOf<Long, RemoteNote>()
 
     override suspend fun validateAccount(account: Account): String {
         validatedAccountIds += account.id
@@ -124,6 +125,9 @@ class FakePullBackend :
                 notModified = true
             )
     }
+
+    override suspend fun get(account: Account, remoteId: Long): RemoteNote =
+        remoteNotes[remoteId] ?: error("No remote note $remoteId was configured")
 
     override suspend fun create(account: Account, note: Note): RemoteNote {
         pushedNotes += note
@@ -180,6 +184,7 @@ class FakePullBackend :
         validationGate?.cancel()
         validationGate = null
         updateFailure = null
+        remoteNotes.clear()
     }
 
     private fun queue(account: SingleSignOnAccount) =

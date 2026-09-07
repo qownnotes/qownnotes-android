@@ -564,6 +564,54 @@ class AppLaunchTest {
         }
     }
 
+    @Test
+    fun resolvesConflictWhilePreservingLocalChangesAsANewNote() {
+        importAccount(
+            "alice",
+            "Existing note",
+            "etag-1",
+            10,
+            "# Existing note\n\nBase content"
+        )
+        val localId = runBlocking {
+            val note = notesOf("alice").single()
+            application.component.noteRepository.save(
+                note.copy(
+                    content = "# Existing note\n\nLocal content",
+                    syncState = SyncState.CONFLICT,
+                    lastSyncError = "The note changed on the server"
+                )
+            )
+            note.localId
+        }
+        application.fakeBackend.remoteNotes[42] = RemoteNote(
+            42,
+            "etag-2",
+            "Existing note",
+            "# Existing note\n\nServer content",
+            "",
+            20
+        )
+
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.waitForTag("resolve-note-conflict")
+        composeRule.onNodeWithTag("resolve-note-conflict").performClick()
+        composeRule.onNodeWithTag("keep-local-conflict-copy").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                val notes = notesOf("alice")
+                notes.size == 2 &&
+                    notes.single { it.localId == localId }.content.contains("Server content") &&
+                    notes.single { it.localId != localId }.content.contains("Local content")
+            }
+        }
+        val notes = runBlocking { notesOf("alice") }
+        assertEquals(SyncState.SYNCHRONIZED, notes.single { it.localId == localId }.syncState)
+        assertTrue(notes.single { it.localId != localId }.title.endsWith("(local conflict copy)"))
+        assertTrue(application.fakeBackend.pushedNotes.any { it.content.contains("Local content") })
+    }
+
     /**
      * Sharing text from another application. The intent is sent for real, so this covers the
      * manifest filter, the single-task delivery into the running activity, and the note it makes.

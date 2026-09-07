@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Conflicted notes can now load the current server version or preserve their local changes as a new
+  note before loading the server version. Resolution fetches the note directly, so an unavailable
+  server leaves the local conflict untouched.
 - A per-account category selector filters the note list locally and offline. It defaults to
   **Undefined**, also offers **All categories**, remembers the selection, creates notes in the
   selected category, and hides QOwnNotes' internal `media` and `attachments` folder trees.

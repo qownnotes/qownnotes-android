@@ -52,6 +52,8 @@ interface NoteBackend {
 
     suspend fun pull(account: Account, checkpoint: PullCheckpoint): PullResult
 
+    suspend fun get(account: Account, remoteId: Long): RemoteNote
+
     suspend fun create(account: Account, note: Note): RemoteNote
 
     suspend fun update(account: Account, note: Note): RemoteNote
@@ -103,6 +105,8 @@ interface PushStore {
         conflict: Boolean = false,
         terminal: Boolean = false
     )
+
+    suspend fun resolveConflict(localId: String, remote: RemoteNote, localCopy: Note?): Boolean
 }
 
 data class BackendCapabilities(

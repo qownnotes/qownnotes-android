@@ -1282,6 +1282,9 @@ private fun NoteDetailScreen(
     var contentBeforeEditing by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     var showDiscardConfirmation by rememberSaveable(localId) { mutableStateOf(false) }
     var showDeleteConfirmation by rememberSaveable(localId) { mutableStateOf(false) }
+    var showConflictResolution by rememberSaveable(localId) { mutableStateOf(false) }
+    var resolvingConflict by rememberSaveable(localId) { mutableStateOf(false) }
+    var conflictResolutionError by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     var renaming by rememberSaveable(localId) { mutableStateOf(false) }
     var noteMenuOpen by rememberSaveable(localId) { mutableStateOf(false) }
     var noteName by rememberSaveable(localId) { mutableStateOf("") }
@@ -1465,6 +1468,24 @@ private fun NoteDetailScreen(
             if (versionsRequestId == requestId) versionsState = result
         }
     }
+    val resolveConflict = { keepLocalCopy: Boolean ->
+        resolvingConflict = true
+        conflictResolutionError = null
+        scope.launch {
+            runCatching { component.resolveNoteConflict(localId, keepLocalCopy) }
+                .onSuccess { resolved ->
+                    if (resolved) {
+                        showConflictResolution = false
+                    } else {
+                        conflictResolutionError = "The note conflict changed. Close and try again."
+                    }
+                }
+                .onFailure {
+                    conflictResolutionError = it.message ?: "Could not load the server version"
+                }
+            resolvingConflict = false
+        }
+    }
     Scaffold(
         topBar = {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
@@ -1515,6 +1536,7 @@ private fun NoteDetailScreen(
                                 current != null &&
                                 !current.readOnly &&
                                 !hasEncryptedContent &&
+                                current.syncState != SyncState.CONFLICT &&
                                 (current.syncState != SyncState.FAILED || current.remoteId != null)
                             ) {
                                 IconButton(
@@ -1702,6 +1724,13 @@ private fun NoteDetailScreen(
                         testTag = "note-sync-error",
                         modifier = Modifier.padding(16.dp)
                     )
+                    if (note?.syncState == SyncState.CONFLICT) {
+                        Text(
+                            "Your local changes are safe on this device. Finish editing to " +
+                                "choose which version to keep.",
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
@@ -1914,6 +1943,20 @@ private fun NoteDetailScreen(
                             testTag = "note-sync-error",
                             modifier = Modifier.padding(16.dp)
                         )
+                        if (note?.syncState == SyncState.CONFLICT) {
+                            Text(
+                                "Your local changes are safe on this device.",
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            TextButton(
+                                onClick = {
+                                    conflictResolutionError = null
+                                    showConflictResolution = true
+                                },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                                    .testTag("resolve-note-conflict")
+                            ) { Text("Resolve conflict") }
+                        }
                     }
                     AndroidView(
                         factory = { context ->
@@ -2061,6 +2104,56 @@ private fun NoteDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
+            }
+        )
+    }
+    if (showConflictResolution) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!resolvingConflict) showConflictResolution = false
+            },
+            title = { Text("Resolve note conflict") },
+            text = {
+                Column {
+                    Text(
+                        "The note changed on the server after your local edit. Load the server " +
+                            "version, or first preserve your local version as a new note."
+                    )
+                    conflictResolutionError?.let {
+                        Text(
+                            it,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 12.dp)
+                                .testTag("conflict-resolution-error")
+                        )
+                    }
+                    if (resolvingConflict) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(top = 16.dp)
+                                .testTag("conflict-resolution-progress")
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { resolveConflict(true) },
+                    enabled = !resolvingConflict,
+                    modifier = Modifier.testTag("keep-local-conflict-copy")
+                ) { Text("Keep local as copy") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = { resolveConflict(false) },
+                        enabled = !resolvingConflict,
+                        modifier = Modifier.testTag("use-server-conflict-version")
+                    ) { Text("Use server") }
+                    TextButton(
+                        onClick = { showConflictResolution = false },
+                        enabled = !resolvingConflict
+                    ) { Text("Cancel") }
+                }
             }
         )
     }

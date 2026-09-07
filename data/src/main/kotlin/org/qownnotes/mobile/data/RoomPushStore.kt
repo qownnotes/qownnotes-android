@@ -1,6 +1,7 @@
 package org.qownnotes.mobile.data
 
 import androidx.room.withTransaction
+import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.PushStore
 import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.core.SyncState
@@ -67,5 +68,44 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
                 )
             )
         }
+    }
+
+    override suspend fun resolveConflict(
+        localId: String,
+        remote: RemoteNote,
+        localCopy: Note?
+    ): Boolean = database.withTransaction {
+        val current = database.noteDao().get(localId) ?: return@withTransaction false
+        if (current.syncState != SyncState.CONFLICT || current.remoteId != remote.id) {
+            return@withTransaction false
+        }
+        val title = requireNotNull(remote.title) { "Nextcloud response is missing its title" }
+        val content = requireNotNull(remote.content) { "Nextcloud response is missing its content" }
+        val category =
+            requireNotNull(remote.category) { "Nextcloud response is missing its category" }
+        val modified = requireNotNull(remote.modifiedAtEpochSeconds) {
+            "Nextcloud response is missing its modified timestamp"
+        }
+        val etag = requireNotNull(remote.etag) { "Nextcloud response is missing its etag" }
+        localCopy?.let { database.noteDao().upsert(it.toEntity()) }
+        database.noteDao().upsert(
+            current.copy(
+                title = title,
+                content = content,
+                category = category,
+                modifiedAtEpochSeconds = modified,
+                remoteEtag = etag,
+                readOnly = remote.readOnly,
+                favorite = remote.favorite,
+                syncState = SyncState.SYNCHRONIZED,
+                lastSyncedTitle = title,
+                lastSyncedContent = content,
+                lastSyncedCategory = category,
+                lastSyncedFavorite = remote.favorite,
+                lastSyncError = null,
+                localRevision = current.localRevision + 1
+            )
+        )
+        true
     }
 }
