@@ -36,7 +36,7 @@ license-check:
 
 # Update all dependencies declared in the Gradle version catalog.
 update-dependencies:
-    ./gradlew versionCatalogUpdate
+    ./gradlew --no-configuration-cache versionCatalogUpdate
 
 # Run all host-side checks and build the debug APK.
 check:

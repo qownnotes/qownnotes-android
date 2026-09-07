@@ -28,3 +28,9 @@ spotless {
         endWithNewline()
     }
 }
+
+versionCatalogUpdate {
+    pin {
+        versions.addAll("agp", "compose-bom", "kotlin", "ksp", "lifecycle", "okhttp")
+    }
+}
