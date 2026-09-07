@@ -901,9 +901,10 @@ Give Nextcloud accounts QOwnNotes-style folders through the Notes `category` att
 
 The first increment provides a persisted flat selector for Undefined, All categories, and exact
 cached categories, filters locally, excludes the internal `media` and `attachments` trees from the
-choices, and creates notes in the selected category. Hierarchical navigation remains planned below.
+choices, creates notes in the selected category, and moves notes to existing or newly entered
+categories from the note view. Hierarchical navigation remains planned below.
 
-- Add category normalization and folder-tree derivation to `core`.
+- Add folder-tree derivation to `core`; category normalization is implemented.
 - Derive the per-account folder tree from the cached notes rather than from a new table.
 - Add folder navigation to the note list, with the current scope, a note count per folder, and a subfolder-inclusion toggle.
 - Persist the selected scope per account in `AppSettings` and fall back to the root when the folder no longer exists.
@@ -911,7 +912,8 @@ choices, and creates notes in the selected category. Hierarchical navigation rem
 - Scope the search to the current subtree, allow searching the whole account, and match the category as well.
 - Add an indexed, correctly escaped subtree query to the note DAO.
 - Display the account's notes root name from `GET /settings`, read-only.
-- Move a note to another folder with `If-Match`, adopting the canonical category and title.
+- Moving a note to another folder with `If-Match`, including canonical category/title adoption, is
+  implemented through the note-view menu.
 - Add the `nestedCategories` backend capability.
 - Keep the pull unfiltered and confirm that folder scoping cannot influence remote-deletion detection.
 

@@ -433,6 +433,44 @@ class RoomPullStoreTest {
     }
 
     @Test
+    fun movingANoteQueuesItsNewCategoryWithoutChangingItsContent() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+
+        assertTrue(notes.updateCategory("account-local-42", "Projects/Android"))
+
+        val note = notes.get("account-local-42")!!
+        assertEquals("Projects/Android", note.category)
+        assertEquals("Local content", note.content)
+        assertEquals(1L, note.localRevision)
+        assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
+    }
+
+    @Test
+    fun movingAReadOnlyNoteIsRefused() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED).copy(readOnly = true))
+
+        assertFalse(notes.updateCategory("account-local-42", "Projects"))
+        assertEquals("Local category", notes.get("account-local-42")!!.category)
+    }
+
+    @Test
+    fun movingAConflictedNoteIsRefused() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.CONFLICT))
+
+        assertFalse(notes.updateCategory("account-local-42", "Projects"))
+        assertEquals(SyncState.CONFLICT, notes.get("account-local-42")!!.syncState)
+    }
+
+    @Test
     fun renamingANoteWithHeadingUpdateChangesTitleAndContent() = runBlocking {
         val accounts = RoomAccountRepository(database.accountDao())
         val notes = RoomNoteRepository(database.noteDao())
@@ -515,6 +553,27 @@ class RoomPullStoreTest {
 
         val note = notes.get("account-local-42")!!
         assertEquals("Second name", note.title)
+        assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
+    }
+
+    @Test
+    fun staleMoveResponseKeepsTheCategoryChosenWhileTheUploadWasRunning() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+        notes.updateCategory("account-local-42", "First")
+        notes.updateCategory("account-local-42", "Second")
+
+        RoomPushStore(database).applySuccess(
+            "account-local-42",
+            1,
+            RemoteNote(42, "remote-etag", "Local", "Local content", "First", 20)
+        )
+
+        val note = notes.get("account-local-42")!!
+        assertEquals("Second", note.category)
+        assertEquals("First", note.lastSyncedCategory)
         assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
     }
 

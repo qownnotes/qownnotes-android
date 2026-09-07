@@ -31,7 +31,7 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
                     remoteId = remote.id,
                     title = if (unchanged) title else current.title,
                     content = if (unchanged) content else current.content,
-                    category = category,
+                    category = if (unchanged) category else current.category,
                     modifiedAtEpochSeconds =
                     if (unchanged) modified else current.modifiedAtEpochSeconds,
                     remoteEtag = etag,

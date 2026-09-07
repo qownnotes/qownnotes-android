@@ -1016,6 +1016,7 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("edit-note").assertDoesNotExist()
         composeRule.openNoteMenu()
         composeRule.onNodeWithTag("rename-note").assertDoesNotExist()
+        composeRule.onNodeWithTag("change-note-category").assertDoesNotExist()
     }
 
     @Test
@@ -1030,7 +1031,56 @@ class AppLaunchTest {
 
         composeRule.openNoteMenu()
         composeRule.onNodeWithTag("rename-note").assertIsDisplayed()
+        composeRule.onNodeWithTag("change-note-category").assertIsDisplayed()
         composeRule.onNodeWithTag("delete-note").assertIsDisplayed()
+    }
+
+    @Test
+    fun noteCanCreateAndMoveToANewCategory() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("change-note-category").performClick()
+        composeRule.onNodeWithTag("new-note-category-field")
+            .performTextInput(" Projects / Android? ")
+        composeRule.onNodeWithTag("confirm-note-category").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").single().category } == "Projects/Android"
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.pushedNotes.any { it.category == "Projects/Android" }
+        }
+    }
+
+    @Test
+    fun noteCanMoveToAnExistingCategory() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(42, "etag-1", "Root note", "# Root note", "", 10),
+                    RemoteNote(43, "etag-2", "Work note", "# Work note", "Work", 10)
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 10
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Root note")
+        composeRule.onNodeWithText("Root note").performClick()
+
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("change-note-category").performClick()
+        composeRule.onNodeWithTag("note-category-Work").performClick()
+        composeRule.onNodeWithTag("confirm-note-category").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").first { it.title == "Root note" }.category } == "Work"
+        }
     }
 
     /**

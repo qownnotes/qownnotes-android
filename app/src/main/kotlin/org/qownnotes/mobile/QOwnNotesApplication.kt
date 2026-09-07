@@ -33,6 +33,7 @@ import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
+import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteFactory
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.PullCheckpoint
@@ -358,6 +359,17 @@ class ApplicationComponent(
         editMutexes.getOrPut(localId, ::Mutex).withLock {
             val note = noteRepository.get(localId) ?: return@withLock false
             val changed = noteRepository.updateFavorite(localId, favorite)
+            if (changed) scheduleSync(note.accountId)
+            changed
+        }
+
+    suspend fun moveNoteToCategory(localId: String, category: String): Boolean =
+        editMutexes.getOrPut(localId, ::Mutex).withLock {
+            val note = noteRepository.get(localId) ?: return@withLock false
+            if (note.readOnly || note.syncState == SyncState.CONFLICT) return@withLock false
+            val normalized = NoteCategories.normalize(category)
+            if (NoteCategories.isInternal(normalized)) return@withLock false
+            val changed = noteRepository.updateCategory(localId, normalized)
             if (changed) scheduleSync(note.accountId)
             changed
         }

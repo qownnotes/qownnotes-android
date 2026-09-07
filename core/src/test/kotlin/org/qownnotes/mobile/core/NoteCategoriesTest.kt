@@ -34,6 +34,15 @@ class NoteCategoriesTest {
         assertFalse(NoteCategories.matches("Work/Archive", NoteCategoryScope.Category("Work")))
     }
 
+    @Test
+    fun `category paths are normalized one segment at a time`() {
+        assertEquals(
+            "Work/Quarter 1/Reports",
+            NoteCategories.normalize(" / .Work / ../Quarter:*? 1// Reports ")
+        )
+        assertEquals("", NoteCategories.normalize(" / ./../ "))
+    }
+
     private fun note(category: String) = Note(
         localId = category,
         accountId = "account",

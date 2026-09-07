@@ -57,6 +57,9 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
     override suspend fun updateFavorite(localId: String, favorite: Boolean): Boolean =
         noteDao.updateFavorite(localId, favorite) > 0
 
+    override suspend fun updateCategory(localId: String, category: String): Boolean =
+        noteDao.updateCategory(localId, category) > 0
+
     override suspend fun retry(localId: String): Boolean = noteDao.retry(localId) > 0
 
     override suspend fun moveToTrash(accountId: String, localIds: List<String>) =

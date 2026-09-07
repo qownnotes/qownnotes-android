@@ -114,6 +114,16 @@ interface NoteDao {
     suspend fun updateFavorite(localId: String, favorite: Boolean): Int
 
     @Query(
+        """UPDATE notes SET category = :category,
+           localRevision = localRevision + 1,
+           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = NULL
+           WHERE localId = :localId AND readOnly = 0 AND syncState != 'CONFLICT'
+             AND category != :category"""
+    )
+    suspend fun updateCategory(localId: String, category: String): Int
+
+    @Query(
         """UPDATE notes SET
            syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
            lastSyncError = NULL

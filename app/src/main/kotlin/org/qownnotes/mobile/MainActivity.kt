@@ -1286,6 +1286,7 @@ private fun NoteDetailScreen(
     var resolvingConflict by rememberSaveable(localId) { mutableStateOf(false) }
     var conflictResolutionError by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     var renaming by rememberSaveable(localId) { mutableStateOf(false) }
+    var changingCategory by rememberSaveable(localId) { mutableStateOf(false) }
     var noteMenuOpen by rememberSaveable(localId) { mutableStateOf(false) }
     var noteName by rememberSaveable(localId) { mutableStateOf("") }
     var updateHeading by rememberSaveable(localId) { mutableStateOf(true) }
@@ -1613,6 +1614,20 @@ private fun NoteDetailScreen(
                                                 showVersions()
                                             },
                                             modifier = Modifier.testTag("note-versions")
+                                        )
+                                    }
+                                    if (
+                                        current != null &&
+                                        !current.readOnly &&
+                                        current.syncState != SyncState.CONFLICT
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Change category") },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                changingCategory = true
+                                            },
+                                            modifier = Modifier.testTag("change-note-category")
                                         )
                                     }
                                     if (current != null && !current.readOnly) {
@@ -2173,6 +2188,20 @@ private fun NoteDetailScreen(
             }
         )
     }
+    if (changingCategory) {
+        val current = note
+        if (current != null) {
+            ChangeNoteCategoryDialog(
+                currentCategory = current.category,
+                categories = NoteCategories.selectable(accountNotes),
+                onDismiss = { changingCategory = false },
+                onConfirm = { category ->
+                    changingCategory = false
+                    scope.launch { component.moveNoteToCategory(localId, category) }
+                }
+            )
+        }
+    }
     if (versionToRestore == null) {
         when (val state = versionsState) {
             ArchiveLoadState.Idle -> Unit
@@ -2301,6 +2330,96 @@ private fun RenameNoteDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
+}
+
+@Composable
+private fun ChangeNoteCategoryDialog(
+    currentCategory: String,
+    categories: List<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var selectedCategory by rememberSaveable(currentCategory) { mutableStateOf(currentCategory) }
+    var newCategory by rememberSaveable(currentCategory) { mutableStateOf("") }
+    var creatingCategory by rememberSaveable(currentCategory) { mutableStateOf(false) }
+    val normalizedNewCategory = NoteCategories.normalize(newCategory)
+    val destination = if (creatingCategory) normalizedNewCategory else selectedCategory
+    val validDestination = destination != currentCategory &&
+        (!creatingCategory || normalizedNewCategory.isNotEmpty()) &&
+        !NoteCategories.isInternal(destination)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Change category") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                CategoryDestinationRow(
+                    label = "Undefined (root)",
+                    selected = !creatingCategory && selectedCategory.isEmpty(),
+                    testTag = "note-category-root",
+                    onClick = {
+                        creatingCategory = false
+                        selectedCategory = ""
+                    }
+                )
+                categories.forEach { category ->
+                    CategoryDestinationRow(
+                        label = category,
+                        selected = !creatingCategory && selectedCategory == category,
+                        testTag = "note-category-$category",
+                        onClick = {
+                            creatingCategory = false
+                            selectedCategory = category
+                        }
+                    )
+                }
+                CategoryDestinationRow(
+                    label = "New category",
+                    selected = creatingCategory,
+                    testTag = "note-category-new",
+                    onClick = { creatingCategory = true }
+                )
+                OutlinedTextField(
+                    value = newCategory,
+                    onValueChange = {
+                        newCategory = it
+                        creatingCategory = true
+                    },
+                    label = { Text("New category path") },
+                    supportingText = { Text("Use / to create nested categories.") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("new-note-category-field")
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(destination) },
+                enabled = validDestination,
+                modifier = Modifier.testTag("confirm-note-category")
+            ) { Text("Move") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
+@Composable
+private fun CategoryDestinationRow(
+    label: String,
+    selected: Boolean,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).testTag(testTag)
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Text(label)
+    }
 }
 
 @Composable

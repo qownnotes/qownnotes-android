@@ -9,6 +9,8 @@ sealed interface NoteCategoryScope {
 }
 
 object NoteCategories {
+    private val forbiddenSegmentCharacters = Regex("""[*|\\:\"<>?]""")
+
     fun selectable(notes: List<Note>): List<String> = notes.asSequence()
         .map(Note::category)
         .filter(String::isNotEmpty)
@@ -22,6 +24,16 @@ object NoteCategories {
         NoteCategoryScope.All -> true
         is NoteCategoryScope.Category -> category.equals(scope.value, ignoreCase = true)
     }
+
+    /** Mirrors the Notes server's per-path-segment category sanitization. */
+    fun normalize(category: String): String = category.split('/')
+        .map { segment ->
+            segment.replace(forbiddenSegmentCharacters, "")
+                .trimStart { it == '.' || it.isWhitespace() }
+                .trim()
+        }
+        .filter(String::isNotEmpty)
+        .joinToString("/")
 
     /** QOwnNotes reserves these top-level trees for files referenced by notes. */
     fun isInternal(category: String): Boolean {

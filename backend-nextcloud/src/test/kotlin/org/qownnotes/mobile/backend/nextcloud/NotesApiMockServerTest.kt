@@ -266,6 +266,32 @@ class NotesApiMockServerTest {
     }
 
     @Test
+    fun sendsMovedCategoryAndAdoptsTheCategoryTheServerStored() {
+        server.enqueue(
+            canonicalResponse(
+                42,
+                "new-etag",
+                "Local (2)",
+                "# Local\n",
+                category = "Projects/Android"
+            )
+        )
+
+        val remote = updateWithApi(
+            api,
+            testNote().copy(remoteId = 42, remoteEtag = "old-etag", category = "Projects/Android?")
+        )
+
+        val body = GsonBuilder().create().fromJson(
+            server.takeRequest().body.readUtf8(),
+            NoteWriteDto::class.java
+        )
+        assertEquals("Projects/Android?", body.category)
+        assertEquals("Projects/Android", remote.category)
+        assertEquals("Local (2)", remote.title)
+    }
+
+    @Test
     fun classifiesWriteConflictAndInsufficientStorage() {
         server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_PRECON_FAILED))
         assertThrows(BackendException.Conflict::class.java) {
@@ -288,11 +314,12 @@ class NotesApiMockServerTest {
         etag: String,
         title: String,
         content: String,
-        favorite: Boolean = false
+        favorite: Boolean = false,
+        category: String = ""
     ) = notesResponse(
         """{"id":$id,"etag":"$etag","readonly":false,"title":"$title","content":${
             GsonBuilder().create().toJson(content)
-        },"category":"","modified":20,"favorite":$favorite}"""
+        },"category":"$category","modified":20,"favorite":$favorite}"""
     )
 
     private fun testNote() = Note(
