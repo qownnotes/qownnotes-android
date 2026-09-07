@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -635,10 +636,18 @@ class AppLaunchTest {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.enterEditMode()
+        lateinit var editor: TextView
+        onView(withId(R.id.markdown_editor)).check { view, _ ->
+            editor = view as TextView
+            assertTrue(editor.hasFocus())
+        }
 
         composeRule.onNodeWithTag("cancel-editing").performClick()
 
         composeRule.waitForTag("markdown-view")
+        composeRule.runOnIdle {
+            assertFalse("leaving edit mode must release editor focus", editor.hasFocus())
+        }
         composeRule.onNodeWithTag("confirm-discard-changes").assertDoesNotExist()
         composeRule.onNodeWithTag("edit-note").assertIsDisplayed()
     }

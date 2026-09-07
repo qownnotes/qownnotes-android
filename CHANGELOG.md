@@ -22,6 +22,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The onscreen keyboard now closes reliably when leaving Markdown edit mode.
 - Local `media/` images in Nextcloud notes now use the versioned Notes attachment endpoint instead
   of failing to load as red placeholders.
 - Checkboxes in nested task lists can now be toggled in view mode; previously only top-level

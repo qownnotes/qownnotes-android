@@ -1190,6 +1190,11 @@ private fun NoteDetailScreen(
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
+    val leaveEditMode = {
+        // Hide the IME while the editor still has a valid window token, before Compose removes it.
+        editor?.releaseInputFocus()
+        editing = false
+    }
     val editorScrollState = rememberScrollState()
     var editorViewportHeight by remember { mutableIntStateOf(0) }
     var renderedView by remember { mutableStateOf<AppCompatTextView?>(null) }
@@ -1298,10 +1303,10 @@ private fun NoteDetailScreen(
         val source = draft
         if (source != null) {
             scope.launch {
-                if (component.saveDraft(localId, source)) editing = false
+                if (component.saveDraft(localId, source)) leaveEditMode()
             }
         } else {
-            editing = false
+            leaveEditMode()
         }
     }
     BackHandler(enabled = finding && !editing) {
@@ -1354,9 +1359,13 @@ private fun NoteDetailScreen(
                                 val source = draft
                                 if (editing && source != null) {
                                     scope.launch {
-                                        if (component.saveDraft(localId, source)) onBackToList()
+                                        if (component.saveDraft(localId, source)) {
+                                            editor?.releaseInputFocus()
+                                            onBackToList()
+                                        }
                                     }
                                 } else {
+                                    editor?.releaseInputFocus()
                                     onBackToList()
                                 }
                             },
@@ -1535,7 +1544,7 @@ private fun NoteDetailScreen(
                                 if (draft != contentBeforeEditing) {
                                     showDiscardConfirmation = true
                                 } else {
-                                    editing = false
+                                    leaveEditMode()
                                 }
                             }
                         )
@@ -1547,7 +1556,7 @@ private fun NoteDetailScreen(
                                 val source = draft
                                 if (source != null) {
                                     scope.launch {
-                                        if (component.saveDraft(localId, source)) editing = false
+                                        if (component.saveDraft(localId, source)) leaveEditMode()
                                     }
                                 }
                             }
@@ -1877,10 +1886,10 @@ private fun NoteDetailScreen(
                             scope.launch {
                                 component.saveDraft(localId, restored)
                                 draft = restored
-                                editing = false
+                                leaveEditMode()
                             }
                         } else {
-                            editing = false
+                            leaveEditMode()
                         }
                     },
                     modifier = Modifier.testTag("confirm-discard-changes")

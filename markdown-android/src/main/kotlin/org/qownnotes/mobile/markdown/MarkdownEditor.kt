@@ -141,6 +141,7 @@ private val FENCE = Regex("^ {0,3}(`{3,}|~{3,})(?:[^`]*)$")
 class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
     AppCompatEditText(context, attrs) {
     var onSelectionChanged: ((Int, Int) -> Unit)? = null
+    private var inputFocusRequest: Runnable? = null
 
     /**
      * Invoked before an edit the writer did not type, such as a formatting action, so that an undo
@@ -171,16 +172,21 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
 
     /** Gives the editor input focus and asks the input method to open. */
     fun focusForInput() {
+        inputFocusRequest?.let(::removeCallbacks)
         val request = Runnable {
+            inputFocusRequest = null
             if (isFocused || requestFocus()) {
                 inputMethodManager()?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
             }
         }
+        inputFocusRequest = request
         if (isAttachedToWindow && hasWindowFocus()) request.run() else post(request)
     }
 
     /** Releases input focus and hides the input method when editing stops. */
     fun releaseInputFocus() {
+        inputFocusRequest?.let(::removeCallbacks)
+        inputFocusRequest = null
         inputMethodManager()?.hideSoftInputFromWindow(windowToken, 0)
         clearFocus()
     }
