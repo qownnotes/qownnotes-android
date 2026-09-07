@@ -493,6 +493,8 @@ class AppLaunchTest {
                 )
             )
         }
+        composeRule.onNodeWithTag("category-selector").performClick()
+        composeRule.onNodeWithTag("category-option-all").performClick()
         composeRule.waitForText("Filtered note")
         composeRule.onNodeWithTag("note-search").performTextInput("Visible")
         composeRule.waitForTextToGo("Filtered note")
@@ -694,6 +696,7 @@ class AppLaunchTest {
     @Test
     fun cancellingWithoutChangesLeavesEditingImmediately() {
         importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking { notesOf("alice").single() }
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.enterEditMode()
         awaitEditorFocus(focused = true)
@@ -704,6 +707,26 @@ class AppLaunchTest {
         awaitEditorFocus(focused = false)
         composeRule.onNodeWithTag("confirm-discard-changes").assertDoesNotExist()
         composeRule.onNodeWithTag("edit-note").assertIsDisplayed()
+        val unchanged = runBlocking { application.component.noteRepository.get(note.localId)!! }
+        assertEquals(1L, unchanged.localRevision)
+        assertEquals(SyncState.SYNCHRONIZED, unchanged.syncState)
+    }
+
+    @Test
+    fun finishingAnUnchangedEditDoesNotUploadTheNote() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking { notesOf("alice").single() }
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        composeRule.onNodeWithTag("finish-editing").performClick()
+
+        composeRule.waitForTag("markdown-view")
+        Thread.sleep(SYNC_DELAY_MILLIS * 2)
+        val unchanged = runBlocking { application.component.noteRepository.get(note.localId)!! }
+        assertEquals(1L, unchanged.localRevision)
+        assertEquals(SyncState.SYNCHRONIZED, unchanged.syncState)
+        assertTrue(application.fakeBackend.pushedNotes.isEmpty())
     }
 
     /**

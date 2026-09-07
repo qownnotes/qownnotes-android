@@ -115,6 +115,7 @@ class ApplicationComponent(
     private val editMutexes = ConcurrentHashMap<String, Mutex>()
     private val syncJobs = ConcurrentHashMap<String, Job>()
     private val editorDrafts = EditorDraftCache()
+    private val editReservations = ConcurrentHashMap<String, EditReservation>()
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     fun launchAccountImport(ssoAccount: SingleSignOnAccount, expectedAccountId: String? = null) {
@@ -192,6 +193,7 @@ class ApplicationComponent(
             val localNoteIds = noteRepository.observeNotes(accountId).first().map(Note::localId)
             accountRepository.remove(accountId)
             editorDrafts.remove(localNoteIds)
+            localNoteIds.forEach(editReservations::remove)
             settings.removeNoteCategoryScope(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
@@ -230,21 +232,55 @@ class ApplicationComponent(
 
     suspend fun beginEditing(localId: String): Note? =
         editMutexes.getOrPut(localId, ::Mutex).withLock {
-            noteRepository.beginEditing(localId)?.let { note ->
-                note.copy(content = editorDrafts.restore(localId, note.content))
+            val reservation = editReservations[localId]
+            val note = if (reservation == null) {
+                val before = noteRepository.get(localId) ?: return@withLock null
+                noteRepository.beginEditing(localId)?.also { editable ->
+                    editReservations[localId] =
+                        EditReservation(before.content, editable.localRevision, before.syncState)
+                }
+            } else {
+                noteRepository.get(localId)
+            }
+            note?.let { current ->
+                current.copy(content = editorDrafts.restore(localId, current.content))
             }
         }
 
     suspend fun saveDraft(localId: String, content: String): Boolean =
         editMutexes.getOrPut(localId, ::Mutex).withLock {
             if (!editorDrafts.current(localId, content)) return@withLock true
-            saveDraftLocked(localId, content)
+            val reservation = editReservations[localId]
+            if (reservation != null && reservation.content == content) {
+                val released = noteRepository.releaseEditReservation(
+                    localId,
+                    reservation.revision,
+                    reservation.syncState
+                )
+                editReservations.remove(localId, reservation)
+                if (released) {
+                    editorDrafts.markPersisted(localId, content)
+                    if (
+                        reservation.syncState == SyncState.LOCALLY_MODIFIED ||
+                        reservation.syncState == SyncState.LOCALLY_CREATED
+                    ) {
+                        noteRepository.get(localId)?.let { scheduleSync(it.accountId) }
+                    }
+                    return@withLock true
+                }
+            }
+            saveDraftLocked(localId, content).also { saved ->
+                if (saved) editReservations.remove(localId)
+            }
         }
 
     suspend fun replaceNoteContent(localId: String, content: String): Boolean =
         editMutexes.getOrPut(localId, ::Mutex).withLock {
             saveDraftLocked(localId, content).also { saved ->
-                if (saved) editorDrafts.replaceWithPersisted(localId, content)
+                if (saved) {
+                    editorDrafts.replaceWithPersisted(localId, content)
+                    editReservations.remove(localId)
+                }
             }
         }
 
@@ -490,6 +526,12 @@ class ApplicationComponent(
     }
 
     private fun accountMutex(accountId: String): Mutex = refreshMutexes.getOrPut(accountId, ::Mutex)
+
+    private data class EditReservation(
+        val content: String,
+        val revision: Long,
+        val syncState: SyncState
+    )
 
     private fun requireArchiveBackend(): NoteArchiveBackend = archiveBackend
         ?: throw BackendException.FeatureUnavailable(

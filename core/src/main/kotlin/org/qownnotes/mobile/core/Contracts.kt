@@ -19,6 +19,12 @@ interface NoteRepository {
 
     suspend fun beginEditing(localId: String): Note?
 
+    suspend fun releaseEditReservation(
+        localId: String,
+        expectedRevision: Long,
+        restoredSyncState: SyncState
+    ): Boolean
+
     suspend fun updateDraft(localId: String, content: String, modifiedAtEpochSeconds: Long): Boolean
 
     suspend fun updateTitle(localId: String, title: String, modifiedAtEpochSeconds: Long): Boolean

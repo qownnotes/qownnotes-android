@@ -1663,7 +1663,13 @@ private fun NoteDetailScreen(
                                 if (draft != contentBeforeEditing) {
                                     showDiscardConfirmation = true
                                 } else {
-                                    leaveEditMode()
+                                    draft?.let { source ->
+                                        scope.launch {
+                                            if (component.saveDraft(localId, source)) {
+                                                leaveEditMode()
+                                            }
+                                        }
+                                    } ?: leaveEditMode()
                                 }
                             }
                         )

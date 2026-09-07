@@ -3,6 +3,7 @@ package org.qownnotes.mobile.data
 import kotlinx.coroutines.flow.map
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteRepository
+import org.qownnotes.mobile.core.SyncState
 
 class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
     override fun observeNotes(accountId: String) =
@@ -27,6 +28,12 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
         if (noteDao.beginEditing(localId) == 0) return null
         return noteDao.get(localId)?.toDomain()
     }
+
+    override suspend fun releaseEditReservation(
+        localId: String,
+        expectedRevision: Long,
+        restoredSyncState: SyncState
+    ): Boolean = noteDao.releaseEditReservation(localId, expectedRevision, restoredSyncState) > 0
 
     override suspend fun updateDraft(
         localId: String,

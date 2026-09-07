@@ -264,6 +264,49 @@ class RoomPullStoreTest {
     }
 
     @Test
+    fun anUnchangedEditReservationRestoresThePreviousSyncState() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+
+        val editing = notes.beginEditing("account-local-42")!!
+
+        assertTrue(
+            notes.releaseEditReservation(
+                editing.localId,
+                editing.localRevision,
+                SyncState.SYNCHRONIZED
+            )
+        )
+        val released = notes.get(editing.localId)!!
+        assertEquals(1L, released.localRevision)
+        assertEquals(SyncState.SYNCHRONIZED, released.syncState)
+    }
+
+    @Test
+    fun editReservationCannotUndoANewerChange() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+        val editing = notes.beginEditing("account-local-42")!!
+        assertTrue(notes.updateFavorite(editing.localId, true))
+
+        assertFalse(
+            notes.releaseEditReservation(
+                editing.localId,
+                editing.localRevision,
+                SyncState.SYNCHRONIZED
+            )
+        )
+        val current = notes.get(editing.localId)!!
+        assertEquals(2L, current.localRevision)
+        assertEquals(SyncState.LOCALLY_MODIFIED, current.syncState)
+        assertTrue(current.favorite)
+    }
+
+    @Test
     fun favoritesSortFirstAndToggleOfflineWithoutChangingModifiedTime() = runBlocking {
         val accounts = RoomAccountRepository(database.accountDao())
         val notes = RoomNoteRepository(database.noteDao())

@@ -60,6 +60,16 @@ interface NoteDao {
     suspend fun beginEditing(localId: String): Int
 
     @Query(
+        """UPDATE notes SET syncState = :restoredSyncState
+           WHERE localId = :localId AND localRevision = :expectedRevision"""
+    )
+    suspend fun releaseEditReservation(
+        localId: String,
+        expectedRevision: Long,
+        restoredSyncState: SyncState
+    ): Int
+
+    @Query(
         """UPDATE notes SET content = :content,
            modifiedAtEpochSeconds = :modifiedAtEpochSeconds,
            localRevision = localRevision + 1,

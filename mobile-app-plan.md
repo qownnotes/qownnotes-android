@@ -855,6 +855,9 @@ Implemented:
 - Made editor draft persistence reject stale snapshots even after a newer snapshot has finished
   saving, and added a local-only checkpoint when the editor loses focus. Direct content operations
   such as task toggling and version restoration remain separate from editor snapshot ordering.
+- Added revision-guarded edit reservations. Opening the editor still prevents a concurrent pull or
+  push response from changing the note underneath that editing session, but leaving an unchanged
+  session now restores its previous synchronization state instead of queuing an unnecessary update.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 

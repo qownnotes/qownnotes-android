@@ -34,6 +34,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Older asynchronous editor saves can no longer replace a newer draft after that newer draft has
   finished saving. Losing editor focus also checkpoints the current text locally.
+- Opening and closing the editor without changing the note no longer leaves it pending or causes an
+  unnecessary server update. The temporary edit reservation remains revision-guarded.
 - The onscreen keyboard now closes reliably when leaving Markdown edit mode.
 - Leaving edit mode no longer crashes. Editing is left after a note has been saved, and a coroutine
   resumes on whichever thread completed that save, so the keyboard and focus changes could reach
