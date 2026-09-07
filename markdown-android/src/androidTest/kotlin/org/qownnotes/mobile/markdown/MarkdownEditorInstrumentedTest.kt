@@ -80,6 +80,7 @@ class MarkdownEditorInstrumentedTest {
             binding = MarkdownEditorBinding(view.context, view) { sourceChanges++ }
         }
 
+        waitForSyntax(view, MarkdownSyntax.HEADING)
         instrumentation.runOnMainSync {
             val syntax = view.text!!.getSpans(
                 0,
@@ -90,6 +91,42 @@ class MarkdownEditorInstrumentedTest {
             assertEquals("attaching the binding is not a source edit", 0, sourceChanges)
             assertFalse("initial source must not be undoable", binding.canUndo)
             binding.close()
+        }
+    }
+
+    @Test
+    fun staleSupplementalHighlightingIsDiscarded() {
+        val tasks = LinkedBlockingQueue<Runnable>()
+        lateinit var view: MarkdownEditText
+        lateinit var watcher: SupplementalSyntaxWatcher
+
+        instrumentation.runOnMainSync {
+            view = editor()
+            watcher = SupplementalSyntaxWatcher(view, tasks::add)
+            view.addTextChangedListener(watcher)
+            view.setText("# stale heading")
+            view.setText("[[Current wiki link]]")
+        }
+
+        runNext(tasks)
+        instrumentation.waitForIdleSync()
+        instrumentation.runOnMainSync {
+            assertTrue(
+                view.text!!.getSpans(0, view.length(), SupplementalSyntaxSpan::class.java).isEmpty()
+            )
+        }
+
+        runNext(tasks)
+        instrumentation.waitForIdleSync()
+        instrumentation.runOnMainSync {
+            val syntax = view.text!!.getSpans(
+                0,
+                view.length(),
+                SupplementalSyntaxSpan::class.java
+            ).map { it.syntax }
+            assertEquals(listOf(MarkdownSyntax.WIKI_LINK), syntax)
+            view.removeTextChangedListener(watcher)
+            watcher.close()
         }
     }
 
@@ -250,6 +287,29 @@ class MarkdownEditorInstrumentedTest {
             androidx.appcompat.R.style.Theme_AppCompat
         )
     )
+
+    private fun waitForSyntax(view: MarkdownEditText, expected: MarkdownSyntax) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (System.nanoTime() < deadline) {
+            var found = false
+            instrumentation.runOnMainSync {
+                found = view.text!!.getSpans(
+                    0,
+                    view.length(),
+                    SupplementalSyntaxSpan::class.java
+                ).any { it.syntax == expected }
+            }
+            if (found) return
+            Thread.sleep(10)
+        }
+        throw AssertionError("Timed out waiting for $expected highlighting")
+    }
+
+    private fun runNext(tasks: LinkedBlockingQueue<Runnable>) {
+        val task = tasks.poll(5, TimeUnit.SECONDS)
+        assertTrue("expected a queued highlighting task", task != null)
+        task!!.run()
+    }
 
     private fun recordingWatcher(changes: MutableList<Triple<Int, Int, Int>>) =
         object : TextWatcher {

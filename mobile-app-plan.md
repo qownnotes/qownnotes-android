@@ -26,7 +26,7 @@ The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account o
 
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, direct two-account switching and a chooser for larger account sets, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete, including the configured CI device job; broader real-server interoperability must be verified before Phase 2 is marked fully complete.
 
-Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: supplemental highlighting still runs on the main thread, and large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
+Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -849,21 +849,24 @@ Implemented:
 - Added opt-in synchronization details in the note list and editor. The dialog explains local-server
   connectivity checks and, while the current application process retains it, shows a bounded,
   secret-redacted exception chain that can be copied for a bug report without telemetry.
+- Moved supplemental QOwnNotes source highlighting off the main thread. Each result is applied only
+  if its request and source are still current, and explicit tests cover every required source syntax
+  plus a large generated document.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 
 Known scope gaps:
 
 - The undo history covers an editing session, not the note. It starts empty every time the editor opens, so leaving edit mode, rotating the device, or process death all discard it. Persisted editor text is unaffected. Decide whether a longer-lived history is worth serializing before this is called finished.
-- Supplemental QOwnNotes highlighting runs on the main thread. `SupplementalSyntaxWatcher.afterTextChanged` scans the whole document with three regular expressions and rewrites its spans on every keystroke, so its cost grows with note length. The Markwon highlighting beside it is already pre-rendered off the main thread. This is the most likely cause of poor large-note typing latency and should be measured before being redesigned.
-- Editor highlighting has not been audited against the syntax list in the Editing Mode section of this document. Coverage of Setext headings, fence language identifiers, images, and tables in the source view is assumed from the Markwon editor plugins rather than asserted by a test.
 - Finding text works while reading a note but not while editing one. The editor shows the Markdown source, so it needs its own matching pass and its own way of moving the caret to a match, and the find bar would compete with the formatting toolbar and the keyboard for space. Decide whether the editor gets its own find affordance before this is called complete.
 - The note text size is the first user preference, and it introduced the only preference storage in the project. Later settings should either reuse `AppSettings` or replace it deliberately; it should not be duplicated per feature. There is still no settings screen, so a preference without an obvious in-context control has nowhere to live.
 
 Remaining verification:
 
 - Verify canonical title sanitization and HTTP 412 conflict behavior against supported real Nextcloud and Notes server versions. Only MockWebServer coverage exists for these paths. Real-server `POST` creation and formatting-triggered `PUT` updates are confirmed.
-- Measure editor responsiveness on representative large notes. No test or fixture in the repository uses a large document, so the acceptance criterion covering large-note editing is currently unverified rather than met.
+- Measure editor responsiveness on representative large notes. Supplemental syntax parsing now has a
+  10,000-section test fixture and runs off the main thread, but typing latency on representative
+  physical devices remains unverified rather than met.
 - Validate non-Latin text, input-method composing text, and additional software keyboards on physical devices.
 - Reconfirm typing on the OPPO CPH2653 running Android 16, where the original defect was reported. The fix is verified on an API 36 emulator only.
 

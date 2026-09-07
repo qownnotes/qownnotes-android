@@ -53,7 +53,7 @@ class MarkdownRendererInstrumentedTest {
         }
 
         assertTrue(changed.await(5, TimeUnit.SECONDS))
-        Thread.sleep(250)
+        waitForSyntax(view, MarkdownSyntax.FRONTMATTER)
         instrumentation.runOnMainSync {
             assertEquals(source, view.text.toString())
             assertEquals(5, view.selectionStart)
@@ -107,7 +107,7 @@ class MarkdownRendererInstrumentedTest {
         }
 
         assertTrue(changed.await(5, TimeUnit.SECONDS))
-        Thread.sleep(250)
+        waitForSyntax(view, MarkdownSyntax.IMAGE)
         instrumentation.runOnMainSync {
             val syntax = view.text!!.getSpans(
                 0,
@@ -120,6 +120,23 @@ class MarkdownRendererInstrumentedTest {
             assertEquals(11, view.selectionEnd)
             binding.close()
         }
+    }
+
+    private fun waitForSyntax(view: MarkdownEditText, expected: MarkdownSyntax) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (System.nanoTime() < deadline) {
+            var found = false
+            instrumentation.runOnMainSync {
+                found = view.text!!.getSpans(
+                    0,
+                    view.length(),
+                    SupplementalSyntaxSpan::class.java
+                ).any { it.syntax == expected }
+            }
+            if (found) return
+            Thread.sleep(10)
+        }
+        throw AssertionError("Timed out waiting for $expected highlighting")
     }
 
     @Test

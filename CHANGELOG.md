@@ -23,6 +23,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Supplemental Markdown source highlighting now parses off the main thread and discards stale
+  results, preventing whole-document regular-expression scans from blocking typing in large notes.
+- Markdown images in the source editor are now highlighted as images rather than generic links.
 - Remote images now load automatically in the note view. Local media images from Nextcloud notes
   are displayed using the Notes API attachment endpoint with SSO authentication. A **Load images**
   toggle in the note menu allows disabling image loading per note.

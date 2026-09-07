@@ -21,7 +21,9 @@ import io.noties.markwon.editor.MarkwonEditorTextWatcher
 import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
+import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 enum class MarkdownFormatAction {
     BOLD,
@@ -309,6 +311,8 @@ class MarkdownEditorBinding(
             override fun afterTextChanged(source: Editable?) = Unit
         }
     private val listContinuationWatcher = ListContinuationWatcher(editText)
+    private val supplementalSyntaxWatcher =
+        SupplementalSyntaxWatcher(editText, highlightExecutor)
 
     /**
      * Records what the writer changes. Highlighting only adds spans, which does not reach a
@@ -345,13 +349,13 @@ class MarkdownEditorBinding(
         editText.addTextChangedListener(listContinuationWatcher)
         editText.addTextChangedListener(highlightWatcher)
         editText.addTextChangedListener(sourceWatcher)
-        editText.addTextChangedListener(SupplementalSyntaxWatcher)
+        editText.addTextChangedListener(supplementalSyntaxWatcher)
         editText.onEditBoundary = history::breakGroup
         // The app populates the view before attaching this binding, so the watchers do not see
         // that initial change. Highlight the existing source without creating an undo entry or
         // reporting it as a user edit.
         highlightWatcher.afterTextChanged(editText.text)
-        SupplementalSyntaxWatcher.afterTextChanged(editText.text)
+        supplementalSyntaxWatcher.afterTextChanged(editText.text)
         publishHistory()
     }
 
@@ -373,7 +377,8 @@ class MarkdownEditorBinding(
         editText.removeTextChangedListener(listContinuationWatcher)
         editText.removeTextChangedListener(sourceWatcher)
         editText.removeTextChangedListener(highlightWatcher)
-        editText.removeTextChangedListener(SupplementalSyntaxWatcher)
+        editText.removeTextChangedListener(supplementalSyntaxWatcher)
+        supplementalSyntaxWatcher.close()
     }
 
     private fun replay(start: Int, remove: String, insert: String): Boolean {
@@ -463,6 +468,7 @@ internal enum class MarkdownSyntax {
     BLOCKQUOTE,
     CODE,
     LINK,
+    IMAGE,
     TABLE,
     WIKI_LINK,
     FRONTMATTER,
@@ -472,27 +478,47 @@ internal enum class MarkdownSyntax {
 internal class SupplementalSyntaxSpan(val syntax: MarkdownSyntax) :
     ForegroundColorSpan(Color.rgb(92, 107, 192))
 
-private object SupplementalSyntaxWatcher : TextWatcher {
-    private val patterns = listOf(
-        MarkdownSyntax.FRONTMATTER to
-            Regex("\\A---(?:\\r?\\n)[\\s\\S]*?(?:\\r?\\n)---(?=\\r?\\n|$)"),
-        MarkdownSyntax.COMMENT to Regex("<!--[\\s\\S]*?-->"),
-        MarkdownSyntax.WIKI_LINK to Regex("\\[\\[[^]\\r\\n]+]]"),
-        MarkdownSyntax.HEADING to Regex("(?m)^ {0,3}(?:#{1,6}(?=\\s)|(?:=+|-+)\\s*$)"),
-        MarkdownSyntax.EMPHASIS to
-            Regex(
-                "(?<!\\*)\\*{1,3}(?=\\S)|(?<=\\S)\\*{1,3}(?!\\*)|" +
-                    "(?<!_)_{1,3}(?=\\S)|(?<=\\S)_{1,3}(?!_)"
-            ),
-        MarkdownSyntax.STRIKETHROUGH to Regex("~~"),
-        MarkdownSyntax.LIST to Regex("(?m)^\\s*(?:[-+*]|\\d+[.)])(?=\\s)"),
-        MarkdownSyntax.TASK to Regex("\\[[ xX-]]"),
-        MarkdownSyntax.BLOCKQUOTE to Regex("(?m)^\\s*>+"),
-        MarkdownSyntax.CODE to
-            Regex("(?m)^\\s*(?:`{3,}|~{3,})[^\\r\\n]*|`+[^`\\r\\n]+`+"),
-        MarkdownSyntax.LINK to Regex("!?\\[[^]\\r\\n]*]\\([^\\s)]+(?:\\s+[^)]*)?\\)"),
-        MarkdownSyntax.TABLE to Regex("(?m)^\\s*\\|.*\\|\\s*$")
-    )
+internal data class SupplementalSyntaxRange(
+    val syntax: MarkdownSyntax,
+    val start: Int,
+    val end: Int
+)
+
+private val supplementalSyntaxPatterns = listOf(
+    MarkdownSyntax.FRONTMATTER to
+        Regex("\\A---(?:\\r?\\n)[\\s\\S]*?(?:\\r?\\n)---(?=\\r?\\n|$)"),
+    MarkdownSyntax.COMMENT to Regex("<!--[\\s\\S]*?-->"),
+    MarkdownSyntax.WIKI_LINK to Regex("\\[\\[[^]\\r\\n]+]]"),
+    MarkdownSyntax.HEADING to Regex("(?m)^ {0,3}(?:#{1,6}(?=\\s)|(?:=+|-+)\\s*$)"),
+    MarkdownSyntax.EMPHASIS to
+        Regex(
+            "(?<!\\*)\\*{1,3}(?=\\S)|(?<=\\S)\\*{1,3}(?!\\*)|" +
+                "(?<!_)_{1,3}(?=\\S)|(?<=\\S)_{1,3}(?!_)"
+        ),
+    MarkdownSyntax.STRIKETHROUGH to Regex("~~"),
+    MarkdownSyntax.LIST to Regex("(?m)^\\s*(?:[-+*]|\\d+[.)])(?=\\s)"),
+    MarkdownSyntax.TASK to Regex("\\[[ xX-]]"),
+    MarkdownSyntax.BLOCKQUOTE to Regex("(?m)^\\s*>+"),
+    MarkdownSyntax.CODE to Regex("(?m)^\\s*(?:`{3,}|~{3,})[^\\r\\n]*|`+[^`\\r\\n]+`+"),
+    MarkdownSyntax.IMAGE to Regex("!\\[[^]\\r\\n]*]\\([^\\s)]+(?:\\s+[^)]*)?\\)"),
+    MarkdownSyntax.LINK to Regex("(?<!!)\\[[^]\\r\\n]*]\\([^\\s)]+(?:\\s+[^)]*)?\\)"),
+    MarkdownSyntax.TABLE to Regex("(?m)^\\s*\\|.*\\|\\s*$")
+)
+
+internal fun findSupplementalSyntax(source: String): List<SupplementalSyntaxRange> =
+    supplementalSyntaxPatterns.flatMap { (syntax, pattern) ->
+        pattern.findAll(source).map { match ->
+            SupplementalSyntaxRange(syntax, match.range.first, match.range.last + 1)
+        }
+    }
+
+internal class SupplementalSyntaxWatcher(
+    private val editText: MarkdownEditText,
+    private val executor: Executor
+) : TextWatcher,
+    AutoCloseable {
+    private val generation = AtomicInteger()
+    private val viewHandler = Handler(Looper.getMainLooper())
 
     override fun beforeTextChanged(source: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
@@ -500,17 +526,30 @@ private object SupplementalSyntaxWatcher : TextWatcher {
 
     override fun afterTextChanged(source: Editable?) {
         source ?: return
-        source.getSpans(0, source.length, SupplementalSyntaxSpan::class.java)
-            .forEach(source::removeSpan)
-        patterns.forEach { (syntax, pattern) ->
-            pattern.findAll(source).forEach { match ->
-                source.setSpan(
-                    SupplementalSyntaxSpan(syntax),
-                    match.range.first,
-                    match.range.last + 1,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
+        val snapshot = source.toString()
+        val requestedGeneration = generation.incrementAndGet()
+        executor.execute {
+            if (requestedGeneration != generation.get()) return@execute
+            val ranges = findSupplementalSyntax(snapshot)
+            if (requestedGeneration != generation.get()) return@execute
+            viewHandler.post {
+                val editable = editText.text ?: return@post
+                if (requestedGeneration != generation.get()) return@post
+                editable.getSpans(0, editable.length, SupplementalSyntaxSpan::class.java)
+                    .forEach(editable::removeSpan)
+                ranges.forEach { range ->
+                    editable.setSpan(
+                        SupplementalSyntaxSpan(range.syntax),
+                        range.start,
+                        range.end,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
             }
         }
+    }
+
+    override fun close() {
+        generation.incrementAndGet()
     }
 }
