@@ -1,10 +1,13 @@
 package org.qownnotes.mobile.markdown
 
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.ContextThemeWrapper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -34,6 +37,35 @@ class MarkdownEditorInstrumentedTest {
         assertTrue("editor must be focusable in touch mode", view.isFocusableInTouchMode)
         assertTrue("editor must be clickable", view.isClickable)
         assertTrue("editor must show the keyboard on focus", view.showSoftInputOnFocus)
+    }
+
+    /**
+     * Regression test for the crash that leaving edit mode caused. Editing is left after a
+     * repository call, and a coroutine resumes on whichever thread completed that call, so focus
+     * and keyboard changes arrived on a Room executor thread and the view hierarchy rejected them.
+     */
+    @Test
+    fun focusChangesFromAnotherThreadAreAppliedOnTheViewThread() {
+        lateinit var view: MarkdownEditText
+        val releasedOn = LinkedBlockingQueue<Looper>()
+
+        instrumentation.runOnMainSync {
+            view = editor()
+            view.setOnFocusChangeListener { _, hasFocus ->
+                if (!hasFocus) releasedOn.add(Looper.myLooper())
+            }
+            assertTrue("the editor must hold focus before it is released", view.requestFocus())
+        }
+
+        // No `runOnMainSync`: this is the thread that made the change crash.
+        Thread { view.releaseInputFocus() }.apply { start() }.join()
+
+        assertEquals(
+            "the editor must release focus on the thread that owns the view",
+            Looper.getMainLooper(),
+            releasedOn.poll(5, TimeUnit.SECONDS)
+        )
+        instrumentation.runOnMainSync { assertFalse("focus must be released", view.hasFocus()) }
     }
 
     @Test

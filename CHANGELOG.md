@@ -14,7 +14,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - An **About** menu item in the note list account menu shows the version number and short git
   commit hash. Both values link to the project's GitHub releases and commit page respectively.
 - Renaming a note can optionally update the first Markdown heading to match the new file name.
-  The rename dialog includes an **Update heading 1** checkbox that is enabled by default.
+  The rename dialog includes an **Update heading 1** checkbox that is enabled by default. The whole
+  checkbox row is tappable, so the label is part of the target and screen readers announce one
+  checked option instead of a box beside unrelated text.
 
 ### Changed
 
@@ -25,6 +27,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - The onscreen keyboard now closes reliably when leaving Markdown edit mode.
+- Leaving edit mode no longer crashes. Editing is left after a note has been saved, and a coroutine
+  resumes on whichever thread completed that save, so the keyboard and focus changes could reach
+  the editor from a database thread and be rejected by the view hierarchy.
 - Local `media/` images in Nextcloud notes now use the versioned Notes attachment endpoint instead
   of failing to load as red placeholders.
 - Checkboxes in nested task lists can now be toggled in view mode; previously only top-level

@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -108,6 +109,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -123,6 +125,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -1190,10 +1193,23 @@ private fun NoteDetailScreen(
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
+    // Hiding the keyboard and the state change that takes the editor away have to happen in one
+    // go on the main thread: the input method is only reachable while the editor still has a
+    // window token. Editing is left after a repository call, and a coroutine resumes on whichever
+    // thread completed that call, so this names the thread it needs instead of assuming one.
     val leaveEditMode = {
-        // Hide the IME while the editor still has a valid window token, before Compose removes it.
-        editor?.releaseInputFocus()
-        editing = false
+        scope.launch(Dispatchers.Main.immediate) {
+            editor?.releaseInputFocus()
+            editing = false
+        }
+        Unit
+    }
+    val leaveNoteScreen = {
+        scope.launch(Dispatchers.Main.immediate) {
+            editor?.releaseInputFocus()
+            onBackToList()
+        }
+        Unit
     }
     val editorScrollState = rememberScrollState()
     var editorViewportHeight by remember { mutableIntStateOf(0) }
@@ -1370,14 +1386,10 @@ private fun NoteDetailScreen(
                                 val source = draft
                                 if (editing && source != null) {
                                     scope.launch {
-                                        if (component.saveDraft(localId, source)) {
-                                            editor?.releaseInputFocus()
-                                            onBackToList()
-                                        }
+                                        if (component.saveDraft(localId, source)) leaveNoteScreen()
                                     }
                                 } else {
-                                    editor?.releaseInputFocus()
-                                    onBackToList()
+                                    leaveNoteScreen()
                                 }
                             },
                             modifier = Modifier.testTag("back-to-note-list")
@@ -2057,15 +2069,19 @@ private fun RenameNoteDialog(
                         .testTag("note-name-field")
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+                // The whole row toggles, so the label is part of the target and the option
+                // reports one checked state rather than a box beside unrelated text.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
+                        .toggleable(
+                            value = updateHeading,
+                            onValueChange = onUpdateHeadingChange,
+                            role = Role.Checkbox
+                        )
                         .testTag("update-heading-checkbox")
                 ) {
-                    Checkbox(
-                        checked = updateHeading,
-                        onCheckedChange = onUpdateHeadingChange
-                    )
+                    Checkbox(checked = updateHeading, onCheckedChange = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Update heading 1")
                 }

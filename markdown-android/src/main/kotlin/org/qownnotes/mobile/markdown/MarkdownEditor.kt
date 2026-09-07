@@ -2,6 +2,8 @@ package org.qownnotes.mobile.markdown
 
 import android.content.Context
 import android.graphics.Color
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.InputType
 import android.text.Spanned
@@ -141,7 +143,13 @@ private val FENCE = Regex("^ {0,3}(`{3,}|~{3,})(?:[^`]*)$")
 class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
     AppCompatEditText(context, attrs) {
     var onSelectionChanged: ((Int, Int) -> Unit)? = null
+
+    /** Set and read only on the thread that owns the view, through [onViewThread]. */
     private var inputFocusRequest: Runnable? = null
+
+    // The view hierarchy may only be touched from the thread that created it, which is the thread
+    // constructing this view.
+    private val viewThread = Handler(Looper.myLooper() ?: Looper.getMainLooper())
 
     /**
      * Invoked before an edit the writer did not type, such as a formatting action, so that an undo
@@ -171,24 +179,46 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
     }
 
     /** Gives the editor input focus and asks the input method to open. */
-    fun focusForInput() {
-        inputFocusRequest?.let(::removeCallbacks)
+    fun focusForInput() = onViewThread {
+        cancelInputFocusRequest()
         val request = Runnable {
             inputFocusRequest = null
             if (isFocused || requestFocus()) {
                 inputMethodManager()?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
             }
         }
-        inputFocusRequest = request
-        if (isAttachedToWindow && hasWindowFocus()) request.run() else post(request)
+        if (isAttachedToWindow && hasWindowFocus()) {
+            request.run()
+        } else {
+            // A detached view has no handler, so `post` holds the request until it is attached.
+            inputFocusRequest = request
+            post(request)
+        }
     }
 
     /** Releases input focus and hides the input method when editing stops. */
-    fun releaseInputFocus() {
-        inputFocusRequest?.let(::removeCallbacks)
-        inputFocusRequest = null
+    fun releaseInputFocus() = onViewThread {
+        cancelInputFocusRequest()
         inputMethodManager()?.hideSoftInputFromWindow(windowToken, 0)
         clearFocus()
+    }
+
+    private fun cancelInputFocusRequest() {
+        inputFocusRequest?.let(::removeCallbacks)
+        inputFocusRequest = null
+    }
+
+    /**
+     * Runs [action] on the thread that owns this view, immediately when the caller is already on
+     * it.
+     *
+     * Focus and input-method calls are made from coroutine callbacks, and a coroutine resumes on
+     * whichever thread completed the call it awaited: Room finishes its queries and transactions
+     * on its own executor. Touching a view from any other thread throws, so the view brings itself
+     * back rather than trusting every caller to.
+     */
+    private fun onViewThread(action: () -> Unit) {
+        if (Looper.myLooper() == viewThread.looper) action() else viewThread.post(action)
     }
 
     fun applyFormat(action: MarkdownFormatAction) {

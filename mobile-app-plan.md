@@ -833,6 +833,7 @@ Implemented:
 - Rebased the application theme on `Theme.AppCompat.DayNight.NoActionBar` so hosted AppCompat widgets get their intended styles and follow the system dark mode like the Compose theme.
 - Set the interactive flags on `MarkdownEditText` itself so editing no longer depends on the hosting theme, and removed the inherited widget background because Compose supplies the editor surface.
 - Added focus and keyboard activation when edit mode opens, focus restoration after formatting-toolbar actions, keyboard dismissal before leaving edit mode (with editor-release cleanup as a fallback), and IME insets so the keyboard cannot cover the editor.
+- Fixed the crash that dismissing the keyboard introduced. Editing is left after the note has been saved, and a coroutine resumes on whichever thread completed that save: Room finishes its queries and transactions on its own executor, and the Compose test dispatcher does not re-dispatch continuations at all. `MarkdownEditText` now brings focus and input-method calls back to the thread that owns the view rather than trusting its callers, and the note screen hides the keyboard and leaves edit mode as one main-thread step so the input method is still reachable when it is asked to close.
 - Changed formatting actions to replace only the changed range instead of the whole document, preserving undo history, spans, and in-progress input-method composition.
 - Applied the Compose surface text color to the hosted editor and rendered views so note text stays legible in dark mode.
 - Added an adjustable note text size, requested during Phase 3 rather than planned. `A-` and `A+` controls on the note screen step through discrete `sp` sizes, apply to both the rendered note and the source editor, persist in `SharedPreferences`, survive process death, and carry accessibility descriptions. Rendered headings and code rescale without re-rendering because Markwon sizes them relative to the view.
@@ -1008,6 +1009,22 @@ Test rendered output and editor highlighting separately because they use differe
 - Light and dark themes
 - Screen readers and scalable font sizes
 - Phones and tablets
+
+Two properties of the Compose test environment have already produced failures that looked like
+product defects and are worth knowing before writing a device test:
+
+- The interceptor a Compose test installs is not a `CoroutineDispatcher`, so `withContext` inside a
+  suspend call cannot re-dispatch and the caller resumes on whichever thread finished the work,
+  usually a Room executor thread. Code that touches an Android view after awaiting a repository
+  call has to name the thread it needs; it cannot assume the main thread the way it can in
+  production.
+- Delays inside `LaunchedEffect` run on a virtual clock that only advances while the test waits for
+  idle. A test that polls with `Thread.sleep` never lets a periodic effect fire, while one that
+  polls through `waitUntil` does.
+
+A screen fed by a database query keeps showing the previous result until the new query emits, so
+the screen is idle while it still shows what an action is about to replace. Assert that something
+has gone by waiting for it to go, not by checking once.
 
 ### Integration Tests
 

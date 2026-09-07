@@ -9,6 +9,8 @@ import android.widget.TextView
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -42,7 +44,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -348,8 +349,8 @@ class AppLaunchTest {
         composeRule.waitUntil(timeoutMillis = 10_000) {
             application.fakeBackend.deletedRemoteIds.toSet() == setOf(42L, 43L)
         }
-        composeRule.onNodeWithText("First note").assertDoesNotExist()
-        composeRule.onNodeWithText("Second note").assertDoesNotExist()
+        composeRule.waitForTextToGo("First note")
+        composeRule.waitForTextToGo("Second note")
     }
 
     @Test
@@ -363,7 +364,7 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("confirm-delete-note").performClick()
 
         composeRule.waitForTag("note-list")
-        composeRule.onNodeWithText("Existing note").assertDoesNotExist()
+        composeRule.waitForTextToGo("Existing note")
         composeRule.waitUntil(timeoutMillis = 10_000) {
             application.fakeBackend.deletedRemoteIds == listOf(42L)
         }
@@ -435,7 +436,7 @@ class AppLaunchTest {
         }
         composeRule.waitForText("Filtered note")
         composeRule.onNodeWithTag("note-search").performTextInput("Visible")
-        composeRule.onNodeWithText("Filtered note").assertDoesNotExist()
+        composeRule.waitForTextToGo("Filtered note")
 
         composeRule.onNodeWithTag("remote-trash").performClick()
 
@@ -636,18 +637,12 @@ class AppLaunchTest {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.enterEditMode()
-        lateinit var editor: TextView
-        onView(withId(R.id.markdown_editor)).check { view, _ ->
-            editor = view as TextView
-            assertTrue(editor.hasFocus())
-        }
+        awaitEditorFocus(focused = true)
 
         composeRule.onNodeWithTag("cancel-editing").performClick()
 
         composeRule.waitForTag("markdown-view")
-        composeRule.runOnIdle {
-            assertFalse("leaving edit mode must release editor focus", editor.hasFocus())
-        }
+        awaitEditorFocus(focused = false)
         composeRule.onNodeWithTag("confirm-discard-changes").assertDoesNotExist()
         composeRule.onNodeWithTag("edit-note").assertIsDisplayed()
     }
@@ -908,18 +903,16 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("delete-note").assertIsDisplayed()
     }
 
-    /** The name of a note is the name of the file holding it, so a rename has to be uploaded. */
+    /**
+     * The name of a note is the name of the file holding it, so a rename has to be uploaded.
+     * Renaming without the heading option touches nothing but that name.
+     */
     @Test
     fun renamingANoteShowsAndUploadsTheNewFileName() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
 
-        // Opening a note loads it from the repository, so its actions appear a recomposition later.
-        composeRule.openNoteMenu()
-        composeRule.onNodeWithTag("rename-note").performClick()
-        composeRule.waitForTag("note-name-field")
-        composeRule.onNodeWithTag("note-name-field").performTextReplacement("Grocery list")
-        composeRule.onNodeWithTag("confirm-rename-note").performClick()
+        renameNote("Grocery list", updateHeading = false)
 
         composeRule.waitForText("Grocery list")
         composeRule.onNodeWithTag("back-to-note-list").performClick()
@@ -927,14 +920,27 @@ class AppLaunchTest {
         composeRule.waitUntil(timeoutMillis = 10_000) {
             application.fakeBackend.pushedNotes.any { it.title == "Grocery list" }
         }
-        assertTrue(
-            runBlocking {
-                application.component.noteRepository
-                    .observeNotes(testAccount("alice").localAccountId())
-                    .first()
-                    .all { it.content == "# Existing note" }
+        assertEquals(listOf("# Existing note"), noteContents("alice"))
+    }
+
+    /**
+     * The heading a note opens with usually repeats its file name, so the rename dialog offers to
+     * carry the new name into that heading, and does so unless the writer says otherwise.
+     */
+    @Test
+    fun renamingANoteAlsoRewritesTheFirstHeadingByDefault() {
+        importAccount("alice", "Existing note", "etag-1", 10, content = "# Existing note\n\nBody")
+        composeRule.onNodeWithText("Existing note").performClick()
+
+        renameNote("Grocery list")
+
+        composeRule.waitForText("Grocery list")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.pushedNotes.any {
+                it.title == "Grocery list" && it.content == "# Grocery list\n\nBody"
             }
-        )
+        }
+        assertEquals(listOf("# Grocery list\n\nBody"), noteContents("alice"))
     }
 
     /** A name that holds nothing a file system accepts would leave the note unreachable. */
@@ -1053,24 +1059,59 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("note-find-field").assertDoesNotExist()
     }
 
+    /**
+     * An editing session that never pauses must still reach storage. Every round of typing
+     * restarts the idle save, so it never completes and whatever the database ends up holding was
+     * written by the periodic checkpoint. What is stored is only checked for the shape of the
+     * typed text, not for the newest of it, because a checkpoint is a snapshot of a moment that
+     * the writer has already typed past by the time it can be read back.
+     */
     @Test
-    fun editorDraftIsPeriodicallyCheckpointedWithoutStartingNetworkWork() {
+    fun editorDraftIsPeriodicallyCheckpointedWhileTypingNeverPauses() {
         importAccount("alice", "Existing note", "etag-1", 10)
         val note = runBlocking { notesOf("alice").single() }
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.enterEditMode()
-        onView(withId(R.id.markdown_editor)).perform(
-            click(),
-            replaceText("# Edited\n\nPeriodic checkpoint")
-        )
+        onView(withId(R.id.markdown_editor)).perform(click())
 
-        composeRule.waitUntil(timeoutMillis = 2_000) {
-            runBlocking {
-                application.component.noteRepository.get(note.localId)?.content ==
-                    "# Edited\n\nPeriodic checkpoint"
-            }
+        var round = 0
+        composeRule.waitUntil(timeoutMillis = 30_000) {
+            onView(withId(R.id.markdown_editor))
+                .perform(replaceText("# Edited\n\nPeriodic checkpoint ${round++}"))
+            runBlocking { application.component.noteRepository.get(note.localId)?.content }
+                ?.startsWith("# Edited\n\nPeriodic checkpoint") == true
         }
-        assertTrue(application.fakeBackend.pushedNotes.isEmpty())
+    }
+
+    /**
+     * A checkpoint is a local safety net, not an edit the writer finished, so it must not start
+     * network work of its own. Waiting past the synchronization delay is what makes the absence of
+     * an upload mean anything.
+     */
+    @Test
+    fun checkpointingADraftStartsNoNetworkWork() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking { notesOf("alice").single() }
+        val pullsBefore = application.fakeBackend.checkpoints.size
+
+        runBlocking {
+            application.component.checkpointDraft(note.localId, "# Edited\n\nCheckpoint")
+        }
+
+        assertEquals(
+            "# Edited\n\nCheckpoint",
+            runBlocking { application.component.noteRepository.get(note.localId)?.content }
+        )
+        Thread.sleep(SYNC_DELAY_MILLIS * 2)
+        assertTrue(
+            "a checkpoint must not upload the note",
+            application.fakeBackend.pushedNotes.isEmpty()
+        )
+        assertEquals(
+            "a checkpoint must not refresh the account",
+            pullsBefore,
+            application.fakeBackend.checkpoints.size
+        )
     }
 
     @Test
@@ -1167,6 +1208,31 @@ class AppLaunchTest {
     }
 
     /**
+     * Renames the open note. Opening a note loads it from the repository, so its actions appear a
+     * recomposition later, and the dialog is only reachable through the note menu.
+     */
+    private fun renameNote(name: String, updateHeading: Boolean = true) {
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("rename-note").performClick()
+        composeRule.waitForTag("note-name-field")
+        composeRule.onNodeWithTag("note-name-field").performTextReplacement(name)
+        composeRule.onNodeWithTag("update-heading-checkbox").assertIsOn()
+        if (!updateHeading) {
+            composeRule.onNodeWithTag("update-heading-checkbox").performClick()
+            composeRule.onNodeWithTag("update-heading-checkbox").assertIsOff()
+        }
+        composeRule.onNodeWithTag("confirm-rename-note").performClick()
+    }
+
+    /** What the notes of an account hold, read from the repository rather than from the screen. */
+    private fun noteContents(user: String): List<String> = runBlocking {
+        application.component.noteRepository
+            .observeNotes(testAccount(user).localAccountId())
+            .first()
+            .map { it.content }
+    }
+
+    /**
      * Pull to refresh reacts to how far a drag has travelled by the time it is released. The
      * injected gesture and the state that measures it advance on separate coroutines, so on a
      * loaded machine a swipe can be released before the pull has been accounted for and then
@@ -1187,6 +1253,20 @@ class AppLaunchTest {
             if (reachedTheBackend) return
         }
         throw AssertionError("pulling the note list down never reached the backend")
+    }
+
+    /**
+     * Waits for the editor to hold or release input focus. Focus is requested once the view has
+     * been attached and released as edit mode is left, so neither is true the moment the action
+     * that causes it returns. A released editor is gone from the hierarchy and holds no focus.
+     */
+    private fun awaitEditorFocus(focused: Boolean) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.runOnIdle {
+                composeRule.activity.findViewById<TextView>(R.id.markdown_editor)
+                    ?.hasFocus() == true
+            } == focused
+        }
     }
 
     /**
@@ -1294,5 +1374,23 @@ class AppLaunchTest {
         waitUntil(timeoutMillis = 10_000) {
             onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    /**
+     * Waits for text to go, for lists that are answered by a query rather than filtered in place.
+     * Searching starts a new database flow and the previous result stays on screen until that flow
+     * emits, so the screen is idle while it still shows what the search is about to replace.
+     */
+    private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.waitForTextToGo(
+        text: String
+    ) {
+        waitUntil(timeoutMillis = 10_000) {
+            onAllNodesWithText(text).fetchSemanticsNodes().isEmpty()
+        }
+    }
+
+    private companion object {
+        /** How long `ApplicationComponent` lets a scheduled synchronization wait before it runs. */
+        const val SYNC_DELAY_MILLIS = 1_500L
     }
 }
