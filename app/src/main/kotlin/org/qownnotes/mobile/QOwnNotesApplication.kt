@@ -191,12 +191,14 @@ class ApplicationComponent(
         accountMutex(accountId).withLock {
             val localNoteIds = noteRepository.observeNotes(accountId).first().map(Note::localId)
             accountRepository.remove(accountId)
+            settings.removeNoteCategoryScope(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
         }
     }
 
-    suspend fun createNote(accountId: String): Note = persistNewNote(noteFactory.create(accountId))
+    suspend fun createNote(accountId: String, category: String = ""): Note =
+        persistNewNote(noteFactory.create(accountId, category))
 
     /** Creates the note that text shared by another application is put into. */
     suspend fun createSharedNote(accountId: String, shared: SharedText): Note =

@@ -61,7 +61,8 @@ class NoteFactory(
     private val clock: Clock,
     private val newId: () -> String = { UUID.randomUUID().toString() }
 ) {
-    fun create(accountId: String): Note = create(accountId, namingPolicy.createName(), body = "")
+    fun create(accountId: String, category: String = ""): Note =
+        create(accountId, namingPolicy.createName(), body = "", category)
 
     /**
      * Creates a note holding text another application shared.
@@ -74,17 +75,24 @@ class NoteFactory(
     fun createFromSharedText(accountId: String, shared: SharedText): Note {
         val name = shared.subject?.let(NoteNames::sanitize)?.takeIf(String::isNotEmpty)
             ?: namingPolicy.createName()
-        return create(accountId, name, shared.text.trim())
+        return create(accountId, name, shared.text.trim(), category = "")
     }
 
-    private fun create(accountId: String, title: String, body: String): Note = Note(
-        localId = newId(),
-        accountId = accountId,
-        title = title,
-        // Applications that have no subject to send sometimes send the text as one. Repeating it
-        // under a heading that already says it would add nothing.
-        content = if (body.isEmpty() || body == title) "# $title\n\n" else "# $title\n\n$body\n",
-        modifiedAtEpochSeconds = clock.instant().epochSecond,
-        syncState = SyncState.LOCALLY_CREATED
-    )
+    private fun create(accountId: String, title: String, body: String, category: String): Note =
+        Note(
+            localId = newId(),
+            accountId = accountId,
+            title = title,
+            // Applications that have no subject to send sometimes send the text as one. Repeating it
+            // under a heading that already says it would add nothing.
+            content =
+            if (body.isEmpty() || body == title) {
+                "# $title\n\n"
+            } else {
+                "# $title\n\n$body\n"
+            },
+            category = category,
+            modifiedAtEpochSeconds = clock.instant().epochSecond,
+            syncState = SyncState.LOCALLY_CREATED
+        )
 }

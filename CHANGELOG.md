@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A per-account category selector filters the note list locally and offline. It defaults to
+  **Undefined**, also offers **All categories**, remembers the selection, creates notes in the
+  selected category, and hides QOwnNotes' internal `media` and `attachments` folder trees.
 - Note edits are now checkpointed to local storage every five seconds during continuous typing, so
   an app crash cannot lose an indefinitely long in-memory editing session.
 - An **About** menu item in the note list account menu shows the version number and short git

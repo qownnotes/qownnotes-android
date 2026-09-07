@@ -4,6 +4,7 @@ import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.markdown.NoteTextSize
 
 /**
@@ -62,10 +63,34 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableShowCategory.value = enabled
     }
 
+    fun noteCategoryScope(accountId: String): NoteCategoryScope =
+        when (val stored = preferences.getString("$NOTE_CATEGORY_SCOPE_PREFIX$accountId", null)) {
+            ALL_CATEGORIES -> NoteCategoryScope.All
+            null, UNDEFINED_CATEGORY -> NoteCategoryScope.Undefined
+            else -> NoteCategoryScope.Category(stored.removePrefix(CATEGORY_PREFIX))
+        }
+
+    fun setNoteCategoryScope(accountId: String, scope: NoteCategoryScope) {
+        val stored = when (scope) {
+            NoteCategoryScope.Undefined -> UNDEFINED_CATEGORY
+            NoteCategoryScope.All -> ALL_CATEGORIES
+            is NoteCategoryScope.Category -> "$CATEGORY_PREFIX${scope.value}"
+        }
+        preferences.edit().putString("$NOTE_CATEGORY_SCOPE_PREFIX$accountId", stored).apply()
+    }
+
+    fun removeNoteCategoryScope(accountId: String) {
+        preferences.edit().remove("$NOTE_CATEGORY_SCOPE_PREFIX$accountId").apply()
+    }
+
     private companion object {
         const val PREFERENCES = "qownnotes-settings"
         const val NOTE_TEXT_SIZE_SP = "noteTextSizeSp"
         const val SHOW_NOTE_PREVIEW = "showNotePreview"
         const val SHOW_CATEGORY = "showCategory"
+        const val NOTE_CATEGORY_SCOPE_PREFIX = "noteCategoryScope."
+        const val UNDEFINED_CATEGORY = "undefined"
+        const val ALL_CATEGORIES = "all"
+        const val CATEGORY_PREFIX = "category:"
     }
 }

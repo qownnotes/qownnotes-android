@@ -30,6 +30,13 @@ class NoteFactoryTest {
     }
 
     @Test
+    fun `creates a note in the selected category`() {
+        val note = factory().create("account", "Projects/Android")
+
+        assertEquals("Projects/Android", note.category)
+    }
+
+    @Test
     fun `shared text is named by the sharing application and kept under that heading`() {
         val note = factory().createFromSharedText(
             "account",

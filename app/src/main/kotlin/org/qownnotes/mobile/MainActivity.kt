@@ -133,6 +133,8 @@ import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.BuildConfig
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteCategories
+import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteExcerpt
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.RemoteNoteVersion
@@ -405,9 +407,9 @@ private fun NotesNavigation(
                     noteHistory = emptyList()
                 }
             },
-            onCreate = { accountId ->
+            onCreate = { accountId, category ->
                 scope.launch {
-                    val note = component.createNote(accountId)
+                    val note = component.createNote(accountId, category)
                     noteHistory = emptyList()
                     selectedNoteId = note.localId
                     selectedHeading = null
@@ -485,7 +487,7 @@ private fun NoteListScreen(
     onImportAccount: () -> Unit,
     onReconnectAccount: (String) -> Unit,
     onRemoveAccount: (String) -> Unit,
-    onCreate: (String) -> Unit,
+    onCreate: (String, String) -> Unit,
     onOpen: (String) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -494,6 +496,10 @@ private fun NoteListScreen(
     var showAbout by rememberSaveable(accountId) { mutableStateOf(false) }
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
+    var categoryMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
+    var categoryScope by remember(accountId) {
+        mutableStateOf(component.settings.noteCategoryScope(accountId))
+    }
     var selectedNoteIds by rememberSaveable(accountId) { mutableStateOf(emptyList<String>()) }
     var trashState by remember(accountId) {
         mutableStateOf<ArchiveLoadState<TrashedNote>>(ArchiveLoadState.Idle)
@@ -502,7 +508,7 @@ private fun NoteListScreen(
     var trashRequestId by remember(accountId) { mutableIntStateOf(0) }
     val allNotesFlow = remember(accountId) { component.noteRepository.observeNotes(accountId) }
     val allNotes by allNotesFlow
-        .collectAsStateWithLifecycle(initialValue = emptyList(), context = UiDispatcher)
+        .collectAsStateWithLifecycle(initialValue = null as List<Note>?, context = UiDispatcher)
     val notesFlow = remember(accountId, query) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
@@ -521,10 +527,23 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val showCategory by component.settings.showCategory
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val categories = remember(allNotes) { NoteCategories.selectable(allNotes.orEmpty()) }
+    val visibleNotes = remember(notes, categoryScope) {
+        notes?.filter { NoteCategories.matches(it.category, categoryScope) }
+    }
 
     LaunchedEffect(accountId) { withContext(UiDispatcher) { component.refresh(accountId) } }
-    LaunchedEffect(notes) {
-        val visibleIds = notes?.mapTo(mutableSetOf(), Note::localId) ?: return@LaunchedEffect
+    LaunchedEffect(allNotes, categories, categoryScope) {
+        allNotes ?: return@LaunchedEffect
+        val selected = categoryScope as? NoteCategoryScope.Category ?: return@LaunchedEffect
+        if (categories.none { it.equals(selected.value, ignoreCase = true) }) {
+            categoryScope = NoteCategoryScope.Undefined
+            component.settings.setNoteCategoryScope(accountId, categoryScope)
+        }
+    }
+    LaunchedEffect(visibleNotes) {
+        val visibleIds = visibleNotes?.mapTo(mutableSetOf(), Note::localId)
+            ?: return@LaunchedEffect
         selectedNoteIds = selectedNoteIds.filter { it in visibleIds }
     }
     BackHandler(enabled = selectionActive) {
@@ -696,7 +715,11 @@ private fun NoteListScreen(
                             .testTag("note-list-actions")
                     ) {
                         TextButton(
-                            onClick = { onCreate(accountId) },
+                            onClick = {
+                                val category = (categoryScope as? NoteCategoryScope.Category)?.value
+                                    .orEmpty()
+                                onCreate(accountId, category)
+                            },
                             modifier = Modifier.testTag("create-note")
                         ) {
                             Icon(
@@ -706,6 +729,50 @@ private fun NoteListScreen(
                             )
                             Text("New note")
                         }
+                        Box {
+                            TextButton(
+                                onClick = { categoryMenuOpen = true },
+                                modifier = Modifier.testTag("category-selector")
+                            ) {
+                                Text(
+                                    when (val selected = categoryScope) {
+                                        NoteCategoryScope.Undefined -> "Undefined"
+                                        NoteCategoryScope.All -> "All categories"
+                                        is NoteCategoryScope.Category -> selected.value
+                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
+                            }
+                            DropdownMenu(
+                                expanded = categoryMenuOpen,
+                                onDismissRequest = { categoryMenuOpen = false }
+                            ) {
+                                fun select(scope: NoteCategoryScope) {
+                                    categoryScope = scope
+                                    component.settings.setNoteCategoryScope(accountId, scope)
+                                    categoryMenuOpen = false
+                                }
+                                DropdownMenuItem(
+                                    text = { Text("Undefined") },
+                                    onClick = { select(NoteCategoryScope.Undefined) },
+                                    modifier = Modifier.testTag("category-option-undefined")
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("All categories") },
+                                    onClick = { select(NoteCategoryScope.All) },
+                                    modifier = Modifier.testTag("category-option-all")
+                                )
+                                categories.forEach { category ->
+                                    DropdownMenuItem(
+                                        text = { Text(category) },
+                                        onClick = { select(NoteCategoryScope.Category(category)) },
+                                        modifier = Modifier.testTag("category-option-$category")
+                                    )
+                                }
+                            }
+                        }
                         TextButton(
                             onClick = {
                                 val requestId = ++trashRequestId
@@ -714,7 +781,7 @@ private fun NoteListScreen(
                                     val result = runCatching {
                                         component.trashedNotes(
                                             accountId,
-                                            allNotes.mapTo(mutableSetOf(), Note::category)
+                                            allNotes.orEmpty().mapTo(mutableSetOf(), Note::category)
                                         )
                                     }.fold(
                                         onSuccess = { ArchiveLoadState.Loaded(it) },
@@ -770,22 +837,26 @@ private fun NoteListScreen(
                 item {
                     SyncStatus(syncState, reconnect = { onReconnectAccount(accountId) })
                 }
-                if (notes == null) {
+                if (visibleNotes == null) {
                     item {
                         CircularProgressIndicator(
                             modifier = Modifier.padding(24.dp).testTag("notes-loading")
                         )
                     }
-                } else if (notes!!.isEmpty()) {
+                } else if (visibleNotes.isEmpty()) {
                     item {
                         Text(
-                            if (query.isBlank()) "No cached notes" else "No matching notes",
+                            if (query.isBlank()) {
+                                "No notes in this category"
+                            } else {
+                                "No matching notes"
+                            },
                             modifier = Modifier.padding(24.dp),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
                 } else {
-                    items(notes!!, key = Note::localId) { note ->
+                    items(visibleNotes, key = Note::localId) { note ->
                         val selected = note.localId in selectedNoteIds
                         Row(
                             modifier =
@@ -1008,7 +1079,7 @@ private fun NoteListScreen(
                                 component.restoreTrashedNote(accountId, trashed)
                                 component.trashedNotes(
                                     accountId,
-                                    allNotes.mapTo(mutableSetOf(), Note::category)
+                                    allNotes.orEmpty().mapTo(mutableSetOf(), Note::category)
                                 )
                             }.fold(
                                 onSuccess = { ArchiveLoadState.Loaded(it) },

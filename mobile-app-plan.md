@@ -644,7 +644,7 @@ Folders are derived state, not stored entities. Build the tree from the distinct
 
 An empty folder cannot exist on the server. Do not offer creating an empty folder as a durable object. A new-folder affordance may only pre-fill the category of a note that is being created.
 
-The selected scope is a device-local preference. Persist it per account through the existing `AppSettings` rather than in Room, and fall back to the root when the remembered folder no longer contains notes.
+The selected scope is a device-local preference. Persist it per account through the existing `AppSettings` rather than in Room, and fall back to Undefined when the remembered category no longer contains notes. The first category increment uses a flat exact-category selector: Undefined means only notes whose category is empty, while All categories removes the category filter. This is intentionally distinct from the later hierarchical root scope described below.
 
 Category normalization belongs in `core`. Split on `/`, trim each segment, drop empty, `.`, and `..` segments, remove the characters the server removes, and rejoin with `/`, where the root is the empty string. The local-folder backend needs the same policy, and the rule has to stay portable for a later Kotlin Multiplatform extraction. Always adopt the server's canonical category from the response, exactly as the canonical title is adopted today.
 
@@ -657,6 +657,7 @@ Category normalization belongs in `core`. Split on `/`, trim each segment, drop 
 - Defer renaming and deleting a folder. Without an API operation, both are one guarded update per contained note: not atomic, interruptible, and able to fail halfway. If they are implemented, they must run through the synchronization queue with per-note conflict handling and a resumable record of what remains, never as a fire-and-forget loop.
 - Keep resolving wiki links against the source note's category first and then across the account. That already matches the QOwnNotes preference for the current subfolder.
 - Treat excluding a subfolder from the list as a view preference only. Excluded folders must still be synchronized, and excluding one must never influence the pull or remote-deletion detection.
+- Do not offer the root `media` or `attachments` trees in the selector. QOwnNotes reserves them for files referenced by notes. A same-named segment below another category, such as `Projects/media`, remains a normal category. Internal-category notes remain synchronized and visible through All categories.
 
 ### Query Rules
 
@@ -885,6 +886,10 @@ Resolved physical-device issue recorded on 2026-09-01:
 ### Phase 5: Note Folders
 
 Give Nextcloud accounts QOwnNotes-style folders through the Notes `category` attribute, as decided in the Note Folders section. This follows Phase 4 because moving a note between folders is a guarded remote update that needs the conflict infrastructure built there.
+
+The first increment provides a persisted flat selector for Undefined, All categories, and exact
+cached categories, filters locally, excludes the internal `media` and `attachments` trees from the
+choices, and creates notes in the selected category. Hierarchical navigation remains planned below.
 
 - Add category normalization and folder-tree derivation to `core`.
 - Derive the per-account folder tree from the cached notes rather than from a new table.

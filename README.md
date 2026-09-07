@@ -14,6 +14,7 @@ QOwnNotes behavior while synchronizing through the Nextcloud Notes API.
 - Browse and restore server note versions and remotely trashed notes when the Nextcloud
   QOwnNotesAPI app is installed.
 - Favorite notes with a star and keep them above other notes, including while offline.
+- Filter notes by Nextcloud category, with per-account selections that remain available offline.
 - Create a note from text shared by another Android application.
 - Render CommonMark and GitHub Flavored Markdown, QOwnNotes task states, wiki links, legacy
   `note://` links, tables, fenced code, and safe remote images.

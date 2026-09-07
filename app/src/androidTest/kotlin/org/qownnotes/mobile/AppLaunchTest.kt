@@ -88,6 +88,65 @@ class AppLaunchTest {
     }
 
     @Test
+    fun categorySelectorDefaultsToUndefinedAndHidesInternalCategories() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(41, "etag-root", "Root note", "# Root", "", 10),
+                    RemoteNote(42, "etag-work", "Work note", "# Work", "Work", 11),
+                    RemoteNote(43, "etag-media", "Media note", "# Media", "media", 12),
+                    RemoteNote(
+                        44,
+                        "etag-attachments",
+                        "Attachment note",
+                        "# Attachment",
+                        "attachments/archive",
+                        13
+                    )
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 13
+            )
+        )
+
+        accountAction("add-account")
+
+        composeRule.waitForText("Root note")
+        composeRule.onNodeWithText("Work note").assertDoesNotExist()
+        composeRule.onNodeWithTag("category-selector").performClick()
+        composeRule.onNodeWithTag("category-option-undefined").assertIsDisplayed()
+        composeRule.onNodeWithTag("category-option-all").assertIsDisplayed()
+        composeRule.onNodeWithTag("category-option-Work").assertIsDisplayed()
+        composeRule.onNodeWithTag("category-option-media").assertDoesNotExist()
+        composeRule.onNodeWithTag("category-option-attachments/archive").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("category-option-all").performClick()
+        composeRule.waitForText("Work note")
+        composeRule.onNodeWithText("Root note").assertIsDisplayed()
+        composeRule.onNodeWithText("Media note").assertIsDisplayed()
+        composeRule.onNodeWithTag("category-selector").performClick()
+
+        composeRule.onNodeWithTag("category-option-Work").performClick()
+
+        composeRule.waitForText("Work note")
+        composeRule.onNodeWithText("Root note").assertDoesNotExist()
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForText("Work note")
+        composeRule.onNodeWithText("Root note").assertDoesNotExist()
+
+        val existingIds = runBlocking { notesOf("alice").map(Note::localId).toSet() }
+        composeRule.onNodeWithTag("create-note").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                notesOf("alice").any { it.localId !in existingIds && it.category == "Work" }
+            }
+        }
+    }
+
+    @Test
     fun favoriteStarMovesANoteAboveNewerNotesAndQueuesItForUpload() {
         val account = testAccount("alice")
         application.fakeAccountImporter.enqueue(account)
