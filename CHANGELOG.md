@@ -30,6 +30,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Leaving edit mode no longer crashes. Editing is left after a note has been saved, and a coroutine
   resumes on whichever thread completed that save, so the keyboard and focus changes could reach
   the editor from a database thread and be rejected by the view hierarchy.
+- Text shared from another application is now reliably opened after it becomes a note. Accepting
+  the share cleared the state the accepting effect was keyed on, so the effect could be cancelled
+  between writing the note and opening it, leaving the note in the list without showing it.
 - Local `media/` images in Nextcloud notes now use the versioned Notes attachment endpoint instead
   of failing to load as red placeholders.
 - Checkboxes in nested task lists can now be toggled in view mode; previously only top-level

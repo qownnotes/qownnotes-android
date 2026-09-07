@@ -129,6 +129,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.BuildConfig
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
@@ -286,6 +287,19 @@ private fun QOwnNotesTheme(content: @Composable () -> Unit) {
     )
 }
 
+/**
+ * The thread the user interface lives on, named rather than inherited.
+ *
+ * Compose hands an effect and a remembered scope the dispatcher of the composition they belong to.
+ * In the running application that is the main thread, but the interceptor a Compose test installs
+ * is not a dispatcher at all, so a call that waits for the database resumes on whichever thread
+ * finished it, which is one of Room's executor threads. Everything that follows then runs there:
+ * the state writes, the snapshot notification Compose sends on every resumption, and any call into
+ * a hosted Android view. None of that may leave the thread the composition and its views live on,
+ * so every coroutine that ends in the user interface names the dispatcher it needs.
+ */
+private val UiDispatcher get() = Dispatchers.Main.immediate
+
 @Composable
 private fun NotesNavigation(
     component: ApplicationComponent,
@@ -293,9 +307,9 @@ private fun NotesNavigation(
     onReconnectAccount: (String) -> Unit
 ) {
     val accounts by component.accountRepository.observeAccounts()
-        .collectAsStateWithLifecycle(initialValue = null as List<Account>?)
-    val importState by component.importState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
+        .collectAsStateWithLifecycle(initialValue = null as List<Account>?, context = UiDispatcher)
+    val importState by component.importState.collectAsStateWithLifecycle(context = UiDispatcher)
+    val scope = rememberCoroutineScope { UiDispatcher }
     var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     var observedAccountIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var selectedNoteId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -326,18 +340,23 @@ private fun NotesNavigation(
     val loadedAccounts = accounts
     val activeAccountId = loadedAccounts?.firstOrNull { it.id == selectedAccountId }?.id
         ?: loadedAccounts?.firstOrNull()?.id
-    val pendingShare by component.pendingShare.collectAsStateWithLifecycle()
+    val pendingShare by component.pendingShare.collectAsStateWithLifecycle(context = UiDispatcher)
     // Text another application shared becomes a note in the account that is being looked at, and
     // that note is opened, so the share ends where the user can see and correct it. A share that
     // arrives before any account exists waits here until onboarding has produced one.
     LaunchedEffect(pendingShare, activeAccountId) {
         if (pendingShare == null || activeAccountId == null) return@LaunchedEffect
         val shared = component.takePendingShare() ?: return@LaunchedEffect
-        val note = component.createSharedNote(activeAccountId, shared)
-        noteHistory = emptyList()
-        selectedNoteId = note.localId
-        selectedHeading = null
-        navigationRequest++
+        // Taking the share clears the state this effect is keyed on, so the effect is on its way
+        // to being cancelled and restarted from here on. Writing the note and opening it belongs
+        // to the screen rather than to this run of the effect, and the screen's scope survives.
+        scope.launch {
+            val note = component.createSharedNote(activeAccountId, shared)
+            noteHistory = emptyList()
+            selectedNoteId = note.localId
+            selectedHeading = null
+            navigationRequest++
+        }
     }
     val noteId = selectedNoteId
     if (loadedAccounts == null) {
@@ -482,7 +501,8 @@ private fun NoteListScreen(
     var trashToRestore by remember(accountId) { mutableStateOf<TrashedNote?>(null) }
     var trashRequestId by remember(accountId) { mutableIntStateOf(0) }
     val allNotesFlow = remember(accountId) { component.noteRepository.observeNotes(accountId) }
-    val allNotes by allNotesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val allNotes by allNotesFlow
+        .collectAsStateWithLifecycle(initialValue = emptyList(), context = UiDispatcher)
     val notesFlow = remember(accountId, query) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
@@ -490,16 +510,19 @@ private fun NoteListScreen(
             component.noteRepository.searchNotes(accountId, query)
         }
     }
-    val notes by notesFlow.collectAsStateWithLifecycle(initialValue = null as List<Note>?)
-    val syncStates by component.syncStates.collectAsStateWithLifecycle()
+    val notes by notesFlow
+        .collectAsStateWithLifecycle(initialValue = null as List<Note>?, context = UiDispatcher)
+    val syncStates by component.syncStates.collectAsStateWithLifecycle(context = UiDispatcher)
     val syncState = syncStates[accountId] ?: SyncUiState.Idle
     val account = accounts.first { it.id == accountId }
-    val scope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope { UiDispatcher }
     val selectionActive = selectedNoteIds.isNotEmpty()
-    val showNotePreview by component.settings.showNotePreview.collectAsStateWithLifecycle()
-    val showCategory by component.settings.showCategory.collectAsStateWithLifecycle()
+    val showNotePreview by component.settings.showNotePreview
+        .collectAsStateWithLifecycle(context = UiDispatcher)
+    val showCategory by component.settings.showCategory
+        .collectAsStateWithLifecycle(context = UiDispatcher)
 
-    LaunchedEffect(accountId) { component.refresh(accountId) }
+    LaunchedEffect(accountId) { withContext(UiDispatcher) { component.refresh(accountId) } }
     LaunchedEffect(notes) {
         val visibleIds = notes?.mapTo(mutableSetOf(), Note::localId) ?: return@LaunchedEffect
         selectedNoteIds = selectedNoteIds.filter { it in visibleIds }
@@ -1165,19 +1188,21 @@ private fun NoteDetailScreen(
     onOpen: (ResolvedNoteLink) -> Unit
 ) {
     val note by component.noteRepository.observeNote(localId)
-        .collectAsStateWithLifecycle(initialValue = null)
-    val noteSyncDiagnostics by component.noteSyncDiagnostics.collectAsStateWithLifecycle()
+        .collectAsStateWithLifecycle(initialValue = null, context = UiDispatcher)
+    val noteSyncDiagnostics by component.noteSyncDiagnostics
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     val accountNotesFlow = remember(note?.accountId) {
         note?.accountId?.let(component.noteRepository::observeNotes) ?: flowOf(emptyList())
     }
-    val accountNotes by accountNotesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val accountNotes by accountNotesFlow
+        .collectAsStateWithLifecycle(initialValue = emptyList(), context = UiDispatcher)
     val accounts by component.accountRepository.observeAccounts()
-        .collectAsStateWithLifecycle(initialValue = emptyList())
+        .collectAsStateWithLifecycle(initialValue = emptyList(), context = UiDispatcher)
     val account = remember(note?.accountId, accounts) {
         accounts.firstOrNull { it.id == note?.accountId }
     }
     val scrollState = rememberScrollState()
-    val scope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope { UiDispatcher }
     val lifecycleOwner = LocalLifecycleOwner.current
     var editing by rememberSaveable(localId) { mutableStateOf(false) }
     var draft by remember(localId) { mutableStateOf<String?>(null) }
@@ -1194,18 +1219,17 @@ private fun NoteDetailScreen(
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
     // Hiding the keyboard and the state change that takes the editor away have to happen in one
-    // go on the main thread: the input method is only reachable while the editor still has a
-    // window token. Editing is left after a repository call, and a coroutine resumes on whichever
-    // thread completed that call, so this names the thread it needs instead of assuming one.
+    // go on [UiDispatcher]: the input method is only reachable while the editor still has a window
+    // token, and editing is left from callbacks that have already waited for a repository call.
     val leaveEditMode = {
-        scope.launch(Dispatchers.Main.immediate) {
+        scope.launch {
             editor?.releaseInputFocus()
             editing = false
         }
         Unit
     }
     val leaveNoteScreen = {
-        scope.launch(Dispatchers.Main.immediate) {
+        scope.launch {
             editor?.releaseInputFocus()
             onBackToList()
         }
@@ -1240,7 +1264,8 @@ private fun NoteDetailScreen(
         currentBackground = MaterialTheme.colorScheme.primary.toArgb(),
         currentText = MaterialTheme.colorScheme.onPrimary.toArgb()
     )
-    val noteTextSizeSp by component.settings.noteTextSizeSp.collectAsStateWithLifecycle()
+    val noteTextSizeSp by component.settings.noteTextSizeSp
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     // Applied from a composition effect rather than from an `AndroidView` update block. An update
     // block that observes this value is rescheduled through the holder's `View.getHandler()`,
     // which is null while the view is detached, and the view/edit transition detaches one of them.
@@ -1279,7 +1304,7 @@ private fun NoteDetailScreen(
     }
     LaunchedEffect(startEditing, note?.localId) {
         if (!startEditing || note == null) return@LaunchedEffect
-        val editable = component.beginEditing(localId)
+        val editable = withContext(UiDispatcher) { component.beginEditing(localId) }
         onInitialEditStarted()
         editable?.let {
             draft = editable.content
@@ -1294,7 +1319,7 @@ private fun NoteDetailScreen(
         val current = note ?: return@LaunchedEffect
         if (!editing || source == current.content) return@LaunchedEffect
         delay(500)
-        component.saveDraft(localId, source)
+        withContext(UiDispatcher) { component.saveDraft(localId, source) }
     }
     LaunchedEffect(localId, editing) {
         if (!editing) return@LaunchedEffect
@@ -1303,7 +1328,7 @@ private fun NoteDetailScreen(
             val source = latestDraft
             val current = latestNote
             if (source != null && current != null && source != current.content) {
-                component.checkpointDraft(localId, source)
+                withContext(UiDispatcher) { component.checkpointDraft(localId, source) }
             }
         }
     }
@@ -2102,7 +2127,7 @@ private fun RenameNoteDialog(
 internal fun EditorFastScroller(scrollState: ScrollState, modifier: Modifier = Modifier) {
     val scrollRange = scrollState.maxValue
     if (scrollRange <= 0) return
-    val scope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope { UiDispatcher }
     BoxWithConstraints(
         modifier = modifier.fillMaxHeight().width(48.dp)
             .semantics { contentDescription = "Editor fast scroll" }

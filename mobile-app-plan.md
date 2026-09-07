@@ -1015,9 +1015,17 @@ product defects and are worth knowing before writing a device test:
 
 - The interceptor a Compose test installs is not a `CoroutineDispatcher`, so `withContext` inside a
   suspend call cannot re-dispatch and the caller resumes on whichever thread finished the work,
-  usually a Room executor thread. Code that touches an Android view after awaiting a repository
-  call has to name the thread it needs; it cannot assume the main thread the way it can in
-  production.
+  usually a Room executor thread. Everything after that call runs there: the state writes, any call
+  into a hosted Android view, and the snapshot notification the same interceptor sends on every
+  resumption. That notification reaching Compose's layout observer off the main thread poisons the
+  observer for the rest of the test, which then fails somewhere unrelated. Every coroutine that
+  ends in the user interface therefore names `UiDispatcher` rather than inheriting one, and
+  `UiDispatcherConventionTest` checks that at the source because neither failure reproduces
+  reliably.
+- Naming that dispatcher adds a real dispatch where an inline resumption used to hide a race. An
+  effect keyed on state that its own body changes is on its way to being cancelled from the moment
+  it makes that change, so the rest of its work belongs to the screen's remembered scope, not to
+  that run of the effect.
 - Delays inside `LaunchedEffect` run on a virtual clock that only advances while the test waits for
   idle. A test that polls with `Thread.sleep` never lets a periodic effect fire, while one that
   polls through `waitUntil` does.
