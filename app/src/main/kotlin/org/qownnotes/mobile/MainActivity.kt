@@ -1280,6 +1280,17 @@ private fun NoteDetailScreen(
         delay(500)
         component.saveDraft(localId, source)
     }
+    LaunchedEffect(localId, editing) {
+        if (!editing) return@LaunchedEffect
+        while (true) {
+            delay(component.draftCheckpointIntervalMillis)
+            val source = latestDraft
+            val current = latestNote
+            if (source != null && current != null && source != current.content) {
+                component.checkpointDraft(localId, source)
+            }
+        }
+    }
     androidx.compose.runtime.DisposableEffect(lifecycleOwner, localId) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP && latestEditing) {

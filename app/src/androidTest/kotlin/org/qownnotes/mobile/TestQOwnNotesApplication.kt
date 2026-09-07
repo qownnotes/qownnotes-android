@@ -38,7 +38,8 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
             this,
             database,
             fakeBackend,
-            settings = AppSettings(this, TEST_SETTINGS)
+            settings = AppSettings(this, TEST_SETTINGS),
+            draftCheckpointIntervalMillis = 100
         )
     }
 

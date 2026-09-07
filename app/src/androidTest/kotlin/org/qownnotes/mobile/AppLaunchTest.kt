@@ -1054,6 +1054,26 @@ class AppLaunchTest {
     }
 
     @Test
+    fun editorDraftIsPeriodicallyCheckpointedWithoutStartingNetworkWork() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking { notesOf("alice").single() }
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(
+            click(),
+            replaceText("# Edited\n\nPeriodic checkpoint")
+        )
+
+        composeRule.waitUntil(timeoutMillis = 2_000) {
+            runBlocking {
+                application.component.noteRepository.get(note.localId)?.content ==
+                    "# Edited\n\nPeriodic checkpoint"
+            }
+        }
+        assertTrue(application.fakeBackend.pushedNotes.isEmpty())
+    }
+
+    @Test
     fun editorDraftSurvivesActivityRecreation() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()

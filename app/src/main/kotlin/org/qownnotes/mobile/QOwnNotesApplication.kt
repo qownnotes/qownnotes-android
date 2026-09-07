@@ -81,7 +81,8 @@ class ApplicationComponent(
             .build(),
     private val backend: NoteBackend = NextcloudBackend(application),
     private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
-    val settings: AppSettings = AppSettings(application)
+    val settings: AppSettings = AppSettings(application),
+    internal val draftCheckpointIntervalMillis: Long = 5_000
 ) {
     val noteRepository = RoomNoteRepository(database.noteDao())
     val accountRepository = RoomAccountRepository(database.accountDao())
@@ -248,6 +249,17 @@ class ApplicationComponent(
                 scheduleSync(note.accountId)
             }
             saved
+        }
+
+    /** Persists an editing checkpoint without coupling the local save cadence to network work. */
+    suspend fun checkpointDraft(localId: String, content: String): Boolean =
+        editMutexes.getOrPut(localId, ::Mutex).withLock {
+            // A checkpoint captured before a newer text callback must never overwrite that text.
+            if (editorDrafts[localId]?.let { it != content } == true) return@withLock true
+            val note = noteRepository.get(localId) ?: return@withLock false
+            if (note.readOnly) return@withLock false
+            if (note.content == content) return@withLock true
+            noteRepository.updateDraft(localId, content, clock.instant().epochSecond)
         }
 
     /**

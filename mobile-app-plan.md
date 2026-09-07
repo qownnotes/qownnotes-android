@@ -334,7 +334,8 @@ Before adding dependencies, verify current versions, licenses, maintenance statu
 ### Highlighting and Save Scheduling
 
 - Update the in-memory editor state immediately on every text change.
-- Persist drafts to Room after a short debounce and whenever the editor loses focus or closes.
+- Persist drafts to Room after a short debounce, at a fixed maximum interval during continuous
+  typing, and whenever the editor loses focus or closes.
 - Schedule Markdown highlighting independently from persistence.
 - Perform remote synchronization after a longer debounce, an explicit save action, app backgrounding, or WorkManager execution.
 - Never make one API request per keystroke.
@@ -823,7 +824,7 @@ Implemented:
 
 - Added QOwnNotes-compatible offline note creation with stable local identities and immediate editor navigation.
 - Added an `AppCompatEditText` Markdown source editor with asynchronous Markwon highlighting, supplemental QOwnNotes syntax highlighting, cursor preservation, and a mobile formatting toolbar.
-- Added debounced Room draft persistence, lifecycle flushing, and application-scoped draft retention across activity recreation.
+- Added debounced and periodic Room draft persistence, lifecycle flushing, and application-scoped draft retention across activity recreation.
 - Added Room schema version 3 with monotonically increasing local revisions so stale write responses cannot replace newer editor content.
 - Added Notes API `POST` creation and `PUT` updates with quoted `If-Match` ETags, strict canonical-response validation, and explicit conflict, missing-note, and insufficient-storage failures.
 - Added transactional canonical response application that adopts server IDs, ETags, and sanitized titles while preserving newer local content.
