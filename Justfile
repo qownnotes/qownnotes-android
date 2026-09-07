@@ -34,6 +34,10 @@ format-check:
 license-check:
     ./gradlew :app:licensee
 
+# Update all dependencies declared in the Gradle version catalog.
+update-dependencies:
+    ./gradlew versionCatalogUpdate
+
 # Run all host-side checks and build the debug APK.
 check:
     ./gradlew spotlessCheck test assembleDebug lintDebug :app:licensee
