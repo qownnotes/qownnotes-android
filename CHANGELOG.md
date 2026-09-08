@@ -7,6 +7,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- The **Show category** note-list setting is now remembered independently for each account.
+
 ## [0.3.0] - 2026-09-07
 
 ### Added

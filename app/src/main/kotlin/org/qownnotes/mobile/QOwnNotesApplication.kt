@@ -119,6 +119,14 @@ class ApplicationComponent(
     private val editReservations = ConcurrentHashMap<String, EditReservation>()
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    init {
+        applicationScope.launch {
+            settings.migrateShowCategory(
+                accountRepository.observeAccounts().first().map(Account::id)
+            )
+        }
+    }
+
     fun launchAccountImport(ssoAccount: SingleSignOnAccount, expectedAccountId: String? = null) {
         applicationScope.launch {
             try {
@@ -195,6 +203,7 @@ class ApplicationComponent(
             accountRepository.remove(accountId)
             editorDrafts.remove(localNoteIds)
             localNoteIds.forEach(editReservations::remove)
+            settings.removeShowCategory(accountId)
             settings.removeNoteCategoryScope(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }

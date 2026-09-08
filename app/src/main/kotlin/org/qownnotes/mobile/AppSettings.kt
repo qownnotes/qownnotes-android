@@ -51,16 +51,36 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableShowNotePreview.value = enabled
     }
 
-    private val mutableShowCategory =
-        MutableStateFlow(preferences.getBoolean(SHOW_CATEGORY, false))
+    private val mutableShowCategories = mutableMapOf<String, MutableStateFlow<Boolean>>()
 
-    /** Whether the note list shows each note's category. */
-    val showCategory: StateFlow<Boolean> = mutableShowCategory.asStateFlow()
+    /** Whether the note list shows each note's category for this account. */
+    fun showCategory(accountId: String): StateFlow<Boolean> =
+        mutableShowCategory(accountId).asStateFlow()
 
-    fun setShowCategory(enabled: Boolean) {
-        if (enabled == mutableShowCategory.value) return
-        preferences.edit().putBoolean(SHOW_CATEGORY, enabled).apply()
-        mutableShowCategory.value = enabled
+    fun setShowCategory(accountId: String, enabled: Boolean) {
+        val state = mutableShowCategory(accountId)
+        if (enabled == state.value) return
+        preferences.edit().putBoolean("$SHOW_CATEGORY_PREFIX$accountId", enabled).apply()
+        state.value = enabled
+    }
+
+    fun removeShowCategory(accountId: String) {
+        preferences.edit().remove("$SHOW_CATEGORY_PREFIX$accountId").apply()
+        mutableShowCategories.remove(accountId)
+    }
+
+    fun migrateShowCategory(accountIds: List<String>) {
+        if (!preferences.contains(SHOW_CATEGORY)) return
+        val enabled = preferences.getBoolean(SHOW_CATEGORY, false)
+        val editor = preferences.edit().remove(SHOW_CATEGORY)
+        accountIds.forEach { accountId ->
+            val key = "$SHOW_CATEGORY_PREFIX$accountId"
+            if (!preferences.contains(key)) {
+                editor.putBoolean(key, enabled)
+                mutableShowCategories[accountId]?.value = enabled
+            }
+        }
+        editor.apply()
     }
 
     fun noteCategoryScope(accountId: String): NoteCategoryScope =
@@ -83,11 +103,21 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         preferences.edit().remove("$NOTE_CATEGORY_SCOPE_PREFIX$accountId").apply()
     }
 
+    private fun mutableShowCategory(accountId: String): MutableStateFlow<Boolean> =
+        mutableShowCategories.getOrPut(accountId) {
+            MutableStateFlow(
+                preferences.getBoolean("$SHOW_CATEGORY_PREFIX$accountId", false)
+            )
+        }
+
     private companion object {
         const val PREFERENCES = "qownnotes-settings"
         const val NOTE_TEXT_SIZE_SP = "noteTextSizeSp"
         const val SHOW_NOTE_PREVIEW = "showNotePreview"
+
+        // Legacy global key migrated to existing accounts when the application starts.
         const val SHOW_CATEGORY = "showCategory"
+        const val SHOW_CATEGORY_PREFIX = "showCategory."
         const val NOTE_CATEGORY_SCOPE_PREFIX = "noteCategoryScope."
         const val UNDEFINED_CATEGORY = "undefined"
         const val ALL_CATEGORIES = "all"

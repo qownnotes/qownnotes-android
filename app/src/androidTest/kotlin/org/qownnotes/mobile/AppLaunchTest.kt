@@ -349,6 +349,23 @@ class AppLaunchTest {
     }
 
     @Test
+    fun showCategorySettingIsStoredPerAccount() {
+        importAccount("alice", "Alice note", "etag-a", 10)
+        accountAction("toggle-category")
+        composeRule.waitForText("Uncategorized")
+
+        importAccount("bob", "Bob note", "etag-b", 20)
+        composeRule.onNodeWithText("Uncategorized").assertDoesNotExist()
+
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForText("Bob note")
+        composeRule.onNodeWithText("Uncategorized").assertDoesNotExist()
+        accountAction("switch-account")
+        composeRule.waitForText("Alice note")
+        composeRule.onNodeWithText("Uncategorized").assertIsDisplayed()
+    }
+
+    @Test
     fun switchingAmongThreeAccountsLetsTheUserChooseTheAccount() {
         val alice = importAccount("alice", "Alice note", "etag-a", 10)
         importAccount("bob", "Bob note", "etag-b", 20)

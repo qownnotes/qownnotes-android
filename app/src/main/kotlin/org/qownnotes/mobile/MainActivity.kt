@@ -525,7 +525,8 @@ private fun NoteListScreen(
     val selectionActive = selectedNoteIds.isNotEmpty()
     val showNotePreview by component.settings.showNotePreview
         .collectAsStateWithLifecycle(context = UiDispatcher)
-    val showCategory by component.settings.showCategory
+    val showCategoryFlow = remember(accountId) { component.settings.showCategory(accountId) }
+    val showCategory by showCategoryFlow
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val categories = remember(allNotes) { NoteCategories.selectable(allNotes.orEmpty()) }
     val visibleNotes = remember(notes, categoryScope) {
@@ -650,14 +651,20 @@ private fun NoteListScreen(
                                                 Checkbox(
                                                     checked = showCategory,
                                                     onCheckedChange = {
-                                                        component.settings.setShowCategory(it)
+                                                        component.settings.setShowCategory(
+                                                            accountId,
+                                                            it
+                                                        )
                                                     }
                                                 )
                                                 Text("Show category")
                                             }
                                         },
                                         onClick = {
-                                            component.settings.setShowCategory(!showCategory)
+                                            component.settings.setShowCategory(
+                                                accountId,
+                                                !showCategory
+                                            )
                                         },
                                         modifier = Modifier.testTag("toggle-category")
                                     )
