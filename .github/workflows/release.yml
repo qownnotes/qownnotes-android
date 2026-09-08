@@ -50,6 +50,9 @@ jobs:
           . ./version.properties
           [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]
           [[ "$VERSION_CODE" =~ ^[1-9][0-9]*$ ]]
+          store_changelog="fastlane/metadata/android/en-US/changelogs/$VERSION_CODE.txt"
+          test -s "$store_changelog"
+          (( $(wc -m < "$store_changelog") <= 500 ))
           {
             echo "VERSION_NAME=$VERSION_NAME"
             echo "VERSION_CODE=$VERSION_CODE"
@@ -77,6 +80,11 @@ jobs:
             END { if (!capture) exit 1 }
           ' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
           test -s "$RUNNER_TEMP/release-notes.md"
+      - name: Verify unsigned F-Droid build
+        run: |
+          devenv shell -- just check-fdroid-metadata build-fdroid
+          cp app/build/outputs/apk/release/app-release-unsigned.apk \
+            "$RUNNER_TEMP/fdroid-unsigned.apk"
       - name: Restore signing keystore
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/qownnotes-release.jks
@@ -93,6 +101,9 @@ jobs:
           devenv shell -- bash -c \
             '"$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$1"' \
             _ app/build/outputs/apk/release/app-release.apk
+          devenv shell -- apksigcopier compare --unsigned \
+            app/build/outputs/apk/release/app-release.apk \
+            "$RUNNER_TEMP/fdroid-unsigned.apk"
       - name: Verify and prepare release packages
         run: |
           mkdir release-files

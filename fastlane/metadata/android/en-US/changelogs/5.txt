@@ -1,0 +1,1 @@
+Added GPLv3 licensing, F-Droid store metadata, privacy documentation, and automated unsigned release-build verification. The Show category note-list setting is now remembered independently for each account.

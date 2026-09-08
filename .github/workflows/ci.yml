@@ -68,5 +68,6 @@ jobs:
           path: |
             **/build/reports/androidTests/connected/**
             **/build/outputs/androidTest-results/connected/**
+            **/build/outputs/connected_android_test_additional_output/**
           if-no-files-found: warn
           retention-days: 14

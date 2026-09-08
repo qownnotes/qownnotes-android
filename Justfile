@@ -14,6 +14,30 @@ build-dev:
 build-release:
     ./scripts/with-android-signing release ./gradlew assembleRelease
 
+# Build the unsigned release APK expected by F-Droid.
+build-fdroid:
+    env -u ANDROID_VERSION_CODE -u ANDROID_KEYSTORE_PATH -u ANDROID_KEYSTORE_PASSWORD \
+      -u ANDROID_KEY_ALIAS -u ANDROID_KEY_PASSWORD \
+      ./gradlew --no-configuration-cache assembleRelease
+    test -f app/build/outputs/apk/release/app-release-unsigned.apk
+
+# Verify F-Droid text, image, and release-changelog metadata.
+check-fdroid-metadata:
+    source version.properties; \
+      metadata=fastlane/metadata/android/en-US; \
+      test -s "$metadata/title.txt"; \
+      test "$(wc -m < "$metadata/title.txt")" -le 50; \
+      test -s "$metadata/short_description.txt"; \
+      test "$(wc -m < "$metadata/short_description.txt")" -le 80; \
+      test -s "$metadata/full_description.txt"; \
+      test "$(wc -m < "$metadata/full_description.txt")" -le 4000; \
+      test -s "$metadata/changelogs/$VERSION_CODE.txt"; \
+      test "$(wc -m < "$metadata/changelogs/$VERSION_CODE.txt")" -le 500; \
+      test -s "$metadata/images/icon.png"; \
+      test -s "$metadata/images/phoneScreenshots/1.png"; \
+      test -s "$metadata/images/phoneScreenshots/2.png"; \
+      test -s "$metadata/images/phoneScreenshots/3.png"
+
 # Run all JVM unit tests.
 test:
     ./gradlew test
@@ -39,7 +63,7 @@ update-dependencies:
     ./gradlew --no-configuration-cache versionCatalogUpdate
 
 # Run all host-side checks and build the debug APK.
-check:
+check: check-fdroid-metadata
     ./gradlew spotlessCheck test assembleDebug lintDebug :app:licensee
 
 # Run all checks and build signed release packages with signing material from Vaultwarden.
@@ -77,6 +101,28 @@ deploy-release: _wait-for-android
 # Run instrumented tests on a connected device.
 device-test: _wait-for-android
     ./gradlew connectedDebugAndroidTest
+
+# Capture deterministic F-Droid screenshots on the connected Android device.
+capture-fdroid-screenshots: _wait-for-android
+    adb shell cmd uimode night no
+    adb shell settings put system font_scale 1.0
+    adb shell settings put system accelerometer_rotation 0
+    adb shell settings put system user_rotation 0
+    ./gradlew --no-daemon --no-configuration-cache :app:connectedDebugAndroidTest \
+      -Pandroid.testInstrumentationRunnerArguments.class=org.qownnotes.mobile.FdroidScreenshotTest
+    screenshots=(app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected/*/fdroid); \
+      test "${#screenshots[@]}" -eq 1; \
+      test -s "${screenshots[0]}/1.png"; \
+      test -s "${screenshots[0]}/2.png"; \
+      test -s "${screenshots[0]}/3.png"
+
+# Replace the checked-in store screenshots with a fresh deterministic capture.
+update-fdroid-screenshots: capture-fdroid-screenshots
+    screenshots=(app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected/*/fdroid); \
+      destination=fastlane/metadata/android/en-US/images/phoneScreenshots; \
+      install -m 0644 "${screenshots[0]}/1.png" "$destination/1.png"; \
+      install -m 0644 "${screenshots[0]}/2.png" "$destination/2.png"; \
+      install -m 0644 "${screenshots[0]}/3.png" "$destination/3.png"
 
 # Wait until Android and its package manager are ready, not only ADB.
 [private]

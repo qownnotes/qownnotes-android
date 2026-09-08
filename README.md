@@ -3,6 +3,10 @@
 QOwnNotes Mobile is an Android-first, offline-capable Markdown notes application. It preserves key
 QOwnNotes behavior while synchronizing through the Nextcloud Notes API.
 
+QOwnNotes Mobile is free software licensed under the
+[GNU General Public License version 3 only](LICENSE). See the [privacy policy](PRIVACY.md) for how
+local, Nextcloud, and remote-image data are handled.
+
 ## Features
 
 - Import one or more accounts from the Nextcloud Files Android app through Single Sign-On.
@@ -33,7 +37,7 @@ the same device. See [`CHANGELOG.md`](CHANGELOG.md) for release details.
 
 | Note list | Note view | Note edit |
 | --- | --- | --- |
-| ![Note list](docs/screenshots/note-list.webp) | ![Note view](docs/screenshots/note-view.webp) | ![Note edit](docs/screenshots/note-edit.webp) |
+| ![Note list](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png) | ![Note view](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png) | ![Note edit](fastlane/metadata/android/en-US/images/phoneScreenshots/3.png) |
 
 ## Nextcloud Account Setup
 
@@ -346,6 +350,63 @@ keystore-password, alias, and key-password variables select and unlock the priva
 keystore. `ANDROID_KEYSTORE_PATH` and `ANDROID_DEV_KEYSTORE_PATH` are local or temporary file paths,
 not repository secrets. `ANDROID_VERSION_CODE` is also not a secret: continuous CI sets it to the
 current Unix timestamp so every development build has a higher Android version code.
+
+### F-Droid Releases
+
+Build the unsigned release APK expected by F-Droid without loading any signing credentials:
+
+```sh
+just build-fdroid
+```
+
+The stable release workflow runs this unsigned build before creating the signed GitHub release and
+its immutable `v<version>` tag. F-Droid does not accept direct deployment from the upstream GitHub
+workflow: its own infrastructure checks out that tag, rebuilds the APK from source, signs it, and
+publishes it. After the initial `fdroiddata` submission is accepted, F-Droid's tag-based update
+check can discover later release tags automatically.
+
+Each stable release must include a store changelog at
+`fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`. The release workflow verifies that
+the file exists and is no longer than F-Droid's 500-character limit. Store descriptions and images
+are maintained under `fastlane/metadata/android/en-US/`.
+
+Generate deterministic list, rendered-note, and editor screenshots from fixed test data on a
+connected emulator or device with:
+
+```sh
+just update-fdroid-screenshots
+```
+
+The focused instrumentation test captures only the application window, hides the keyboard, and
+writes no real account or server data. Device-test CI also captures the images and uploads them with
+the Android test artifacts for review. Run the update recipe before a release when the visible UI
+has changed, review the three PNGs, and commit them with the release.
+
+The initial submission still requires a one-time merge request to the
+[`fdroiddata`](https://gitlab.com/fdroid/fdroiddata) repository for
+`metadata/org.qownnotes.mobile.yml`. Use `GPL-3.0-only` as the license, the HTTPS source repository
+URL, a full commit hash for the release tag, `gradle: yes`, and these update settings:
+
+```yaml
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9].*$
+UpdateCheckData: version.properties|VERSION_CODE=(\d+)|.|VERSION_NAME=(.*)
+```
+
+Normal F-Droid builds use an F-Droid signing key, so users cannot switch between GitHub and F-Droid
+APK installations without reinstalling. Supporting the same developer signature on both channels
+requires arranging a reproducible-build submission with F-Droid before its first publication. The
+release workflow uses `apksigcopier` to ensure the signed GitHub APK matches its unsigned source
+build apart from the signature. A reproducible F-Droid submission must additionally provide the
+GitHub APK URL through `Binaries`, pin the release signing certificate with
+`AllowedAPKSigningKeys`, and pass the same comparison in F-Droid's independent build environment.
+The current stable signing certificate SHA-256 fingerprint is
+`c1e358ca679e6198d4116eca81456cf9527f44942244c033967b5e637db187aa`, and the binary URL pattern is:
+
+```yaml
+Binaries: https://github.com/qownnotes/qownnotes-android/releases/download/v%v/QOwnNotes-Mobile-%v.apk
+AllowedAPKSigningKeys: c1e358ca679e6198d4116eca81456cf9527f44942244c033967b5e637db187aa
+```
 
 ### Clean Build Outputs
 

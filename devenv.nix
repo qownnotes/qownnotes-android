@@ -19,7 +19,7 @@
     sources.enable = true;
   };
 
-  packages = [ pkgs.bitwarden-cli pkgs.gradle pkgs.jq pkgs.just ];
+  packages = [ pkgs.apksigcopier pkgs.bitwarden-cli pkgs.gradle pkgs.jq pkgs.just ];
 
   env = {
     VAULTWARDEN_DEV_SIGNING_ITEM = "QOwnNotes Android development signing";

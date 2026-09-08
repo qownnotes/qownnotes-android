@@ -1031,12 +1031,25 @@ private fun NoteListScreen(
                         }
                     )
                     Text(
-                        "Commit: ${BuildConfig.GIT_COMMIT}",
+                        "Commit: ${BuildConfig.GIT_COMMIT.take(7)}",
                         modifier = Modifier.clickable {
                             context.startActivity(
                                 Intent(
                                     Intent.ACTION_VIEW,
                                     Uri.parse("$repoUrl/commit/${BuildConfig.GIT_COMMIT}")
+                                )
+                            )
+                        }
+                    )
+                    Text("Copyright (C) 2026 Patrizio Bekerle")
+                    Text("Free software licensed under GNU GPL v3. No warranty.")
+                    Text(
+                        "View source and license",
+                        modifier = Modifier.clickable {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("$repoUrl/blob/${BuildConfig.GIT_COMMIT}/LICENSE")
                                 )
                             )
                         }

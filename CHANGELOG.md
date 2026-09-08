@@ -7,6 +7,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-08
+
+### Added
+
+- Added GPL-3.0-only project licensing, F-Droid store metadata, privacy documentation, and an
+  unsigned release-build check for F-Droid compatibility.
+- Added deterministic F-Droid screenshot generation from fixed test data, with generated images
+  retained as device-test CI artifacts.
+- Added release-time signature-copy verification and deterministic full Git revision embedding to
+  prepare the GitHub APK for reproducible F-Droid publication.
+
 ### Fixed
 
 - The **Show category** note-list setting is now remembered independently for each account.
@@ -151,7 +162,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/qownnotes/qownnotes-android/releases/tag/v0.3.0
 [0.2.1]: https://github.com/qownnotes/qownnotes-android/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/qownnotes/qownnotes-android/releases/tag/v0.2.0

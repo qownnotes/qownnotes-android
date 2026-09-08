@@ -29,7 +29,7 @@ android {
         testInstrumentationRunner = "org.qownnotes.mobile.QOwnNotesTestRunner"
 
         val gitCommitHash = providers.exec {
-            commandLine("git", "rev-parse", "--short", "HEAD")
+            commandLine("git", "rev-parse", "HEAD")
         }.standardOutput.asText.get().trim()
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommitHash\"")
     }

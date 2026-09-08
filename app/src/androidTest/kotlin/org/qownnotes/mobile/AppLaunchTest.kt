@@ -620,7 +620,8 @@ class AppLaunchTest {
                 val notes = notesOf("alice")
                 notes.size == 2 &&
                     notes.single { it.localId == localId }.content.contains("Server content") &&
-                    notes.single { it.localId != localId }.content.contains("Local content")
+                    notes.single { it.localId != localId }.content.contains("Local content") &&
+                    application.fakeBackend.pushedNotes.any { it.content.contains("Local content") }
             }
         }
         val notes = runBlocking { notesOf("alice") }
