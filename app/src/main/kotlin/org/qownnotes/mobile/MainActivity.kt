@@ -120,7 +120,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -2335,6 +2337,9 @@ private fun RenameNoteDialog(
     onConfirm: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
+    var fieldValue by remember {
+        mutableStateOf(TextFieldValue(name, selection = TextRange(0, name.length)))
+    }
     // The field is the only reason this dialog exists, so it takes the focus rather than asking
     // for another tap. A dialog composes into a window of its own, so the focus is taken once the
     // field has actually been placed rather than after a guessed number of frames. Taking it from
@@ -2349,8 +2354,11 @@ private fun RenameNoteDialog(
         text = {
             Column {
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = onNameChange,
+                    value = fieldValue,
+                    onValueChange = {
+                        fieldValue = it
+                        onNameChange(it.text)
+                    },
                     label = { Text("File name") },
                     singleLine = true,
                     supportingText = {

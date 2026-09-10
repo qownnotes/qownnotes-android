@@ -1142,6 +1142,22 @@ class AppLaunchTest {
         assertEquals(listOf("# Grocery list\n\nBody"), noteContents("alice"))
     }
 
+    /** Typing immediately replaces the selected current name instead of appending to it. */
+    @Test
+    fun renameDialogSelectsTheCurrentName() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("rename-note").performClick()
+        composeRule.waitForTag("note-name-field")
+        composeRule.onNodeWithTag("note-name-field").performTextInput("Replacement")
+        composeRule.onNodeWithTag("confirm-rename-note").performClick()
+
+        composeRule.waitForText("Replacement")
+        composeRule.onNodeWithText("Existing noteReplacement").assertDoesNotExist()
+    }
+
     /** A name that holds nothing a file system accepts would leave the note unreachable. */
     @Test
     fun renamingRefusesANameThatNoFileCanCarry() {

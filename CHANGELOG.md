@@ -7,6 +7,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The rename-note dialog now selects the current file name when opened, so typing replaces it.
+
 ## [0.3.3] - 2026-09-10
 
 ### Changed
