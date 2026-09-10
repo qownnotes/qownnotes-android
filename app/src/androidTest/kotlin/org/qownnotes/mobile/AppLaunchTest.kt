@@ -260,7 +260,7 @@ class AppLaunchTest {
     fun reconnectPreservesCachedDataAndCheckpoint() {
         val account = importAccount("alice", "Cached note", "etag-1", 10)
         application.fakeBackend.enqueueFailure(account, BackendException.Authentication())
-        composeRule.activityRule.scenario.recreate()
+        runBlocking { application.component.refresh(account.localAccountId()) }
         composeRule.waitForText("Reconnect")
 
         application.fakeAccountImporter.enqueue(account)
@@ -279,7 +279,7 @@ class AppLaunchTest {
     fun reconnectRejectsADifferentAccount() {
         val account = importAccount("alice", "Cached note", "etag-1", 10)
         application.fakeBackend.enqueueFailure(account, BackendException.Authentication())
-        composeRule.activityRule.scenario.recreate()
+        runBlocking { application.component.refresh(account.localAccountId()) }
         composeRule.waitForText("Reconnect")
 
         application.fakeAccountImporter.enqueue(testAccount("bob"))
