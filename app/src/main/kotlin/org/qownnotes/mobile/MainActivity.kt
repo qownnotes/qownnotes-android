@@ -972,11 +972,16 @@ private fun NoteListScreen(
                                     showAccountChooser = false
                                     onSelectAccount(choice.id)
                                 }
+                                .padding(vertical = 4.dp)
                                 .testTag("account-choice-${choice.id}"),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(selected = choice.id == accountId, onClick = null)
-                            AccountAvatar(component, choice, Modifier.padding(end = 12.dp))
+                            AccountAvatar(
+                                component,
+                                choice,
+                                Modifier.padding(start = 8.dp, end = 12.dp)
+                            )
                             Text(choice.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
