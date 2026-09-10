@@ -1,0 +1,1 @@
+Reduced app download and installed size with optimized code and resource shrinking. Account markers now use cached Nextcloud profile pictures for clearer account identification, including offline use.
