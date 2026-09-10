@@ -10,6 +10,7 @@ import android.text.Spannable
 import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.CharacterStyle
+import android.text.util.Linkify
 import android.util.TypedValue
 import androidx.appcompat.widget.AppCompatTextView
 import io.noties.markwon.AbstractMarkwonPlugin
@@ -24,6 +25,7 @@ import io.noties.markwon.ext.tasklist.TaskListSpan
 import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.image.SchemeHandler
 import io.noties.markwon.image.destination.ImageDestinationProcessor
+import io.noties.markwon.linkify.LinkifyPlugin
 import io.noties.markwon.movement.MovementMethodPlugin
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -156,6 +158,7 @@ class MarkdownRenderer private constructor(
             )
             .usePlugin(MovementMethodPlugin.create(SelectableLinkMovementMethod()))
             .usePlugin(MarkdownHtmlSanitizerPlugin())
+            .usePlugin(LinkifyPlugin.create(Linkify.WEB_URLS))
             .usePlugin(StrikethroughPlugin.create())
             .usePlugin(TablePlugin.create(applicationContext))
             .usePlugin(IndeterminateTaskListPlugin(applicationContext))

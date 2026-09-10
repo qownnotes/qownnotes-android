@@ -10,6 +10,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - The rename-note dialog now selects the current file name when opened, so typing replaces it.
+- Web addresses written without Markdown link markers are now detected in note previews and the
+  Markdown editor.
 
 ## [0.3.3] - 2026-09-10
 

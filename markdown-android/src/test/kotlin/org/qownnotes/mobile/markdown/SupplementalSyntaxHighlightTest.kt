@@ -58,4 +58,25 @@ class SupplementalSyntaxHighlightTest {
         assertEquals(50_000, ranges.size)
         assertTrue(ranges.all { it.start >= 0 && it.start < it.end && it.end <= source.length })
     }
+
+    @Test
+    fun findsBareWebAddressesWithoutIncludingSentencePunctuation() {
+        val source =
+            "Visit https://example.com/docs, www.example.org or example.net. " +
+                "Keep [label](https://marked.example) as one link."
+
+        val links = findSupplementalSyntax(source)
+            .filter { it.syntax == MarkdownSyntax.LINK }
+            .map { source.substring(it.start, it.end) }
+
+        assertEquals(
+            listOf(
+                "https://example.com/docs",
+                "www.example.org",
+                "example.net",
+                "[label](https://marked.example)"
+            ),
+            links
+        )
+    }
 }

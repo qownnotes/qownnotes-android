@@ -178,6 +178,28 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun rendersBareWebAddressesAsLinks() {
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer(view.context).render(
+                view,
+                "Visit https://example.com/docs, www.example.org or example.net."
+            )
+        }
+
+        val text = view.text as Spanned
+        val linkedText = text.getSpans(0, text.length, LinkSpan::class.java)
+            .sortedBy(text::getSpanStart)
+            .map { text.subSequence(text.getSpanStart(it), text.getSpanEnd(it)).toString() }
+        assertEquals(
+            listOf("https://example.com/docs", "www.example.org", "example.net"),
+            linkedText
+        )
+    }
+
+    @Test
     fun renderedNoteTextCanBeSelected() {
         lateinit var view: AppCompatTextView
 

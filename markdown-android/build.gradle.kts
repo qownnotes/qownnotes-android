@@ -28,6 +28,7 @@ dependencies {
     implementation(libs.markwon.ext.tasklist)
     implementation(libs.markwon.editor)
     implementation(libs.okhttp)
+    implementation(libs.markwon.linkify)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)

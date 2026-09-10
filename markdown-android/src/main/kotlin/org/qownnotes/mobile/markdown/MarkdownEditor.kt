@@ -501,7 +501,17 @@ private val supplementalSyntaxPatterns = listOf(
     MarkdownSyntax.BLOCKQUOTE to Regex("(?m)^\\s*>+"),
     MarkdownSyntax.CODE to Regex("(?m)^\\s*(?:`{3,}|~{3,})[^\\r\\n]*|`+[^`\\r\\n]+`+"),
     MarkdownSyntax.IMAGE to Regex("!\\[[^]\\r\\n]*]\\([^\\s)]+(?:\\s+[^)]*)?\\)"),
-    MarkdownSyntax.LINK to Regex("(?<!!)\\[[^]\\r\\n]*]\\([^\\s)]+(?:\\s+[^)]*)?\\)"),
+    MarkdownSyntax.LINK to
+        Regex(
+            "(?<!!)\\[[^]\\r\\n]*]\\([^\\s)]+(?:\\s+[^)]*)?\\)|" +
+                "(?<!]\\()(?<![\\w@/])(?:" +
+                "(?:https?://|www\\.)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\\d+)?" +
+                "(?:/[^\\s<>()]*)?|" +
+                "(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}(?::\\d+)?" +
+                "(?:/[^\\s<>()]*)?)" +
+                "(?<![.,!?;:'\"])",
+            RegexOption.IGNORE_CASE
+        ),
     MarkdownSyntax.TABLE to Regex("(?m)^\\s*\\|.*\\|\\s*$")
 )
 
