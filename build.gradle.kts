@@ -23,7 +23,7 @@ spotless {
     }
     format("misc") {
         target(".gitignore", "Justfile", "**/*.md", "**/*.yml", "**/*.yaml", "**/*.properties")
-        targetExclude("**/build/**", ".devenv/**")
+        targetExclude("**/build/**", "**/node_modules/**", ".devenv/**")
         trimTrailingWhitespace()
         endWithNewline()
     }

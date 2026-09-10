@@ -14,6 +14,8 @@ Read these documents before making architectural or product decisions:
 - [`docs/architecture/`](docs/architecture/): accepted architecture decisions. These are more
   focused than the plan and should not be bypassed casually.
 - [`README.md`](README.md): verified development, emulator, device, and release commands.
+- [`docs/releasing.md`](docs/releasing.md): stable release preparation, publication, verification,
+  and F-Droid follow-up checklist.
 - [`docs/testing/phase-2-nextcloud-compatibility.md`](docs/testing/phase-2-nextcloud-compatibility.md):
   real-server and protocol compatibility notes.
 
@@ -154,6 +156,11 @@ The application version is defined once in [`version.properties`](version.proper
 Bump both values when preparing a release. Do not hardcode versions in module build files.
 `ANDROID_VERSION_CODE` may override the code for automated continuous builds, but stable releases
 must use the committed value.
+
+Follow [`docs/releasing.md`](docs/releasing.md) for every stable release. Keep the release tag,
+GitHub assets, source commit, Fastlane changelog, and F-Droid recipe compatible and immutable. A
+release is not complete until the published APK and its signature are verified and the F-Droid
+update has been checked.
 
 ## Build And Test Workflow
 
