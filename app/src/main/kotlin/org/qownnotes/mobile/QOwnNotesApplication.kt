@@ -83,7 +83,14 @@ class ApplicationComponent(
     private val backend: NoteBackend = NextcloudBackend(application),
     private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
     val settings: AppSettings = AppSettings(application),
-    internal val draftCheckpointIntervalMillis: Long = 5_000
+    internal val draftCheckpointIntervalMillis: Long = 5_000,
+    avatarFetcher: suspend (Account) -> ByteArray? = { account ->
+        fetchAttachment(
+            "/index.php/avatar/${android.net.Uri.encode(account.userId)}/128",
+            account.ssoAccountName,
+            application
+        )?.use { it.readBytes() }
+    }
 ) {
     val noteRepository = RoomNoteRepository(database.noteDao())
     val accountRepository = RoomAccountRepository(database.accountDao())
@@ -117,6 +124,7 @@ class ApplicationComponent(
     private val syncJobs = ConcurrentHashMap<String, Job>()
     private val editorDrafts = EditorDraftCache()
     private val editReservations = ConcurrentHashMap<String, EditReservation>()
+    private val accountAvatars = AccountAvatarStore(application, avatarFetcher)
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     init {
@@ -207,8 +215,11 @@ class ApplicationComponent(
             settings.removeNoteCategoryScope(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
+            accountAvatars.remove(accountId)
         }
     }
+
+    suspend fun accountAvatar(account: Account) = accountAvatars.load(account)
 
     suspend fun createNote(accountId: String, category: String = ""): Note =
         persistNewNote(noteFactory.create(accountId, category))

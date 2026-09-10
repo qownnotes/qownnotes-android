@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,11 +34,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -99,17 +102,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -573,11 +580,7 @@ private fun NoteListScreen(
                         if (selectionActive) {
                             Text("${selectedNoteIds.size} selected")
                         } else {
-                            Text(
-                                account.displayName,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            AccountAvatar(component, account)
                         }
                     },
                     actions = {
@@ -971,7 +974,8 @@ private fun NoteListScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(selected = choice.id == accountId, onClick = null)
-                            Text(choice.displayName)
+                            AccountAvatar(component, choice, Modifier.padding(end = 12.dp))
+                            Text(choice.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -1119,6 +1123,40 @@ private fun NoteListScreen(
                 TextButton(onClick = { trashToRestore = null }) { Text("Cancel") }
             }
         )
+    }
+}
+
+@Composable
+private fun AccountAvatar(
+    component: ApplicationComponent,
+    account: Account,
+    modifier: Modifier = Modifier
+) {
+    var avatar by remember(account.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(account.id) { avatar = component.accountAvatar(account) }
+    val description = "Account: ${account.displayName}"
+    val avatarModifier = modifier.size(40.dp).clip(CircleShape)
+        .testTag("account-avatar-${account.id}")
+    val bitmap = avatar
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = description,
+            contentScale = ContentScale.Crop,
+            modifier = avatarModifier
+        )
+    } else {
+        Box(
+            modifier = avatarModifier.background(MaterialTheme.colorScheme.primaryContainer)
+                .clearAndSetSemantics { contentDescription = description },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                account.userId.firstOrNull()?.uppercase() ?: "?",
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
     }
 }
 

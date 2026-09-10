@@ -83,7 +83,8 @@ class AppLaunchTest {
         accountAction("add-account")
 
         composeRule.waitForText("Alice note")
-        composeRule.onNodeWithText("alice @ cloud.example").assertIsDisplayed()
+        composeRule.onNodeWithTag("account-avatar-${account.localAccountId()}").assertIsDisplayed()
+        composeRule.onNodeWithText("alice @ cloud.example").assertDoesNotExist()
         composeRule.onNodeWithText("Alice note").assertIsDisplayed()
     }
 

@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Account markers now use the user's Nextcloud profile picture, cached for offline use, instead of
+  showing `user @ server` in the note-list app bar.
+
 ## [0.3.2] - 2026-09-08
 
 ### Changed
