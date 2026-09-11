@@ -3,6 +3,7 @@
 .signing/
 .android/
 .gradle/
+/.kotlin/
 .idea/
 **/build/
 local.properties
