@@ -25,10 +25,10 @@ interface NoteDao {
         """SELECT * FROM notes WHERE accountId = :accountId
            AND syncState != 'PENDING_DELETION' AND
            (:query = '' OR title LIKE '%' || :query || '%' COLLATE NOCASE OR
-           content LIKE '%' || :query || '%' COLLATE NOCASE)
+           (:includeContent AND content LIKE '%' || :query || '%' COLLATE NOCASE))
            ORDER BY favorite DESC, modifiedAtEpochSeconds DESC, localId ASC"""
     )
-    fun search(accountId: String, query: String): Flow<List<NoteEntity>>
+    fun search(accountId: String, query: String, includeContent: Boolean): Flow<List<NoteEntity>>
 
     @Query("SELECT * FROM notes WHERE localId = :localId")
     fun observe(localId: String): Flow<NoteEntity?>

@@ -60,6 +60,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatListNumbered
@@ -161,6 +162,7 @@ import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteExcerpt
 import org.qownnotes.mobile.core.NoteNames
+import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.ResolvedNoteLink
@@ -754,6 +756,7 @@ private fun NoteListScreen(
     onOpen: (String) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    var searchScope by rememberSaveable { mutableStateOf(NoteSearchScope.TITLE_AND_CONTENT) }
     var searchFocused by remember { mutableStateOf(false) }
     var showAccountChooser by rememberSaveable(accountId) { mutableStateOf(false) }
     var showSettings by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -774,11 +777,11 @@ private fun NoteListScreen(
     val allNotesFlow = remember(accountId) { component.noteRepository.observeNotes(accountId) }
     val allNotes by allNotesFlow
         .collectAsStateWithLifecycle(initialValue = null as List<Note>?, context = UiDispatcher)
-    val notesFlow = remember(accountId, query) {
+    val notesFlow = remember(accountId, query, searchScope) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
         } else {
-            component.noteRepository.searchNotes(accountId, query)
+            component.noteRepository.searchNotes(accountId, query, searchScope)
         }
     }
     val notes by notesFlow
@@ -930,6 +933,8 @@ private fun NoteListScreen(
                                 value = query,
                                 onValueChange = { query = it },
                                 onClear = { query = "" },
+                                searchScope = searchScope,
+                                onSearchScopeChange = { searchScope = it },
                                 // Only losing the focus closes search. Regaining it does not
                                 // reopen it, because hiding the input method hands the focus back
                                 // to the field, which would undo the reader leaving search.
@@ -1379,12 +1384,15 @@ private fun CompactSearchField(
     value: String,
     onValueChange: (String) -> Unit,
     onClear: () -> Unit,
+    searchScope: NoteSearchScope,
+    onSearchScopeChange: (NoteSearchScope) -> Unit,
     onFocusChange: (Boolean) -> Unit,
     onPress: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(20.dp)
     val currentOnPress by rememberUpdatedState(onPress)
+    var filterMenuOpen by rememberSaveable { mutableStateOf(false) }
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -1429,6 +1437,53 @@ private fun CompactSearchField(
                         )
                     }
                     innerTextField()
+                }
+                Box {
+                    IconButton(
+                        onClick = { filterMenuOpen = true },
+                        modifier = Modifier.size(32.dp).testTag("note-search-filter")
+                    ) {
+                        Icon(
+                            Icons.Filled.FilterList,
+                            contentDescription = "Search filter",
+                            tint = if (searchScope == NoteSearchScope.TITLE) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = filterMenuOpen,
+                        onDismissRequest = { filterMenuOpen = false }
+                    ) {
+                        fun select(scope: NoteSearchScope) {
+                            onSearchScopeChange(scope)
+                            filterMenuOpen = false
+                        }
+                        DropdownMenuItem(
+                            text = { Text("Title and content") },
+                            leadingIcon = {
+                                RadioButton(
+                                    selected = searchScope == NoteSearchScope.TITLE_AND_CONTENT,
+                                    onClick = null
+                                )
+                            },
+                            onClick = { select(NoteSearchScope.TITLE_AND_CONTENT) },
+                            modifier = Modifier.testTag("search-filter-title-content")
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Title only") },
+                            leadingIcon = {
+                                RadioButton(
+                                    selected = searchScope == NoteSearchScope.TITLE,
+                                    onClick = null
+                                )
+                            },
+                            onClick = { select(NoteSearchScope.TITLE) },
+                            modifier = Modifier.testTag("search-filter-title")
+                        )
+                    }
                 }
                 if (value.isNotEmpty()) {
                     IconButton(

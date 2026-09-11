@@ -511,6 +511,40 @@ class AppLaunchTest {
     }
 
     @Test
+    fun noteSearchCanBeLimitedToTitles() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(42, "etag-title", "Needle title", "# Unrelated", "", 10),
+                    RemoteNote(43, "etag-content", "Body match", "Contains the needle", "", 11)
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 11
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Needle title")
+
+        composeRule.onNodeWithTag("note-search").performTextInput("needle")
+        composeRule.waitForText("Body match")
+        composeRule.onNodeWithTag("note-search-filter", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithTag("search-filter-title").performClick()
+
+        composeRule.waitForTextToGo("Body match")
+        composeRule.onNodeWithText("Needle title").assertIsDisplayed()
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForText("Needle title")
+        composeRule.onNodeWithText("Body match").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("note-search-filter", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithTag("search-filter-title-content").performClick()
+        composeRule.waitForText("Body match")
+    }
+
+    @Test
     fun managesRemoteSettingsAndRemovesAConnectedAccount() {
         val alice = importAccount("alice", "Alice note", "etag-a", 10)
         val bob = importAccount("bob", "Bob note", "etag-b", 20)

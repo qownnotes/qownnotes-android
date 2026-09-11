@@ -2,10 +2,19 @@ package org.qownnotes.mobile.core
 
 import kotlinx.coroutines.flow.Flow
 
+enum class NoteSearchScope {
+    TITLE_AND_CONTENT,
+    TITLE
+}
+
 interface NoteRepository {
     fun observeNotes(accountId: String): Flow<List<Note>>
 
-    fun searchNotes(accountId: String, query: String): Flow<List<Note>>
+    fun searchNotes(
+        accountId: String,
+        query: String,
+        scope: NoteSearchScope = NoteSearchScope.TITLE_AND_CONTENT
+    ): Flow<List<Note>>
 
     fun observeNote(localId: String): Flow<Note?>
 

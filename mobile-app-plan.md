@@ -789,7 +789,9 @@ Implemented:
 - Added the Notes API v1 read client with collection ETags, `pruneBefore`, HTTP 304 handling, chunk size/cursor support, and typed authentication, permission, protocol, and retryable failures.
 - Added Room schema version 2 and migration 1 to 2 for API version and collection synchronization checkpoints.
 - Added transactional pull application that preserves stable local UUIDs and does not overwrite locally changed notes.
-- Added account-scoped title/content search, cached note display, manual refresh, and account switching.
+- Added account-scoped local title/content search, with a search-field filter for title-only
+  matching, cached note display, manual refresh, and account switching. The Notes API has no
+  free-text search endpoint, so synchronized Room data remains the offline search source.
 - Replaced the raw note detail text with a Markwon-rendered view supporting core Markdown, tables, strikethrough, task lists, and YAML-frontmatter suppression.
 - Added tests for API-version negotiation, frontmatter preprocessing, and transactional pull identity/checkpoint behavior.
 - Hardened chunk traversal for the Notes API's numeric pending-count header, repeated or inconsistent cursors, interrupted pulls, malformed note IDs, malformed JSON, and coroutine cancellation.
@@ -873,7 +875,9 @@ Implemented:
   the profile menu. The compact search field and synchronization status stay fixed while notes
   scroll below them. While focused, search replaces the surrounding actions with a back action and
   expands across the whole top bar. Leaving search restores those actions and keeps the query, so a
-  filtered list can still be acted on; the field's clear action is what empties it.
+  filtered list can still be acted on; the field's clear action is what empties it. A filter action
+  in the field switches between title-and-content and title-only matching and survives activity
+  recreation with the query.
 - Moved supplemental QOwnNotes source highlighting off the main thread. Each result is applied only
   if its request and source are still current, and explicit tests cover every required source syntax
   plus a large generated document.

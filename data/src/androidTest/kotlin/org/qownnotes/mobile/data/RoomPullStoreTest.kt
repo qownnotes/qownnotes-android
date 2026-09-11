@@ -14,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.core.SyncState
@@ -355,11 +356,37 @@ class RoomPullStoreTest {
         )
         assertEquals(
             listOf("Older", "Newer"),
-            notes.searchNotes("account", "er").first().map {
+            notes.searchNotes("account", "er", NoteSearchScope.TITLE_AND_CONTENT).first().map {
                 it.title
             }
         )
         assertFalse(notes.updateFavorite("account-local-42", true))
+    }
+
+    @Test
+    fun searchCanMatchTitlesWithoutMatchingContent() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, title = "Needle title")
+                .copy(content = "Unrelated body")
+        )
+        database.noteDao().upsert(
+            localNote(43, SyncState.SYNCHRONIZED, title = "Body match")
+                .copy(content = "Contains the needle")
+        )
+
+        assertEquals(
+            setOf("Needle title", "Body match"),
+            notes.searchNotes("account", "needle", NoteSearchScope.TITLE_AND_CONTENT)
+                .first().mapTo(mutableSetOf()) { it.title }
+        )
+        assertEquals(
+            listOf("Needle title"),
+            notes.searchNotes("account", "needle", NoteSearchScope.TITLE)
+                .first().map { it.title }
+        )
     }
 
     @Test
