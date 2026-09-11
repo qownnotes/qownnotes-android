@@ -465,8 +465,10 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Add account").assertIsDisplayed()
         composeRule.onNodeWithText("Manage accounts").assertIsDisplayed()
         composeRule.onNodeWithText("Remove account").assertDoesNotExist()
-        composeRule.onNodeWithTag("add-account-icon").fetchSemanticsNode()
-        composeRule.onNodeWithTag("manage-accounts-icon").fetchSemanticsNode()
+        // A menu item merges its icon into itself, so the icon is only a node of its own in the
+        // unmerged tree, and its bounds belong to a popup that is still animating into place.
+        composeRule.onNodeWithTag("add-account-icon", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("manage-accounts-icon", useUnmergedTree = true).assertExists()
         val addBounds = composeRule.onNodeWithTag("add-account").fetchSemanticsNode().boundsInRoot
         val manageBounds = composeRule.onNodeWithTag(
             "manage-accounts"
@@ -476,31 +478,36 @@ class AppLaunchTest {
         composeRule.onNodeWithText("About").assertDoesNotExist()
     }
 
+    /**
+     * Searching takes the whole top bar, because a query is easier to read and correct when the
+     * account and note actions step aside for it. Leaving search restores those actions without
+     * throwing the query away, so a filtered list can still be acted on.
+     */
     @Test
     fun focusedNoteSearchUsesTheAvailableTopBarWidthAndHasABackAction() {
         importAccount("alice", "Existing note", "etag-1", 10)
-        val compactWidth = composeRule.onNodeWithTag(
-            "note-search"
-        ).fetchSemanticsNode().boundsInRoot.width
+        val compactWidth = searchFieldWidth()
 
         composeRule.onNodeWithTag("note-search").performClick()
 
-        composeRule.onNodeWithTag("close-note-search").assertIsDisplayed()
+        composeRule.waitUntilDisplayed("close-note-search")
         composeRule.onNodeWithTag("account-menu").assertDoesNotExist()
         composeRule.onNodeWithTag("note-list-menu").assertDoesNotExist()
-        val focusedWidth = composeRule.onNodeWithTag(
-            "note-search"
-        ).fetchSemanticsNode().boundsInRoot.width
+        val focusedWidth = searchFieldWidth()
         assertTrue("compact=$compactWidth, focused=$focusedWidth", focusedWidth > compactWidth)
 
         composeRule.onNodeWithTag("note-search").performTextInput("missing")
         composeRule.waitForTextToGo("Existing note")
         composeRule.onNodeWithTag("close-note-search").performClick()
 
-        composeRule.onNodeWithTag("account-menu").assertIsDisplayed()
-        composeRule.onNodeWithTag("note-list-menu").assertIsDisplayed()
+        composeRule.waitUntilDisplayed("account-menu")
+        composeRule.waitUntilDisplayed("note-list-menu")
+        composeRule.onNodeWithTag("close-note-search").assertDoesNotExist()
+        composeRule.onNodeWithText("Existing note").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("clear-note-search").performClick()
+
         composeRule.waitForText("Existing note")
-        composeRule.onNodeWithText("Search notes").assertIsDisplayed()
     }
 
     @Test
@@ -1029,9 +1036,8 @@ class AppLaunchTest {
         awaitEditorText("bold me")
         composeRule.onNodeWithTag("format-bold").performClick()
 
-        onView(withId(R.id.markdown_editor))
-            .check(matches(withText(containsString("**"))))
-            .check(matches(hasFocus()))
+        awaitEditorText("**")
+        onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
     }
 
     @Test
@@ -1048,16 +1054,20 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("format-checkbox-list").performClick()
         awaitEditorText("- [ ] task")
 
+        // Returning on an empty item ends the list. The editor applies that after the key event
+        // has been delivered, so wait for the marker to go before reading the remaining text.
         onView(withId(R.id.markdown_editor)).perform(replaceText(""))
         composeRule.onNodeWithTag("format-list").performClick()
         awaitEditorText("- ")
         onView(withId(R.id.markdown_editor)).perform(typeText("\n"))
+        awaitEditorText("- ", present = false)
         onView(withId(R.id.markdown_editor)).check(matches(withText("\n")))
 
         onView(withId(R.id.markdown_editor)).perform(replaceText(""))
         composeRule.onNodeWithTag("format-checkbox-list").performClick()
         awaitEditorText("- [ ] ")
         onView(withId(R.id.markdown_editor)).perform(typeText("\n"))
+        awaitEditorText("- [ ] ", present = false)
         onView(withId(R.id.markdown_editor)).check(matches(withText("\n")))
     }
 
@@ -1079,10 +1089,10 @@ class AppLaunchTest {
 
         composeRule.onNodeWithTag("redo-edit").performClick()
         awaitEditorText("regretted")
-        // Undoing must not take the note away from the writer.
-        onView(withId(R.id.markdown_editor))
-            .check(matches(withText(containsString("Existing note"))))
-            .check(matches(hasFocus()))
+        // Undoing must not take the note away from the writer. Replaying a step rewrites a range
+        // of the document, so read the note back once that rewrite has landed.
+        awaitEditorText("Existing note")
+        onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
     }
 
     @Test
@@ -1593,12 +1603,23 @@ class AppLaunchTest {
         composeRule.onNodeWithTag(tag).performClick()
     }
 
-    /** General note-list actions are reached from the overflow menu beside search. */
+    /**
+     * General note-list actions are reached from the overflow menu beside search. Searching takes
+     * the whole top bar, so leave search first when it holds the focus. That keeps the query, and
+     * with it the filtered list the action is meant to run against.
+     */
     private fun listAction(tag: String) {
+        if (composeRule.onAllNodesWithTag("close-note-search").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithTag("close-note-search").performClick()
+            composeRule.waitForTag("note-list-menu")
+        }
         composeRule.onNodeWithTag("note-list-menu").performClick()
         composeRule.waitForTag(tag)
         composeRule.onNodeWithTag(tag).performClick()
     }
+
+    private fun searchFieldWidth() =
+        composeRule.onNodeWithTag("note-search").fetchSemanticsNode().boundsInRoot.width
 
     private fun testAccount(user: String) =
         SingleSignOnAccount(user, user, "test-token", "https://cloud.example", "nextcloud")
@@ -1807,6 +1828,23 @@ class AppLaunchTest {
         waitUntil(timeoutMillis = 10_000) {
             onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    /**
+     * Waits for a node to be on screen rather than merely present. A node appears before the bar,
+     * popup, or keyboard change around it has settled, so asserting display straight after an
+     * interaction reports a layout that is still moving.
+     */
+    private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.waitUntilDisplayed(
+        tag: String
+    ) {
+        waitUntil(timeoutMillis = 10_000) {
+            onAllNodesWithTag(tag).fetchSemanticsNodes().any { node ->
+                val bounds = node.boundsInRoot
+                bounds.width > 0f && bounds.height > 0f
+            }
+        }
+        onNodeWithTag(tag).assertIsDisplayed()
     }
 
     private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.waitForText(

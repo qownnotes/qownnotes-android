@@ -872,7 +872,8 @@ Implemented:
   and a separate note-action overflow menu. Only switching, adding, and removing accounts remain in
   the profile menu. The compact search field and synchronization status stay fixed while notes
   scroll below them. While focused, search replaces the surrounding actions with a back action and
-  expands across the available top-bar width.
+  expands across the whole top bar. Leaving search restores those actions and keeps the query, so a
+  filtered list can still be acted on; the field's clear action is what empties it.
 - Moved supplemental QOwnNotes source highlighting off the main thread. Each result is applied only
   if its request and source are still current, and explicit tests cover every required source syntax
   plus a large generated document.

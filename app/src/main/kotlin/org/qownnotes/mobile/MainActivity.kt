@@ -19,6 +19,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -117,6 +119,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onPlaced
@@ -124,6 +127,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -784,6 +788,19 @@ private fun NoteListScreen(
     val account = accounts.first { it.id == accountId }
     val scope = rememberCoroutineScope { UiDispatcher }
     val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    // Leaving search only gives the toolbar back. The typed query stays, so the filtered list and
+    // the note actions above it remain usable, and the field's clear action is what empties it.
+    //
+    // Whether search owns the top bar is state of its own rather than a reading of input focus. A
+    // field keeps its focus when the window loses and regains it, and a focus clear is declined
+    // while the input method holds a session, which would strand the expanded bar with no way
+    // back. Asking for the focus and the keyboard to go stays a courtesy on top of that.
+    val leaveSearch = {
+        keyboard?.hide()
+        focusManager.clearFocus(force = true)
+        searchFocused = false
+    }
     val selectionActive = selectedNoteIds.isNotEmpty()
     val showNotePreview by component.settings.showNotePreview
         .collectAsStateWithLifecycle(context = UiDispatcher)
@@ -815,10 +832,7 @@ private fun NoteListScreen(
         selectionMenuOpen = false
         selectedNoteIds = emptyList()
     }
-    BackHandler(enabled = searchFocused && !selectionActive) {
-        query = ""
-        focusManager.clearFocus()
-    }
+    BackHandler(enabled = searchFocused && !selectionActive) { leaveSearch() }
 
     Scaffold(
         topBar = {
@@ -837,10 +851,7 @@ private fun NoteListScreen(
                             }
                         } else if (searchFocused) {
                             IconButton(
-                                onClick = {
-                                    query = ""
-                                    focusManager.clearFocus()
-                                },
+                                onClick = leaveSearch,
                                 modifier = Modifier.testTag("close-note-search")
                             ) {
                                 Icon(
@@ -919,7 +930,11 @@ private fun NoteListScreen(
                                 value = query,
                                 onValueChange = { query = it },
                                 onClear = { query = "" },
-                                onFocusChange = { searchFocused = it },
+                                // Only losing the focus closes search. Regaining it does not
+                                // reopen it, because hiding the input method hands the focus back
+                                // to the field, which would undo the reader leaving search.
+                                onFocusChange = { focused -> if (!focused) searchFocused = false },
+                                onPress = { searchFocused = true },
                                 modifier = Modifier.fillMaxWidth().testTag("note-search")
                             )
                         }
@@ -1365,9 +1380,11 @@ private fun CompactSearchField(
     onValueChange: (String) -> Unit,
     onClear: () -> Unit,
     onFocusChange: (Boolean) -> Unit,
+    onPress: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(20.dp)
+    val currentOnPress by rememberUpdatedState(onPress)
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -1376,7 +1393,17 @@ private fun CompactSearchField(
             color = MaterialTheme.colorScheme.onSurface
         ),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        modifier = modifier.onFocusChanged { onFocusChange(it.isFocused) }.height(40.dp)
+        modifier = modifier.onFocusChanged { onFocusChange(it.isFocused) }
+            // Reaching for the field opens search even when it already holds the focus that the
+            // previous search left behind. The touch is only observed, never taken, so the field
+            // still places the cursor where it was tapped.
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    currentOnPress()
+                }
+            }
+            .height(40.dp)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .padding(horizontal = 10.dp),
         decorationBox = { innerTextField ->
@@ -1404,7 +1431,10 @@ private fun CompactSearchField(
                     innerTextField()
                 }
                 if (value.isNotEmpty()) {
-                    IconButton(onClick = onClear, modifier = Modifier.size(32.dp)) {
+                    IconButton(
+                        onClick = onClear,
+                        modifier = Modifier.size(32.dp).testTag("clear-note-search")
+                    ) {
                         Icon(Icons.Filled.Close, contentDescription = "Clear search")
                     }
                 }
