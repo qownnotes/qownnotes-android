@@ -454,9 +454,46 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("account-menu").performClick()
         composeRule.waitForText("Add account")
         composeRule.onNodeWithText("Add account").assertIsDisplayed()
+        composeRule.onNodeWithText("Manage accounts").assertIsDisplayed()
         composeRule.onNodeWithText("Remove account").assertIsDisplayed()
         composeRule.onNodeWithText("Settings").assertDoesNotExist()
         composeRule.onNodeWithText("About").assertDoesNotExist()
+    }
+
+    @Test
+    fun managesRemoteSettingsAndRemovesAConnectedAccount() {
+        val alice = importAccount("alice", "Alice note", "etag-a", 10)
+        val bob = importAccount("bob", "Bob note", "etag-b", 20)
+        val aliceId = alice.localAccountId()
+        val bobId = bob.localAccountId()
+
+        accountAction("manage-accounts")
+
+        composeRule.onNodeWithTag("account-management").assertIsDisplayed()
+        composeRule.onNodeWithTag("managed-account-$aliceId").assertIsDisplayed()
+        composeRule.onNodeWithTag("managed-account-$bobId").assertIsDisplayed()
+        composeRule.onNodeWithTag("account-settings-$aliceId").performClick()
+        composeRule.waitForTag("notes-path")
+        composeRule.onNodeWithTag("notes-path").performTextReplacement("Work/Notes")
+        composeRule.onNodeWithTag("file-extension").performTextReplacement("txt")
+        composeRule.onNodeWithTag("save-account-settings").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.settingsUpdates.lastOrNull()?.second?.let {
+                it.notesPath == "Work/Notes" && it.fileSuffix == ".txt"
+            } == true
+        }
+        composeRule.onNodeWithTag("account-settings-dialog").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("remove-account-$aliceId").performClick()
+        composeRule.onNodeWithText("server notes will not be deleted", substring = true)
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag("confirm-remove-account").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { application.component.accountRepository.get(aliceId) == null }
+        }
+        composeRule.onNodeWithTag("managed-account-$aliceId").assertDoesNotExist()
+        composeRule.onNodeWithTag("managed-account-$bobId").assertIsDisplayed()
     }
 
     @Test

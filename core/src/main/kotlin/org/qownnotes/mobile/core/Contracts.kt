@@ -71,6 +71,16 @@ interface NoteArchiveBackend {
     suspend fun restoreTrashedNote(account: Account, note: TrashedNote)
 }
 
+interface NoteSettingsBackend {
+    suspend fun settings(account: Account): NoteSettings
+
+    suspend fun updateSettings(
+        account: Account,
+        notesPath: String? = null,
+        fileSuffix: String? = null
+    ): NoteSettings
+}
+
 data class RemoteNoteVersion(val timestamp: Long, val displayTimestamp: String, val content: String)
 
 data class TrashedNote(
@@ -96,6 +106,8 @@ interface AccountRepository {
 
 interface PullStore {
     suspend fun applyPull(accountId: String, result: PullResult)
+
+    suspend fun resetCollection(accountId: String)
 }
 
 interface PushStore {

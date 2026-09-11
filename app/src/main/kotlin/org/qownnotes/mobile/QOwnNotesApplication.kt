@@ -36,6 +36,8 @@ import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteFactory
 import org.qownnotes.mobile.core.NoteNames
+import org.qownnotes.mobile.core.NoteSettings
+import org.qownnotes.mobile.core.NoteSettingsBackend
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
 import org.qownnotes.mobile.core.RemoteNoteVersion
@@ -82,6 +84,7 @@ class ApplicationComponent(
             .build(),
     private val backend: NoteBackend = NextcloudBackend(application),
     private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
+    private val noteSettingsBackend: NoteSettingsBackend? = backend as? NoteSettingsBackend,
     val settings: AppSettings = AppSettings(application),
     internal val draftCheckpointIntervalMillis: Long = 5_000,
     avatarFetcher: suspend (Account) -> ByteArray? = { account ->
@@ -217,6 +220,90 @@ class ApplicationComponent(
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
             accountAvatars.remove(accountId)
         }
+    }
+
+    suspend fun noteSettings(accountId: String): NoteSettings = accountMutex(accountId).withLock {
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        requireNoteSettingsBackend().settings(account)
+    }
+
+    suspend fun updateNoteSettings(
+        accountId: String,
+        expected: NoteSettings,
+        notesPath: String,
+        fileExtension: String
+    ): NoteSettings = accountMutex(accountId).withLock {
+        var account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        val settingsBackend = requireNoteSettingsBackend()
+        val current = settingsBackend.settings(account)
+        val normalizedPath = notesPath.trim().trim('/')
+        require(normalizedPath.isNotEmpty()) { "Note folder cannot be empty" }
+        val normalizedSuffix = fileExtension.trim().let { extension ->
+            if (extension.startsWith('.')) extension else ".$extension"
+        }
+        require(
+            normalizedSuffix.length > 1 &&
+                normalizedSuffix.none { it == '/' || it == '\\' || it.isWhitespace() }
+        ) { "Enter a valid file extension" }
+
+        val requestedPath = normalizedPath.takeIf { it != expected.notesPath }
+        val requestedSuffix = normalizedSuffix.takeIf { it != expected.fileSuffix }
+        val pathChangedElsewhere = current.notesPath != expected.notesPath
+        if ((requestedPath != null || requestedSuffix != null) && !pathChangedElsewhere) {
+            refreshLocked(accountId, propagateFailure = true)
+            account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        }
+        val collectionWillChange = pathChangedElsewhere ||
+            (requestedPath != null && requestedPath != current.notesPath)
+        if (collectionWillChange || requestedSuffix != null) {
+            val unsynchronized =
+                noteRepository.observeNotes(accountId).first()
+                    .any { it.syncState != SyncState.SYNCHRONIZED } ||
+                    noteRepository.pendingDeletions(accountId).isNotEmpty()
+            if (unsynchronized) {
+                throw BackendException.FeatureUnavailable(
+                    "Resolve notes that have not synchronized before changing the note folder"
+                )
+            }
+        }
+
+        suspend fun resetCachedCollection() {
+            noteRepository.observeNotes(accountId).first().map(Note::localId).also {
+                pullStore.resetCollection(accountId)
+                editorDrafts.remove(it)
+                it.forEach(editReservations::remove)
+                mutableNoteSyncDiagnostics.update { diagnostics -> diagnostics - it }
+            }
+        }
+
+        if (!collectionWillChange && requestedPath == null && requestedSuffix == null) {
+            return@withLock current
+        }
+
+        if (collectionWillChange) {
+            // Invalidate the old checkpoint before the remote collection can change. If the
+            // request is interrupted, the next refresh safely performs a full pull.
+            resetCachedCollection()
+        }
+
+        if (requestedPath == null && requestedSuffix == null) {
+            if (collectionWillChange) refreshLocked(accountId)
+            return@withLock current
+        }
+
+        val updated = settingsBackend.updateSettings(
+            account,
+            notesPath = requestedPath,
+            fileSuffix = requestedSuffix
+        )
+        if (collectionWillChange) {
+            refreshLocked(accountId)
+        } else if (updated.notesPath != current.notesPath) {
+            // The shared path changed between GET and PUT. Do not reuse its old checkpoint.
+            resetCachedCollection()
+            refreshLocked(accountId)
+        }
+        updated
     }
 
     suspend fun accountAvatar(account: Account) = accountAvatars.load(account)
@@ -604,6 +691,11 @@ class ApplicationComponent(
     private fun requireArchiveBackend(): NoteArchiveBackend = archiveBackend
         ?: throw BackendException.FeatureUnavailable(
             "This account backend does not provide note versions or remote trash"
+        )
+
+    private fun requireNoteSettingsBackend(): NoteSettingsBackend = noteSettingsBackend
+        ?: throw BackendException.FeatureUnavailable(
+            "This account backend does not provide note folder settings"
         )
 }
 

@@ -130,6 +130,23 @@ class RoomPullStoreTest {
     }
 
     @Test
+    fun resettingCollectionDeletesSyncedNotesAndClearsCheckpoint() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        accounts.save(testAccount().copy(collectionEtag = "etag-1", lastModifiedEpochSeconds = 10))
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+        database.noteDao().upsert(localNote(43, SyncState.LOCALLY_MODIFIED))
+
+        store.resetCollection("account")
+
+        assertNull(database.noteDao().getByRemoteId("account", 42))
+        assertNotNull(database.noteDao().getByRemoteId("account", 43))
+        val account = accounts.get("account")!!
+        assertNull(account.collectionEtag)
+        assertEquals(0, account.lastModifiedEpochSeconds)
+    }
+
+    @Test
     fun failedCheckpointWriteRollsBackEveryNoteMutation() = runBlocking {
         val accounts = RoomAccountRepository(database.accountDao())
         val store = RoomPullStore(database)

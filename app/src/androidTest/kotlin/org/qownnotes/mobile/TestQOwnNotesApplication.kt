@@ -12,6 +12,8 @@ import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
+import org.qownnotes.mobile.core.NoteSettings
+import org.qownnotes.mobile.core.NoteSettingsBackend
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
@@ -95,7 +97,8 @@ class FakeAccountImportGateway : AccountImportGateway {
 
 class FakePullBackend :
     NoteBackend,
-    NoteArchiveBackend {
+    NoteArchiveBackend,
+    NoteSettingsBackend {
     override val capabilities =
         BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
     private val pulls = mutableMapOf<String, ArrayDeque<Result<PullResult>>>()
@@ -107,6 +110,8 @@ class FakePullBackend :
     var trash = emptyList<TrashedNote>()
     val trashCategoryRequests = mutableListOf<Set<String>>()
     val restoredTrash = mutableListOf<TrashedNote>()
+    val settingsByAccount = mutableMapOf<String, NoteSettings>()
+    val settingsUpdates = mutableListOf<Pair<String, NoteSettings>>()
     var validationGate: CompletableDeferred<Unit>? = null
     var updateFailure: Throwable? = null
     val remoteNotes = mutableMapOf<Long, RemoteNote>()
@@ -150,6 +155,24 @@ class FakePullBackend :
         deletedRemoteIds += remoteId
     }
 
+    override suspend fun settings(account: Account): NoteSettings =
+        settingsByAccount.getOrPut(account.id) { NoteSettings("Notes", ".md") }
+
+    override suspend fun updateSettings(
+        account: Account,
+        notesPath: String?,
+        fileSuffix: String?
+    ): NoteSettings {
+        val current = settings(account)
+        val updated = current.copy(
+            notesPath = notesPath ?: current.notesPath,
+            fileSuffix = fileSuffix ?: current.fileSuffix
+        )
+        settingsByAccount[account.id] = updated
+        settingsUpdates += account.id to updated
+        return updated
+    }
+
     override suspend fun versions(account: Account, note: Note): List<RemoteNoteVersion> =
         noteVersions
 
@@ -184,6 +207,8 @@ class FakePullBackend :
         trash = emptyList()
         trashCategoryRequests.clear()
         restoredTrash.clear()
+        settingsByAccount.clear()
+        settingsUpdates.clear()
         validationGate?.cancel()
         validationGate = null
         updateFailure = null

@@ -146,6 +146,9 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE accountId = :accountId AND remoteId IS NOT NULL")
     suspend fun getRemoteNotes(accountId: String): List<NoteEntity>
 
+    @Query("DELETE FROM notes WHERE accountId = :accountId AND syncState = 'SYNCHRONIZED'")
+    suspend fun deleteSynchronized(accountId: String)
+
     @Delete
     suspend fun delete(note: NoteEntity)
 }

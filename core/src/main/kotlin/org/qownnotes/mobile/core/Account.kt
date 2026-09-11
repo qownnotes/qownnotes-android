@@ -17,6 +17,8 @@ data class PullCheckpoint(
     val lastModifiedEpochSeconds: Long = 0
 )
 
+data class NoteSettings(val notesPath: String, val fileSuffix: String)
+
 data class RemoteNote(
     val id: Long,
     val etag: String?,

@@ -562,8 +562,10 @@ The optional Nextcloud QOwnNotesAPI app provides server-side note versions and r
 /index.php/apps/qownnotesapi/api/v1/
 ```
 
-Use Notes `GET /settings` to read `notesPath` and `fileSuffix`; never write those settings. Probe
-QOwnNotesAPI `note/app_info` on demand and require version 0.4.4 or newer plus the corresponding
+Use Notes `GET /settings` to read `notesPath` and `fileSuffix`. Account management may update them
+through `PUT /settings`; it adopts the canonical response and resets the local collection before a
+full pull when `notesPath` changes. Probe QOwnNotesAPI `note/app_info` on demand and require version
+0.4.4 or newer plus the corresponding
 Nextcloud Versions or Deleted files app. QOwnNotesAPI absence must not prevent normal Notes API
 synchronization.
 
@@ -638,7 +640,12 @@ QOwnNotes users organize notes in folders, and the mobile application should off
 
 ### Decisions
 
-One Nextcloud account is one note folder. Read `notesPath` for display and never write it. It is a single shared per-user setting, so rewriting it to switch folders would silently repoint the web interface and every other client of that account, would not move any file, and would make every other client see its whole collection change. The application must not send `PUT /settings`.
+One Nextcloud account is one note folder. Account management can update `notesPath`, but must explain
+that it is a shared per-user setting which repoints the web interface and every other client and does
+not move files. Synchronize pending work first, refuse the change if any note remains unsynchronized,
+then clear the old synchronized cache and pull checkpoint transactionally before a full pull of the
+new collection. `fileSuffix` is also editable; it controls newly created files and does not rename
+existing notes.
 
 Map QOwnNotes note subfolders onto `category`. The mapping is lossless in both directions, including nesting, so this is the supported way to give QOwnNotes users folders on a Nextcloud account.
 
@@ -926,13 +933,15 @@ categories from the note view. Hierarchical navigation remains planned below.
 - Create notes in the current folder scope.
 - Scope the search to the current subtree, allow searching the whole account, and match the category as well.
 - Add an indexed, correctly escaped subtree query to the note DAO.
-- Display the account's notes root name from `GET /settings`, read-only.
+- List connected accounts and let the user update each account's notes root and file extension
+  through `GET /settings` and `PUT /settings`.
 - Moving a note to another folder with `If-Match`, including canonical category/title adoption, is
   implemented through the note-view menu.
 - Add the `nestedCategories` backend capability.
 - Keep the pull unfiltered and confirm that folder scoping cannot influence remote-deletion detection.
 
-Explicitly out of scope for this phase: writing `notesPath`, creating durable empty folders, and renaming or deleting folders.
+Explicitly out of scope for this phase: creating durable empty folders and renaming or deleting
+category folders.
 
 ### Phase 6: Local-Only Folder Backend
 

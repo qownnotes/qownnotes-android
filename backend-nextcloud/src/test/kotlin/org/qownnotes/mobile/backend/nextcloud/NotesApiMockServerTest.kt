@@ -248,6 +248,56 @@ class NotesApiMockServerTest {
     }
 
     @Test
+    fun readsNoteSettings() {
+        server.enqueue(notesResponse("""{"notesPath":"My Notes","fileSuffix":".md"}"""))
+
+        val settings = loadSettingsFromApi(api)
+
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/index.php/apps/notes/api/v1/settings", request.requestUrl!!.encodedPath)
+        assertEquals("My Notes", settings.notesPath)
+        assertEquals(".md", settings.fileSuffix)
+    }
+
+    @Test
+    fun updatesNoteSettingsAndAdoptsCanonicalResponse() {
+        server.enqueue(notesResponse("""{"notesPath":"Work/Notes","fileSuffix":".note"}"""))
+
+        val settings = updateSettingsWithApi(api, "Work//Notes", ".note")
+
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/index.php/apps/notes/api/v1/settings", request.requestUrl!!.encodedPath)
+        val body = GsonBuilder().create().fromJson(
+            request.body.readUtf8(),
+            NotesSettingsWriteDto::class.java
+        )
+        assertEquals("Work//Notes", body.notesPath)
+        assertEquals(".note", body.fileSuffix)
+        assertEquals("Work/Notes", settings.notesPath)
+        assertEquals(".note", settings.fileSuffix)
+    }
+
+    @Test
+    fun omitsUnchangedNoteSettingFromPartialUpdate() {
+        server.enqueue(notesResponse("""{"notesPath":"Notes","fileSuffix":".txt"}"""))
+
+        updateSettingsWithApi(api, notesPath = null, fileSuffix = ".txt")
+
+        val body = server.takeRequest().body.readUtf8()
+        assertFalse(body.contains("notesPath"))
+        assertTrue(body.contains("\"fileSuffix\":\".txt\""))
+    }
+
+    @Test
+    fun rejectsInvalidSettingsSuffix() {
+        server.enqueue(notesResponse("""{"notesPath":"Notes","fileSuffix":"md"}"""))
+
+        assertThrows(BackendException.Protocol::class.java) { loadSettingsFromApi(api) }
+    }
+
+    @Test
     fun sendsRenamedTitleAndAdoptsTheNameTheServerStored() {
         server.enqueue(canonicalResponse(42, "new-etag", "Renamed (2)", "# Local\n"))
 

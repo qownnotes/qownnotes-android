@@ -89,4 +89,20 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
             )
         }
     }
+
+    override suspend fun resetCollection(accountId: String) {
+        database.withTransaction {
+            val account = requireNotNull(database.accountDao().get(accountId)) {
+                "Cannot reset the collection for an unknown account"
+            }
+            database.noteDao().deleteSynchronized(accountId)
+            database.accountDao().upsert(
+                account.copy(
+                    collectionEtag = null,
+                    lastModifiedEpochSeconds = 0,
+                    lastSyncError = null
+                )
+            )
+        }
+    }
 }

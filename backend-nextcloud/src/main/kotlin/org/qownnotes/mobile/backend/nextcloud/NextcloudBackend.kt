@@ -29,6 +29,8 @@ import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
+import org.qownnotes.mobile.core.NoteSettings
+import org.qownnotes.mobile.core.NoteSettingsBackend
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
@@ -48,7 +50,8 @@ import retrofit2.http.Query
 
 class NextcloudBackend(context: Context) :
     NoteBackend,
-    NoteArchiveBackend {
+    NoteArchiveBackend,
+    NoteSettingsBackend {
     private val applicationContext = context.applicationContext
     private val gson = GsonBuilder().create()
 
@@ -114,6 +117,35 @@ class NextcloudBackend(context: Context) :
     override suspend fun delete(account: Account, remoteId: Long) = withContext(Dispatchers.IO) {
         try {
             withApis(account) { _, notesApi, _ -> deleteWithApi(notesApi, remoteId) }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun settings(account: Account): NoteSettings = withContext(Dispatchers.IO) {
+        try {
+            withApis(account) { _, notesApi, _ -> loadSettingsFromApi(notesApi) }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun updateSettings(
+        account: Account,
+        notesPath: String?,
+        fileSuffix: String?
+    ): NoteSettings = withContext(Dispatchers.IO) {
+        try {
+            if (fileSuffix != null && fileSuffix !in STANDARD_FILE_SUFFIXES &&
+                !NextcloudProtocol.isAtLeast(account.apiVersion.orEmpty(), "1.3")
+            ) {
+                throw BackendException.FeatureUnavailable(
+                    "Custom file extensions require Nextcloud Notes API 1.3 or newer"
+                )
+            }
+            withApis(account) { _, notesApi, _ ->
+                updateSettingsWithApi(notesApi, notesPath, fileSuffix)
+            }
         } catch (error: Throwable) {
             throw error.asBackendException()
         }
@@ -331,6 +363,18 @@ internal fun deleteWithApi(notesApi: NotesApi, remoteId: Long) {
     throw backendExceptionForHttpStatus(response.code(), NotesHttpException(response.code()))
 }
 
+internal fun loadSettingsFromApi(notesApi: NotesApi): NoteSettings =
+    notesApi.getSettings().execute().requiredBody<NotesSettingsDto>("settings").toDomain()
+
+internal fun updateSettingsWithApi(
+    notesApi: NotesApi,
+    notesPath: String?,
+    fileSuffix: String?
+): NoteSettings = notesApi.updateSettings(NotesSettingsWriteDto(notesPath, fileSuffix))
+    .execute()
+    .requiredBody<NotesSettingsDto>("settings")
+    .toDomain()
+
 internal fun loadVersionsFromApis(
     notesApi: NotesApi,
     archiveApi: QOwnNotesApi,
@@ -438,6 +482,9 @@ private fun NotesSettingsDto.validatedSuffix(): String {
     }
     return suffix
 }
+
+private fun NotesSettingsDto.toDomain(): NoteSettings =
+    NoteSettings(notesPath = notesPath, fileSuffix = validatedSuffix())
 
 private fun safePathPart(value: String, description: String): String {
     if (value.isBlank() || value == "." || value == ".." || '/' in value || '\\' in value) {
@@ -575,6 +622,7 @@ private const val HTTP_TOO_MANY_REQUESTS = 429
 private const val HTTP_INSUFFICIENT_STORAGE = 507
 private const val MIN_QOWNNOTES_API_VERSION = "0.4.4"
 private val NOTES_FILE_EXTENSIONS = listOf("md", "txt", "org", "markdown", "note")
+private val STANDARD_FILE_SUFFIXES = setOf(".md", ".txt")
 
 private interface CapabilitiesApi {
     @GET("capabilities?format=json")
@@ -584,6 +632,9 @@ private interface CapabilitiesApi {
 internal interface NotesApi {
     @GET("settings")
     fun getSettings(): Call<NotesSettingsDto>
+
+    @PUT("settings")
+    fun updateSettings(@Body request: NotesSettingsWriteDto): Call<NotesSettingsDto>
 
     @GET("notes/{id}")
     fun getNote(@Path("id") id: Long): Call<RemoteNoteDto>
@@ -638,6 +689,11 @@ internal interface QOwnNotesApi {
 }
 
 internal data class NotesSettingsDto(val notesPath: String, val fileSuffix: String)
+
+internal data class NotesSettingsWriteDto(
+    val notesPath: String? = null,
+    val fileSuffix: String? = null
+)
 
 internal data class QOwnNotesAppInfoDto(
     @SerializedName("versions_app") val versionsApp: Boolean = false,

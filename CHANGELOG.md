@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added account management from the profile menu. It lists connected accounts, updates each
+  account's shared Nextcloud Notes folder and new-file extension through the Notes API, and removes
+  an account's local data without deleting its server notes or Nextcloud Files account.
 - Added note-list swipe actions with visual markers: swipe right to favorite a note and left to move
   it to trash. The gestures are enabled by default, and the new Settings dialog controls them and
   the existing note preview and category display preferences.

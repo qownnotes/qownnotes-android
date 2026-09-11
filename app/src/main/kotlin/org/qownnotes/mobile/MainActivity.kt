@@ -142,6 +142,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
@@ -154,6 +155,7 @@ import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteExcerpt
 import org.qownnotes.mobile.core.NoteNames
+import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.SharedText
@@ -336,6 +338,7 @@ private fun NotesNavigation(
     var editOnOpenNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var navigationRequest by rememberSaveable { mutableStateOf(0) }
     var noteHistory by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var managingAccounts by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(accounts, selectedAccountId) {
         val loadedAccounts = accounts ?: return@LaunchedEffect
@@ -355,6 +358,9 @@ private fun NotesNavigation(
         editOnOpenNoteId = null
         navigationRequest++
     }
+    BackHandler(enabled = managingAccounts && selectedNoteId == null) {
+        managingAccounts = false
+    }
 
     val loadedAccounts = accounts
     val activeAccountId = loadedAccounts?.firstOrNull { it.id == selectedAccountId }?.id
@@ -363,8 +369,10 @@ private fun NotesNavigation(
     // Text another application shared becomes a note in the account that is being looked at, and
     // that note is opened, so the share ends where the user can see and correct it. A share that
     // arrives before any account exists waits here until onboarding has produced one.
-    LaunchedEffect(pendingShare, activeAccountId) {
-        if (pendingShare == null || activeAccountId == null) return@LaunchedEffect
+    LaunchedEffect(pendingShare, activeAccountId, managingAccounts) {
+        if (pendingShare == null || activeAccountId == null || managingAccounts) {
+            return@LaunchedEffect
+        }
         val shared = component.takePendingShare() ?: return@LaunchedEffect
         // Taking the share clears the state this effect is keyed on, so the effect is on its way
         // to being cancelled and restarted from here on. Writing the note and opening it belongs
@@ -406,6 +414,19 @@ private fun NotesNavigation(
         }
     } else if (loadedAccounts.isEmpty()) {
         AccountOnboarding(importState, pendingShare != null, onImportAccount)
+    } else if (managingAccounts) {
+        AccountManagementScreen(
+            component = component,
+            accounts = loadedAccounts,
+            onBack = { managingAccounts = false },
+            onImportAccount = onImportAccount,
+            onRemoveAccount = { accountId ->
+                scope.launch {
+                    component.removeLocalData(accountId)
+                    if (selectedAccountId == accountId) selectedAccountId = null
+                }
+            }
+        )
     } else {
         NoteListScreen(
             component = component,
@@ -415,6 +436,7 @@ private fun NotesNavigation(
             onSelectAccount = { selectedAccountId = it },
             onImportAccount = onImportAccount,
             onReconnectAccount = onReconnectAccount,
+            onManageAccounts = { managingAccounts = true },
             onRemoveAccount = { accountId ->
                 scope.launch {
                     component.removeLocalData(accountId)
@@ -493,6 +515,233 @@ private fun AccountOnboarding(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AccountManagementScreen(
+    component: ApplicationComponent,
+    accounts: List<Account>,
+    onBack: () -> Unit,
+    onImportAccount: () -> Unit,
+    onRemoveAccount: (String) -> Unit
+) {
+    var settingsAccount by remember { mutableStateOf<Account?>(null) }
+    var removalAccount by remember { mutableStateOf<Account?>(null) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Manage accounts") },
+                navigationIcon = {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.testTag("close-manage-accounts")
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        modifier = Modifier.fillMaxSize().testTag("account-management")
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(accounts, key = Account::id) { account ->
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(16.dp)
+                        )
+                        .padding(16.dp)
+                        .testTag("managed-account-${account.id}")
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AccountAvatar(component, account, Modifier.padding(end = 12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(account.displayName, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                account.serverUrl,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = { settingsAccount = account },
+                            modifier = Modifier.testTag("account-settings-${account.id}")
+                        ) { Text("Note settings") }
+                        TextButton(
+                            onClick = { removalAccount = account },
+                            modifier = Modifier.testTag("remove-account-${account.id}")
+                        ) { Text("Remove") }
+                    }
+                }
+            }
+            item {
+                Button(
+                    onClick = onImportAccount,
+                    modifier = Modifier.fillMaxWidth().testTag("add-managed-account")
+                ) { Text("Add Nextcloud account") }
+            }
+        }
+    }
+
+    settingsAccount?.let { account ->
+        AccountNoteSettingsDialog(
+            component = component,
+            account = account,
+            onDismiss = { settingsAccount = null }
+        )
+    }
+    removalAccount?.let { account ->
+        RemoveAccountDialog(
+            account = account,
+            onDismiss = { removalAccount = null },
+            onRemove = {
+                removalAccount = null
+                onRemoveAccount(account.id)
+            }
+        )
+    }
+}
+
+@Composable
+private fun AccountNoteSettingsDialog(
+    component: ApplicationComponent,
+    account: Account,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope { UiDispatcher }
+    var settings by remember(account.id) { mutableStateOf<NoteSettings?>(null) }
+    var notesPath by rememberSaveable(account.id) { mutableStateOf("") }
+    var fileExtension by rememberSaveable(account.id) { mutableStateOf("") }
+    var error by remember(account.id) { mutableStateOf<String?>(null) }
+    var saving by remember(account.id) { mutableStateOf(false) }
+
+    LaunchedEffect(account.id) {
+        try {
+            val loaded = withContext(UiDispatcher) { component.noteSettings(account.id) }
+            settings = loaded
+            notesPath = loaded.notesPath
+            fileExtension = loaded.fileSuffix.removePrefix(".")
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            error = failure.message ?: "Could not load note settings"
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = { if (!saving) onDismiss() },
+        title = { Text("Note settings") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(account.displayName, style = MaterialTheme.typography.labelLarge)
+                if (settings == null && error == null) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.testTag("account-settings-loading")
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = notesPath,
+                        onValueChange = { notesPath = it },
+                        label = { Text("Note folder") },
+                        singleLine = true,
+                        enabled = !saving,
+                        modifier = Modifier.fillMaxWidth().testTag("notes-path")
+                    )
+                    OutlinedTextField(
+                        value = fileExtension,
+                        onValueChange = { fileExtension = it.removePrefix(".") },
+                        label = { Text("File extension") },
+                        prefix = { Text(".") },
+                        singleLine = true,
+                        enabled = !saving,
+                        supportingText = {
+                            Text("Used for newly created note files.")
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("file-extension")
+                    )
+                    Text(
+                        "Changing the folder also changes it for Nextcloud Notes and other " +
+                            "clients. Files are not moved.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                error?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("account-settings-error")
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    saving = true
+                    error = null
+                    scope.launch {
+                        try {
+                            component.updateNoteSettings(
+                                account.id,
+                                requireNotNull(settings),
+                                notesPath,
+                                fileExtension
+                            )
+                            onDismiss()
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (failure: Exception) {
+                            error = failure.message ?: "Could not save note settings"
+                            saving = false
+                        }
+                    }
+                },
+                enabled = settings != null && notesPath.isNotBlank() &&
+                    fileExtension.isNotBlank() && !saving,
+                modifier = Modifier.testTag("save-account-settings")
+            ) { Text(if (saving) "Saving" else "Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
+        modifier = Modifier.testTag("account-settings-dialog")
+    )
+}
+
+@Composable
+private fun RemoveAccountDialog(account: Account, onDismiss: () -> Unit, onRemove: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Remove local data?") },
+        text = {
+            Text(
+                "Downloaded notes and synchronization history for ${account.displayName} " +
+                    "will be removed from this device. The Nextcloud account and server " +
+                    "notes will not be deleted."
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onRemove,
+                modifier = Modifier.testTag("confirm-remove-account")
+            ) { Text("Remove") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun NoteListScreen(
@@ -503,6 +752,7 @@ private fun NoteListScreen(
     onSelectAccount: (String) -> Unit,
     onImportAccount: () -> Unit,
     onReconnectAccount: (String) -> Unit,
+    onManageAccounts: () -> Unit,
     onRemoveAccount: (String) -> Unit,
     onCreate: (String, String) -> Unit,
     onOpen: (String) -> Unit
@@ -617,6 +867,14 @@ private fun NoteListScreen(
                                             modifier = Modifier.testTag("switch-account")
                                         )
                                     }
+                                    DropdownMenuItem(
+                                        text = { Text("Manage accounts") },
+                                        onClick = {
+                                            accountMenuOpen = false
+                                            onManageAccounts()
+                                        },
+                                        modifier = Modifier.testTag("manage-accounts")
+                                    )
                                     DropdownMenuItem(
                                         text = { Text("Add account") },
                                         onClick = {
@@ -974,27 +1232,12 @@ private fun NoteListScreen(
         )
     }
     if (showRemoveConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showRemoveConfirmation = false },
-            title = { Text("Remove local data?") },
-            text = {
-                Text(
-                    "Downloaded notes and synchronization history for ${account.displayName} " +
-                        "will be removed from this device. The Nextcloud account and server " +
-                        "notes will not be deleted."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showRemoveConfirmation = false
-                        onRemoveAccount(accountId)
-                    },
-                    modifier = Modifier.testTag("confirm-remove-account")
-                ) { Text("Remove") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRemoveConfirmation = false }) { Text("Cancel") }
+        RemoveAccountDialog(
+            account = account,
+            onDismiss = { showRemoveConfirmation = false },
+            onRemove = {
+                showRemoveConfirmation = false
+                onRemoveAccount(accountId)
             }
         )
     }
