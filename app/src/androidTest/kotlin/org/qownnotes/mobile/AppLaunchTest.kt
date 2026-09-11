@@ -22,6 +22,8 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.ViewAction
@@ -176,6 +178,46 @@ class AppLaunchTest {
         }
         composeRule.waitUntil(timeoutMillis = 10_000) {
             application.fakeBackend.pushedNotes.any { it.localId == older.localId && it.favorite }
+        }
+    }
+
+    @Test
+    fun enabledSwipeActionsFavoriteAndMoveNotesToTrash() {
+        val account = importAccount("alice", "First note", "etag-1", 10)
+        val first = runBlocking { notesOf("alice").single() }
+        runBlocking {
+            application.component.noteRepository.save(
+                Note(
+                    localId = "second-local",
+                    accountId = account.localAccountId(),
+                    remoteId = 43,
+                    title = "Second note",
+                    content = "# Second note",
+                    modifiedAtEpochSeconds = 20,
+                    remoteEtag = "etag-2",
+                    syncState = SyncState.SYNCHRONIZED
+                )
+            )
+        }
+        composeRule.waitForText("Second note")
+
+        accountAction("settings")
+        composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOn().performClick()
+        composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOff().performClick()
+        composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOn()
+        composeRule.onNodeWithTag("close-settings").performClick()
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForText("First note")
+
+        composeRule.onNodeWithTag("swipe-note-${first.localId}").performTouchInput { swipeRight() }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").first().localId == first.localId }
+        }
+        composeRule.onNodeWithTag("swipe-note-second-local").performTouchInput { swipeLeft() }
+
+        composeRule.waitForTextToGo("Second note")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.deletedRemoteIds == listOf(43L)
         }
     }
 
@@ -352,7 +394,9 @@ class AppLaunchTest {
     @Test
     fun showCategorySettingIsStoredPerAccount() {
         importAccount("alice", "Alice note", "etag-a", 10)
-        accountAction("toggle-category")
+        accountAction("settings")
+        composeRule.onNodeWithTag("toggle-category").performClick()
+        composeRule.onNodeWithTag("close-settings").performClick()
         composeRule.waitForText("Uncategorized")
 
         importAccount("bob", "Bob note", "etag-b", 20)

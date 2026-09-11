@@ -857,6 +857,10 @@ Implemented:
 - Added opt-in synchronization details in the note list and editor. The dialog explains local-server
   connectivity checks and, while the current application process retains it, shows a bounded,
   secret-redacted exception chain that can be copied for a bug report without telemetry.
+- Added a note-list Settings dialog for the existing preview and per-account category preferences
+  and a swipe preference that is enabled by default. Swipes reveal their action while dragging:
+  right favorites a note and left persists deletion intent before synchronization moves it to the
+  server trash.
 - Moved supplemental QOwnNotes source highlighting off the main thread. Each result is applied only
   if its request and source are still current, and explicit tests cover every required source syntax
   plus a large generated document.
@@ -873,7 +877,8 @@ Known scope gaps:
 
 - The undo history covers an editing session, not the note. It starts empty every time the editor opens, so leaving edit mode, rotating the device, or process death all discard it. Persisted editor text is unaffected. Decide whether a longer-lived history is worth serializing before this is called finished.
 - Finding text works while reading a note but not while editing one. The editor shows the Markdown source, so it needs its own matching pass and its own way of moving the caret to a match, and the find bar would compete with the formatting toolbar and the keyboard for space. Decide whether the editor gets its own find affordance before this is called complete.
-- The note text size is the first user preference, and it introduced the only preference storage in the project. Later settings should either reuse `AppSettings` or replace it deliberately; it should not be duplicated per feature. There is still no settings screen, so a preference without an obvious in-context control has nowhere to live.
+- User preferences remain in `AppSettings`. The note list now has a Settings dialog for list
+  preferences; note text size remains an in-context reader control rather than a duplicate setting.
 
 Remaining verification:
 

@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Added note-list swipe actions with visual markers: swipe right to favorite a note and left to move
+  it to trash. The gestures are enabled by default, and the new Settings dialog controls them and
+  the existing note preview and category display preferences.
+
 ### Changed
 
 - Account actions now open from the account profile image on the left of the note list instead of a

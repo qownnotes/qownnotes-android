@@ -54,6 +54,8 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         // A share left waiting by a previous test would become a note in the next test's account.
         component.takePendingShare()
         component.settings.resetNoteTextSize()
+        component.settings.setShowNotePreview(true)
+        component.settings.setSwipeNoteActions(true)
         fakeBackend.reset()
         fakeAccountImporter.reset()
     }

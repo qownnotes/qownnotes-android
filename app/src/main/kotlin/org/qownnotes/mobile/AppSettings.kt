@@ -51,6 +51,18 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableShowNotePreview.value = enabled
     }
 
+    private val mutableSwipeNoteActions =
+        MutableStateFlow(preferences.getBoolean(SWIPE_NOTE_ACTIONS, true))
+
+    /** Whether horizontal note-list swipes favorite and move notes to trash. */
+    val swipeNoteActions: StateFlow<Boolean> = mutableSwipeNoteActions.asStateFlow()
+
+    fun setSwipeNoteActions(enabled: Boolean) {
+        if (enabled == mutableSwipeNoteActions.value) return
+        preferences.edit().putBoolean(SWIPE_NOTE_ACTIONS, enabled).apply()
+        mutableSwipeNoteActions.value = enabled
+    }
+
     private val mutableShowCategories = mutableMapOf<String, MutableStateFlow<Boolean>>()
 
     /** Whether the note list shows each note's category for this account. */
@@ -114,6 +126,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val PREFERENCES = "qownnotes-settings"
         const val NOTE_TEXT_SIZE_SP = "noteTextSizeSp"
         const val SHOW_NOTE_PREVIEW = "showNotePreview"
+        const val SWIPE_NOTE_ACTIONS = "swipeNoteActions"
 
         // Legacy global key migrated to existing accounts when the application starts.
         const val SHOW_CATEGORY = "showCategory"
