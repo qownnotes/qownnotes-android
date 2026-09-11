@@ -1131,9 +1131,6 @@ private fun NoteListScreen(
                                 onLongClick = {
                                     if (!selected) selectedNoteIds += note.localId
                                 },
-                                onFavorite = {
-                                    scope.launch { component.setFavorite(note.localId, true) }
-                                },
                                 onToggleFavorite = {
                                     scope.launch {
                                         component.setFavorite(note.localId, !note.favorite)
@@ -1174,7 +1171,7 @@ private fun NoteListScreen(
                     )
                     SettingsCheckbox(
                         label = "Swipe note actions",
-                        description = "Swipe right to favorite and left to move to trash.",
+                        description = "Swipe right to toggle favorite and left to move to trash.",
                         checked = swipeNoteActions,
                         onCheckedChange = component.settings::setSwipeNoteActions,
                         testTag = "toggle-swipe-note-actions"
@@ -1404,15 +1401,15 @@ private fun NoteListItem(
     swipeEnabled: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    onFavorite: () -> Unit,
     onToggleFavorite: () -> Unit,
     onTrash: () -> Unit
 ) {
+    val currentOnToggleFavorite by rememberUpdatedState(onToggleFavorite)
     val swipeState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             when (value) {
                 SwipeToDismissBoxValue.StartToEnd -> {
-                    onFavorite()
+                    currentOnToggleFavorite()
                     false
                 }
                 SwipeToDismissBoxValue.EndToStart -> {
@@ -1436,13 +1433,18 @@ private fun NoteListItem(
         enableDismissFromStartToEnd = swipeEnabled && !selectionActive,
         enableDismissFromEndToStart = swipeEnabled && !selectionActive,
         backgroundContent = {
-            val favorite = swipeState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
-            val actionIcon = if (favorite) Icons.Filled.Star else Icons.Filled.Delete
-            val actionLabel = if (favorite) "Favorite" else "Move to trash"
+            val favoriteAction = swipeState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+            val actionIcon = if (favoriteAction) Icons.Filled.Star else Icons.Filled.Delete
+            val actionLabel =
+                if (favoriteAction) {
+                    if (note.favorite) "Unfavorite" else "Favorite"
+                } else {
+                    "Move to trash"
+                }
             Row(
                 modifier = Modifier.fillMaxSize()
                     .background(
-                        if (favorite) {
+                        if (favoriteAction) {
                             MaterialTheme.colorScheme.primaryContainer
                         } else {
                             MaterialTheme.colorScheme.errorContainer
@@ -1450,7 +1452,8 @@ private fun NoteListItem(
                     )
                     .clearAndSetSemantics {}
                     .padding(horizontal = 24.dp),
-                horizontalArrangement = if (favorite) Arrangement.Start else Arrangement.End,
+                horizontalArrangement =
+                if (favoriteAction) Arrangement.Start else Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(actionIcon, contentDescription = null)

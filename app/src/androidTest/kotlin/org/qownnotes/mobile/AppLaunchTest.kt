@@ -182,7 +182,7 @@ class AppLaunchTest {
     }
 
     @Test
-    fun enabledSwipeActionsFavoriteAndMoveNotesToTrash() {
+    fun enabledSwipeActionsToggleFavoriteAndMoveNotesToTrash() {
         val account = importAccount("alice", "First note", "etag-1", 10)
         val first = runBlocking { notesOf("alice").single() }
         runBlocking {
@@ -211,7 +211,13 @@ class AppLaunchTest {
 
         composeRule.onNodeWithTag("swipe-note-${first.localId}").performTouchInput { swipeRight() }
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking { notesOf("alice").first().localId == first.localId }
+            runBlocking {
+                notesOf("alice").first().let { it.localId == first.localId && it.favorite }
+            }
+        }
+        composeRule.onNodeWithTag("swipe-note-${first.localId}").performTouchInput { swipeRight() }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { !notesOf("alice").first { it.localId == first.localId }.favorite }
         }
         composeRule.onNodeWithTag("swipe-note-second-local").performTouchInput { swipeLeft() }
 

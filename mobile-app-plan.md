@@ -866,8 +866,8 @@ Implemented:
   secret-redacted exception chain that can be copied for a bug report without telemetry.
 - Added a note-list Settings dialog for the existing preview and per-account category preferences
   and a swipe preference that is enabled by default. Swipes reveal their action while dragging:
-  right favorites a note and left persists deletion intent before synchronization moves it to the
-  server trash.
+  right toggles whether a note is favorited and left persists deletion intent before synchronization
+  moves it to the server trash.
 - Consolidated the note-list header into an account profile menu, an always-visible search field,
   and a separate note-action overflow menu. Only switching, adding, and removing accounts remain in
   the profile menu. The compact search field and synchronization status stay fixed while notes
