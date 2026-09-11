@@ -362,7 +362,7 @@ class AppLaunchTest {
 
     @Test
     fun switchingAndRemovingAccountsKeepsDataAccountScoped() {
-        importAccount("alice", "Alice note", "etag-a", 10)
+        val alice = importAccount("alice", "Alice note", "etag-a", 10)
         val bob = testAccount("bob")
         application.fakeAccountImporter.enqueue(bob)
         application.fakeBackend.enqueue(bob, pull("Bob note", "etag-b", 20))
@@ -379,14 +379,17 @@ class AppLaunchTest {
         composeRule.waitForText("Bob note")
         composeRule.onNodeWithText("Alice note").assertDoesNotExist()
 
-        accountAction("remove-account")
+        accountAction("manage-accounts")
+        composeRule.onNodeWithTag("remove-account-${bob.localAccountId()}").performClick()
         composeRule.onNodeWithText("server notes will not be deleted", substring = true)
             .assertIsDisplayed()
         composeRule.onNodeWithTag("confirm-remove-account").performClick()
+        composeRule.onNodeWithTag("close-manage-accounts").performClick()
         composeRule.waitForText("Alice note")
         composeRule.onNodeWithText("Bob note").assertDoesNotExist()
 
-        accountAction("remove-account")
+        accountAction("manage-accounts")
+        composeRule.onNodeWithTag("remove-account-${alice.localAccountId()}").performClick()
         composeRule.onNodeWithTag("confirm-remove-account").performClick()
         composeRule.waitForText("Your Nextcloud notes, offline")
     }
@@ -455,7 +458,14 @@ class AppLaunchTest {
         composeRule.waitForText("Add account")
         composeRule.onNodeWithText("Add account").assertIsDisplayed()
         composeRule.onNodeWithText("Manage accounts").assertIsDisplayed()
-        composeRule.onNodeWithText("Remove account").assertIsDisplayed()
+        composeRule.onNodeWithText("Remove account").assertDoesNotExist()
+        composeRule.onNodeWithTag("add-account-icon").assertIsDisplayed()
+        composeRule.onNodeWithTag("manage-accounts-icon").assertIsDisplayed()
+        val addBounds = composeRule.onNodeWithTag("add-account").fetchSemanticsNode().boundsInRoot
+        val manageBounds = composeRule.onNodeWithTag(
+            "manage-accounts"
+        ).fetchSemanticsNode().boundsInRoot
+        assertTrue(addBounds.bottom <= manageBounds.top)
         composeRule.onNodeWithText("Settings").assertDoesNotExist()
         composeRule.onNodeWithText("About").assertDoesNotExist()
     }

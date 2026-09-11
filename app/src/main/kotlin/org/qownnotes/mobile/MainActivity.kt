@@ -437,15 +437,6 @@ private fun NotesNavigation(
             onImportAccount = onImportAccount,
             onReconnectAccount = onReconnectAccount,
             onManageAccounts = { managingAccounts = true },
-            onRemoveAccount = { accountId ->
-                scope.launch {
-                    component.removeLocalData(accountId)
-                    if (selectedAccountId == accountId) selectedAccountId = null
-                    selectedNoteId = null
-                    selectedHeading = null
-                    noteHistory = emptyList()
-                }
-            },
             onCreate = { accountId, category ->
                 scope.launch {
                     val note = component.createNote(accountId, category)
@@ -753,12 +744,10 @@ private fun NoteListScreen(
     onImportAccount: () -> Unit,
     onReconnectAccount: (String) -> Unit,
     onManageAccounts: () -> Unit,
-    onRemoveAccount: (String) -> Unit,
     onCreate: (String, String) -> Unit,
     onOpen: (String) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    var showRemoveConfirmation by rememberSaveable(accountId) { mutableStateOf(false) }
     var showAccountChooser by rememberSaveable(accountId) { mutableStateOf(false) }
     var showSettings by rememberSaveable(accountId) { mutableStateOf(false) }
     var showAbout by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -868,15 +857,14 @@ private fun NoteListScreen(
                                         )
                                     }
                                     DropdownMenuItem(
-                                        text = { Text("Manage accounts") },
-                                        onClick = {
-                                            accountMenuOpen = false
-                                            onManageAccounts()
-                                        },
-                                        modifier = Modifier.testTag("manage-accounts")
-                                    )
-                                    DropdownMenuItem(
                                         text = { Text("Add account") },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Filled.Add,
+                                                contentDescription = null,
+                                                modifier = Modifier.testTag("add-account-icon")
+                                            )
+                                        },
                                         onClick = {
                                             accountMenuOpen = false
                                             onImportAccount()
@@ -884,12 +872,19 @@ private fun NoteListScreen(
                                         modifier = Modifier.testTag("add-account")
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Remove account") },
+                                        text = { Text("Manage accounts") },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Filled.Settings,
+                                                contentDescription = null,
+                                                modifier = Modifier.testTag("manage-accounts-icon")
+                                            )
+                                        },
                                         onClick = {
                                             accountMenuOpen = false
-                                            showRemoveConfirmation = true
+                                            onManageAccounts()
                                         },
-                                        modifier = Modifier.testTag("remove-account")
+                                        modifier = Modifier.testTag("manage-accounts")
                                     )
                                 }
                             }
@@ -1229,16 +1224,6 @@ private fun NoteListScreen(
                 TextButton(onClick = { showAccountChooser = false }) { Text("Cancel") }
             },
             modifier = Modifier.testTag("account-chooser")
-        )
-    }
-    if (showRemoveConfirmation) {
-        RemoveAccountDialog(
-            account = account,
-            onDismiss = { showRemoveConfirmation = false },
-            onRemove = {
-                showRemoveConfirmation = false
-                onRemoveAccount(accountId)
-            }
         )
     }
     if (showAbout) {
