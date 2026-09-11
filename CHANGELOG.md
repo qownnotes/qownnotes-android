@@ -15,8 +15,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Account actions now open from the account profile image on the left of the note list instead of a
-  separate three-point menu.
+- The note-list top bar now places search between the account profile image and an overflow menu.
+  The profile menu contains only account actions; note creation, category filtering, trash,
+  settings, and About are in the overflow menu. Search is more compact, and synchronization status
+  remains visible while the note list scrolls.
 - Account entries in the switch-account dialog now have clearer spacing around their profile images.
 - The rename-note dialog now selects the current file name when opened, so typing replaces it.
 - Web addresses written without Markdown link markers are now detected in note previews and the

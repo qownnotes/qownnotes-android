@@ -16,6 +16,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -41,6 +42,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -109,6 +112,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -509,6 +513,7 @@ private fun NoteListScreen(
     var showSettings by rememberSaveable(accountId) { mutableStateOf(false) }
     var showAbout by rememberSaveable(accountId) { mutableStateOf(false) }
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
+    var noteListMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var categoryMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var categoryScope by remember(accountId) {
@@ -583,11 +588,6 @@ private fun NoteListScreen(
                                     contentDescription = "Clear selection"
                                 )
                             }
-                        }
-                    },
-                    title = {
-                        if (selectionActive) {
-                            Text("${selectedNoteIds.size} selected")
                         } else {
                             Box {
                                 IconButton(
@@ -600,18 +600,6 @@ private fun NoteListScreen(
                                     expanded = accountMenuOpen,
                                     onDismissRequest = { accountMenuOpen = false }
                                 ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Settings") },
-                                        leadingIcon = {
-                                            Icon(Icons.Filled.Settings, contentDescription = null)
-                                        },
-                                        onClick = {
-                                            accountMenuOpen = false
-                                            showSettings = true
-                                        },
-                                        modifier = Modifier.testTag("settings")
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
                                     if (accounts.size > 1) {
                                         DropdownMenuItem(
                                             text = { Text("Switch account") },
@@ -645,17 +633,20 @@ private fun NoteListScreen(
                                         },
                                         modifier = Modifier.testTag("remove-account")
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    DropdownMenuItem(
-                                        text = { Text("About") },
-                                        onClick = {
-                                            accountMenuOpen = false
-                                            showAbout = true
-                                        },
-                                        modifier = Modifier.testTag("about")
-                                    )
                                 }
                             }
+                        }
+                    },
+                    title = {
+                        if (selectionActive) {
+                            Text("${selectedNoteIds.size} selected")
+                        } else {
+                            CompactSearchField(
+                                value = query,
+                                onValueChange = { query = it },
+                                onClear = { query = "" },
+                                modifier = Modifier.fillMaxWidth().testTag("note-search")
+                            )
                         }
                     },
                     actions = {
@@ -688,105 +679,142 @@ private fun NoteListScreen(
                                     )
                                 }
                             }
+                        } else {
+                            Box {
+                                IconButton(
+                                    onClick = { noteListMenuOpen = true },
+                                    modifier = Modifier.testTag("note-list-menu")
+                                ) {
+                                    Icon(Icons.Filled.MoreVert, contentDescription = "Note actions")
+                                }
+                                DropdownMenu(
+                                    expanded = noteListMenuOpen,
+                                    onDismissRequest = { noteListMenuOpen = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("New note") },
+                                        leadingIcon = {
+                                            Icon(Icons.Filled.Add, contentDescription = null)
+                                        },
+                                        onClick = {
+                                            noteListMenuOpen = false
+                                            val category =
+                                                (categoryScope as? NoteCategoryScope.Category)
+                                                    ?.value.orEmpty()
+                                            onCreate(accountId, category)
+                                        },
+                                        modifier = Modifier.testTag("create-note")
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                when (val selected = categoryScope) {
+                                                    NoteCategoryScope.Undefined ->
+                                                        "Category: Undefined"
+                                                    NoteCategoryScope.All -> "Category: All"
+                                                    is NoteCategoryScope.Category ->
+                                                        "Category: ${selected.value}"
+                                                }
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Filled.KeyboardArrowDown,
+                                                contentDescription = null
+                                            )
+                                        },
+                                        onClick = {
+                                            noteListMenuOpen = false
+                                            categoryMenuOpen = true
+                                        },
+                                        modifier = Modifier.testTag("category-selector")
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Trash") },
+                                        leadingIcon = {
+                                            Icon(Icons.Filled.Delete, contentDescription = null)
+                                        },
+                                        onClick = {
+                                            noteListMenuOpen = false
+                                            val requestId = ++trashRequestId
+                                            trashState = ArchiveLoadState.Loading
+                                            scope.launch {
+                                                val result = runCatching {
+                                                    component.trashedNotes(
+                                                        accountId,
+                                                        allNotes.orEmpty().mapTo(
+                                                            mutableSetOf(),
+                                                            Note::category
+                                                        )
+                                                    )
+                                                }.fold(
+                                                    onSuccess = { ArchiveLoadState.Loaded(it) },
+                                                    onFailure = {
+                                                        ArchiveLoadState.Failed(
+                                                            it.message
+                                                                ?: "Could not load remote trash"
+                                                        )
+                                                    }
+                                                )
+                                                if (trashRequestId == requestId) trashState = result
+                                            }
+                                        },
+                                        modifier = Modifier.testTag("remote-trash")
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    DropdownMenuItem(
+                                        text = { Text("Settings") },
+                                        leadingIcon = {
+                                            Icon(Icons.Filled.Settings, contentDescription = null)
+                                        },
+                                        onClick = {
+                                            noteListMenuOpen = false
+                                            showSettings = true
+                                        },
+                                        modifier = Modifier.testTag("settings")
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("About") },
+                                        onClick = {
+                                            noteListMenuOpen = false
+                                            showAbout = true
+                                        },
+                                        modifier = Modifier.testTag("about")
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = categoryMenuOpen,
+                                    onDismissRequest = { categoryMenuOpen = false }
+                                ) {
+                                    fun select(scope: NoteCategoryScope) {
+                                        categoryScope = scope
+                                        component.settings.setNoteCategoryScope(accountId, scope)
+                                        categoryMenuOpen = false
+                                    }
+                                    DropdownMenuItem(
+                                        text = { Text("Undefined") },
+                                        onClick = { select(NoteCategoryScope.Undefined) },
+                                        modifier = Modifier.testTag("category-option-undefined")
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("All categories") },
+                                        onClick = { select(NoteCategoryScope.All) },
+                                        modifier = Modifier.testTag("category-option-all")
+                                    )
+                                    categories.forEach { category ->
+                                        DropdownMenuItem(
+                                            text = { Text(category) },
+                                            onClick = {
+                                                select(NoteCategoryScope.Category(category))
+                                            },
+                                            modifier = Modifier.testTag("category-option-$category")
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 )
-                if (!selectionActive) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                            .testTag("note-list-actions")
-                    ) {
-                        TextButton(
-                            onClick = {
-                                val category = (categoryScope as? NoteCategoryScope.Category)?.value
-                                    .orEmpty()
-                                onCreate(accountId, category)
-                            },
-                            modifier = Modifier.testTag("create-note")
-                        ) {
-                            Icon(
-                                Icons.Filled.Add,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 8.dp)
-                            )
-                            Text("New note")
-                        }
-                        Box {
-                            TextButton(
-                                onClick = { categoryMenuOpen = true },
-                                modifier = Modifier.testTag("category-selector")
-                            ) {
-                                Text(
-                                    when (val selected = categoryScope) {
-                                        NoteCategoryScope.Undefined -> "Undefined"
-                                        NoteCategoryScope.All -> "All categories"
-                                        is NoteCategoryScope.Category -> selected.value
-                                    },
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
-                            }
-                            DropdownMenu(
-                                expanded = categoryMenuOpen,
-                                onDismissRequest = { categoryMenuOpen = false }
-                            ) {
-                                fun select(scope: NoteCategoryScope) {
-                                    categoryScope = scope
-                                    component.settings.setNoteCategoryScope(accountId, scope)
-                                    categoryMenuOpen = false
-                                }
-                                DropdownMenuItem(
-                                    text = { Text("Undefined") },
-                                    onClick = { select(NoteCategoryScope.Undefined) },
-                                    modifier = Modifier.testTag("category-option-undefined")
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("All categories") },
-                                    onClick = { select(NoteCategoryScope.All) },
-                                    modifier = Modifier.testTag("category-option-all")
-                                )
-                                categories.forEach { category ->
-                                    DropdownMenuItem(
-                                        text = { Text(category) },
-                                        onClick = { select(NoteCategoryScope.Category(category)) },
-                                        modifier = Modifier.testTag("category-option-$category")
-                                    )
-                                }
-                            }
-                        }
-                        TextButton(
-                            onClick = {
-                                val requestId = ++trashRequestId
-                                trashState = ArchiveLoadState.Loading
-                                scope.launch {
-                                    val result = runCatching {
-                                        component.trashedNotes(
-                                            accountId,
-                                            allNotes.orEmpty().mapTo(mutableSetOf(), Note::category)
-                                        )
-                                    }.fold(
-                                        onSuccess = { ArchiveLoadState.Loaded(it) },
-                                        onFailure = {
-                                            ArchiveLoadState.Failed(
-                                                it.message ?: "Could not load remote trash"
-                                            )
-                                        }
-                                    )
-                                    if (trashRequestId == requestId) trashState = result
-                                }
-                            },
-                            modifier = Modifier.testTag("remote-trash")
-                        ) {
-                            Icon(
-                                Icons.Filled.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 8.dp)
-                            )
-                            Text("Trash")
-                        }
-                    }
-                }
             }
         }
     ) { padding ->
@@ -795,194 +823,78 @@ private fun NoteListScreen(
             onRefresh = { scope.launch { component.refresh(accountId) } },
             modifier = Modifier.fillMaxSize().padding(padding).testTag("pull-to-refresh")
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize().testTag("note-list")) {
-                if (importState is SyncUiState.Failed) {
-                    item {
-                        Text(
-                            importState.message,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
+            Column(modifier = Modifier.fillMaxSize()) {
+                SyncStatus(syncState, reconnect = { onReconnectAccount(accountId) })
+                LazyColumn(modifier = Modifier.weight(1f).testTag("note-list")) {
+                    if (importState is SyncUiState.Failed) {
+                        item {
+                            Text(
+                                importState.message,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
                     }
-                }
-                item {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        label = { Text("Search title and content") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .testTag("note-search")
-                    )
-                }
-                item {
-                    SyncStatus(syncState, reconnect = { onReconnectAccount(accountId) })
-                }
-                if (visibleNotes == null) {
-                    item {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(24.dp).testTag("notes-loading")
-                        )
-                    }
-                } else if (visibleNotes.isEmpty()) {
-                    item {
-                        Text(
-                            if (query.isBlank()) {
-                                "No notes in this category"
-                            } else {
-                                "No matching notes"
-                            },
-                            modifier = Modifier.padding(24.dp),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                } else {
-                    items(visibleNotes, key = Note::localId) { note ->
-                        val selected = note.localId in selectedNoteIds
-                        val swipeState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { value ->
-                                when (value) {
-                                    SwipeToDismissBoxValue.StartToEnd -> {
-                                        scope.launch { component.setFavorite(note.localId, true) }
-                                        false
-                                    }
-                                    SwipeToDismissBoxValue.EndToStart -> {
-                                        scope.launch {
-                                            component.moveNotesToTrash(
-                                                accountId,
-                                                listOf(note.localId)
-                                            )
-                                        }
-                                        true
-                                    }
-                                    SwipeToDismissBoxValue.Settled -> true
-                                }
-                            }
-                        )
-                        SwipeToDismissBox(
-                            state = swipeState,
-                            enableDismissFromStartToEnd = swipeNoteActions && !selectionActive,
-                            enableDismissFromEndToStart = swipeNoteActions && !selectionActive,
-                            backgroundContent = {
-                                val favorite =
-                                    swipeState.dismissDirection ==
-                                        SwipeToDismissBoxValue.StartToEnd
-                                Row(
-                                    modifier = Modifier.fillMaxSize()
-                                        .background(
-                                            if (favorite) {
-                                                MaterialTheme.colorScheme.primaryContainer
+                    if (visibleNotes == null) {
+                        item {
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(24.dp).testTag("notes-loading")
+                            )
+                        }
+                    } else if (visibleNotes.isEmpty()) {
+                        item {
+                            Text(
+                                if (query.isBlank()) {
+                                    "No notes in this category"
+                                } else {
+                                    "No matching notes"
+                                },
+                                modifier = Modifier.padding(24.dp),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    } else {
+                        items(visibleNotes, key = Note::localId) { note ->
+                            val selected = note.localId in selectedNoteIds
+                            NoteListItem(
+                                note = note,
+                                selected = selected,
+                                selectionActive = selectionActive,
+                                showCategory = showCategory,
+                                showNotePreview = showNotePreview,
+                                swipeEnabled = swipeNoteActions,
+                                onClick = {
+                                    if (selectionActive) {
+                                        selectedNoteIds =
+                                            if (selected) {
+                                                selectedNoteIds - note.localId
                                             } else {
-                                                MaterialTheme.colorScheme.errorContainer
+                                                selectedNoteIds + note.localId
                                             }
-                                        )
-                                        .clearAndSetSemantics {}
-                                        .padding(horizontal = 24.dp),
-                                    horizontalArrangement =
-                                    if (favorite) Arrangement.Start else Arrangement.End,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        if (favorite) Icons.Filled.Star else Icons.Filled.Delete,
-                                        contentDescription = null
-                                    )
-                                    Text(
-                                        if (favorite) "Favorite" else "Move to trash",
-                                        modifier = Modifier.padding(start = 8.dp)
-                                    )
-                                }
-                            },
-                            modifier = Modifier.testTag("swipe-note-${note.localId}")
-                        ) {
-                            Row(
-                                modifier =
-                                Modifier.fillMaxWidth().testTag("note-${note.localId}")
-                                    .background(
-                                        if (selected) {
-                                            MaterialTheme.colorScheme.secondaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.surface
-                                        }
-                                    )
-                                    .semantics { this.selected = selected }
-                                    .padding(
-                                        start = 20.dp,
-                                        end = 8.dp,
-                                        top = 6.dp,
-                                        bottom = 6.dp
-                                    ),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(
-                                    modifier = Modifier.weight(1f)
-                                        .combinedClickable(
-                                            onClick = {
-                                                if (selectionActive) {
-                                                    selectedNoteIds =
-                                                        if (selected) {
-                                                            selectedNoteIds - note.localId
-                                                        } else {
-                                                            selectedNoteIds + note.localId
-                                                        }
-                                                } else {
-                                                    onOpen(note.localId)
-                                                }
-                                            },
-                                            onLongClick = {
-                                                if (!selected) selectedNoteIds += note.localId
-                                            }
-                                        )
-                                        .padding(vertical = 8.dp)
-                                ) {
-                                    Text(note.title, style = MaterialTheme.typography.titleMedium)
-                                    if (showCategory) {
-                                        Text(
-                                            note.category.ifBlank { "Uncategorized" },
-                                            style = MaterialTheme.typography.bodySmall
+                                    } else {
+                                        onOpen(note.localId)
+                                    }
+                                },
+                                onLongClick = {
+                                    if (!selected) selectedNoteIds += note.localId
+                                },
+                                onFavorite = {
+                                    scope.launch { component.setFavorite(note.localId, true) }
+                                },
+                                onToggleFavorite = {
+                                    scope.launch {
+                                        component.setFavorite(note.localId, !note.favorite)
+                                    }
+                                },
+                                onTrash = {
+                                    scope.launch {
+                                        component.moveNotesToTrash(
+                                            accountId,
+                                            listOf(note.localId)
                                         )
                                     }
-                                    if (showNotePreview) {
-                                        val excerpt = remember(note.content, note.title) {
-                                            NoteExcerpt.of(note.content, note.title)
-                                        }
-                                        if (excerpt.isNotBlank()) {
-                                            Text(
-                                                excerpt,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
                                 }
-                                IconButton(
-                                    onClick = {
-                                        scope.launch {
-                                            component.setFavorite(note.localId, !note.favorite)
-                                        }
-                                    },
-                                    enabled = !selectionActive,
-                                    modifier = Modifier.testTag("favorite-${note.localId}")
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Star,
-                                        contentDescription =
-                                        if (note.favorite) {
-                                            "Remove from favorites"
-                                        } else {
-                                            "Add to favorites"
-                                        },
-                                        tint =
-                                        if (note.favorite) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.outlineVariant
-                                        }
-                                    )
-                                }
-                            }
+                            )
                         }
                     }
                 }
@@ -1201,6 +1113,180 @@ private fun NoteListScreen(
 }
 
 @Composable
+private fun CompactSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(20.dp)
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onSurface
+        ),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        modifier = modifier.height(40.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+            .padding(horizontal = 10.dp),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Box(
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (value.isEmpty()) {
+                        Text(
+                            "Search notes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    innerTextField()
+                }
+                if (value.isNotEmpty()) {
+                    IconButton(onClick = onClear, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                    }
+                }
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@Composable
+private fun NoteListItem(
+    note: Note,
+    selected: Boolean,
+    selectionActive: Boolean,
+    showCategory: Boolean,
+    showNotePreview: Boolean,
+    swipeEnabled: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onFavorite: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onTrash: () -> Unit
+) {
+    val swipeState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    onFavorite()
+                    false
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onTrash()
+                    true
+                }
+                SwipeToDismissBoxValue.Settled -> true
+            }
+        }
+    )
+    val favoriteDescription =
+        if (note.favorite) "Remove from favorites" else "Add to favorites"
+    val favoriteTint =
+        if (note.favorite) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.outlineVariant
+        }
+    SwipeToDismissBox(
+        state = swipeState,
+        enableDismissFromStartToEnd = swipeEnabled && !selectionActive,
+        enableDismissFromEndToStart = swipeEnabled && !selectionActive,
+        backgroundContent = {
+            val favorite = swipeState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+            val actionIcon = if (favorite) Icons.Filled.Star else Icons.Filled.Delete
+            val actionLabel = if (favorite) "Favorite" else "Move to trash"
+            Row(
+                modifier = Modifier.fillMaxSize()
+                    .background(
+                        if (favorite) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.errorContainer
+                        }
+                    )
+                    .clearAndSetSemantics {}
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = if (favorite) Arrangement.Start else Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(actionIcon, contentDescription = null)
+                Text(actionLabel, modifier = Modifier.padding(start = 8.dp))
+            }
+        },
+        modifier = Modifier.testTag("swipe-note-${note.localId}")
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().testTag("note-${note.localId}")
+                .background(
+                    if (selected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
+                )
+                .semantics { this.selected = selected }
+                .padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+                    .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(note.title, style = MaterialTheme.typography.titleMedium)
+                if (showCategory) {
+                    Text(
+                        note.category.ifBlank { "Uncategorized" },
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (showNotePreview) {
+                    val excerpt = remember(note.content, note.title) {
+                        NoteExcerpt.of(note.content, note.title)
+                    }
+                    if (excerpt.isNotBlank()) {
+                        Text(
+                            excerpt,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+            IconButton(
+                onClick = onToggleFavorite,
+                enabled = !selectionActive,
+                modifier = Modifier.testTag("favorite-${note.localId}")
+            ) {
+                Icon(
+                    Icons.Filled.Star,
+                    contentDescription = favoriteDescription,
+                    tint = favoriteTint
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SettingsCheckbox(
     label: String,
     checked: Boolean,
@@ -1270,7 +1356,8 @@ private fun AccountAvatar(
 @Composable
 private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+            .testTag("sync-status"),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         when (state) {

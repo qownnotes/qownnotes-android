@@ -861,6 +861,10 @@ Implemented:
   and a swipe preference that is enabled by default. Swipes reveal their action while dragging:
   right favorites a note and left persists deletion intent before synchronization moves it to the
   server trash.
+- Consolidated the note-list header into an account profile menu, an always-visible search field,
+  and a separate note-action overflow menu. Only switching, adding, and removing accounts remain in
+  the profile menu. The compact search field and synchronization status stay fixed while notes
+  scroll below them.
 - Moved supplemental QOwnNotes source highlighting off the main thread. Each result is applied only
   if its request and source are still current, and explicit tests cover every required source syntax
   plus a large generated document.

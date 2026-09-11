@@ -85,7 +85,7 @@ class AppLaunchTest {
         accountAction("add-account")
 
         composeRule.waitForText("Alice note")
-        composeRule.onNodeWithTag("account-avatar-${account.localAccountId()}").assertIsDisplayed()
+        composeRule.onNodeWithTag("account-menu").assertIsDisplayed()
         composeRule.onNodeWithText("alice @ cloud.example").assertDoesNotExist()
         composeRule.onNodeWithText("Alice note").assertIsDisplayed()
     }
@@ -119,7 +119,7 @@ class AppLaunchTest {
 
         composeRule.waitForText("Root note")
         composeRule.onNodeWithText("Work note").assertDoesNotExist()
-        composeRule.onNodeWithTag("category-selector").performClick()
+        listAction("category-selector")
         composeRule.onNodeWithTag("category-option-undefined").assertIsDisplayed()
         composeRule.onNodeWithTag("category-option-all").assertIsDisplayed()
         composeRule.onNodeWithTag("category-option-Work").assertIsDisplayed()
@@ -130,7 +130,7 @@ class AppLaunchTest {
         composeRule.waitForText("Work note")
         composeRule.onNodeWithText("Root note").assertIsDisplayed()
         composeRule.onNodeWithText("Media note").assertIsDisplayed()
-        composeRule.onNodeWithTag("category-selector").performClick()
+        listAction("category-selector")
 
         composeRule.onNodeWithTag("category-option-Work").performClick()
 
@@ -141,7 +141,7 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Root note").assertDoesNotExist()
 
         val existingIds = runBlocking { notesOf("alice").map(Note::localId).toSet() }
-        composeRule.onNodeWithTag("create-note").performClick()
+        listAction("create-note")
         composeRule.waitUntil(timeoutMillis = 10_000) {
             runBlocking {
                 notesOf("alice").any { it.localId !in existingIds && it.category == "Work" }
@@ -201,7 +201,7 @@ class AppLaunchTest {
         }
         composeRule.waitForText("Second note")
 
-        accountAction("settings")
+        listAction("settings")
         composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOn().performClick()
         composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOff().performClick()
         composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOn()
@@ -394,7 +394,7 @@ class AppLaunchTest {
     @Test
     fun showCategorySettingIsStoredPerAccount() {
         importAccount("alice", "Alice note", "etag-a", 10)
-        accountAction("settings")
+        listAction("settings")
         composeRule.onNodeWithTag("toggle-category").performClick()
         composeRule.onNodeWithTag("close-settings").performClick()
         composeRule.waitForText("Uncategorized")
@@ -426,18 +426,71 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("account-chooser").assertDoesNotExist()
     }
 
-    /** Account actions are reached from the account avatar rather than a separate overflow icon. */
+    /** The account avatar contains account actions and excludes general application actions. */
     @Test
     fun theAccountAvatarOpensAccountActions() {
         val account = importAccount("alice", "Existing note", "etag-1", 10)
 
-        composeRule.onNodeWithText("New note").assertIsDisplayed()
-        composeRule.onNodeWithTag("account-avatar-${account.localAccountId()}").assertIsDisplayed()
+        composeRule.onNodeWithTag("account-menu").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-search").assertIsDisplayed()
+        composeRule.onNodeWithText("Search notes").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-list-menu").assertIsDisplayed()
+        val accountBounds = composeRule.onNodeWithTag(
+            "account-menu"
+        ).fetchSemanticsNode().boundsInRoot
+        val searchBounds = composeRule.onNodeWithTag(
+            "note-search"
+        ).fetchSemanticsNode().boundsInRoot
+        val menuBounds = composeRule.onNodeWithTag(
+            "note-list-menu"
+        ).fetchSemanticsNode().boundsInRoot
+        assertTrue(accountBounds.right <= searchBounds.left)
+        assertTrue(searchBounds.right <= menuBounds.left)
+        assertTrue(
+            "search=${searchBounds.height}, menu=${menuBounds.height}",
+            searchBounds.height <= menuBounds.height
+        )
 
         composeRule.onNodeWithTag("account-menu").performClick()
         composeRule.waitForText("Add account")
         composeRule.onNodeWithText("Add account").assertIsDisplayed()
         composeRule.onNodeWithText("Remove account").assertIsDisplayed()
+        composeRule.onNodeWithText("Settings").assertDoesNotExist()
+        composeRule.onNodeWithText("About").assertDoesNotExist()
+    }
+
+    @Test
+    fun synchronizationStatusStaysAboveTheScrollingNoteList() {
+        val account = importAccount("alice", "First note", "etag-1", 10)
+        runBlocking {
+            repeat(20) { index ->
+                application.component.noteRepository.save(
+                    Note(
+                        localId = "scroll-note-$index",
+                        accountId = account.localAccountId(),
+                        remoteId = 100L + index,
+                        title = "Scroll note $index",
+                        content = "# Scroll note $index",
+                        modifiedAtEpochSeconds = 100L + index,
+                        remoteEtag = "etag-scroll-$index",
+                        syncState = SyncState.SYNCHRONIZED
+                    )
+                )
+            }
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").size == 21 }
+        }
+        val statusTop = composeRule.onNodeWithTag(
+            "sync-status"
+        ).fetchSemanticsNode().boundsInRoot.top
+
+        composeRule.onNodeWithTag("note-list").performTouchInput { swipeUp() }
+
+        composeRule.onNodeWithTag("sync-status").assertIsDisplayed()
+        val scrolledStatusTop =
+            composeRule.onNodeWithTag("sync-status").fetchSemanticsNode().boundsInRoot.top
+        assertEquals(statusTop, scrolledStatusTop)
     }
 
     @Test
@@ -527,7 +580,7 @@ class AppLaunchTest {
         )
         application.fakeBackend.trash = listOf(trashed)
 
-        composeRule.onNodeWithTag("remote-trash").performClick()
+        listAction("remote-trash")
         composeRule.waitForText("Deleted content")
         composeRule.onNodeWithTag("restore-trashed-note").performClick()
         composeRule.onNodeWithTag("confirm-restore-trashed-note").performClick()
@@ -556,13 +609,13 @@ class AppLaunchTest {
                 )
             )
         }
-        composeRule.onNodeWithTag("category-selector").performClick()
+        listAction("category-selector")
         composeRule.onNodeWithTag("category-option-all").performClick()
         composeRule.waitForText("Filtered note")
         composeRule.onNodeWithTag("note-search").performTextInput("Visible")
         composeRule.waitForTextToGo("Filtered note")
 
-        composeRule.onNodeWithTag("remote-trash").performClick()
+        listAction("remote-trash")
 
         composeRule.waitUntil(timeoutMillis = 10_000) {
             application.fakeBackend.trashCategoryRequests.lastOrNull() == setOf("", "Work")
@@ -587,7 +640,7 @@ class AppLaunchTest {
             BackendException.Retryable(IOException("offline"))
         )
 
-        composeRule.onNodeWithTag("remote-trash").performClick()
+        listAction("remote-trash")
         composeRule.waitForText("Deleted content")
         composeRule.onNodeWithTag("restore-trashed-note").performClick()
         composeRule.onNodeWithTag("confirm-restore-trashed-note").performClick()
@@ -600,7 +653,7 @@ class AppLaunchTest {
     fun createsAndEditsANoteOfflineFirst() {
         importAccount("alice", "Existing note", "etag-1", 10)
 
-        composeRule.onNodeWithTag("create-note").performClick()
+        listAction("create-note")
         composeRule.waitForTag("markdown-editor")
         composeRule.onNodeWithTag("finish-editing").assertIsDisplayed()
         onView(withId(R.id.markdown_editor)).check { view, _ ->
@@ -1457,6 +1510,13 @@ class AppLaunchTest {
             composeRule.onNodeWithTag("account-menu").performClick()
             composeRule.waitForTag(tag)
         }
+        composeRule.onNodeWithTag(tag).performClick()
+    }
+
+    /** General note-list actions are reached from the overflow menu beside search. */
+    private fun listAction(tag: String) {
+        composeRule.onNodeWithTag("note-list-menu").performClick()
+        composeRule.waitForTag(tag)
         composeRule.onNodeWithTag(tag).performClick()
     }
 
