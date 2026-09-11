@@ -7,13 +7,20 @@ enum class NoteSearchScope {
     TITLE
 }
 
+enum class NoteSortOrder {
+    LATEST_FIRST,
+    TITLE_ASCENDING,
+    TITLE_DESCENDING
+}
+
 interface NoteRepository {
     fun observeNotes(accountId: String): Flow<List<Note>>
 
     fun searchNotes(
         accountId: String,
         query: String,
-        scope: NoteSearchScope = NoteSearchScope.TITLE_AND_CONTENT
+        scope: NoteSearchScope = NoteSearchScope.TITLE_AND_CONTENT,
+        sortOrder: NoteSortOrder = NoteSortOrder.LATEST_FIRST
     ): Flow<List<Note>>
 
     fun observeNote(localId: String): Flow<Note?>

@@ -15,6 +15,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.qownnotes.mobile.core.NoteSearchScope
+import org.qownnotes.mobile.core.NoteSortOrder
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.core.SyncState
@@ -356,7 +357,12 @@ class RoomPullStoreTest {
         )
         assertEquals(
             listOf("Older", "Newer"),
-            notes.searchNotes("account", "er", NoteSearchScope.TITLE_AND_CONTENT).first().map {
+            notes.searchNotes(
+                "account",
+                "er",
+                NoteSearchScope.TITLE_AND_CONTENT,
+                NoteSortOrder.LATEST_FIRST
+            ).first().map {
                 it.title
             }
         )
@@ -379,14 +385,54 @@ class RoomPullStoreTest {
 
         assertEquals(
             setOf("Needle title", "Body match"),
-            notes.searchNotes("account", "needle", NoteSearchScope.TITLE_AND_CONTENT)
+            notes.searchNotes(
+                "account",
+                "needle",
+                NoteSearchScope.TITLE_AND_CONTENT,
+                NoteSortOrder.LATEST_FIRST
+            )
                 .first().mapTo(mutableSetOf()) { it.title }
         )
         assertEquals(
             listOf("Needle title"),
-            notes.searchNotes("account", "needle", NoteSearchScope.TITLE)
+            notes.searchNotes(
+                "account",
+                "needle",
+                NoteSearchScope.TITLE,
+                NoteSortOrder.LATEST_FIRST
+            )
                 .first().map { it.title }
         )
+    }
+
+    @Test
+    fun searchResultsCanBeSortedByTitleInEitherDirection() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, title = "alpha")
+                .copy(modifiedAtEpochSeconds = 30)
+        )
+        database.noteDao().upsert(
+            localNote(43, SyncState.SYNCHRONIZED, title = "Charlie")
+                .copy(modifiedAtEpochSeconds = 20)
+        )
+        database.noteDao().upsert(
+            localNote(44, SyncState.SYNCHRONIZED, title = "Bravo")
+                .copy(modifiedAtEpochSeconds = 10, favorite = true)
+        )
+
+        suspend fun titles(order: NoteSortOrder) = notes.searchNotes(
+            "account",
+            "",
+            NoteSearchScope.TITLE_AND_CONTENT,
+            order
+        ).first().map { it.title }
+
+        assertEquals(listOf("Bravo", "alpha", "Charlie"), titles(NoteSortOrder.LATEST_FIRST))
+        assertEquals(listOf("alpha", "Bravo", "Charlie"), titles(NoteSortOrder.TITLE_ASCENDING))
+        assertEquals(listOf("Charlie", "Bravo", "alpha"), titles(NoteSortOrder.TITLE_DESCENDING))
     }
 
     @Test

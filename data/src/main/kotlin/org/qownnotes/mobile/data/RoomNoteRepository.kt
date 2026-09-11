@@ -4,18 +4,28 @@ import kotlinx.coroutines.flow.map
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteRepository
 import org.qownnotes.mobile.core.NoteSearchScope
+import org.qownnotes.mobile.core.NoteSortOrder
 import org.qownnotes.mobile.core.SyncState
 
 class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
     override fun observeNotes(accountId: String) =
         noteDao.observeAll(accountId).map { notes -> notes.map(NoteEntity::toDomain) }
 
-    override fun searchNotes(accountId: String, query: String, scope: NoteSearchScope) =
-        noteDao.search(
-            accountId,
-            query.trim(),
-            includeContent = scope == NoteSearchScope.TITLE_AND_CONTENT
-        ).map { notes -> notes.map(NoteEntity::toDomain) }
+    override fun searchNotes(
+        accountId: String,
+        query: String,
+        scope: NoteSearchScope,
+        sortOrder: NoteSortOrder
+    ) = noteDao.search(
+        accountId,
+        query.trim(),
+        includeContent = scope == NoteSearchScope.TITLE_AND_CONTENT,
+        sortOrder = when (sortOrder) {
+            NoteSortOrder.LATEST_FIRST -> 0
+            NoteSortOrder.TITLE_ASCENDING -> 1
+            NoteSortOrder.TITLE_DESCENDING -> 2
+        }
+    ).map { notes -> notes.map(NoteEntity::toDomain) }
 
     override fun observeNote(localId: String) = noteDao.observe(localId).map { it?.toDomain() }
 

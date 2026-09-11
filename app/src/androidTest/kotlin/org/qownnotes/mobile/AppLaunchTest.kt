@@ -182,6 +182,44 @@ class AppLaunchTest {
     }
 
     @Test
+    fun noteListCanBeSortedByTitleInEitherDirection() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(42, "etag-alpha", "Alpha", "# Alpha", "", 30),
+                    RemoteNote(43, "etag-charlie", "Charlie", "# Charlie", "", 20),
+                    RemoteNote(44, "etag-bravo", "Bravo", "# Bravo", "", 10)
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 30
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Alpha")
+
+        fun notesAppearInOrder(vararg titles: String): Boolean {
+            val tops = titles.map {
+                composeRule.onNodeWithText(it).fetchSemanticsNode().boundsInRoot.top
+            }
+            return tops.zipWithNext().all { (first, second) -> first < second }
+        }
+
+        composeRule.waitUntil { notesAppearInOrder("Alpha", "Charlie", "Bravo") }
+        listAction("sort-selector")
+        composeRule.onNodeWithTag("sort-option-title-ascending").performClick()
+        composeRule.waitUntil { notesAppearInOrder("Alpha", "Bravo", "Charlie") }
+
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitUntil { notesAppearInOrder("Alpha", "Bravo", "Charlie") }
+        listAction("sort-selector")
+        composeRule.onNodeWithTag("sort-option-title-descending").performClick()
+        composeRule.waitUntil { notesAppearInOrder("Charlie", "Bravo", "Alpha") }
+    }
+
+    @Test
     fun enabledSwipeActionsToggleFavoriteAndMoveNotesToTrash() {
         val account = importAccount("alice", "First note", "etag-1", 10)
         val first = runBlocking { notesOf("alice").single() }

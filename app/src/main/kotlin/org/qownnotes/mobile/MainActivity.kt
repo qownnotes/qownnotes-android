@@ -52,6 +52,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Checklist
@@ -164,6 +165,7 @@ import org.qownnotes.mobile.core.NoteExcerpt
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.NoteSettings
+import org.qownnotes.mobile.core.NoteSortOrder
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.SharedText
@@ -757,6 +759,7 @@ private fun NoteListScreen(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var searchScope by rememberSaveable { mutableStateOf(NoteSearchScope.TITLE_AND_CONTENT) }
+    var sortOrder by rememberSaveable { mutableStateOf(NoteSortOrder.LATEST_FIRST) }
     var searchFocused by remember { mutableStateOf(false) }
     var showAccountChooser by rememberSaveable(accountId) { mutableStateOf(false) }
     var showSettings by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -765,6 +768,7 @@ private fun NoteListScreen(
     var noteListMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var categoryMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
+    var sortMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var categoryScope by remember(accountId) {
         mutableStateOf(component.settings.noteCategoryScope(accountId))
     }
@@ -777,11 +781,11 @@ private fun NoteListScreen(
     val allNotesFlow = remember(accountId) { component.noteRepository.observeNotes(accountId) }
     val allNotes by allNotesFlow
         .collectAsStateWithLifecycle(initialValue = null as List<Note>?, context = UiDispatcher)
-    val notesFlow = remember(accountId, query, searchScope) {
+    val notesFlow = remember(accountId, query, searchScope, sortOrder) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
         } else {
-            component.noteRepository.searchNotes(accountId, query, searchScope)
+            component.noteRepository.searchNotes(accountId, query, searchScope, sortOrder)
         }
     }
     val notes by notesFlow
@@ -1003,6 +1007,31 @@ private fun NoteListScreen(
                                     DropdownMenuItem(
                                         text = {
                                             Text(
+                                                when (sortOrder) {
+                                                    NoteSortOrder.LATEST_FIRST ->
+                                                        "Sort: Latest first"
+                                                    NoteSortOrder.TITLE_ASCENDING ->
+                                                        "Sort: Title A-Z"
+                                                    NoteSortOrder.TITLE_DESCENDING ->
+                                                        "Sort: Title Z-A"
+                                                }
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Sort,
+                                                contentDescription = null
+                                            )
+                                        },
+                                        onClick = {
+                                            noteListMenuOpen = false
+                                            sortMenuOpen = true
+                                        },
+                                        modifier = Modifier.testTag("sort-selector")
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
                                                 when (val selected = categoryScope) {
                                                     NoteCategoryScope.Undefined ->
                                                         "Category: Undefined"
@@ -1075,6 +1104,50 @@ private fun NoteListScreen(
                                             showAbout = true
                                         },
                                         modifier = Modifier.testTag("about")
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = sortMenuOpen,
+                                    onDismissRequest = { sortMenuOpen = false }
+                                ) {
+                                    fun select(order: NoteSortOrder) {
+                                        sortOrder = order
+                                        sortMenuOpen = false
+                                    }
+                                    DropdownMenuItem(
+                                        text = { Text("Latest first") },
+                                        leadingIcon = {
+                                            RadioButton(
+                                                selected = sortOrder == NoteSortOrder.LATEST_FIRST,
+                                                onClick = null
+                                            )
+                                        },
+                                        onClick = { select(NoteSortOrder.LATEST_FIRST) },
+                                        modifier = Modifier.testTag("sort-option-latest")
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Title A-Z") },
+                                        leadingIcon = {
+                                            RadioButton(
+                                                selected =
+                                                sortOrder == NoteSortOrder.TITLE_ASCENDING,
+                                                onClick = null
+                                            )
+                                        },
+                                        onClick = { select(NoteSortOrder.TITLE_ASCENDING) },
+                                        modifier = Modifier.testTag("sort-option-title-ascending")
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Title Z-A") },
+                                        leadingIcon = {
+                                            RadioButton(
+                                                selected =
+                                                sortOrder == NoteSortOrder.TITLE_DESCENDING,
+                                                onClick = null
+                                            )
+                                        },
+                                        onClick = { select(NoteSortOrder.TITLE_DESCENDING) },
+                                        modifier = Modifier.testTag("sort-option-title-descending")
                                     )
                                 }
                                 DropdownMenu(

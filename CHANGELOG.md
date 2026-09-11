@@ -10,6 +10,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Added a note-search filter for switching between title-and-content search and title-only search.
+- Added note-list sorting by latest modification or by title in ascending or descending order.
 - Added account management from the profile menu. It lists connected accounts, updates each
   account's shared Nextcloud Notes folder and new-file extension through the Notes API, and removes
   an account's local data without deleting its server notes or Nextcloud Files account.
