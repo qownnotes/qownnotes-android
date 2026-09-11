@@ -26,6 +26,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The rename-note dialog now selects the current file name when opened, so typing replaces it.
 - Web addresses written without Markdown link markers are now detected in note previews and the
   Markdown editor.
+- Routine development builds and deployments now use Android's local debug key without requiring
+  Vaultwarden access; explicit shared-key development recipes remain available.
 
 ## [0.3.3] - 2026-09-10
 

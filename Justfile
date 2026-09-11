@@ -6,8 +6,12 @@ default:
 # Build the development APK.
 build: build-dev
 
-# Build the signed development APK with signing material from Vaultwarden.
+# Build the development APK with the standard local debug key.
 build-dev:
+    ./gradlew assembleDebug
+
+# Build the development APK with shared signing material from Vaultwarden.
+build-dev-signed:
     ./scripts/with-android-signing development ./gradlew assembleDebug
 
 # Build the signed release APK with signing material from Vaultwarden.
@@ -88,8 +92,13 @@ start-emulator: create-avd
 # Install and launch the development app on a connected device.
 run: deploy-dev
 
-# Install and launch the signed development app on a connected device.
+# Install and launch the development app on a connected device.
 deploy-dev: _wait-for-android
+    ./gradlew assembleDebug installDebug
+    adb shell am start -n org.qownnotes.mobile.dev/org.qownnotes.mobile.MainActivity
+
+# Install and launch the shared-key-signed development app on a connected device.
+deploy-dev-signed: _wait-for-android
     ./scripts/with-android-signing development ./gradlew assembleDebug installDebug
     adb shell am start -n org.qownnotes.mobile.dev/org.qownnotes.mobile.MainActivity
 

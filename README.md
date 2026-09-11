@@ -94,8 +94,8 @@ just
 just build-dev
 ```
 
-`just build` is an alias for `just build-dev`. Configure local development signing as described
-below before running either recipe.
+`just build` is an alias for `just build-dev`. Android's standard local debug key signs the APK, so
+this build does not require signing secrets.
 
 The APK is written to:
 
@@ -197,8 +197,9 @@ just check
 
 ### Build Signed Development And Release Variants
 
-Local development and release builds retrieve signing files from a private Vaultwarden instance.
-Create one item for each signing identity with these attachments:
+Routine development builds and deployments use Android's standard local debug key and do not access
+Vaultwarden. Shared-key development builds and release builds retrieve signing files from a private
+Vaultwarden instance. Create one item for each signing identity with these attachments:
 
 ```text
 Development item:
@@ -232,12 +233,16 @@ Configure the Bitwarden CLI for Vaultwarden and log in once:
 bw logout
 bw config server https://vaultwarden.example.com
 bw login
-just build-dev
-just deploy-dev
+just build-dev-signed
+just deploy-dev-signed
 just build-release
 just deploy-release
 just release
 ```
+
+Use the shared-key development recipes only when installing over a development APK signed by CI or
+another machine with that key. Switching an existing installation between the shared key and the
+standard local debug key requires uninstalling it first, which clears that development app's data.
 
 When the vault is locked, a signing recipe runs `bw unlock --raw` and prompts for the master
 password itself. The resulting `BW_SESSION` exists only inside the wrapper, so it does not need to
@@ -262,9 +267,10 @@ keystore path, and removes both files when Gradle exits. It never sources the do
 as shell code, and Gradle does not inherit the Vaultwarden session or item configuration.
 
 The reproducible `devenv` shell provides `bw`, `jq`, and `secretspec`. Outside that shell, install
-the Bitwarden Password Manager CLI, `jq`, and SecretSpec separately. GitHub Actions continues using
-its existing `ANDROID_DEV_*` and `ANDROID_*` repository secrets. When either complete signing
-environment is already present, the wrapper skips Vaultwarden and SecretSpec.
+the Bitwarden Password Manager CLI, `jq`, and SecretSpec separately. These tools are not needed for
+routine development recipes. GitHub Actions continues using its existing `ANDROID_DEV_*` and
+`ANDROID_*` repository secrets. When either complete signing environment is already present, the
+wrapper skips Vaultwarden and SecretSpec.
 
 The signed outputs are written to:
 
