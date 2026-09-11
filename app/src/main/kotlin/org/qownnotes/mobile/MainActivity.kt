@@ -112,6 +112,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
@@ -122,6 +123,7 @@ import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -748,6 +750,7 @@ private fun NoteListScreen(
     onOpen: (String) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    var searchFocused by remember { mutableStateOf(false) }
     var showAccountChooser by rememberSaveable(accountId) { mutableStateOf(false) }
     var showSettings by rememberSaveable(accountId) { mutableStateOf(false) }
     var showAbout by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -780,6 +783,7 @@ private fun NoteListScreen(
     val syncState = syncStates[accountId] ?: SyncUiState.Idle
     val account = accounts.first { it.id == accountId }
     val scope = rememberCoroutineScope { UiDispatcher }
+    val focusManager = LocalFocusManager.current
     val selectionActive = selectedNoteIds.isNotEmpty()
     val showNotePreview by component.settings.showNotePreview
         .collectAsStateWithLifecycle(context = UiDispatcher)
@@ -811,6 +815,10 @@ private fun NoteListScreen(
         selectionMenuOpen = false
         selectedNoteIds = emptyList()
     }
+    BackHandler(enabled = searchFocused && !selectionActive) {
+        query = ""
+        focusManager.clearFocus()
+    }
 
     Scaffold(
         topBar = {
@@ -825,6 +833,19 @@ private fun NoteListScreen(
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Clear selection"
+                                )
+                            }
+                        } else if (searchFocused) {
+                            IconButton(
+                                onClick = {
+                                    query = ""
+                                    focusManager.clearFocus()
+                                },
+                                modifier = Modifier.testTag("close-note-search")
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Close search"
                                 )
                             }
                         } else {
@@ -898,6 +919,7 @@ private fun NoteListScreen(
                                 value = query,
                                 onValueChange = { query = it },
                                 onClear = { query = "" },
+                                onFocusChange = { searchFocused = it },
                                 modifier = Modifier.fillMaxWidth().testTag("note-search")
                             )
                         }
@@ -932,7 +954,7 @@ private fun NoteListScreen(
                                     )
                                 }
                             }
-                        } else {
+                        } else if (!searchFocused) {
                             Box {
                                 IconButton(
                                     onClick = { noteListMenuOpen = true },
@@ -1342,6 +1364,7 @@ private fun CompactSearchField(
     value: String,
     onValueChange: (String) -> Unit,
     onClear: () -> Unit,
+    onFocusChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(20.dp)
@@ -1353,7 +1376,7 @@ private fun CompactSearchField(
             color = MaterialTheme.colorScheme.onSurface
         ),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        modifier = modifier.height(40.dp)
+        modifier = modifier.onFocusChanged { onFocusChange(it.isFocused) }.height(40.dp)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .padding(horizontal = 10.dp),
         decorationBox = { innerTextField ->

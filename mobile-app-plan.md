@@ -871,7 +871,8 @@ Implemented:
 - Consolidated the note-list header into an account profile menu, an always-visible search field,
   and a separate note-action overflow menu. Only switching, adding, and removing accounts remain in
   the profile menu. The compact search field and synchronization status stay fixed while notes
-  scroll below them.
+  scroll below them. While focused, search replaces the surrounding actions with a back action and
+  expands across the available top-bar width.
 - Moved supplemental QOwnNotes source highlighting off the main thread. Each result is applied only
   if its request and source are still current, and explicit tests cover every required source syntax
   plus a large generated document.

@@ -465,8 +465,8 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Add account").assertIsDisplayed()
         composeRule.onNodeWithText("Manage accounts").assertIsDisplayed()
         composeRule.onNodeWithText("Remove account").assertDoesNotExist()
-        composeRule.onNodeWithTag("add-account-icon").assertIsDisplayed()
-        composeRule.onNodeWithTag("manage-accounts-icon").assertIsDisplayed()
+        composeRule.onNodeWithTag("add-account-icon").fetchSemanticsNode()
+        composeRule.onNodeWithTag("manage-accounts-icon").fetchSemanticsNode()
         val addBounds = composeRule.onNodeWithTag("add-account").fetchSemanticsNode().boundsInRoot
         val manageBounds = composeRule.onNodeWithTag(
             "manage-accounts"
@@ -474,6 +474,33 @@ class AppLaunchTest {
         assertTrue(addBounds.bottom <= manageBounds.top)
         composeRule.onNodeWithText("Settings").assertDoesNotExist()
         composeRule.onNodeWithText("About").assertDoesNotExist()
+    }
+
+    @Test
+    fun focusedNoteSearchUsesTheAvailableTopBarWidthAndHasABackAction() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val compactWidth = composeRule.onNodeWithTag(
+            "note-search"
+        ).fetchSemanticsNode().boundsInRoot.width
+
+        composeRule.onNodeWithTag("note-search").performClick()
+
+        composeRule.onNodeWithTag("close-note-search").assertIsDisplayed()
+        composeRule.onNodeWithTag("account-menu").assertDoesNotExist()
+        composeRule.onNodeWithTag("note-list-menu").assertDoesNotExist()
+        val focusedWidth = composeRule.onNodeWithTag(
+            "note-search"
+        ).fetchSemanticsNode().boundsInRoot.width
+        assertTrue("compact=$compactWidth, focused=$focusedWidth", focusedWidth > compactWidth)
+
+        composeRule.onNodeWithTag("note-search").performTextInput("missing")
+        composeRule.waitForTextToGo("Existing note")
+        composeRule.onNodeWithTag("close-note-search").performClick()
+
+        composeRule.onNodeWithTag("account-menu").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-list-menu").assertIsDisplayed()
+        composeRule.waitForText("Existing note")
+        composeRule.onNodeWithText("Search notes").assertIsDisplayed()
     }
 
     @Test
