@@ -582,52 +582,12 @@ private fun NoteListScreen(
                         if (selectionActive) {
                             Text("${selectedNoteIds.size} selected")
                         } else {
-                            AccountAvatar(component, account)
-                        }
-                    },
-                    actions = {
-                        if (selectionActive) {
-                            Box {
-                                IconButton(
-                                    onClick = { selectionMenuOpen = true },
-                                    modifier = Modifier.testTag("note-selection-menu")
-                                ) {
-                                    Icon(
-                                        Icons.Filled.MoreVert,
-                                        contentDescription = "Selected note actions"
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = selectionMenuOpen,
-                                    onDismissRequest = { selectionMenuOpen = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Move to trash") },
-                                        onClick = {
-                                            val ids = selectedNoteIds
-                                            selectionMenuOpen = false
-                                            selectedNoteIds = emptyList()
-                                            scope.launch {
-                                                component.moveNotesToTrash(accountId, ids)
-                                            }
-                                        },
-                                        modifier = Modifier.testTag("move-notes-to-trash")
-                                    )
-                                }
-                            }
-                        } else {
-                            // What these actions act on is the account named beside them, which is
-                            // why they sit under it and say so, rather than standing next to a note
-                            // action as bare verbs that read as if they applied to the notes list.
                             Box {
                                 IconButton(
                                     onClick = { accountMenuOpen = true },
                                     modifier = Modifier.testTag("account-menu")
                                 ) {
-                                    Icon(
-                                        Icons.Filled.MoreVert,
-                                        contentDescription = "Account actions"
-                                    )
+                                    AccountAvatar(component, account)
                                 }
                                 DropdownMenu(
                                     expanded = accountMenuOpen,
@@ -715,6 +675,38 @@ private fun NoteListScreen(
                                             showAbout = true
                                         },
                                         modifier = Modifier.testTag("about")
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    actions = {
+                        if (selectionActive) {
+                            Box {
+                                IconButton(
+                                    onClick = { selectionMenuOpen = true },
+                                    modifier = Modifier.testTag("note-selection-menu")
+                                ) {
+                                    Icon(
+                                        Icons.Filled.MoreVert,
+                                        contentDescription = "Selected note actions"
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = selectionMenuOpen,
+                                    onDismissRequest = { selectionMenuOpen = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Move to trash") },
+                                        onClick = {
+                                            val ids = selectedNoteIds
+                                            selectionMenuOpen = false
+                                            selectedNoteIds = emptyList()
+                                            scope.launch {
+                                                component.moveNotesToTrash(accountId, ids)
+                                            }
+                                        },
+                                        modifier = Modifier.testTag("move-notes-to-trash")
                                     )
                                 }
                             }

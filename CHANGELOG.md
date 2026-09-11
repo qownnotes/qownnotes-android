@@ -9,6 +9,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Account actions now open from the account profile image on the left of the note list instead of a
+  separate three-point menu.
 - Account entries in the switch-account dialog now have clearer spacing around their profile images.
 - The rename-note dialog now selects the current file name when opened, so typing replaces it.
 - Web addresses written without Markdown link markers are now detected in note previews and the

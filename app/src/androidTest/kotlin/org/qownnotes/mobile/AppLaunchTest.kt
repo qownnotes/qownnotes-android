@@ -382,12 +382,13 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("account-chooser").assertDoesNotExist()
     }
 
-    /** An action has to say what it acts on: a note is made here, the others change the account. */
+    /** Account actions are reached from the account avatar rather than a separate overflow icon. */
     @Test
-    fun theNoteListNamesWhatItsActionsActOn() {
-        importAccount("alice", "Existing note", "etag-1", 10)
+    fun theAccountAvatarOpensAccountActions() {
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
 
         composeRule.onNodeWithText("New note").assertIsDisplayed()
+        composeRule.onNodeWithTag("account-avatar-${account.localAccountId()}").assertIsDisplayed()
 
         composeRule.onNodeWithTag("account-menu").performClick()
         composeRule.waitForText("Add account")
