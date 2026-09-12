@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-12
+
 ### Added
 
 - Added a note-search filter for switching between title-and-content search and title-only search.
@@ -202,7 +204,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.0...v0.3.1

@@ -1,0 +1,1 @@
+Search by title only or title and content. Sort notes by date or title. Manage accounts from the profile menu, including shared folder and extension settings. Swipe right to favorite and left to trash, configurable in Settings. Reorganized toolbar with search and overflow menu. Rename dialog auto-selects the current filename. Auto-detect web addresses in notes.
