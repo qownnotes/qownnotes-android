@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: QOwnNotes Desktop
+    url: https://github.com/pbek/QOwnNotes/issues
+    about: For issues with the QOwnNotes desktop application, please use the desktop repository.
+  - name: QOwnNotes Website
+    url: https://www.qownnotes.org/
+    about: Visit the QOwnNotes website for documentation and other resources.
