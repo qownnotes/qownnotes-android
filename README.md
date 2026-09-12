@@ -11,6 +11,10 @@ local, Nextcloud, and remote-image data are handled.
 
 [![Get it on Obtainium](https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22org.qownnotes.mobile%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fqownnotes%2Fqownnotes-android%22%2C%22author%22%3A%22qownnotes%22%2C%22name%22%3A%22QOwnNotes%22%7D)
 
+### F-Droid
+
+The initial F-Droid submission merge request is [fdroiddata!48269](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/48269).
+
 ## Features
 
 - Import one or more accounts from the Nextcloud Files Android app through Single Sign-On.
