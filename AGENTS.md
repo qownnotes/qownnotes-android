@@ -216,3 +216,28 @@ claim device or real-server verification from compilation alone.
 - Run `git diff --check` and formatting checks before committing.
 - Do not commit secrets, local SDK paths, emulator state, signing files, or Nextcloud credentials.
 - Keep unrelated worktree changes intact.
+
+## Commit Messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>: <description>
+```
+
+Common types used in this project:
+
+| Type | When to use |
+| --- | --- |
+| `feat` | A new user-facing feature |
+| `fix` | A bug fix |
+| `doc` | Documentation only changes |
+| `chore` | Maintenance tasks (CI, templates, dependencies, tooling) |
+| `ui` | Visual or layout changes |
+| `refactor` | Code restructuring without behavior change |
+| `test` | Adding or updating tests |
+| `release` | Release preparation commits |
+
+Keep the description imperative, lowercase, and under ~72 characters. Do not capitalize the first
+word or end with a period. Reference issues with `fixes #123` or `closes #123` in the commit body
+when appropriate.
