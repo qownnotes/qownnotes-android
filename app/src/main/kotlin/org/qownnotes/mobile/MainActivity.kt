@@ -1870,7 +1870,18 @@ private fun TrashedNotesDialog(
     onDismiss: () -> Unit,
     onRestore: (TrashedNote) -> Unit
 ) {
-    var selected by remember(notes) { mutableStateOf(notes.firstOrNull()) }
+    var query by rememberSaveable { mutableStateOf("") }
+    val filteredNotes = remember(notes, query) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            notes
+        } else {
+            notes.filter {
+                it.name.contains(trimmed, ignoreCase = true)
+            }
+        }
+    }
+    var selected by remember(filteredNotes) { mutableStateOf(filteredNotes.firstOrNull()) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Remote trash") },
@@ -1879,23 +1890,48 @@ private fun TrashedNotesDialog(
                 Text("No trashed notes were found on the server.")
             } else {
                 Column(modifier = Modifier.heightIn(max = 520.dp)) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        notes.forEach { note ->
-                            TextButton(
-                                onClick = { selected = note },
-                                modifier = Modifier.fillMaxWidth()
-                                    .testTag("trashed-note-${note.timestamp}")
-                            ) { Text("${note.name} - ${note.displayTimestamp}") }
-                        }
-                    }
-                    Text(
-                        selected?.content.orEmpty(),
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-                            .verticalScroll(rememberScrollState()).testTag("trashed-note-preview")
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        label = { Text("Search note name") },
+                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (query.isNotEmpty()) {
+                                IconButton(
+                                    onClick = { query = "" },
+                                    modifier = Modifier.testTag("clear-trash-search")
+                                ) { Icon(Icons.Filled.Close, contentDescription = "Clear search") }
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("trash-search")
                     )
+                    if (filteredNotes.isEmpty()) {
+                        Text(
+                            "No trashed notes match your search.",
+                            modifier = Modifier.padding(top = 12.dp)
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
+                                .verticalScroll(rememberScrollState()).padding(top = 8.dp)
+                        ) {
+                            filteredNotes.forEach { note ->
+                                TextButton(
+                                    onClick = { selected = note },
+                                    modifier = Modifier.fillMaxWidth()
+                                        .testTag("trashed-note-${note.timestamp}")
+                                ) { Text("${note.name} - ${note.displayTimestamp}") }
+                            }
+                        }
+                        Text(
+                            selected?.content.orEmpty(),
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                                .verticalScroll(
+                                    rememberScrollState()
+                                ).testTag("trashed-note-preview")
+                        )
+                    }
                 }
             }
         },

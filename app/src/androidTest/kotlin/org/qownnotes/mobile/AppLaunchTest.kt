@@ -742,6 +742,7 @@ class AppLaunchTest {
 
         listAction("remote-trash")
         composeRule.waitForText("Deleted content")
+        composeRule.onNodeWithTag("trash-search").assertIsDisplayed()
         composeRule.onNodeWithTag("restore-trashed-note").performClick()
         composeRule.onNodeWithTag("confirm-restore-trashed-note").performClick()
 
@@ -749,6 +750,38 @@ class AppLaunchTest {
             application.fakeBackend.restoredTrash == listOf(trashed)
         }
         composeRule.waitForText("No trashed notes were found on the server.")
+    }
+
+    @Test
+    fun searchesRemoteTrashByNoteName() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        application.fakeBackend.trash = listOf(
+            TrashedNote(
+                name = "Alpha note",
+                fileName = "Alpha note.md",
+                timestamp = 1,
+                displayTimestamp = "Monday",
+                content = "Alpha content",
+                remotePath = "/Notes/Alpha note.md"
+            ),
+            TrashedNote(
+                name = "Beta note",
+                fileName = "Beta note.md",
+                timestamp = 2,
+                displayTimestamp = "Tuesday",
+                content = "Beta content",
+                remotePath = "/Notes/Beta note.md"
+            )
+        )
+
+        listAction("remote-trash")
+        composeRule.waitForText("Alpha content")
+        composeRule.onNodeWithTag("trash-search").performTextInput("Beta")
+        composeRule.waitForTextToGo("Alpha content")
+        composeRule.waitForText("Beta content")
+
+        composeRule.onNodeWithTag("clear-trash-search").performClick()
+        composeRule.waitForText("Alpha content")
     }
 
     @Test
