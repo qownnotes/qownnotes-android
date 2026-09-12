@@ -1921,7 +1921,16 @@ private fun TrashedNotesDialog(
                                     onClick = { selected = note },
                                     modifier = Modifier.fillMaxWidth()
                                         .testTag("trashed-note-${note.timestamp}")
-                                ) { Text("${note.name} - ${note.displayTimestamp}") }
+                                ) {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Text(note.name)
+                                        Text(
+                                            note.displayTimestamp,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                }
                             }
                         }
                         Text(

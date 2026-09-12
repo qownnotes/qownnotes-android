@@ -11,6 +11,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The remote trash dialog now has a search field that filters trashed notes by name.
 
+### Changed
+
+- Trashed notes in the remote trash dialog now show the deletion timestamp on a separate,
+  smaller, muted line below the note name.
+
 ## [0.4.0] - 2026-09-12
 
 ### Added
