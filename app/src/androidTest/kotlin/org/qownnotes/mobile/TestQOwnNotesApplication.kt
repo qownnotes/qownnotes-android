@@ -57,7 +57,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         component.takePendingShare()
         component.settings.resetNoteTextSize()
         component.settings.setShowNotePreview(true)
-        component.settings.setSwipeNoteActions(true)
+        component.settings.setSwipeNoteActions(false)
         fakeBackend.reset()
         fakeAccountImporter.reset()
     }

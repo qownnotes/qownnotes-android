@@ -52,7 +52,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
     }
 
     private val mutableSwipeNoteActions =
-        MutableStateFlow(preferences.getBoolean(SWIPE_NOTE_ACTIONS, true))
+        MutableStateFlow(preferences.getBoolean(SWIPE_NOTE_ACTIONS, false))
 
     /** Whether horizontal note-list swipes toggle favorites and move notes to trash. */
     val swipeNoteActions: StateFlow<Boolean> = mutableSwipeNoteActions.asStateFlow()

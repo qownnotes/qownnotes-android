@@ -240,6 +240,7 @@ class AppLaunchTest {
         composeRule.waitForText("Second note")
 
         listAction("settings")
+        composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOff().performClick()
         composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOn().performClick()
         composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOff().performClick()
         composeRule.onNodeWithTag("toggle-swipe-note-actions").assertIsOn()
