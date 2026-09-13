@@ -66,12 +66,7 @@ class NextcloudBackend(context: Context) :
     override suspend fun validateAccount(account: Account): String = withContext(Dispatchers.IO) {
         try {
             withApis(account) { capabilitiesApi, _, _ ->
-                val response = capabilitiesApi.getCapabilities().blockingSingle().response
-                val notes = response.ocs.data.capabilities?.getAsJsonObject("notes")
-                    ?: throw BackendException.NotesAppMissing()
-                val versions = NextcloudProtocol.parseVersions(notes.get("api_version"))
-                NextcloudProtocol.selectSupportedVersion(versions)
-                    ?: throw BackendException.UnsupportedApi(versions)
+                validateCapabilities(capabilitiesApi.getCapabilities())
             }
         } catch (error: Throwable) {
             throw error.asBackendException()
@@ -624,9 +619,19 @@ private const val MIN_QOWNNOTES_API_VERSION = "0.4.4"
 private val NOTES_FILE_EXTENSIONS = listOf("md", "txt", "org", "markdown", "note")
 private val STANDARD_FILE_SUFFIXES = setOf(".md", ".txt")
 
-private interface CapabilitiesApi {
+internal interface CapabilitiesApi {
     @GET("capabilities?format=json")
     fun getCapabilities(): Observable<ParsedResponse<OcsResponse>>
+}
+
+internal fun validateCapabilities(observable: Observable<ParsedResponse<OcsResponse>>): String {
+    val response = observable.blockingSingle().response
+        ?: throw BackendException.Protocol("Nextcloud returned an empty capabilities response")
+    val notes = response.ocs?.data?.capabilities?.getAsJsonObject("notes")
+        ?: throw BackendException.NotesAppMissing()
+    val versions = NextcloudProtocol.parseVersions(notes.get("api_version"))
+    return NextcloudProtocol.selectSupportedVersion(versions)
+        ?: throw BackendException.UnsupportedApi(versions)
 }
 
 internal interface NotesApi {
@@ -734,11 +739,11 @@ internal data class NoteWriteDto(
     val favorite: Boolean
 )
 
-private data class OcsResponse(val ocs: OcsEnvelope)
+internal data class OcsResponse(val ocs: OcsEnvelope?)
 
-private data class OcsEnvelope(val data: CapabilitiesData)
+internal data class OcsEnvelope(val data: CapabilitiesData?)
 
-private data class CapabilitiesData(val capabilities: com.google.gson.JsonObject?)
+internal data class CapabilitiesData(val capabilities: com.google.gson.JsonObject?)
 
 internal data class RemoteNoteDto(
     val id: Long?,

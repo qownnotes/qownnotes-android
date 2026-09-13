@@ -16,6 +16,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Trashed notes in the remote trash dialog now show the deletion timestamp on a separate,
   smaller, muted line below the note name.
 
+### Fixed
+
+- Adding a Nextcloud account no longer crashes when the Nextcloud SSO response is empty or the
+  OCS capabilities envelope is malformed. The app now reports a clear protocol error instead.
+
 ## [0.4.0] - 2026-09-12
 
 ### Added
