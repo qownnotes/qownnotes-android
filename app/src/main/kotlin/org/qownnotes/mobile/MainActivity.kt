@@ -781,7 +781,10 @@ private fun NoteListScreen(
     var trashRequestId by remember(accountId) { mutableIntStateOf(0) }
     val allNotesFlow = remember(accountId) { component.noteRepository.observeNotes(accountId) }
     val allNotes by allNotesFlow
-        .collectAsStateWithLifecycle(initialValue = null as List<NoteListItem>?, context = UiDispatcher)
+        .collectAsStateWithLifecycle(
+            initialValue = null as List<NoteListItem>?,
+            context = UiDispatcher
+        )
     val notesFlow = remember(accountId, query, searchScope, sortOrder) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
@@ -790,7 +793,10 @@ private fun NoteListScreen(
         }
     }
     val notes by notesFlow
-        .collectAsStateWithLifecycle(initialValue = null as List<NoteListItem>?, context = UiDispatcher)
+        .collectAsStateWithLifecycle(
+            initialValue = null as List<NoteListItem>?,
+            context = UiDispatcher
+        )
     val syncStates by component.syncStates.collectAsStateWithLifecycle(context = UiDispatcher)
     val syncState = syncStates[accountId] ?: SyncUiState.Idle
     val account = accounts.first { it.id == accountId }
@@ -1065,12 +1071,12 @@ private fun NoteListScreen(
                                             trashState = ArchiveLoadState.Loading
                                             scope.launch {
                                                 val result = runCatching {
-                                                component.trashedNotes(
-                                                    accountId,
-                                                    allNotes.orEmpty().mapTo(mutableSetOf()) {
-                                                        it.category
-                                                    }
-                                                )
+                                                    component.trashedNotes(
+                                                        accountId,
+                                                        allNotes.orEmpty().mapTo(mutableSetOf()) {
+                                                            it.category
+                                                        }
+                                                    )
                                                 }.fold(
                                                     onSuccess = { ArchiveLoadState.Loaded(it) },
                                                     onFailure = {

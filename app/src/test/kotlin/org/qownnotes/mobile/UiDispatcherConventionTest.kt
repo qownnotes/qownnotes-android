@@ -34,12 +34,21 @@ class UiDispatcherConventionTest {
 
     @Test
     fun everyLifecycleCollectionNamesTheUiDispatcher() {
+        val violations = buildList {
+            var index = source.indexOf(".collectAsStateWithLifecycle(")
+            while (index >= 0) {
+                val block = callBlock(source, index + ".collectAsStateWithLifecycle".length)
+                if ("context = UiDispatcher" !in block) {
+                    add(block.lines().first().trim())
+                }
+                index = source.indexOf(".collectAsStateWithLifecycle(", index + 1)
+            }
+        }
+
         assertEquals(
             "collectAsStateWithLifecycle must be given context = UiDispatcher",
             emptyList<String>(),
-            source.lines()
-                .filter { "collectAsStateWithLifecycle(" in it && "context = UiDispatcher" !in it }
-                .map(String::trim)
+            violations
         )
     }
 
@@ -70,6 +79,20 @@ class UiDispatcherConventionTest {
             emptyList<String>(),
             unconfined.map(String::trim)
         )
+    }
+
+    /** Extracts the parenthesized call whose opening '(' is at [openParen] in [text]. */
+    private fun callBlock(text: String, openParen: Int): String {
+        var depth = 0
+        var cursor = openParen
+        while (cursor < text.length) {
+            when (text[cursor]) {
+                '(' -> depth++
+                ')' -> if (--depth == 0) return text.substring(openParen, cursor + 1)
+            }
+            cursor++
+        }
+        return text.substring(openParen)
     }
 
     /** Every `marker { ... }` body in [text], matched by brace depth. */
