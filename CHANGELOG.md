@@ -21,10 +21,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Adding a Nextcloud account no longer crashes when the Nextcloud SSO response is empty or the
-  OCS capabilities envelope is malformed. The app now reports a clear protocol error instead.
+  OCS capabilities envelope is malformed. The app now reports a clear protocol error instead
+  (for [#6](https://github.com/qownnotes/qownnotes-android/issues/6)).
 - Note list and search queries now load only a lightweight note summary, avoiding the
   `SQLiteBlobTooBigException` that could occur when a single note's content exceeded the Android
-  CursorWindow limit while reading many rows.
+  CursorWindow limit while reading many rows (for [#6](https://github.com/qownnotes/qownnotes-android/issues/6)).
 
 ## [0.4.0] - 2026-09-12
 
