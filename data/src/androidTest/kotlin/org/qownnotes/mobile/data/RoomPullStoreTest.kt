@@ -755,6 +755,57 @@ class RoomPullStoreTest {
         lastModifiedEpochSeconds = modified
     )
 
+    @Test
+    fun listQueriesAvoidCursorWindowLimitForLargeNotes() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+
+        val huge = "# Huge\n\n" + "x".repeat(3_000_000)
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, title = "Big note").copy(
+                content = huge,
+                lastSyncedContent = huge
+            )
+        )
+
+        val listItem = notes.observeNotes("account").first().single()
+        assertEquals("Big note", listItem.title)
+        assertTrue(listItem.excerpt.startsWith("# Huge"))
+
+        val searchResult = notes.searchNotes(
+            "account",
+            "Big note",
+            NoteSearchScope.TITLE_AND_CONTENT,
+            NoteSortOrder.LATEST_FIRST
+        ).first()
+        assertEquals("Big note", searchResult.single().title)
+    }
+
+    @Test
+    fun applyPullSurvivesLargeNoteContent() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+
+        val huge = "# Huge\n\n" + "x".repeat(3_000_000)
+        store.applyPull(
+            "account",
+            PullResult(
+                notes = listOf(
+                    RemoteNote(42, "etag-1", "Big note", huge, "", 10)
+                ),
+                collectionEtag = "etag-1",
+                lastModifiedEpochSeconds = 10
+            )
+        )
+
+        val listItem = notes.observeNotes("account").first().single()
+        assertEquals("Big note", listItem.title)
+        assertTrue(listItem.excerpt.startsWith("# Huge"))
+    }
+
     private fun localNote(
         remoteId: Long,
         state: SyncState,

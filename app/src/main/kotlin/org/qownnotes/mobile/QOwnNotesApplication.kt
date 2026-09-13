@@ -210,7 +210,8 @@ class ApplicationComponent(
 
     suspend fun removeLocalData(accountId: String) {
         accountMutex(accountId).withLock {
-            val localNoteIds = noteRepository.observeNotes(accountId).first().map(Note::localId)
+            val localNoteIds =
+                noteRepository.observeNotes(accountId).first().map { it.localId }
             accountRepository.remove(accountId)
             editorDrafts.remove(localNoteIds)
             localNoteIds.forEach(editReservations::remove)
@@ -268,7 +269,7 @@ class ApplicationComponent(
         }
 
         suspend fun resetCachedCollection() {
-            noteRepository.observeNotes(accountId).first().map(Note::localId).also {
+            noteRepository.observeNotes(accountId).first().map { it.localId }.also {
                 pullStore.resetCollection(accountId)
                 editorDrafts.remove(it)
                 it.forEach(editReservations::remove)

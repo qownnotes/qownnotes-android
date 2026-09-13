@@ -14,14 +14,14 @@ enum class NoteSortOrder {
 }
 
 interface NoteRepository {
-    fun observeNotes(accountId: String): Flow<List<Note>>
+    fun observeNotes(accountId: String): Flow<List<NoteListItem>>
 
     fun searchNotes(
         accountId: String,
         query: String,
-        scope: NoteSearchScope = NoteSearchScope.TITLE_AND_CONTENT,
-        sortOrder: NoteSortOrder = NoteSortOrder.LATEST_FIRST
-    ): Flow<List<Note>>
+        scope: NoteSearchScope,
+        sortOrder: NoteSortOrder
+    ): Flow<List<NoteListItem>>
 
     fun observeNote(localId: String): Flow<Note?>
 

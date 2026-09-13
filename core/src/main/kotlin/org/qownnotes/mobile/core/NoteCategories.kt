@@ -11,8 +11,8 @@ sealed interface NoteCategoryScope {
 object NoteCategories {
     private val forbiddenSegmentCharacters = Regex("""[*|\\:\"<>?]""")
 
-    fun selectable(notes: List<Note>): List<String> = notes.asSequence()
-        .map(Note::category)
+    fun selectable(notes: List<NoteListEntry>): List<String> = notes.asSequence()
+        .map(NoteListEntry::category)
         .filter(String::isNotEmpty)
         .filterNot(::isInternal)
         .distinctBy(String::lowercase)

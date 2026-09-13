@@ -15,14 +15,18 @@ import org.qownnotes.mobile.core.SyncState
 @Dao
 interface NoteDao {
     @Query(
-        "SELECT * FROM notes WHERE accountId = :accountId " +
+        "SELECT localId, accountId, remoteId, title, category, modifiedAtEpochSeconds, " +
+            "favorite, syncState, substr(content, 1, 500) AS excerpt " +
+            "FROM notes WHERE accountId = :accountId " +
             "AND syncState != 'PENDING_DELETION' " +
             "ORDER BY favorite DESC, modifiedAtEpochSeconds DESC, localId ASC"
     )
-    fun observeAll(accountId: String): Flow<List<NoteEntity>>
+    fun observeAll(accountId: String): Flow<List<NoteListItemEntity>>
 
     @Query(
-        """SELECT * FROM notes WHERE accountId = :accountId
+        """SELECT localId, accountId, remoteId, title, category, modifiedAtEpochSeconds,
+           favorite, syncState, substr(content, 1, 500) AS excerpt
+           FROM notes WHERE accountId = :accountId
            AND syncState != 'PENDING_DELETION' AND
            (:query = '' OR title LIKE '%' || :query || '%' COLLATE NOCASE OR
            (:includeContent AND content LIKE '%' || :query || '%' COLLATE NOCASE))
@@ -38,7 +42,7 @@ interface NoteDao {
         query: String,
         includeContent: Boolean,
         sortOrder: Int
-    ): Flow<List<NoteEntity>>
+    ): Flow<List<NoteListItemEntity>>
 
     @Query("SELECT * FROM notes WHERE localId = :localId")
     fun observe(localId: String): Flow<NoteEntity?>
@@ -153,8 +157,11 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE accountId = :accountId AND remoteId = :remoteId")
     suspend fun getByRemoteId(accountId: String, remoteId: Long): NoteEntity?
 
-    @Query("SELECT * FROM notes WHERE accountId = :accountId AND remoteId IS NOT NULL")
-    suspend fun getRemoteNotes(accountId: String): List<NoteEntity>
+    @Query(
+        """DELETE FROM notes WHERE accountId = :accountId AND remoteId IS NOT NULL
+           AND remoteId NOT IN (:keptRemoteIds) AND syncState = 'SYNCHRONIZED'"""
+    )
+    suspend fun deleteMissingRemoteNotes(accountId: String, keptRemoteIds: Set<Long>)
 
     @Query("DELETE FROM notes WHERE accountId = :accountId AND syncState = 'SYNCHRONIZED'")
     suspend fun deleteSynchronized(accountId: String)

@@ -162,6 +162,7 @@ import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteExcerpt
+import org.qownnotes.mobile.core.NoteListItem
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.NoteSettings
@@ -780,7 +781,7 @@ private fun NoteListScreen(
     var trashRequestId by remember(accountId) { mutableIntStateOf(0) }
     val allNotesFlow = remember(accountId) { component.noteRepository.observeNotes(accountId) }
     val allNotes by allNotesFlow
-        .collectAsStateWithLifecycle(initialValue = null as List<Note>?, context = UiDispatcher)
+        .collectAsStateWithLifecycle(initialValue = null as List<NoteListItem>?, context = UiDispatcher)
     val notesFlow = remember(accountId, query, searchScope, sortOrder) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
@@ -789,7 +790,7 @@ private fun NoteListScreen(
         }
     }
     val notes by notesFlow
-        .collectAsStateWithLifecycle(initialValue = null as List<Note>?, context = UiDispatcher)
+        .collectAsStateWithLifecycle(initialValue = null as List<NoteListItem>?, context = UiDispatcher)
     val syncStates by component.syncStates.collectAsStateWithLifecycle(context = UiDispatcher)
     val syncState = syncStates[accountId] ?: SyncUiState.Idle
     val account = accounts.first { it.id == accountId }
@@ -831,7 +832,7 @@ private fun NoteListScreen(
         }
     }
     LaunchedEffect(visibleNotes) {
-        val visibleIds = visibleNotes?.mapTo(mutableSetOf(), Note::localId)
+        val visibleIds = visibleNotes?.mapTo(mutableSetOf()) { it.localId }
             ?: return@LaunchedEffect
         selectedNoteIds = selectedNoteIds.filter { it in visibleIds }
     }
@@ -1064,13 +1065,12 @@ private fun NoteListScreen(
                                             trashState = ArchiveLoadState.Loading
                                             scope.launch {
                                                 val result = runCatching {
-                                                    component.trashedNotes(
-                                                        accountId,
-                                                        allNotes.orEmpty().mapTo(
-                                                            mutableSetOf(),
-                                                            Note::category
-                                                        )
-                                                    )
+                                                component.trashedNotes(
+                                                    accountId,
+                                                    allNotes.orEmpty().mapTo(mutableSetOf()) {
+                                                        it.category
+                                                    }
+                                                )
                                                 }.fold(
                                                     onSuccess = { ArchiveLoadState.Loaded(it) },
                                                     onFailure = {
@@ -1222,7 +1222,7 @@ private fun NoteListScreen(
                             )
                         }
                     } else {
-                        items(visibleNotes, key = Note::localId) { note ->
+                        items(visibleNotes, key = { it.localId }) { note ->
                             val selected = note.localId in selectedNoteIds
                             NoteListItem(
                                 note = note,
@@ -1429,7 +1429,7 @@ private fun NoteListScreen(
                                 component.restoreTrashedNote(accountId, trashed)
                                 component.trashedNotes(
                                     accountId,
-                                    allNotes.orEmpty().mapTo(mutableSetOf(), Note::category)
+                                    allNotes.orEmpty().mapTo(mutableSetOf()) { it.category }
                                 )
                             }.fold(
                                 onSuccess = { ArchiveLoadState.Loaded(it) },
@@ -1574,7 +1574,7 @@ private fun CompactSearchField(
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun NoteListItem(
-    note: Note,
+    note: NoteListItem,
     selected: Boolean,
     selectionActive: Boolean,
     showCategory: Boolean,
@@ -1669,8 +1669,8 @@ private fun NoteListItem(
                     )
                 }
                 if (showNotePreview) {
-                    val excerpt = remember(note.content, note.title) {
-                        NoteExcerpt.of(note.content, note.title)
+                    val excerpt = remember(note.excerpt, note.title) {
+                        NoteExcerpt.of(note.excerpt, note.title)
                     }
                     if (excerpt.isNotBlank()) {
                         Text(

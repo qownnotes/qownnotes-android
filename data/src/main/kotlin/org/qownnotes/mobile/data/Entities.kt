@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteListItem
 import org.qownnotes.mobile.core.SyncState
 
 @Entity(tableName = "accounts")
@@ -53,6 +54,23 @@ data class NoteEntity(
     val localRevision: Long = 0
 )
 
+/**
+ * Lightweight projection of a note for list/search screens. It deliberately omits
+ * [content] and [lastSyncedContent] so that a single large note cannot exceed the
+ * Android CursorWindow limit when the UI reads many rows.
+ */
+data class NoteListItemEntity(
+    val localId: String,
+    val accountId: String,
+    val remoteId: Long?,
+    val title: String,
+    val category: String,
+    val modifiedAtEpochSeconds: Long,
+    val favorite: Boolean,
+    val syncState: SyncState,
+    val excerpt: String
+)
+
 fun NoteEntity.toDomain() = Note(
     localId = localId,
     accountId = accountId,
@@ -91,6 +109,18 @@ fun Note.toEntity() = NoteEntity(
     lastSyncedFavorite = lastSyncedFavorite,
     lastSyncError = lastSyncError,
     localRevision = localRevision
+)
+
+fun NoteListItemEntity.toDomain() = NoteListItem(
+    localId = localId,
+    accountId = accountId,
+    remoteId = remoteId,
+    title = title,
+    category = category,
+    modifiedAtEpochSeconds = modifiedAtEpochSeconds,
+    favorite = favorite,
+    syncState = syncState,
+    excerpt = excerpt
 )
 
 fun AccountEntity.toDomain() = Account(

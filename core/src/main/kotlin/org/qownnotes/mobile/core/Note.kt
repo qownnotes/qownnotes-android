@@ -1,13 +1,13 @@
 package org.qownnotes.mobile.core
 
 data class Note(
-    val localId: String,
-    val accountId: String,
+    override val localId: String,
+    override val accountId: String,
     val remoteId: Long? = null,
-    val title: String,
+    override val title: String,
     val content: String,
-    val category: String = "",
-    val modifiedAtEpochSeconds: Long,
+    override val category: String = "",
+    override val modifiedAtEpochSeconds: Long,
     val remoteEtag: String? = null,
     val readOnly: Boolean = false,
     val favorite: Boolean = false,
@@ -18,7 +18,7 @@ data class Note(
     val lastSyncedFavorite: Boolean? = null,
     val lastSyncError: String? = null,
     val localRevision: Long = 0
-)
+) : NoteListEntry
 
 enum class SyncState {
     SYNCHRONIZED,

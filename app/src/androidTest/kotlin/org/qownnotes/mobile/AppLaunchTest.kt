@@ -864,12 +864,7 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("finish-editing").performClick()
 
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking {
-                application.component.noteRepository
-                    .observeNotes(testAccount("alice").localAccountId())
-                    .first()
-                    .any { it.content.contains("Draft text") }
-            }
+            runBlocking { notesOf("alice").any { it.content.contains("Draft text") } }
         }
     }
 
@@ -1033,20 +1028,10 @@ class AppLaunchTest {
 
         composeRule.waitForTag("markdown-view")
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking {
-                application.component.noteRepository
-                    .observeNotes(testAccount("alice").localAccountId())
-                    .first()
-                    .any { it.content.contains("Original body") }
-            }
+            runBlocking { notesOf("alice").any { it.content.contains("Original body") } }
         }
         assertTrue(
-            runBlocking {
-                application.component.noteRepository
-                    .observeNotes(testAccount("alice").localAccountId())
-                    .first()
-                    .none { it.content.contains("Abandoned body") }
-            }
+            runBlocking { notesOf("alice").none { it.content.contains("Abandoned body") } }
         )
     }
 
@@ -1106,12 +1091,7 @@ class AppLaunchTest {
 
         composeRule.onNodeWithTag("finish-editing").performClick()
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking {
-                application.component.noteRepository
-                    .observeNotes(testAccount("alice").localAccountId())
-                    .first()
-                    .any { it.content.contains("typed by hand") }
-            }
+            runBlocking { notesOf("alice").any { it.content.contains("typed by hand") } }
         }
     }
 
@@ -1746,9 +1726,13 @@ class AppLaunchTest {
         composeRule.runOnUiThread { composeRule.activity.acceptShare(intent) }
     }
 
-    private suspend fun notesOf(user: String) = application.component.noteRepository
-        .observeNotes(testAccount(user).localAccountId())
-        .first()
+    private suspend fun notesOf(user: String): List<Note> {
+        val repository = application.component.noteRepository
+        val accountId = testAccount(user).localAccountId()
+        return repository.observeNotes(accountId).first().map {
+            repository.get(it.localId)!!
+        }
+    }
 
     private fun pull(title: String, etag: String, modified: Long, content: String = "# $title") =
         PullResult(
@@ -1795,10 +1779,7 @@ class AppLaunchTest {
 
     /** What the notes of an account hold, read from the repository rather than from the screen. */
     private fun noteContents(user: String): List<String> = runBlocking {
-        application.component.noteRepository
-            .observeNotes(testAccount(user).localAccountId())
-            .first()
-            .map { it.content }
+        notesOf(user).map { it.content }
     }
 
     /**

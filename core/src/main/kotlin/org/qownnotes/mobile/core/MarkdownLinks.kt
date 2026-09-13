@@ -80,7 +80,7 @@ fun isSafeExternalUrl(destination: String): Boolean = runCatching {
 
 fun resolveInternalNoteLink(
     source: Note,
-    accountNotes: List<Note>,
+    accountNotes: List<NoteListEntry>,
     link: InternalNoteLink
 ): ResolvedNoteLink? {
     val candidates = accountNotes.filter { it.accountId == source.accountId }
@@ -93,7 +93,10 @@ fun resolveInternalNoteLink(
     }
     val preferred = matches.filter { it.category.equals(source.category, ignoreCase = true) }
         .ifEmpty { matches }
-        .sortedWith(compareByDescending<Note> { it.modifiedAtEpochSeconds }.thenBy { it.localId })
+        .sortedWith(
+            compareByDescending<NoteListEntry> { it.modifiedAtEpochSeconds }
+                .thenBy { it.localId }
+        )
         .firstOrNull()
         ?: return null
     return ResolvedNoteLink(preferred.localId, link.heading)
@@ -101,9 +104,9 @@ fun resolveInternalNoteLink(
 
 private fun resolveWikiCandidates(
     source: Note,
-    notes: List<Note>,
+    notes: List<NoteListEntry>,
     link: InternalNoteLink
-): List<Note> {
+): List<NoteListEntry> {
     val titleMatches = notes.filter { it.title.equals(link.noteName, ignoreCase = true) }
     val category = link.category ?: return titleMatches
     val relativeCategory = listOf(

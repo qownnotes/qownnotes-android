@@ -9,7 +9,7 @@ import org.qownnotes.mobile.core.SyncState
 
 class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
     override fun observeNotes(accountId: String) =
-        noteDao.observeAll(accountId).map { notes -> notes.map(NoteEntity::toDomain) }
+        noteDao.observeAll(accountId).map { notes -> notes.map(NoteListItemEntity::toDomain) }
 
     override fun searchNotes(
         accountId: String,
@@ -25,7 +25,7 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
             NoteSortOrder.TITLE_ASCENDING -> 1
             NoteSortOrder.TITLE_DESCENDING -> 2
         }
-    ).map { notes -> notes.map(NoteEntity::toDomain) }
+    ).map { notes -> notes.map(NoteListItemEntity::toDomain) }
 
     override fun observeNote(localId: String) = noteDao.observe(localId).map { it?.toDomain() }
 
