@@ -1,0 +1,4 @@
+• Search trashed notes by name in the remote trash dialog
+• Trashed notes now show deletion timestamp on a separate line
+• Fixed crash when Nextcloud SSO returns empty or malformed capabilities
+• Fixed SQLiteBlobTooBigException when loading note lists with large notes
