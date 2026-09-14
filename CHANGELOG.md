@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-14
+
 ### Added
 
 - Relative `attachments/` and `media/` links in note previews can now download the linked file
@@ -238,7 +240,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/qownnotes/qownnotes-android/compare/v0.3.2...v0.3.3

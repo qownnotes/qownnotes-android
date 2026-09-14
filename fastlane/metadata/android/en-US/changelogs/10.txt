@@ -1,0 +1,3 @@
+• Open relative attachments and media links directly from note previews
+• Find text while editing Markdown notes, with match highlighting and navigation
+• Improved reliability for large Nextcloud accounts and malformed server responses
