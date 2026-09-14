@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -2724,6 +2725,34 @@ private fun NoteDetailScreen(
                                         }
                                     },
                                     onInternalLink = onOpen,
+                                    onAttachmentLink = { path ->
+                                        val remoteId = source?.remoteId
+                                        val accountName = account?.ssoAccountName
+                                        if (remoteId != null && !accountName.isNullOrBlank()) {
+                                            scope.launch {
+                                                val result = component.openAttachment(
+                                                    remoteId,
+                                                    path,
+                                                    accountName
+                                                )
+                                                val message = when (result) {
+                                                    AttachmentOpenResult.OPENED -> null
+                                                    AttachmentOpenResult.FETCH_FAILED ->
+                                                        "Unable to download attachment"
+                                                    AttachmentOpenResult.NO_VIEWER ->
+                                                        "No app can open this attachment"
+                                                }
+                                                message?.let {
+                                                    Toast.makeText(
+                                                        view.context,
+                                                        it,
+                                                        Toast.LENGTH_SHORT
+                                                    )
+                                                        .show()
+                                                }
+                                            }
+                                        }
+                                    },
                                     onTaskToggle = if (source != null && !source.readOnly) {
                                         { taskIndex ->
                                             if (!togglingTask) {

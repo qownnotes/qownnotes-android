@@ -95,14 +95,16 @@ class ApplicationComponent(
         )?.use { it.readBytes() }
     }
 ) {
+    private val attachmentHttpClient = NextcloudAttachmentHttpClient { url, accountName ->
+        fetchAttachment(url, accountName, application)
+    }
     val noteRepository = RoomNoteRepository(database.noteDao())
     val accountRepository = RoomAccountRepository(database.accountDao())
     val markdownRenderer = MarkdownRenderer(
         application,
-        NextcloudAttachmentHttpClient { url, accountName ->
-            fetchAttachment(url, accountName, application)
-        }
+        attachmentHttpClient
     )
+    private val attachmentOpener = AttachmentOpener(application, attachmentHttpClient::fetch)
     private val pullStore = RoomPullStore(database)
     private val pushStore = RoomPushStore(database)
     private val clock = Clock.systemDefaultZone()
@@ -308,6 +310,12 @@ class ApplicationComponent(
     }
 
     suspend fun accountAvatar(account: Account) = accountAvatars.load(account)
+
+    internal suspend fun openAttachment(
+        remoteId: Long,
+        path: String,
+        accountName: String
+    ): AttachmentOpenResult = attachmentOpener.open(remoteId, path, accountName)
 
     suspend fun createNote(accountId: String, category: String = ""): Note =
         persistNewNote(noteFactory.create(accountId, category))

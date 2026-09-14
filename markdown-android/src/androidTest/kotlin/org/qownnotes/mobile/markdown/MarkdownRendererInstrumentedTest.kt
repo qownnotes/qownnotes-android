@@ -178,6 +178,44 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun relativeAttachmentLinkDispatchesDecodedPath() {
+        var opened: String? = null
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer(view.context).render(
+                view = view,
+                markdown = "[Manual](attachments/Anleitung%20RO400G-600G.pdf)",
+                onAttachmentLink = { opened = it }
+            )
+            val text = view.text as Spanned
+            text.getSpans(0, text.length, LinkSpan::class.java).single().onClick(view)
+        }
+
+        assertEquals("attachments/Anleitung RO400G-600G.pdf", opened)
+    }
+
+    @Test
+    fun unsafeRelativeAttachmentLinkDoesNotDispatch() {
+        var opened: String? = null
+        lateinit var view: AppCompatTextView
+
+        instrumentation.runOnMainSync {
+            view = textView()
+            MarkdownRenderer(view.context).render(
+                view = view,
+                markdown = "[Secret](attachments/%2E%2E/secret.pdf)",
+                onAttachmentLink = { opened = it }
+            )
+            val text = view.text as Spanned
+            text.getSpans(0, text.length, LinkSpan::class.java).single().onClick(view)
+        }
+
+        assertNull(opened)
+    }
+
+    @Test
     fun rendersBareWebAddressesAsLinks() {
         lateinit var view: AppCompatTextView
 

@@ -228,7 +228,10 @@ Keep Find and Edit directly accessible as icon buttons in the note top bar. Put 
 actions, including text size, versions, rename, trash, and retry, in the three-dot overflow menu so
 the view controls do not require a horizontally scrolling action row.
 
-External links should open through the operating system. Internal note links should navigate inside the application. Broken internal links should be visually distinguishable.
+External links should open through the operating system. Internal note links should navigate inside
+the application. Safe relative `attachments/` and `media/` links in Nextcloud notes should download
+through the authenticated Notes API into private cache and open through a temporary read grant.
+Broken internal links should be visually distinguishable.
 
 ### Selecting and Copying Rendered Text
 

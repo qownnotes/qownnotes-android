@@ -73,6 +73,21 @@ fun parseMarkdownNoteLink(destination: String): InternalNoteLink? {
     )
 }
 
+fun parseRelativeAttachmentLink(destination: String): String? {
+    val uri = runCatching { URI(destination) }.getOrNull() ?: return null
+    if (uri.isAbsolute || uri.rawAuthority != null || uri.rawQuery != null ||
+        uri.rawFragment != null
+    ) {
+        return null
+    }
+    val path = uri.path?.removePrefix("./") ?: return null
+    if (path.startsWith('/') || path.contains('\\') || path.contains('\u0000')) return null
+    val parts = path.split('/')
+    if (parts.size < 2 || parts.any { it.isBlank() || it == "." || it == ".." }) return null
+    if (parts.first().lowercase(Locale.ROOT) !in setOf("attachments", "media")) return null
+    return path
+}
+
 fun isSafeExternalUrl(destination: String): Boolean = runCatching {
     val uri = URI(destination)
     uri.scheme?.lowercase(Locale.ROOT) in setOf("http", "https") && !uri.host.isNullOrBlank()

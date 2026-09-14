@@ -82,6 +82,29 @@ class MarkdownLinksTest {
     }
 
     @Test
+    fun parsesSafeRelativeAttachmentLinks() {
+        assertEquals(
+            "attachments/Anleitung RO400G-600G.pdf",
+            parseRelativeAttachmentLink("attachments/Anleitung%20RO400G-600G.pdf")
+        )
+        assertEquals(
+            "media/archive/file.zip",
+            parseRelativeAttachmentLink("./media/archive/file.zip")
+        )
+    }
+
+    @Test
+    fun rejectsAttachmentLinksOutsideReservedTrees() {
+        assertNull(parseRelativeAttachmentLink("document.pdf"))
+        assertNull(parseRelativeAttachmentLink("https://example.com/attachments/document.pdf"))
+        assertNull(parseRelativeAttachmentLink("/attachments/document.pdf"))
+        assertNull(parseRelativeAttachmentLink("attachments/../secret.pdf"))
+        assertNull(parseRelativeAttachmentLink("attachments/%2E%2E/secret.pdf"))
+        assertNull(parseRelativeAttachmentLink("attachments/document.pdf?download=true"))
+        assertNull(parseRelativeAttachmentLink("attachments\\document.pdf"))
+    }
+
+    @Test
     fun resolvesWikiLinksWithinAccountAndPrefersCurrentCategory() {
         val source = note("source", "Source", "projects", 1)
         val otherAccount = note("other", "Target", "projects", 100, accountId = "other")

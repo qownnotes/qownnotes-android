@@ -41,6 +41,7 @@ import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.isSafeExternalUrl
 import org.qownnotes.mobile.core.parseLegacyNoteLink
 import org.qownnotes.mobile.core.parseMarkdownNoteLink
+import org.qownnotes.mobile.core.parseRelativeAttachmentLink
 import org.qownnotes.mobile.core.parseWikiLink
 import org.qownnotes.mobile.core.redactEncryptedMarkdown
 
@@ -65,7 +66,7 @@ class MarkdownRenderer private constructor(
     )
 
     private val applicationContext = context.applicationContext
-    private val linkHandlers = WeakHashMap<AppCompatTextView, InternalLinkHandler>()
+    private val linkHandlers = WeakHashMap<AppCompatTextView, LinkHandlers>()
     private val attachmentDestinationProcessor = AttachmentDestinationProcessor()
     private val textMarkwon = createMarkwon()
     private val imageMarkwon = createMarkwon(imageSchemeHandler)
@@ -82,6 +83,7 @@ class MarkdownRenderer private constructor(
         markdown: String,
         resolveInternalLink: (InternalNoteLink) -> ResolvedNoteLink? = { null },
         onInternalLink: (ResolvedNoteLink) -> Unit = {},
+        onAttachmentLink: (String) -> Unit = {},
         onTaskToggle: ((Int) -> Unit)? = null,
         heading: String? = null,
         onHeadingPositioned: (Int?) -> Unit = {},
@@ -91,7 +93,7 @@ class MarkdownRenderer private constructor(
     ) {
         attachmentDestinationProcessor.setNoteContext(remoteId)
         attachmentSchemeHandler?.accountName = accountName
-        linkHandlers[view] = InternalLinkHandler(resolveInternalLink, onInternalLink)
+        linkHandlers[view] = LinkHandlers(resolveInternalLink, onInternalLink, onAttachmentLink)
         // Reading a note includes taking text out of it, and copying needs a selection. This is
         // applied before the Markdown because `setTextIsSelectable` re-sets both the text and the
         // movement method, which would otherwise discard what the renderer just installed.
@@ -150,6 +152,9 @@ class MarkdownRenderer private constructor(
                                 parseMarkdownNoteLink(destination) != null -> {
                                     dispatchInternalLink(view, destination)
                                 }
+                                parseRelativeAttachmentLink(destination) != null -> {
+                                    dispatchAttachmentLink(view, destination)
+                                }
                                 isSafeExternalUrl(destination) -> openExternal(destination)
                             }
                         }
@@ -181,7 +186,13 @@ class MarkdownRenderer private constructor(
     private fun dispatchInternalLink(view: android.view.View, destination: String) {
         val textView = view as? AppCompatTextView ?: return
         val handler = linkHandlers[textView] ?: return
-        parseInternalLink(destination)?.let(handler.resolve)?.let(handler.open)
+        parseInternalLink(destination)?.let(handler.resolveInternal)?.let(handler.openInternal)
+    }
+
+    private fun dispatchAttachmentLink(view: android.view.View, destination: String) {
+        val textView = view as? AppCompatTextView ?: return
+        val handler = linkHandlers[textView] ?: return
+        parseRelativeAttachmentLink(destination)?.let(handler.openAttachment)
     }
 
     private fun openExternal(destination: String) {
@@ -259,9 +270,10 @@ private fun attachTaskToggleSpans(view: AppCompatTextView, onTaskToggle: ((Int) 
 
 private const val BLOCKED_IMAGE_DESTINATION = "qon-blocked-image:blocked"
 
-private data class InternalLinkHandler(
-    val resolve: (InternalNoteLink) -> ResolvedNoteLink?,
-    val open: (ResolvedNoteLink) -> Unit
+private data class LinkHandlers(
+    val resolveInternal: (InternalNoteLink) -> ResolvedNoteLink?,
+    val openInternal: (ResolvedNoteLink) -> Unit,
+    val openAttachment: (String) -> Unit
 )
 
 /**

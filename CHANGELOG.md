@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Relative `attachments/` and `media/` links in note previews can now download the linked file
+  through the authenticated Nextcloud Notes API and open it in an installed Android app.
+
 ### Fixed
 
 - Large Nextcloud accounts now prune stale local notes without exceeding older Android SQLite
