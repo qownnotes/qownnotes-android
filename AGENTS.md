@@ -239,5 +239,6 @@ Common types used in this project:
 | `release` | Release preparation commits |
 
 Keep the description imperative, lowercase, and under ~72 characters. Do not capitalize the first
-word or end with a period. Reference issues with `fixes #123` or `closes #123` in the commit body
-when appropriate.
+word or end with a period. If the work has a GitHub issue, include its number in the summary, such
+as `fix: prevent sync failure (#123)`, and reference it with `fixes #123` or `closes #123` in the
+commit body.
