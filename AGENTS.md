@@ -191,6 +191,10 @@ complete. Device tests require an emulator or physical device; use `adb devices`
 available. The project-local API 36 emulator can be created with `just create-avd` and started with
 `just start-emulator`.
 
+Before committing a change that affects instrumentation tests or the behavior they cover, run the
+affected tests locally on the project API 36 emulator. When fixing a device-test CI failure, run
+`just device-test` locally before committing whenever the emulator is available.
+
 Test changes at the boundary they affect:
 
 - `core/src/test`: pure policy and model behavior.
