@@ -37,23 +37,29 @@ Compilation of Android tests does not count as device verification.
 
 ## Environment Record
 
-Create one table for each tested combination:
+Create one table for each tested combination.
+
+### OPPO CPH2653, Android 16
 
 | Component | Version or result |
 | --- | --- |
-| Date | |
-| Git commit | |
-| Device | |
-| Android | |
-| Software keyboard | |
-| Nextcloud server | |
-| Nextcloud Notes app | |
-| Reported Notes API | |
-| Nextcloud Files app | |
-| Canonical title | Not run |
-| HTTP 412 preservation | Not run |
-| Input methods | Not run |
-| Representative large note | Not run |
+| Date | 2026-09-14 |
+| Git commit | Working tree based on `84f5707` |
+| Device | OnePlus/OPPO CPH2653 |
+| Android | 16 / API 36 |
+| Software keyboard | SwiftKey 9.13.14.5 and Gboard 18.1.3 |
+| Nextcloud server | Version not recorded |
+| Nextcloud Notes app | Version not recorded |
+| Reported Notes API | Version not recorded |
+| Nextcloud Files app | 34.1.1 |
+| Canonical title | Pass: `Phase 3 canonical collision` became `Phase 3 canonical collision (2)` |
+| HTTP 412 preservation | Pass: local text remained intact; preserve-local-copy resolution passed |
+| Input methods | Pass with SwiftKey and Gboard |
+| Representative large note | Pass at approximately 100 KiB; see measurements below |
+
+The server-version fields remain required before this environment can establish a supported server
+combination. The adopt-server-only and server-unavailable conflict-resolution paths remain to be
+run against the real server; automated application tests cover both paths.
 
 ## Canonical Title
 
@@ -109,7 +115,10 @@ The phase gate is a representative 100 KiB mixed-Markdown note. A 1 MiB note is 
 not a release blocker unless ordinary editing corrupts or loses text.
 
 The fixture should repeat prose, headings, emphasis, links, task lists, tables, wiki links, YAML
-frontmatter, HTML comments, and fenced code so both Markwon and supplemental highlighting run.
+frontmatter, HTML comments, and fenced code. Source highlighting is intentionally omitted above 64
+KiB after physical testing demonstrated that Android's full-document span updates made text input
+unusable. The rendered view still exercises Markwon, and smaller editor fixtures exercise both
+Markwon and supplemental source highlighting.
 
 For each device and fixture size, record:
 
@@ -123,6 +132,27 @@ For each device and fixture size, record:
 | Formatting and undo | | |
 | Fast scroll beginning to end | | |
 | Rotate and restore | | |
+
+Physical results on the OPPO CPH2653:
+
+| Measurement | 100 KiB | 1 MiB stress |
+| --- | --- | --- |
+| Open note to rendered content | Pass; visible startup delay remains | Not run |
+| Tap Edit to visible caret | Pass; visible startup delay remains | Not run |
+| Continuous typing response | Pass | Not run |
+| Highlight settling after typing | Not applicable: source highlighting is omitted above 64 KiB | Not run |
+| Find first and last match | Pass | Not run |
+| Formatting and undo | Pass | Not run |
+| Fast scroll beginning to end | Pass with inertial swipe and scroll rail | Not run |
+| Rotate and restore | Pass | Not run |
+
+The first 106 KiB diagnostic fixture concentrated Markdown constructs across roughly 10,000 short
+lines. It triggered input-dispatch ANRs and is retained as stress evidence rather than treated as a
+representative note. A Perfetto trace showed a document-height editor between 520,000 and 564,000
+pixels, with one frame taking 4.58 seconds. The bounded editor and large-source fallback reduced
+the measured worst input frame to 1.20 seconds before software drawing was enabled; the final build
+passed the manual responsiveness and exact-text checks. The trace contains device runtime data and
+is intentionally not committed.
 
 The representative note passes when:
 

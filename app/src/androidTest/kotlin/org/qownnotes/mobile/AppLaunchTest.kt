@@ -916,6 +916,40 @@ class AppLaunchTest {
     }
 
     @Test
+    fun conflictMessageRemainsVisibleWhileReadingALongNote() {
+        importAccount(
+            "alice",
+            "Long conflict",
+            "etag-1",
+            10,
+            (1..100).joinToString("\n\n") { "Paragraph $it with local content." }
+        )
+        runBlocking {
+            val note = notesOf("alice").single()
+            application.component.noteRepository.save(
+                note.copy(
+                    syncState = SyncState.CONFLICT,
+                    lastSyncError = "The note changed on the server"
+                )
+            )
+        }
+
+        composeRule.onNodeWithText("Long conflict").performClick()
+        composeRule.waitForTag("note-sync-error")
+        val before = composeRule.onNodeWithTag(
+            "note-sync-error"
+        ).fetchSemanticsNode().boundsInRoot.top
+
+        composeRule.onNodeWithTag("markdown-view").performTouchInput { swipeUp() }
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onNodeWithTag("note-sync-error").fetchSemanticsNode().boundsInRoot.top ==
+                before
+        }
+        composeRule.onNodeWithTag("note-sync-error").assertIsDisplayed()
+    }
+
+    @Test
     fun uncertainInitialUploadKeepsItsIdentityUntilExplicitRetry() {
         val account = importAccount("alice", "Existing note", "etag-1", 10)
         application.fakeBackend.createFailure = BackendException.Retryable(IOException("offline"))
@@ -1387,13 +1421,15 @@ class AppLaunchTest {
         assertTrue("expected selection after the start of the note", selection > 0)
         assertTrue("expected selection before the end of the note", selection < content.length)
 
-        // The editor is taller than its scrolling container, so dragging the rail moves the
-        // editor itself upwards rather than scrolling text inside a fixed view.
-        val before = screenTopOf(R.id.markdown_editor)
+        lateinit var editor: org.qownnotes.mobile.markdown.MarkdownEditText
+        onView(withId(R.id.markdown_editor)).check { view, _ ->
+            editor = view as org.qownnotes.mobile.markdown.MarkdownEditText
+        }
+        val before = editor.scrollY
         composeRule.onNodeWithTag("editor-fast-scroll").assertIsDisplayed()
             .performTouchInput { swipeDown() }
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            screenTopOf(R.id.markdown_editor) < before
+            editor.scrollY > before
         }
     }
 
@@ -1403,7 +1439,6 @@ class AppLaunchTest {
         importAccount("alice", "Long note", "etag-1", 10, content)
         composeRule.onNodeWithText("Long note").performClick()
         composeRule.enterEditMode()
-        val before = screenTopOf(R.id.markdown_editor)
         lateinit var editor: org.qownnotes.mobile.markdown.MarkdownEditText
         onView(withId(R.id.markdown_editor)).check { view, _ ->
             editor = view as org.qownnotes.mobile.markdown.MarkdownEditText
@@ -1415,7 +1450,7 @@ class AppLaunchTest {
 
         composeRule.waitUntil(timeoutMillis = 10_000) { editor.length() > content.length }
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            screenTopOf(R.id.markdown_editor) < before
+            editor.scrollY > 0
         }
     }
 

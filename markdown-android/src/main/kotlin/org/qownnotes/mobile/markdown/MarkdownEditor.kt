@@ -2,18 +2,24 @@ package org.qownnotes.mobile.markdown
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.text.LineBreaker
 import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.text.InputType
+import android.text.Layout
 import android.text.Spanned
 import android.text.TextWatcher
 import android.text.style.ForegroundColorSpan
 import android.util.AttributeSet
+import android.view.GestureDetector
 import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
 import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.OverScroller
 import androidx.appcompat.widget.AppCompatEditText
 import io.noties.markwon.Markwon
 import io.noties.markwon.editor.MarkwonEditor
@@ -23,6 +29,7 @@ import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 enum class MarkdownFormatAction {
@@ -39,6 +46,9 @@ enum class MarkdownFormatAction {
 }
 
 data class MarkdownTextEdit(val text: String, val selectionStart: Int, val selectionEnd: Int)
+
+fun supportsMarkdownSourceHighlighting(sourceLength: Int): Boolean =
+    sourceLength <= MAX_HIGHLIGHTED_SOURCE_LENGTH
 
 fun applyMarkdownFormat(
     source: String,
@@ -145,6 +155,11 @@ private val FENCE = Regex("^ {0,3}(`{3,}|~{3,})(?:[^`]*)$")
 class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
     AppCompatEditText(context, attrs) {
     var onSelectionChanged: ((Int, Int) -> Unit)? = null
+    var onVerticalScrollChanged: ((value: Int, range: Int) -> Unit)? = null
+        set(value) {
+            field = value
+            post(::reportVerticalScroll)
+        }
 
     /** Set and read only on the thread that owns the view, through [onViewThread]. */
     private var inputFocusRequest: Runnable? = null
@@ -152,6 +167,37 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
     // The view hierarchy may only be touched from the thread that created it, which is the thread
     // constructing this view.
     private val viewThread = Handler(Looper.myLooper() ?: Looper.getMainLooper())
+    private val verticalFling = OverScroller(context)
+    private val flingDetector =
+        GestureDetector(
+            context,
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDown(event: MotionEvent): Boolean = true
+
+                override fun onFling(
+                    down: MotionEvent?,
+                    up: MotionEvent,
+                    velocityX: Float,
+                    velocityY: Float
+                ): Boolean {
+                    if (kotlin.math.abs(velocityY) <= kotlin.math.abs(velocityX)) return false
+                    val range = verticalScrollRange()
+                    if (range == 0) return false
+                    verticalFling.fling(
+                        0,
+                        scrollY,
+                        0,
+                        -velocityY.toInt(),
+                        0,
+                        0,
+                        0,
+                        range
+                    )
+                    postInvalidateOnAnimation()
+                    return true
+                }
+            }
+        )
 
     /**
      * Invoked before an edit the writer did not type, such as a formatting action, so that an undo
@@ -165,6 +211,8 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
             InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN
         setHorizontallyScrolling(false)
+        breakStrategy = LineBreaker.BREAK_STRATEGY_SIMPLE
+        hyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE
         // `AppCompatEditText` takes its default style from the AppCompat `editTextStyle` theme
         // attribute. A host theme that is not an AppCompat descendant leaves that attribute
         // undefined, so `Widget.AppCompat.EditText` is never applied and the view stays
@@ -178,6 +226,7 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
         showSoftInputOnFocus = true
         // The editor fills a Compose surface that already supplies padding and background.
         background = null
+        isVerticalScrollBarEnabled = true
     }
 
     /** Gives the editor input focus and asks the input method to open. */
@@ -250,6 +299,38 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
         inputMethodManager()?.restartInput(this)
     }
 
+    fun scrollVerticallyTo(value: Int) {
+        scrollTo(scrollX, value.coerceIn(0, verticalScrollRange()))
+    }
+
+    fun optimizeForLargeDocument() {
+        inputType = inputType or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        flingDetector.onTouchEvent(event)
+        return super.onTouchEvent(event)
+    }
+
+    override fun computeScroll() {
+        super.computeScroll()
+        if (verticalFling.computeScrollOffset()) {
+            scrollTo(scrollX, verticalFling.currY)
+            postInvalidateOnAnimation()
+        }
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        reportVerticalScroll()
+    }
+
+    override fun onScrollChanged(left: Int, top: Int, oldLeft: Int, oldTop: Int) {
+        super.onScrollChanged(left, top, oldLeft, oldTop)
+        reportVerticalScroll()
+    }
+
     override fun onSelectionChanged(selStart: Int, selEnd: Int) {
         super.onSelectionChanged(selStart, selEnd)
         onSelectionChanged?.invoke(selStart, selEnd)
@@ -257,6 +338,16 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
 
     private fun inputMethodManager() =
         context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+
+    private fun reportVerticalScroll() {
+        onVerticalScrollChanged?.invoke(scrollY, verticalScrollRange())
+    }
+
+    private fun verticalScrollRange(): Int {
+        val textLayout = layout ?: return 0
+        val contentBottom = textLayout.getLineBottom(textLayout.lineCount - 1)
+        return (contentBottom + totalPaddingTop + totalPaddingBottom - height).coerceAtLeast(0)
+    }
 }
 
 internal fun replaceChangedRange(target: Editable, before: String, after: String) {
@@ -289,12 +380,19 @@ class MarkdownEditorBinding(
             .usePlugin(TablePlugin.create(context))
             .usePlugin(TaskListPlugin.create(context))
             .build()
-    private val highlightWatcher =
+
+    // Full-document span updates are prohibitively expensive for large editable text. Preserve
+    // responsive, exact source editing there instead of letting decoration block input.
+    val sourceHighlightingEnabled = supportsMarkdownSourceHighlighting(editText.length())
+    private val highlightWatcher = if (sourceHighlightingEnabled) {
         MarkwonEditorTextWatcher.withPreRender(
             MarkwonEditor.create(markwon),
             highlightExecutor,
             editText
         )
+    } else {
+        null
+    }
     private val sourceWatcher =
         object : TextWatcher {
             override fun beforeTextChanged(
@@ -311,8 +409,11 @@ class MarkdownEditorBinding(
             override fun afterTextChanged(source: Editable?) = Unit
         }
     private val listContinuationWatcher = ListContinuationWatcher(editText)
-    private val supplementalSyntaxWatcher =
-        SupplementalSyntaxWatcher(editText, highlightExecutor)
+    private val supplementalSyntaxWatcher = if (sourceHighlightingEnabled) {
+        SupplementalSyntaxWatcher(editText, delayedSupplementalHighlightExecutor)
+    } else {
+        null
+    }
 
     /**
      * Records what the writer changes. Highlighting only adds spans, which does not reach a
@@ -343,19 +444,20 @@ class MarkdownEditorBinding(
     val canRedo: Boolean get() = history.canRedo
 
     init {
+        if (!sourceHighlightingEnabled) editText.optimizeForLargeDocument()
         // Recorded before the other watchers run, so the history holds the change even if
         // highlighting a pathological note fails.
         editText.addTextChangedListener(historyWatcher)
         editText.addTextChangedListener(listContinuationWatcher)
-        editText.addTextChangedListener(highlightWatcher)
+        highlightWatcher?.let(editText::addTextChangedListener)
         editText.addTextChangedListener(sourceWatcher)
-        editText.addTextChangedListener(supplementalSyntaxWatcher)
+        supplementalSyntaxWatcher?.let(editText::addTextChangedListener)
         editText.onEditBoundary = history::breakGroup
         // The app populates the view before attaching this binding, so the watchers do not see
         // that initial change. Highlight the existing source without creating an undo entry or
         // reporting it as a user edit.
-        highlightWatcher.afterTextChanged(editText.text)
-        supplementalSyntaxWatcher.afterTextChanged(editText.text)
+        highlightWatcher?.afterTextChanged(editText.text)
+        supplementalSyntaxWatcher?.afterTextChanged(editText.text)
         publishHistory()
     }
 
@@ -376,9 +478,9 @@ class MarkdownEditorBinding(
         editText.removeTextChangedListener(historyWatcher)
         editText.removeTextChangedListener(listContinuationWatcher)
         editText.removeTextChangedListener(sourceWatcher)
-        editText.removeTextChangedListener(highlightWatcher)
-        editText.removeTextChangedListener(supplementalSyntaxWatcher)
-        supplementalSyntaxWatcher.close()
+        highlightWatcher?.let(editText::removeTextChangedListener)
+        supplementalSyntaxWatcher?.let(editText::removeTextChangedListener)
+        supplementalSyntaxWatcher?.close()
     }
 
     private fun replay(start: Int, remove: String, insert: String): Boolean {
@@ -416,8 +518,14 @@ class MarkdownEditorBinding(
 
     private companion object {
         val highlightExecutor = Executors.newFixedThreadPool(2)
+        val supplementalHighlightExecutor = Executors.newSingleThreadScheduledExecutor()
+        val delayedSupplementalHighlightExecutor = Executor { task ->
+            supplementalHighlightExecutor.schedule(task, 250, TimeUnit.MILLISECONDS)
+        }
     }
 }
+
+private const val MAX_HIGHLIGHTED_SOURCE_LENGTH = 64 * 1024
 
 private class ListContinuationWatcher(private val editText: MarkdownEditText) : TextWatcher {
     private var newlineOffset: Int? = null
@@ -545,15 +653,20 @@ internal class SupplementalSyntaxWatcher(
             viewHandler.post {
                 val editable = editText.text ?: return@post
                 if (requestedGeneration != generation.get()) return@post
-                editable.getSpans(0, editable.length, SupplementalSyntaxSpan::class.java)
-                    .forEach(editable::removeSpan)
-                ranges.forEach { range ->
-                    editable.setSpan(
-                        SupplementalSyntaxSpan(range.syntax),
-                        range.start,
-                        range.end,
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                    )
+                editText.beginBatchEdit()
+                try {
+                    editable.getSpans(0, editable.length, SupplementalSyntaxSpan::class.java)
+                        .forEach(editable::removeSpan)
+                    ranges.forEach { range ->
+                        editable.setSpan(
+                            SupplementalSyntaxSpan(range.syntax),
+                            range.start,
+                            range.end,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                } finally {
+                    editText.endBatchEdit()
                 }
             }
         }

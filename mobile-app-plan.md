@@ -32,7 +32,7 @@ The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account o
 
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, profile-picture account markers, direct two-account switching and a chooser for larger account sets, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete, including the configured CI device job; broader real-server interoperability must be verified before Phase 2 is marked fully complete.
 
-Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, source-text finding, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
+Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, source-text finding, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, keyboard input, a representative 100 KiB note, canonical collision titles, and conflict preservation are verified on the OPPO CPH2653; source highlighting is intentionally omitted above 64 KiB to keep large-note editing responsive. Every listed Phase 3 implementation task is complete, but server-version records, remaining real-server conflict-resolution paths, and a second physical-device input check are still open. See the Phase 3 section for the full list.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -908,6 +908,12 @@ Implemented:
 - Added revision-guarded edit reservations. Opening the editor still prevents a concurrent pull or
   push response from changing the note underneath that editing session, but leaving an unchanged
   session now restores its previous synchronization state instead of queuing an unnecessary update.
+- Fixed physical large-note editing after a trace showed the document-height editor spending up to
+  4.58 seconds in one frame. The editor now keeps a bounded viewport, uses simple software text
+  drawing and inertial scrolling, and omits source highlighting above 64 KiB rather than blocking
+  input. The complete 100 KiB editing checklist passes on the OPPO CPH2653.
+- Kept synchronization and conflict messages outside the rendered note's scrolling container so
+  they remain visible while a long note is scrolled.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 
@@ -932,11 +938,14 @@ The reproducible procedure, environment record, and pass criteria are in
   Nextcloud and Notes server versions. MockWebServer and application fakes cover these paths, but no
   real-server result is recorded. Real-server `POST` creation and formatting-triggered `PUT` updates
   are confirmed.
-- Measure editor responsiveness on representative large notes. Supplemental syntax parsing now has a
-  10,000-section test fixture and runs off the main thread, but typing latency on representative
-  physical devices remains unverified rather than met.
-- Validate non-Latin text, input-method composing text, and additional software keyboards on physical devices.
-- Reconfirm typing on the OPPO CPH2653 running Android 16, where the original defect was reported. The fix is verified on an API 36 emulator only.
+- Repeat large-note responsiveness testing on another physical device. A representative 100 KiB
+  mixed-Markdown note now passes on the OPPO CPH2653 after bounding the editor viewport, enabling
+  simple software text drawing, and omitting source highlighting above 64 KiB. The separate
+  10,000-line stress fixture still exposes long render/edit startup times, and the optional 1 MiB
+  stress diagnostic has not been run.
+- Repeat non-Latin text, input-method composition, and software-keyboard validation on another
+  physical device. SwiftKey and Gboard pass the complete checklist on the OPPO CPH2653 running
+  Android 16.
 
 Resolved physical-device issue recorded on 2026-09-01:
 

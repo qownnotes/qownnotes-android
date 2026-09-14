@@ -1,7 +1,9 @@
 package org.qownnotes.mobile.markdown
 
+import android.graphics.text.LineBreaker
 import android.os.Looper
 import android.text.Editable
+import android.text.Layout
 import android.text.TextWatcher
 import android.view.ContextThemeWrapper
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -37,6 +39,29 @@ class MarkdownEditorInstrumentedTest {
         assertTrue("editor must be focusable in touch mode", view.isFocusableInTouchMode)
         assertTrue("editor must be clickable", view.isClickable)
         assertTrue("editor must show the keyboard on focus", view.showSoftInputOnFocus)
+        assertEquals(LineBreaker.BREAK_STRATEGY_SIMPLE, view.breakStrategy)
+        assertEquals(Layout.HYPHENATION_FREQUENCY_NONE, view.hyphenationFrequency)
+    }
+
+    @Test
+    fun largeSourceKeepsEditingResponsiveByOmittingFullDocumentSpans() {
+        lateinit var view: MarkdownEditText
+        lateinit var binding: MarkdownEditorBinding
+
+        instrumentation.runOnMainSync {
+            view = editor()
+            view.setText("# large heading\n".repeat(5_000))
+            binding = MarkdownEditorBinding(view.context, view) {}
+            view.text!!.append('x')
+        }
+        Thread.sleep(500)
+
+        instrumentation.runOnMainSync {
+            assertTrue(
+                view.text!!.getSpans(0, view.length(), SupplementalSyntaxSpan::class.java).isEmpty()
+            )
+            binding.close()
+        }
     }
 
     /**

@@ -182,6 +182,7 @@ import org.qownnotes.mobile.markdown.NoteSearchColors
 import org.qownnotes.mobile.markdown.NoteTextSize
 import org.qownnotes.mobile.markdown.highlightNoteSearchMatches
 import org.qownnotes.mobile.markdown.noteSearchMatchTop
+import org.qownnotes.mobile.markdown.supportsMarkdownSourceHighlighting
 import org.qownnotes.mobile.markdown.toggleTaskListItem
 
 class MainActivity : ComponentActivity() {
@@ -2026,8 +2027,8 @@ private fun NoteDetailScreen(
         }
         Unit
     }
-    val editorScrollState = rememberScrollState()
-    var editorViewportHeight by remember { mutableIntStateOf(0) }
+    var editorScrollValue by remember { mutableIntStateOf(0) }
+    var editorScrollRange by remember { mutableIntStateOf(0) }
     var renderedView by remember { mutableStateOf<AppCompatTextView?>(null) }
     var editorBinding by remember { mutableStateOf<MarkdownEditorBinding?>(null) }
     var canUndo by remember(localId) { mutableStateOf(false) }
@@ -2073,24 +2074,24 @@ private fun NoteDetailScreen(
         // spans rescale without re-rendering the note.
         renderedView?.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
     }
-    // The editor is taller than its scrolling container, so keep its caret line inside the outer
-    // viewport as typing, formatting, and history actions move the selection.
-    LaunchedEffect(editing, editor, selectionStart, editorViewportHeight) {
+    // Keep the caret line inside the editor's viewport as typing, formatting, and history actions
+    // move the selection.
+    LaunchedEffect(editing, editor, selectionStart) {
         val view = editor ?: return@LaunchedEffect
-        if (!editing || editorViewportHeight == 0) return@LaunchedEffect
+        if (!editing || view.height == 0) return@LaunchedEffect
         withFrameNanos { }
         val layout = view.layout ?: return@LaunchedEffect
         val line = layout.getLineForOffset(selectionStart.coerceIn(0, view.length()))
         val caretTop = layout.getLineTop(line) + view.totalPaddingTop
         val caretBottom = layout.getLineBottom(line) + view.totalPaddingTop
-        val viewportTop = editorScrollState.value
-        val viewportBottom = viewportTop + editorViewportHeight
+        val viewportTop = view.scrollY
+        val viewportBottom = viewportTop + view.height
         val target = when {
             caretTop < viewportTop -> caretTop
-            caretBottom > viewportBottom -> caretBottom - editorViewportHeight
+            caretBottom > viewportBottom -> caretBottom - view.height
             else -> null
         }
-        target?.let { editorScrollState.scrollTo(it.coerceIn(0, editorScrollState.maxValue)) }
+        target?.let(view::scrollVerticallyTo)
     }
     val latestDraft by rememberUpdatedState(draft)
     val latestNote by rememberUpdatedState(note)
@@ -2180,6 +2181,7 @@ private fun NoteDetailScreen(
     LaunchedEffect(editing, finding, findQuery, currentMatch, editor, draft, searchColors) {
         val view = editor ?: return@LaunchedEffect
         if (!editing) return@LaunchedEffect
+        if (!finding && matches.isEmpty()) return@LaunchedEffect
         val found = highlightNoteSearchMatches(
             view = view,
             query = if (finding) findQuery else "",
@@ -2599,81 +2601,79 @@ private fun NoteDetailScreen(
                         )
                     }
                 }
+                if (!supportsMarkdownSourceHighlighting(draft.orEmpty().length)) {
+                    Text(
+                        "Syntax highlighting is off for this large note to keep editing responsive.",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            .testTag("large-note-highlighting-disabled")
+                    )
+                }
                 Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    // The editor is laid out at its full text height inside a scrolling
-                    // container. An `EditText` only drag-scrolls its own text and never flings,
-                    // so scrolling a long note by hand would otherwise crawl line by line. It
-                    // still covers at least the viewport, so tapping below a short note keeps
-                    // opening the keyboard at the end of the text.
-                    BoxWithConstraints(
-                        modifier = Modifier.fillMaxSize()
-                            .onSizeChanged { editorViewportHeight = it.height }
-                    ) {
-                        val viewportHeight = maxHeight
-                        Column(
-                            modifier = Modifier.fillMaxSize().verticalScroll(editorScrollState)
-                        ) {
-                            AndroidView(
-                                factory = { context ->
-                                    MarkdownEditText(context).also { view ->
-                                        view.id = R.id.markdown_editor
-                                        view.setTextSize(
-                                            TypedValue.COMPLEX_UNIT_SP,
-                                            noteTextSizeSp.toFloat()
+                    AndroidView(
+                        factory = { context ->
+                            MarkdownEditText(context).also { view ->
+                                view.id = R.id.markdown_editor
+                                view.setTextSize(
+                                    TypedValue.COMPLEX_UNIT_SP,
+                                    noteTextSizeSp.toFloat()
+                                )
+                                view.setText(draft.orEmpty())
+                                view.setSelection(
+                                    selectionStart.coerceIn(0, view.length()),
+                                    selectionEnd.coerceIn(0, view.length())
+                                )
+                                view.onSelectionChanged = { start, end ->
+                                    selectionStart = start
+                                    selectionEnd = end
+                                }
+                                view.onVerticalScrollChanged = { value, range ->
+                                    editorScrollValue = value
+                                    editorScrollRange = range
+                                }
+                                view.setOnFocusChangeListener { focusedView, hasFocus ->
+                                    if (!hasFocus && editing) {
+                                        component.checkpointDraftInBackground(
+                                            localId,
+                                            (focusedView as MarkdownEditText).text
+                                                ?.toString()
+                                                .orEmpty()
                                         )
-                                        view.setText(draft.orEmpty())
-                                        view.setSelection(
-                                            selectionStart.coerceIn(0, view.length()),
-                                            selectionEnd.coerceIn(0, view.length())
-                                        )
-                                        view.onSelectionChanged = { start, end ->
-                                            selectionStart = start
-                                            selectionEnd = end
-                                        }
-                                        view.setOnFocusChangeListener { focusedView, hasFocus ->
-                                            if (!hasFocus && editing) {
-                                                component.checkpointDraftInBackground(
-                                                    localId,
-                                                    (focusedView as MarkdownEditText).text
-                                                        ?.toString()
-                                                        .orEmpty()
-                                                )
-                                            }
-                                        }
-                                        editorBinding = MarkdownEditorBinding(
-                                            context,
-                                            view,
-                                            onHistoryChanged = { undoable, redoable ->
-                                                canUndo = undoable
-                                                canRedo = redoable
-                                            }
-                                        ) {
-                                            component.cacheDraft(localId, it)
-                                            draft = it
-                                        }
-                                        editor = view
-                                        if (!finding) view.focusForInput()
                                     }
-                                },
-                                update = { view ->
-                                    if (view.currentTextColor != editorTextColor) {
-                                        view.setTextColor(editorTextColor)
+                                }
+                                editorBinding = MarkdownEditorBinding(
+                                    context,
+                                    view,
+                                    onHistoryChanged = { undoable, redoable ->
+                                        canUndo = undoable
+                                        canRedo = redoable
                                     }
-                                },
-                                onRelease = { view ->
-                                    editorBinding?.close()
-                                    editorBinding = null
-                                    editor = null
-                                    view.releaseInputFocus()
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                                    .heightIn(min = viewportHeight)
-                                    .testTag("markdown-editor")
-                            )
-                        }
-                    }
+                                ) {
+                                    component.cacheDraft(localId, it)
+                                    draft = it
+                                }
+                                editor = view
+                                if (!finding) view.focusForInput()
+                            }
+                        },
+                        update = { view ->
+                            if (view.currentTextColor != editorTextColor) {
+                                view.setTextColor(editorTextColor)
+                            }
+                        },
+                        onRelease = { view ->
+                            editorBinding?.close()
+                            editorBinding = null
+                            editor = null
+                            view.onVerticalScrollChanged = null
+                            view.releaseInputFocus()
+                        },
+                        modifier = Modifier.fillMaxSize().padding(end = 48.dp)
+                            .testTag("markdown-editor")
+                    )
                     EditorFastScroller(
-                        scrollState = editorScrollState,
+                        scrollValue = editorScrollValue,
+                        scrollRange = editorScrollRange,
+                        onScrollTo = { editor?.scrollVerticallyTo(it) },
                         modifier = Modifier.align(Alignment.CenterEnd)
                     )
                 }
@@ -2704,31 +2704,31 @@ private fun NoteDetailScreen(
                         }
                     )
                 }
+                note?.lastSyncError?.let { message ->
+                    ExpandableSyncError(
+                        message = message,
+                        technicalDetails = noteSyncDiagnostics[localId],
+                        testTag = "note-sync-error",
+                        modifier = Modifier.padding(16.dp)
+                    )
+                    if (note?.syncState == SyncState.CONFLICT) {
+                        Text(
+                            "Your local changes are safe on this device.",
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        TextButton(
+                            onClick = {
+                                conflictResolutionError = null
+                                showConflictResolution = true
+                            },
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                                .testTag("resolve-note-conflict")
+                        ) { Text("Resolve conflict") }
+                    }
+                }
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(scrollState)
                 ) {
-                    note?.lastSyncError?.let { message ->
-                        ExpandableSyncError(
-                            message = message,
-                            technicalDetails = noteSyncDiagnostics[localId],
-                            testTag = "note-sync-error",
-                            modifier = Modifier.padding(16.dp)
-                        )
-                        if (note?.syncState == SyncState.CONFLICT) {
-                            Text(
-                                "Your local changes are safe on this device.",
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                            TextButton(
-                                onClick = {
-                                    conflictResolutionError = null
-                                    showConflictResolution = true
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                                    .testTag("resolve-note-conflict")
-                            ) { Text("Resolve conflict") }
-                        }
-                    }
                     AndroidView(
                         factory = { context ->
                             AppCompatTextView(context).also {
@@ -3214,9 +3214,23 @@ private fun CategoryDestinationRow(
 
 @Composable
 internal fun EditorFastScroller(scrollState: ScrollState, modifier: Modifier = Modifier) {
-    val scrollRange = scrollState.maxValue
-    if (scrollRange <= 0) return
     val scope = rememberCoroutineScope { UiDispatcher }
+    EditorFastScroller(
+        scrollValue = scrollState.value,
+        scrollRange = scrollState.maxValue,
+        onScrollTo = { value -> scope.launch { scrollState.scrollTo(value) } },
+        modifier = modifier
+    )
+}
+
+@Composable
+internal fun EditorFastScroller(
+    scrollValue: Int,
+    scrollRange: Int,
+    onScrollTo: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (scrollRange <= 0) return
     BoxWithConstraints(
         modifier = modifier.fillMaxHeight().width(48.dp)
             .semantics { contentDescription = "Editor fast scroll" }
@@ -3231,15 +3245,15 @@ internal fun EditorFastScroller(scrollState: ScrollState, modifier: Modifier = M
             trackHeight * viewportHeight / contentHeight
         ).coerceAtMost(trackHeight)
         val travel = trackHeight - thumbHeight
-        val thumbOffset = if (scrollRange == 0) 0F else travel * scrollState.value / scrollRange
+        val thumbOffset = if (scrollRange == 0) 0F else travel * scrollValue / scrollRange
         fun scrollTo(pointerY: Float) {
             val fraction = ((pointerY - thumbHeight / 2F) / travel).coerceIn(0F, 1F)
-            scope.launch { scrollState.scrollTo((scrollRange * fraction).roundToInt()) }
+            onScrollTo((scrollRange * fraction).roundToInt())
         }
         Box(
             modifier = Modifier.fillMaxSize()
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35F))
-                .pointerInput(scrollState, scrollRange, trackHeight, thumbHeight) {
+                .pointerInput(scrollRange, trackHeight, thumbHeight) {
                     detectVerticalDragGestures(
                         onDragStart = { scrollTo(it.y) },
                         onVerticalDrag = { change, _ ->

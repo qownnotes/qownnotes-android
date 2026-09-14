@@ -7,6 +7,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Large-note editing now prioritizes responsive, exact text entry: source highlighting is omitted
+  above 64 KiB, while formatting, Find, undo/redo, and persistence remain available.
+
+### Fixed
+
+- Large Markdown notes no longer lay out the editor as a document-height Android view. The bounded
+  editor uses a cheaper text layout and drawing path while retaining inertial swipe and rail
+  scrolling.
+- Conflict and synchronization errors remain visible while the note body scrolls.
+
 ## [0.6.0] - 2026-09-14
 
 ### Added

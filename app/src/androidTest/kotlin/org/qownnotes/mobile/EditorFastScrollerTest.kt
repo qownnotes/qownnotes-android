@@ -1,11 +1,7 @@
 package org.qownnotes.mobile
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
@@ -29,28 +25,14 @@ class EditorFastScrollerTest {
     private val scrollState = mutableStateOf(0)
     private val maximumScroll = mutableStateOf(0)
 
-    /**
-     * A flick with the thumb, which is what reading through a long note actually uses. An
-     * `EditText` scrolls its own text without any fling, so this only travels far when the editor
-     * is hosted in a scrolling container.
-     */
     @Test
-    fun flingingTheEditorCoastsThroughTheNote() {
+    fun largeEditorStaysAtViewportHeightAndScrollsQuickly() {
         showEditor()
+
+        assertTrue("editor must expose a large internal range", maximumScroll.value > 2_000)
 
         composeRule.onNodeWithTag("editor-host").performTouchInput { swipeUp() }
-        composeRule.waitForIdle()
-
-        // A drag of roughly one viewport that only moved the text by a few lines has no fling.
-        assertTrue(
-            "expected the flick to coast, but it stopped at ${scrollState.value}",
-            scrollState.value > 1_000
-        )
-    }
-
-    @Test
-    fun draggingTheRailMovesThroughMostOfTheNote() {
-        showEditor()
+        composeRule.waitUntil(timeoutMillis = 10_000) { scrollState.value > 1_000 }
 
         composeRule.onNodeWithTag("editor-fast-scroll").performTouchInput { swipeDown() }
         composeRule.waitForIdle()
@@ -66,28 +48,26 @@ class EditorFastScrollerTest {
         composeRule.setContent {
             MaterialTheme {
                 Box(modifier = Modifier.size(width = 320.dp, height = 480.dp)) {
-                    val editorScrollState = rememberScrollState()
-                    scrollState.value = editorScrollState.value
-                    maximumScroll.value = editorScrollState.maxValue
-                    Column(
-                        modifier = Modifier.size(width = 320.dp, height = 480.dp)
-                            .verticalScroll(editorScrollState)
-                            .testTag("editor-host")
-                    ) {
-                        AndroidView(
-                            factory = { context ->
-                                MarkdownEditText(context).also { view ->
-                                    editor.value = view
-                                    view.setText(
-                                        (1..300).joinToString("\n") { "Long editor line $it" }
-                                    )
+                    AndroidView(
+                        factory = { context ->
+                            MarkdownEditText(context).also { view ->
+                                editor.value = view
+                                view.onVerticalScrollChanged = { value, range ->
+                                    scrollState.value = value
+                                    maximumScroll.value = range
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                                view.setText(
+                                    (1..300).joinToString("\n") { "Long editor line $it" }
+                                )
+                            }
+                        },
+                        modifier = Modifier.size(width = 320.dp, height = 480.dp)
+                            .testTag("editor-host")
+                    )
                     EditorFastScroller(
-                        scrollState = editorScrollState,
+                        scrollValue = scrollState.value,
+                        scrollRange = maximumScroll.value,
+                        onScrollTo = { editor.value?.scrollVerticallyTo(it) },
                         modifier = Modifier.align(Alignment.CenterEnd)
                     )
                 }
