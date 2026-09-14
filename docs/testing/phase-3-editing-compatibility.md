@@ -10,14 +10,16 @@ this document. Record only public software versions and non-sensitive results.
 
 The automated suites verify:
 
-- Offline creation and editing with stable local identities and persisted revisions.
+- Offline creation and editing with stable local identities, persisted revisions, and explicit
+  retry after an uncertain initial upload without creating a duplicate local note.
 - Debounced, periodic, focus-loss, lifecycle, and recreation draft checkpoints.
 - Highlighting that preserves source text, selection, and stale-result safety.
 - Formatting, list continuation, session-scoped undo and redo, and source-text finding.
 - Notes API `POST`, ETag-protected `PUT`, canonical response adoption, HTTP 404 and 412
   classification, and rejection of empty, incomplete, or wrong-note canonical responses.
 - Transactional application of canonical writes and protection against stale write responses.
-- Application-level canonical-title adoption and conflict-state transitions that retain local text.
+- Application-level canonical-title adoption, conflict-state transitions that retain local text,
+  and failed conflict resolution that leaves the original note unchanged.
 
 Run the host-side checks with:
 

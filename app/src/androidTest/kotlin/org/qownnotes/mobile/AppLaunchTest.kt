@@ -870,17 +870,19 @@ class AppLaunchTest {
 
     @Test
     fun creationAdoptsTheCanonicalServerTitle() {
-        importAccount("alice", "Existing note", "etag-1", 10)
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
         application.fakeBackend.nextCanonicalTitle = "Canonical server title"
 
-        listAction("create-note")
-        composeRule.waitForTag("markdown-editor")
-        composeRule.onNodeWithTag("finish-editing").performClick()
-
-        composeRule.waitForText("Canonical server title")
-        val created = runBlocking {
-            notesOf("alice").single { it.title == "Canonical server title" }
+        val localId = runBlocking {
+            application.component.createNote(account.localAccountId()).localId
         }
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                application.component.noteRepository.get(localId)?.title == "Canonical server title"
+            }
+        }
+        val created = runBlocking { application.component.noteRepository.get(localId)!! }
         assertEquals(SyncState.SYNCHRONIZED, created.syncState)
         assertEquals("Canonical server title", created.lastSyncedTitle)
         assertTrue(created.remoteId != null)
@@ -911,6 +913,43 @@ class AppLaunchTest {
         assertEquals(SyncState.CONFLICT, conflicted.syncState)
         assertEquals("The note changed on the server", conflicted.lastSyncError)
         assertEquals("# Existing note\n\nBase content", conflicted.lastSyncedContent)
+    }
+
+    @Test
+    fun uncertainInitialUploadKeepsItsIdentityUntilExplicitRetry() {
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
+        application.fakeBackend.createFailure = BackendException.Retryable(IOException("offline"))
+
+        val localId = runBlocking {
+            application.component.createNote(account.localAccountId()).localId
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                application.component.noteRepository.get(localId)?.syncState == SyncState.FAILED
+            }
+        }
+        val failed = runBlocking { application.component.noteRepository.get(localId)!! }
+        composeRule.onNodeWithText(failed.title).performClick()
+        composeRule.waitForTag("markdown-view")
+        composeRule.onNodeWithTag("note-menu").performClick()
+        composeRule.waitForTag("retry-note")
+        assertTrue(failed.content.startsWith("# ${failed.title}\n\n"))
+        assertEquals(SyncState.FAILED, failed.syncState)
+        assertEquals(null, failed.remoteId)
+
+        composeRule.onNodeWithTag("retry-note").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                application.component.noteRepository.get(failed.localId)?.syncState ==
+                    SyncState.SYNCHRONIZED
+            }
+        }
+        val notes = runBlocking { notesOf("alice") }
+        val synchronized = notes.single { it.localId == failed.localId }
+        assertEquals(failed.localId, synchronized.localId)
+        assertTrue(synchronized.remoteId != null)
+        assertEquals(failed.content, synchronized.content)
     }
 
     @Test
@@ -960,6 +999,45 @@ class AppLaunchTest {
         assertEquals(SyncState.SYNCHRONIZED, notes.single { it.localId == localId }.syncState)
         assertTrue(notes.single { it.localId != localId }.title.endsWith("(local conflict copy)"))
         assertTrue(application.fakeBackend.pushedNotes.any { it.content.contains("Local content") })
+    }
+
+    @Test
+    fun failedConflictFetchLeavesTheConflictUnchanged() {
+        importAccount(
+            "alice",
+            "Existing note",
+            "etag-1",
+            10,
+            "# Existing note\n\nBase content"
+        )
+        val before = runBlocking {
+            val note = notesOf("alice").single()
+            application.component.noteRepository.save(
+                note.copy(
+                    content = "# Existing note\n\nLocal content",
+                    syncState = SyncState.CONFLICT,
+                    lastSyncError = "The note changed on the server"
+                )
+            )
+            application.component.noteRepository.get(note.localId)!!
+        }
+        application.fakeBackend.getFailure = BackendException.Retryable(IOException("offline"))
+
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.waitForTag("resolve-note-conflict")
+        composeRule.onNodeWithTag("resolve-note-conflict").performClick()
+        composeRule.onNodeWithTag("keep-local-conflict-copy").performClick()
+
+        composeRule.waitForText("The server could not be reached")
+        val notes = runBlocking { notesOf("alice") }
+        val after = notes.single()
+        assertEquals(before.localId, after.localId)
+        assertEquals(before.content, after.content)
+        assertEquals(before.remoteEtag, after.remoteEtag)
+        assertEquals(before.localRevision, after.localRevision)
+        assertEquals(SyncState.CONFLICT, after.syncState)
+        assertEquals("The note changed on the server", after.lastSyncError)
+        assertTrue(application.fakeBackend.pushedNotes.isEmpty())
     }
 
     /**
@@ -1292,7 +1370,13 @@ class AppLaunchTest {
         importAccount("alice", "Long note", "etag-1", 10, content)
         composeRule.onNodeWithText("Long note").performClick()
         composeRule.waitForTag("markdown-view")
-        composeRule.onNodeWithTag("markdown-view").performTouchInput { swipeUp() }
+        val renderedTopBeforeScroll = screenTopOf(R.id.markdown_view)
+        composeRule.onNodeWithTag("markdown-view").performTouchInput {
+            swipeUp(durationMillis = 1_000)
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            screenTopOf(R.id.markdown_view) < renderedTopBeforeScroll
+        }
 
         composeRule.enterEditMode()
 

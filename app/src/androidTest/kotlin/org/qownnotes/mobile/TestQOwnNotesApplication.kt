@@ -113,6 +113,8 @@ class FakePullBackend :
     val settingsByAccount = mutableMapOf<String, NoteSettings>()
     val settingsUpdates = mutableListOf<Pair<String, NoteSettings>>()
     var validationGate: CompletableDeferred<Unit>? = null
+    var createFailure: Throwable? = null
+    var getFailure: Throwable? = null
     var updateFailure: Throwable? = null
     var nextCanonicalTitle: String? = null
     val remoteNotes = mutableMapOf<Long, RemoteNote>()
@@ -135,10 +137,19 @@ class FakePullBackend :
             )
     }
 
-    override suspend fun get(account: Account, remoteId: Long): RemoteNote =
-        remoteNotes[remoteId] ?: error("No remote note $remoteId was configured")
+    override suspend fun get(account: Account, remoteId: Long): RemoteNote {
+        getFailure?.let {
+            getFailure = null
+            throw it
+        }
+        return remoteNotes[remoteId] ?: error("No remote note $remoteId was configured")
+    }
 
     override suspend fun create(account: Account, note: Note): RemoteNote {
+        createFailure?.let {
+            createFailure = null
+            throw it
+        }
         pushedNotes += note
         return canonical(note, remoteId = nextRemoteId++)
     }
@@ -212,6 +223,8 @@ class FakePullBackend :
         settingsUpdates.clear()
         validationGate?.cancel()
         validationGate = null
+        createFailure = null
+        getFailure = null
         updateFailure = null
         nextCanonicalTitle = null
         remoteNotes.clear()

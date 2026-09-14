@@ -842,12 +842,16 @@ Status: In progress
 Implemented:
 
 - Added QOwnNotes-compatible offline note creation with stable local identities and immediate editor navigation.
+- Added application-level coverage that a failed initial upload keeps the complete local note and
+  stable UUID, then synchronizes that same note through explicit retry without creating a duplicate.
 - Added an `AppCompatEditText` Markdown source editor with asynchronous Markwon highlighting, supplemental QOwnNotes syntax highlighting, cursor preservation, and a mobile formatting toolbar.
 - Added debounced and periodic Room draft persistence, lifecycle flushing, and application-scoped draft retention across activity recreation.
 - Added Room schema version 3 with monotonically increasing local revisions so stale write responses cannot replace newer editor content.
 - Added Notes API `POST` creation and `PUT` updates with quoted `If-Match` ETags, strict canonical-response validation, and explicit conflict, missing-note, and insufficient-storage failures.
 - Added conflict resolution that fetches the current note directly and either adopts it or first
-  preserves the local version as a new note. A failed fetch leaves the conflict unchanged.
+  preserves the local version as a new note. Application-level coverage verifies that a failed
+  fetch leaves the original content, ETag, revision, and conflict state unchanged without creating
+  a local copy.
 - Added transactional canonical response application that adopts server IDs, ETags, and sanitized titles while preserving newer local content.
 - Added application-level regression coverage proving that creation adopts a changed canonical
   server title and that a backend conflict keeps local content while moving the note to the explicit
