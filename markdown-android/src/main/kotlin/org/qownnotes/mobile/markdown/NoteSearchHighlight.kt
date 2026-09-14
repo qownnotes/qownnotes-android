@@ -21,12 +21,13 @@ data class NoteSearchColors(
 
 /**
  * Highlights every occurrence of [query] in the text that [view] already displays and returns the
- * matched ranges in document order. [currentMatch] indexes those ranges; an index outside them
- * simply leaves every match drawn in the ordinary match colors.
+ * matched ranges in document order. The view can contain either rendered text or editable Markdown
+ * source. [currentMatch] indexes those ranges; an index outside them simply leaves every match
+ * drawn in the ordinary match colors.
  *
- * The search runs over the displayed text rather than over the Markdown source, because that is
- * what the reader is looking at. Rendering removes the source markers and shifts every offset, so
- * source offsets cannot be used to mark up the rendered note.
+ * The search runs over the text held by the view. A rendered view therefore searches what the
+ * reader sees, while an editor searches its exact Markdown source. Rendering removes source
+ * markers and shifts every offset, so ranges cannot be shared between those representations.
  *
  * Only the spans added here are removed, so Markdown rendering and editor highlighting survive a
  * search. A blank query removes the highlights and reports no matches, which is also how the

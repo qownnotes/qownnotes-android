@@ -32,7 +32,7 @@ The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account o
 
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, profile-picture account markers, direct two-account switching and a chooser for larger account sets, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete, including the configured CI device job; broader real-server interoperability must be verified before Phase 2 is marked fully complete.
 
-Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
+Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, source-text finding, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, and keyboard input are fixed and covered by device tests. Every listed Phase 3 task is implemented, but the phase is not complete: large-note responsiveness, real-server title sanitization and conflict behavior, and physical-device input methods are unverified. See the Phase 3 section for the full list.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -849,6 +849,9 @@ Implemented:
 - Added conflict resolution that fetches the current note directly and either adopts it or first
   preserves the local version as a new note. A failed fetch leaves the conflict unchanged.
 - Added transactional canonical response application that adopts server IDs, ETags, and sanitized titles while preserving newer local content.
+- Added application-level regression coverage proving that creation adopts a changed canonical
+  server title and that a backend conflict keeps local content while moving the note to the explicit
+  conflict state. MockWebServer separately verifies that HTTP 412 is classified as that conflict.
 - Added API, migration, repository, formatting, highlighting, read-only, creation, editing, and recreation coverage.
 - Fixed the editor focus and IME defect recorded on 2026-09-01. `AppCompatEditText` resolves its default style from the AppCompat `editTextStyle` theme attribute, which only exists in `Theme.AppCompat` descendants. The application theme derived from the framework `Theme.Material.Light.NoActionBar`, so `Widget.AppCompat.EditText` was never applied and the editor was left focusable but not focusable in touch mode, making a cursor and keyboard unreachable by tapping.
 - Rebased the application theme on `Theme.AppCompat.DayNight.NoActionBar` so hosted AppCompat widgets get their intended styles and follow the system dark mode like the Compose theme.
@@ -860,6 +863,11 @@ Implemented:
 - Added an adjustable note text size, requested during Phase 3 rather than planned. `A-` and `A+` controls on the note screen step through discrete `sp` sizes, apply to both the rendered note and the source editor, persist in `SharedPreferences`, survive process death, and carry accessibility descriptions. Rendered headings and code rescale without re-rendering because Markwon sizes them relative to the view.
 - Added selecting and copying rendered note text, requested during Phase 3 rather than planned. The rendered view is selectable, and links stay tappable through a movement method that selects arbitrarily and only follows a link on a short, stationary touch. Device tests cover the long-press selection gesture, copying to the clipboard, and that the note still scrolls.
 - Added finding text inside the open note, requested during Phase 3 rather than planned. A find bar on the note screen marks every match in the rendered note, marks and scrolls to the current one, reports the position in the matches, and wraps around at both ends. Matching is portable policy in `core`; only the span application and the offset lookup are Android. The find highlights are a private span type, so they can be removed again without disturbing the Markdown spans they are drawn over.
+- Extended finding to edit mode. The same literal, case-insensitive matching policy searches the
+  Markdown source, including its punctuation, while private spans mark every match without changing
+  the draft or editor highlighting. Previous and next select and scroll to the current match, the
+  find bar temporarily replaces the formatting toolbar to preserve keyboard space, and closing it
+  restores editor focus.
 - Added creating a note from text another application shares, requested during Phase 3 rather than planned. The application is a share target for text, the sharing application's subject names the note, the shared text follows that name as the body, and the new note opens. A share arriving before any account exists waits and is explained on the onboarding screen. Which note the text becomes is portable policy in `core`; only reading the intent and delivering it into the running activity are Android. Verified on a physical Android 16 device for a cold start and for a share into the running application.
 - Added undo and redo. Toolbar controls step through an editor-owned history that groups a burst of typing, an input method rewriting its composing region, and consecutive deletions into single steps, ends a group at a line break, and makes each formatting action its own step. The grouping rules are structural rather than time-based and are unit-tested on the JVM; only replaying a change into the widget is Android. Replaying clears the composing state and restarts the input method, and a history that no longer matches the text is discarded rather than replayed at a guessed position.
 - Added on-demand note version and remote trash access through QOwnNotesAPI 0.4.4 or newer. Version
@@ -895,10 +903,15 @@ Implemented:
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 
-Known scope gaps:
+Scope decisions:
 
-- The undo history covers an editing session, not the note. It starts empty every time the editor opens, so leaving edit mode, rotating the device, or process death all discard it. Persisted editor text is unaffected. Decide whether a longer-lived history is worth serializing before this is called finished.
-- Finding text works while reading a note but not while editing one. The editor shows the Markdown source, so it needs its own matching pass and its own way of moving the caret to a match, and the find bar would compete with the formatting toolbar and the keyboard for space. Decide whether the editor gets its own find affordance before this is called complete.
+- The undo history covers an editing session, not the note, as specified in the Undo and Redo
+  requirements. It starts empty every time the editor opens, so leaving edit mode, rotating the
+  device, or process death discards it. Persisted editor text is unaffected; transient history is
+  deliberately not serialized.
+- Finding text works in both reading and editing modes. Reading searches rendered text, while
+  editing searches the exact Markdown source and temporarily replaces the formatting toolbar with
+  the find bar.
 - User preferences remain in `AppSettings`. The note list now has a Settings dialog for list
   preferences; note text size remains an in-context reader control rather than a duplicate setting.
 
@@ -1056,6 +1069,7 @@ Test rendered output and editor highlighting separately because they use differe
 - Text selection, copying, and link tapping in the rendered note
 - Cursor and selection stability during highlighting
 - Undo and redo from the toolbar, including that a formatting action is a single step
+- Finding rendered text and Markdown source without changing either representation
 - Input methods, composing text, and non-Latin text
 - Large-note responsiveness
 - Rotation and process recreation

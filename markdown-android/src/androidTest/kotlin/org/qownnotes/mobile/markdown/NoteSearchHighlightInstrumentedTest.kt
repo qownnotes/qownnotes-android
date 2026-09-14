@@ -1,7 +1,9 @@
 package org.qownnotes.mobile.markdown
 
 import android.graphics.Color
+import android.graphics.Typeface
 import android.text.Spanned
+import android.text.style.StyleSpan
 import android.view.ContextThemeWrapper
 import android.view.View.MeasureSpec
 import android.widget.TextView
@@ -69,6 +71,29 @@ class NoteSearchHighlightInstrumentedTest {
     }
 
     @Test
+    fun searchesEditableMarkdownSourceAndKeepsItsEditorSpans() {
+        lateinit var editor: MarkdownEditText
+        lateinit var sourceMatches: List<IntRange>
+        lateinit var wordMatches: List<IntRange>
+
+        instrumentation.runOnMainSync {
+            editor = MarkdownEditText(themedContext())
+            editor.setText("# Recipe\n\nAdd **salt**, then salt.", TextView.BufferType.EDITABLE)
+            editor.text?.setSpan(StyleSpan(Typeface.BOLD), 14, 22, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sourceMatches =
+                highlightNoteSearchMatches(editor, "**salt**", currentMatch = 0, colors = colors)
+            wordMatches =
+                highlightNoteSearchMatches(editor, "salt", currentMatch = 1, colors = colors)
+        }
+
+        assertEquals(listOf(14 until 22), sourceMatches)
+        assertEquals(listOf(16 until 20, 29 until 33), wordMatches)
+        assertEquals("# Recipe\n\nAdd **salt**, then salt.", editor.text.toString())
+        assertEquals(1, editor.spanned().getSpans(0, editor.length(), StyleSpan::class.java).size)
+        assertEquals(Color.BLUE, editor.highlights()[1].backgroundColor)
+    }
+
+    @Test
     fun blankQueryRemovesTheHighlightsItAddedBefore() {
         lateinit var view: AppCompatTextView
         lateinit var cleared: List<IntRange>
@@ -108,19 +133,19 @@ class NoteSearchHighlightInstrumentedTest {
         assertTrue("expected the last match at $last to sit below the first", last!! > 0)
     }
 
-    private fun AppCompatTextView.spanned() = text as Spanned
+    private fun TextView.spanned() = text as Spanned
 
-    private fun AppCompatTextView.highlights(): List<NoteSearchHighlightSpan> =
+    private fun TextView.highlights(): List<NoteSearchHighlightSpan> =
         spanned().getSpans(0, length(), NoteSearchHighlightSpan::class.java)
             .sortedBy(spanned()::getSpanStart)
 
-    private fun textView(text: String): AppCompatTextView {
-        val context = ContextThemeWrapper(
-            instrumentation.targetContext,
-            androidx.appcompat.R.style.Theme_AppCompat
-        )
-        return AppCompatTextView(context).apply {
+    private fun textView(text: String): AppCompatTextView =
+        AppCompatTextView(themedContext()).apply {
             setText(text, TextView.BufferType.SPANNABLE)
         }
-    }
+
+    private fun themedContext() = ContextThemeWrapper(
+        instrumentation.targetContext,
+        androidx.appcompat.R.style.Theme_AppCompat
+    )
 }

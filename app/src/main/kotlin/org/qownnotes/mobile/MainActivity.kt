@@ -2039,6 +2039,13 @@ private fun NoteDetailScreen(
     var findQuery by rememberSaveable(localId) { mutableStateOf("") }
     var currentMatch by rememberSaveable(localId) { mutableStateOf(0) }
     var matches by remember(localId) { mutableStateOf(emptyList<IntRange>()) }
+    val closeFind = {
+        finding = false
+        findQuery = ""
+        currentMatch = 0
+        if (editing) editor?.focusForInput()
+        Unit
+    }
     var versionsState by remember(localId) {
         mutableStateOf<ArchiveLoadState<RemoteNoteVersion>>(ArchiveLoadState.Idle)
     }
@@ -2152,15 +2159,13 @@ private fun NoteDetailScreen(
             leaveEditMode()
         }
     }
-    BackHandler(enabled = finding && !editing) {
-        finding = false
-        findQuery = ""
-        currentMatch = 0
-    }
+    // Registered after the edit-mode handler so Back closes Find before it leaves the editor.
+    BackHandler(enabled = finding) { closeFind() }
     LaunchedEffect(localId, navigationRequest) {
         if (heading == null) scrollState.scrollTo(0)
     }
     LaunchedEffect(matches, currentMatch, renderedView) {
+        if (editing) return@LaunchedEffect
         val view = renderedView ?: return@LaunchedEffect
         val match = matches.getOrNull(currentMatch) ?: return@LaunchedEffect
         // A note that has just been rendered has no layout yet, and offsets cannot be resolved
@@ -2171,6 +2176,23 @@ private fun NoteDetailScreen(
                 noteSearchMatchTop(view, match)
             }
         top?.let { scrollState.scrollTo(it) }
+    }
+    LaunchedEffect(editing, finding, findQuery, currentMatch, editor, draft, searchColors) {
+        val view = editor ?: return@LaunchedEffect
+        if (!editing) return@LaunchedEffect
+        val found = highlightNoteSearchMatches(
+            view = view,
+            query = if (finding) findQuery else "",
+            currentMatch = currentMatch,
+            colors = searchColors
+        )
+        if (found != matches) matches = found
+        if (found.isNotEmpty() && currentMatch !in found.indices) {
+            currentMatch = found.lastIndex
+            return@LaunchedEffect
+        }
+        val match = found.getOrNull(currentMatch) ?: return@LaunchedEffect
+        view.setSelection(match.first, match.last + 1)
     }
     val showVersions = {
         val requestId = ++versionsRequestId
@@ -2236,19 +2258,16 @@ private fun NoteDetailScreen(
                     },
                     actions = {
                         val current = note
+                        IconButton(
+                            onClick = {
+                                finding = !finding
+                                if (!finding) closeFind()
+                            },
+                            modifier = Modifier.testTag("find-in-note")
+                        ) {
+                            Icon(Icons.Filled.Search, contentDescription = "Find in note")
+                        }
                         if (!editing) {
-                            IconButton(
-                                onClick = {
-                                    finding = !finding
-                                    if (!finding) {
-                                        findQuery = ""
-                                        currentMatch = 0
-                                    }
-                                },
-                                modifier = Modifier.testTag("find-in-note")
-                            ) {
-                                Icon(Icons.Filled.Search, contentDescription = "Find in note")
-                            }
                             if (
                                 current != null &&
                                 !current.readOnly &&
@@ -2463,99 +2482,122 @@ private fun NoteDetailScreen(
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                        .testTag("format-toolbar")
-                ) {
-                    // First in the row, so stepping back does not require scrolling the toolbar.
-                    EditorHistoryButton(
-                        Icons.AutoMirrored.Filled.Undo,
-                        "Undo",
-                        "undo-edit",
-                        canUndo,
-                        editor
+                if (finding) {
+                    FindInNoteBar(
+                        query = findQuery,
+                        matchCount = matches.size,
+                        currentMatch = currentMatch,
+                        onQueryChange = {
+                            findQuery = it
+                            currentMatch = 0
+                        },
+                        onPrevious = {
+                            if (matches.isNotEmpty()) {
+                                currentMatch = (currentMatch + matches.size - 1) % matches.size
+                            }
+                        },
+                        onNext = {
+                            if (matches.isNotEmpty()) {
+                                currentMatch = (currentMatch + 1) % matches.size
+                            }
+                        },
+                        onClose = closeFind
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                            .testTag("format-toolbar")
                     ) {
-                        editorBinding?.undo()
+                        // First in the row, so stepping back does not require scrolling the toolbar.
+                        EditorHistoryButton(
+                            Icons.AutoMirrored.Filled.Undo,
+                            "Undo",
+                            "undo-edit",
+                            canUndo,
+                            editor
+                        ) {
+                            editorBinding?.undo()
+                        }
+                        EditorHistoryButton(
+                            Icons.AutoMirrored.Filled.Redo,
+                            "Redo",
+                            "redo-edit",
+                            canRedo,
+                            editor
+                        ) {
+                            editorBinding?.redo()
+                        }
+                        FormatButton(
+                            Icons.AutoMirrored.Filled.FormatListBulleted,
+                            MarkdownFormatAction.BULLET,
+                            editor,
+                            "Create list item",
+                            "format-list"
+                        )
+                        FormatButton(
+                            Icons.Filled.Checklist,
+                            MarkdownFormatAction.TASK,
+                            editor,
+                            "Create checkbox list item",
+                            "format-checkbox-list"
+                        )
+                        FormatButton(
+                            Icons.Filled.FormatBold,
+                            MarkdownFormatAction.BOLD,
+                            editor,
+                            "Bold",
+                            "format-bold"
+                        )
+                        FormatButton(
+                            Icons.Filled.FormatItalic,
+                            MarkdownFormatAction.ITALIC,
+                            editor,
+                            "Italic",
+                            "format-italic"
+                        )
+                        FormatButton(
+                            Icons.Filled.StrikethroughS,
+                            MarkdownFormatAction.STRIKETHROUGH,
+                            editor,
+                            "Strikethrough",
+                            "format-strikethrough"
+                        )
+                        FormatButton(
+                            Icons.Filled.Code,
+                            MarkdownFormatAction.CODE,
+                            editor,
+                            "Inline code",
+                            "format-code"
+                        )
+                        FormatButton(
+                            Icons.Filled.Link,
+                            MarkdownFormatAction.LINK,
+                            editor,
+                            "Insert link",
+                            "format-link"
+                        )
+                        FormatButton(
+                            Icons.Filled.Title,
+                            MarkdownFormatAction.HEADING,
+                            editor,
+                            "Heading",
+                            "format-heading"
+                        )
+                        FormatButton(
+                            Icons.Filled.FormatListNumbered,
+                            MarkdownFormatAction.NUMBERED,
+                            editor,
+                            "Create numbered list item",
+                            "format-numbered-list"
+                        )
+                        FormatButton(
+                            Icons.Filled.FormatQuote,
+                            MarkdownFormatAction.QUOTE,
+                            editor,
+                            "Create block quote",
+                            "format-quote"
+                        )
                     }
-                    EditorHistoryButton(
-                        Icons.AutoMirrored.Filled.Redo,
-                        "Redo",
-                        "redo-edit",
-                        canRedo,
-                        editor
-                    ) {
-                        editorBinding?.redo()
-                    }
-                    FormatButton(
-                        Icons.AutoMirrored.Filled.FormatListBulleted,
-                        MarkdownFormatAction.BULLET,
-                        editor,
-                        "Create list item",
-                        "format-list"
-                    )
-                    FormatButton(
-                        Icons.Filled.Checklist,
-                        MarkdownFormatAction.TASK,
-                        editor,
-                        "Create checkbox list item",
-                        "format-checkbox-list"
-                    )
-                    FormatButton(
-                        Icons.Filled.FormatBold,
-                        MarkdownFormatAction.BOLD,
-                        editor,
-                        "Bold",
-                        "format-bold"
-                    )
-                    FormatButton(
-                        Icons.Filled.FormatItalic,
-                        MarkdownFormatAction.ITALIC,
-                        editor,
-                        "Italic",
-                        "format-italic"
-                    )
-                    FormatButton(
-                        Icons.Filled.StrikethroughS,
-                        MarkdownFormatAction.STRIKETHROUGH,
-                        editor,
-                        "Strikethrough",
-                        "format-strikethrough"
-                    )
-                    FormatButton(
-                        Icons.Filled.Code,
-                        MarkdownFormatAction.CODE,
-                        editor,
-                        "Inline code",
-                        "format-code"
-                    )
-                    FormatButton(
-                        Icons.Filled.Link,
-                        MarkdownFormatAction.LINK,
-                        editor,
-                        "Insert link",
-                        "format-link"
-                    )
-                    FormatButton(
-                        Icons.Filled.Title,
-                        MarkdownFormatAction.HEADING,
-                        editor,
-                        "Heading",
-                        "format-heading"
-                    )
-                    FormatButton(
-                        Icons.Filled.FormatListNumbered,
-                        MarkdownFormatAction.NUMBERED,
-                        editor,
-                        "Create numbered list item",
-                        "format-numbered-list"
-                    )
-                    FormatButton(
-                        Icons.Filled.FormatQuote,
-                        MarkdownFormatAction.QUOTE,
-                        editor,
-                        "Create block quote",
-                        "format-quote"
-                    )
                 }
                 Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                     // The editor is laid out at its full text height inside a scrolling
@@ -2610,7 +2652,7 @@ private fun NoteDetailScreen(
                                             draft = it
                                         }
                                         editor = view
-                                        view.focusForInput()
+                                        if (!finding) view.focusForInput()
                                     }
                                 },
                                 update = { view ->
@@ -2658,9 +2700,7 @@ private fun NoteDetailScreen(
                             }
                         },
                         onClose = {
-                            finding = false
-                            findQuery = ""
-                            currentMatch = 0
+                            closeFind()
                         }
                     )
                 }
@@ -3259,8 +3299,8 @@ private fun sourceOffsetForReadingPosition(
 }
 
 /**
- * Finds text in the note that is being read. The bar stays above the note while the note scrolls,
- * so the query and the position within the matches remain visible while moving through them.
+ * Finds text in either the rendered note or its editable Markdown source. The bar stays above the
+ * text while it scrolls, so the query and position remain visible while moving through matches.
  */
 @Composable
 private fun FindInNoteBar(

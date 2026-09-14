@@ -869,6 +869,51 @@ class AppLaunchTest {
     }
 
     @Test
+    fun creationAdoptsTheCanonicalServerTitle() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        application.fakeBackend.nextCanonicalTitle = "Canonical server title"
+
+        listAction("create-note")
+        composeRule.waitForTag("markdown-editor")
+        composeRule.onNodeWithTag("finish-editing").performClick()
+
+        composeRule.waitForText("Canonical server title")
+        val created = runBlocking {
+            notesOf("alice").single { it.title == "Canonical server title" }
+        }
+        assertEquals(SyncState.SYNCHRONIZED, created.syncState)
+        assertEquals("Canonical server title", created.lastSyncedTitle)
+        assertTrue(created.remoteId != null)
+    }
+
+    @Test
+    fun updateConflictKeepsTheLocalContentAndMarksTheNote() {
+        val account = importAccount(
+            "alice",
+            "Existing note",
+            "etag-1",
+            10,
+            "# Existing note\n\nBase content"
+        )
+        val note = runBlocking { notesOf("alice").single() }
+        application.fakeBackend.updateFailure = BackendException.Conflict()
+
+        runBlocking {
+            application.component.replaceNoteContent(
+                note.localId,
+                "# Existing note\n\nLocal content"
+            )
+            application.component.refresh(account.localAccountId())
+        }
+
+        val conflicted = runBlocking { application.component.noteRepository.get(note.localId)!! }
+        assertEquals("# Existing note\n\nLocal content", conflicted.content)
+        assertEquals(SyncState.CONFLICT, conflicted.syncState)
+        assertEquals("The note changed on the server", conflicted.lastSyncError)
+        assertEquals("# Existing note\n\nBase content", conflicted.lastSyncedContent)
+    }
+
+    @Test
     fun resolvesConflictWhilePreservingLocalChangesAsANewNote() {
         importAccount(
             "alice",
@@ -1178,6 +1223,36 @@ class AppLaunchTest {
         // Undoing must not take the note away from the writer. Replaying a step rewrites a range
         // of the document, so read the note back once that rewrite has landed.
         awaitEditorText("Existing note")
+        onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
+    }
+
+    @Test
+    fun findInEditorSearchesMarkdownSourceAndRestoresEditing() {
+        val source = "# Recipe\n\nAdd **salt**, then more salt."
+        importAccount("alice", "Recipe", "etag-1", 10, source)
+        composeRule.onNodeWithText("Recipe").performClick()
+        composeRule.enterEditMode()
+
+        composeRule.onNodeWithTag("find-in-note").performClick()
+        composeRule.onNodeWithTag("format-toolbar").assertDoesNotExist()
+        composeRule.onNodeWithTag("note-find-field").performTextInput("**salt**")
+        composeRule.waitForText("1 of 1")
+
+        composeRule.onNodeWithTag("note-find-field").performTextReplacement("salt")
+        composeRule.waitForText("1 of 2")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            editorSelectionStart() == source.indexOf("salt")
+        }
+        composeRule.onNodeWithTag("find-next").performClick()
+        composeRule.onNodeWithText("2 of 2").assertIsDisplayed()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            editorSelectionStart() == source.lastIndexOf("salt")
+        }
+
+        composeRule.onNodeWithTag("close-find").performClick()
+        composeRule.onNodeWithTag("note-find-field").assertDoesNotExist()
+        composeRule.onNodeWithTag("format-toolbar").assertIsDisplayed()
+        awaitEditorFocus(true)
         onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
     }
 
@@ -1833,6 +1908,10 @@ class AppLaunchTest {
                     ?.contains(substring) == present
             }
         }
+    }
+
+    private fun editorSelectionStart(): Int = composeRule.runOnIdle {
+        composeRule.activity.findViewById<TextView>(R.id.markdown_editor)?.selectionStart ?: -1
     }
 
     /**

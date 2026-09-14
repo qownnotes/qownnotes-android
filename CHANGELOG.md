@@ -11,6 +11,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Relative `attachments/` and `media/` links in note previews can now download the linked file
   through the authenticated Nextcloud Notes API and open it in an installed Android app.
+- Find in note now also searches the Markdown source while editing, highlights every match, and
+  moves through matches without changing the note.
 
 ### Fixed
 

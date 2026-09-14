@@ -114,6 +114,7 @@ class FakePullBackend :
     val settingsUpdates = mutableListOf<Pair<String, NoteSettings>>()
     var validationGate: CompletableDeferred<Unit>? = null
     var updateFailure: Throwable? = null
+    var nextCanonicalTitle: String? = null
     val remoteNotes = mutableMapOf<Long, RemoteNote>()
 
     override suspend fun validateAccount(account: Account): String {
@@ -212,22 +213,27 @@ class FakePullBackend :
         validationGate?.cancel()
         validationGate = null
         updateFailure = null
+        nextCanonicalTitle = null
         remoteNotes.clear()
     }
 
     private fun queue(account: SingleSignOnAccount) =
         pulls.getOrPut(account.localAccountId()) { ArrayDeque() }
 
-    private fun canonical(note: Note, remoteId: Long) = RemoteNote(
-        id = remoteId,
-        etag = "write-etag-${note.localRevision}",
-        title = note.title,
-        content = note.content,
-        category = note.category,
-        modifiedAtEpochSeconds = note.modifiedAtEpochSeconds,
-        readOnly = false,
-        favorite = note.favorite
-    )
+    private fun canonical(note: Note, remoteId: Long): RemoteNote {
+        val title = nextCanonicalTitle ?: note.title
+        nextCanonicalTitle = null
+        return RemoteNote(
+            id = remoteId,
+            etag = "write-etag-${note.localRevision}",
+            title = title,
+            content = note.content,
+            category = note.category,
+            modifiedAtEpochSeconds = note.modifiedAtEpochSeconds,
+            readOnly = false,
+            favorite = note.favorite
+        )
+    }
 
     private var nextRemoteId = 1_000L
 }

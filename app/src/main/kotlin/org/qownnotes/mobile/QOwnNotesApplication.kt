@@ -711,7 +711,7 @@ class ApplicationComponent(
 private fun SingleSignOnAccount.displayName(): String =
     "$userId @ ${url.removePrefix("https://").trimEnd('/')}"
 
-internal fun SingleSignOnAccount.localAccountId(): String =
+fun SingleSignOnAccount.localAccountId(): String =
     UUID.nameUUIDFromBytes(name.toByteArray()).toString()
 
 private fun fetchAttachment(
