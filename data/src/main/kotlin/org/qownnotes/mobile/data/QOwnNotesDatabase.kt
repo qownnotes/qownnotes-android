@@ -2,7 +2,6 @@ package org.qownnotes.mobile.data
 
 import androidx.room.Dao
 import androidx.room.Database
-import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
@@ -158,16 +157,13 @@ interface NoteDao {
     suspend fun getByRemoteId(accountId: String, remoteId: Long): NoteEntity?
 
     @Query(
-        """DELETE FROM notes WHERE accountId = :accountId AND remoteId IS NOT NULL
-           AND remoteId NOT IN (:keptRemoteIds) AND syncState = 'SYNCHRONIZED'"""
+        """SELECT localId, remoteId FROM notes WHERE accountId = :accountId
+           AND remoteId IS NOT NULL AND syncState = 'SYNCHRONIZED'"""
     )
-    suspend fun deleteMissingRemoteNotes(accountId: String, keptRemoteIds: Set<Long>)
+    suspend fun getSynchronizedRemoteNoteReferences(accountId: String): List<RemoteNoteReference>
 
     @Query("DELETE FROM notes WHERE accountId = :accountId AND syncState = 'SYNCHRONIZED'")
     suspend fun deleteSynchronized(accountId: String)
-
-    @Delete
-    suspend fun delete(note: NoteEntity)
 }
 
 @Dao

@@ -806,6 +806,23 @@ class RoomPullStoreTest {
         assertTrue(listItem.excerpt.startsWith("# Huge"))
     }
 
+    @Test
+    fun applyPullSupportsMoreRemoteNotesThanLegacySqliteBindLimit() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        accounts.save(testAccount())
+        val remoteNotes = (1L..1_001L).map { id ->
+            RemoteNote(id, "etag-$id", "Note $id", "# Note $id", "", id)
+        }
+
+        store.applyPull(
+            "account",
+            PullResult(remoteNotes, "collection-etag", 1_001)
+        )
+
+        assertEquals(1_001, database.noteDao().observeAll("account").first().size)
+    }
+
     private fun localNote(
         remoteId: Long,
         state: SyncState,

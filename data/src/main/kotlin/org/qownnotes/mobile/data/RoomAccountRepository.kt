@@ -76,7 +76,9 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
                 }
             }
 
-            dao.deleteMissingRemoteNotes(accountId, remoteIds)
+            dao.getSynchronizedRemoteNoteReferences(accountId)
+                .filter { it.remoteId !in remoteIds }
+                .forEach { dao.deleteByLocalId(it.localId) }
 
             database.accountDao().upsert(
                 account.copy(

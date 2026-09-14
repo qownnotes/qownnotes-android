@@ -627,8 +627,13 @@ internal interface CapabilitiesApi {
 internal fun validateCapabilities(observable: Observable<ParsedResponse<OcsResponse>>): String {
     val response = observable.blockingSingle().response
         ?: throw BackendException.Protocol("Nextcloud returned an empty capabilities response")
-    val notes = response.ocs?.data?.capabilities?.getAsJsonObject("notes")
-        ?: throw BackendException.NotesAppMissing()
+    val capabilities = response.ocs?.data?.capabilities
+        ?: throw BackendException.Protocol("Nextcloud returned a malformed capabilities response")
+    val notesElement = capabilities.get("notes") ?: throw BackendException.NotesAppMissing()
+    if (!notesElement.isJsonObject) {
+        throw BackendException.Protocol("Nextcloud returned a malformed Notes capability")
+    }
+    val notes = notesElement.asJsonObject
     val versions = NextcloudProtocol.parseVersions(notes.get("api_version"))
     return NextcloudProtocol.selectSupportedVersion(versions)
         ?: throw BackendException.UnsupportedApi(versions)

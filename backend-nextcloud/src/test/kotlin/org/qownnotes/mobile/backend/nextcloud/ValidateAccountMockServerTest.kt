@@ -33,10 +33,27 @@ class ValidateAccountMockServerTest {
     }
 
     @Test
-    fun reportsNotesAppMissingWhenOcsEnvelopeMalformed() {
-        val response = parseCapabilities("""{"ocs":{}}""")
+    fun reportsProtocolErrorWhenOcsEnvelopeMalformed() {
+        listOf(
+            "{}",
+            """{"ocs":null}""",
+            """{"ocs":{}}""",
+            """{"ocs":{"data":null}}""",
+            """{"ocs":{"data":{}}}"""
+        ).forEach { json ->
+            assertThrows(BackendException.Protocol::class.java) {
+                validateCapabilities(Observable.just(parseCapabilities(json)))
+            }
+        }
+    }
 
-        assertThrows(BackendException.NotesAppMissing::class.java) {
+    @Test
+    fun reportsProtocolErrorWhenNotesCapabilityMalformed() {
+        val response = parseCapabilities(
+            """{"ocs":{"data":{"capabilities":{"notes":null}}}}"""
+        )
+
+        assertThrows(BackendException.Protocol::class.java) {
             validateCapabilities(Observable.just(response))
         }
     }
