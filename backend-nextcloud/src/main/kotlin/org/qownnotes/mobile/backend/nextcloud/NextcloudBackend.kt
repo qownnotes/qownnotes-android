@@ -347,9 +347,13 @@ internal fun updateWithApi(notesApi: NotesApi, note: Note): RemoteNote {
     val etag = note.remoteEtag
         ?: throw BackendException.Protocol("Cannot update a note without an etag")
     require(etag.none { it == '"' || it == '\r' || it == '\n' }) { "Invalid note etag" }
-    return notesApi.updateNote(remoteId, "\"$etag\"", note.toWriteDto())
+    val remote = notesApi.updateNote(remoteId, "\"$etag\"", note.toWriteDto())
         .execute()
         .toCanonicalRemoteNote()
+    if (remote.id != remoteId) {
+        throw BackendException.Protocol("Nextcloud update returned a different note id")
+    }
+    return remote
 }
 
 internal fun deleteWithApi(notesApi: NotesApi, remoteId: Long) {

@@ -852,6 +852,10 @@ Implemented:
 - Added application-level regression coverage proving that creation adopts a changed canonical
   server title and that a backend conflict keeps local content while moving the note to the explicit
   conflict state. MockWebServer separately verifies that HTTP 412 is classified as that conflict.
+- Added strict MockWebServer coverage that rejects empty canonical write responses, responses
+  missing any required ID, ETag, title, content, category, or modification timestamp, and update
+  responses that identify a different note. An update `404` is explicitly covered as a missing
+  remote note rather than an instruction to recreate it.
 - Added API, migration, repository, formatting, highlighting, read-only, creation, editing, and recreation coverage.
 - Fixed the editor focus and IME defect recorded on 2026-09-01. `AppCompatEditText` resolves its default style from the AppCompat `editTextStyle` theme attribute, which only exists in `Theme.AppCompat` descendants. The application theme derived from the framework `Theme.Material.Light.NoActionBar`, so `Widget.AppCompat.EditText` was never applied and the editor was left focusable but not focusable in touch mode, making a cursor and keyboard unreachable by tapping.
 - Rebased the application theme on `Theme.AppCompat.DayNight.NoActionBar` so hosted AppCompat widgets get their intended styles and follow the system dark mode like the Compose theme.
@@ -917,7 +921,13 @@ Scope decisions:
 
 Remaining verification:
 
-- Verify canonical title sanitization and HTTP 412 conflict behavior against supported real Nextcloud and Notes server versions. Only MockWebServer coverage exists for these paths. Real-server `POST` creation and formatting-triggered `PUT` updates are confirmed.
+The reproducible procedure, environment record, and pass criteria are in
+[`docs/testing/phase-3-editing-compatibility.md`](docs/testing/phase-3-editing-compatibility.md).
+
+- Verify canonical title sanitization and HTTP 412 conflict behavior against supported real
+  Nextcloud and Notes server versions. MockWebServer and application fakes cover these paths, but no
+  real-server result is recorded. Real-server `POST` creation and formatting-triggered `PUT` updates
+  are confirmed.
 - Measure editor responsiveness on representative large notes. Supplemental syntax parsing now has a
   10,000-section test fixture and runs off the main thread, but typing latency on representative
   physical devices remains unverified rather than met.

@@ -19,6 +19,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Large Nextcloud accounts now prune stale local notes without exceeding older Android SQLite
   bind-variable limits, and malformed capabilities envelopes are reported as protocol errors
   (for [#6](https://github.com/qownnotes/qownnotes-android/issues/6)).
+- Malformed Nextcloud update responses can no longer replace a local note's remote identity.
 
 ## [0.5.0] - 2026-09-13
 

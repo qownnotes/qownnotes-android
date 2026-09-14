@@ -226,6 +226,68 @@ class NotesApiMockServerTest {
     }
 
     @Test
+    fun rejectsIncompleteCanonicalWriteResponses() {
+        val cases = listOf(
+            "id" to
+                """{"etag":"etag","title":"Title","content":"Text","category":"","modified":20}""",
+            "etag" to
+                """{"id":42,"title":"Title","content":"Text","category":"","modified":20}""",
+            "title" to
+                """{"id":42,"etag":"etag","content":"Text","category":"","modified":20}""",
+            "content" to
+                """{"id":42,"etag":"etag","title":"Title","category":"","modified":20}""",
+            "category" to
+                """{"id":42,"etag":"etag","title":"Title","content":"Text","modified":20}""",
+            "modified timestamp" to
+                """{"id":42,"etag":"etag","title":"Title","content":"Text","category":""}"""
+        )
+
+        cases.forEach { (field, body) ->
+            server.enqueue(notesResponse(body))
+
+            val error = assertThrows(BackendException.Protocol::class.java) {
+                createWithApi(api, testNote())
+            }
+
+            assertEquals("Nextcloud note is missing its $field", error.message)
+        }
+    }
+
+    @Test
+    fun rejectsEmptyCanonicalWriteResponse() {
+        server.enqueue(notesResponse("null"))
+
+        val error = assertThrows(BackendException.Protocol::class.java) {
+            createWithApi(api, testNote())
+        }
+
+        assertEquals("Nextcloud returned an empty response", error.message)
+    }
+
+    @Test
+    fun rejectsUpdateResponseForADifferentNote() {
+        server.enqueue(canonicalResponse(43, "new-etag", "Local", "Updated"))
+
+        val error = assertThrows(BackendException.Protocol::class.java) {
+            updateWithApi(
+                api,
+                testNote().copy(remoteId = 42, remoteEtag = "old-etag", content = "Updated")
+            )
+        }
+
+        assertEquals("Nextcloud update returned a different note id", error.message)
+    }
+
+    @Test
+    fun classifiesMissingNoteDuringUpdate() {
+        server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND))
+
+        assertThrows(BackendException.RemoteMissing::class.java) {
+            updateWithApi(api, testNote().copy(remoteId = 42, remoteEtag = "old-etag"))
+        }
+    }
+
+    @Test
     fun deletesNoteAndTreatsAnAlreadyMissingNoteAsDeleted() {
         server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_OK))
         server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND))
