@@ -3390,7 +3390,7 @@ private fun ExpandableSyncError(
     val explanation = syncErrorExplanation(message)
     val context = LocalContext.current
     var showDetails by rememberSaveable(message) { mutableStateOf(false) }
-    Column(modifier = modifier) {
+    Column(modifier = modifier.testTag(testTag)) {
         Text(
             message,
             color = MaterialTheme.colorScheme.error,
