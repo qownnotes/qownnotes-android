@@ -157,7 +157,7 @@ interface NoteDao {
     suspend fun getByRemoteId(accountId: String, remoteId: Long): NoteEntity?
 
     @Query(
-        """SELECT localId, remoteId FROM notes WHERE accountId = :accountId
+        """SELECT localId, remoteId, category FROM notes WHERE accountId = :accountId
            AND remoteId IS NOT NULL AND syncState = 'SYNCHRONIZED'"""
     )
     suspend fun getSynchronizedRemoteNoteReferences(accountId: String): List<RemoteNoteReference>

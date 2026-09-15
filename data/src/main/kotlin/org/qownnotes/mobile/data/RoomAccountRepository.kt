@@ -5,6 +5,7 @@ import java.util.UUID
 import kotlinx.coroutines.flow.map
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.AccountRepository
+import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.PullStore
 import org.qownnotes.mobile.core.SyncState
@@ -32,8 +33,11 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
                 "Cannot apply a pull for an unknown account"
             }
             val dao = database.noteDao()
-            val remoteIds = result.notes.mapTo(mutableSetOf()) { it.id }
-            result.notes.filterNot { it.isPruned }.forEach { remote ->
+            val notes = result.notes.filterNot { remote ->
+                remote.category?.let(NoteCategories::isInternal) == true
+            }
+            val remoteIds = notes.mapTo(mutableSetOf()) { it.id }
+            notes.filterNot { it.isPruned }.forEach { remote ->
                 val existing = dao.getByRemoteId(accountId, remote.id)
                 if (existing == null) {
                     dao.upsert(
@@ -77,7 +81,7 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
             }
 
             dao.getSynchronizedRemoteNoteReferences(accountId)
-                .filter { it.remoteId !in remoteIds }
+                .filter { it.remoteId !in remoteIds || NoteCategories.isInternal(it.category) }
                 .forEach { dao.deleteByLocalId(it.localId) }
 
             database.accountDao().upsert(

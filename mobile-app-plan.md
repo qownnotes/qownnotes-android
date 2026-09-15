@@ -673,7 +673,11 @@ Category normalization belongs in `core`. Split on `/`, trim each segment, drop 
 - Defer renaming and deleting a folder. Without an API operation, both are one guarded update per contained note: not atomic, interruptible, and able to fail halfway. If they are implemented, they must run through the synchronization queue with per-note conflict handling and a resumable record of what remains, never as a fire-and-forget loop.
 - Keep resolving wiki links against the source note's category first and then across the account. That already matches the QOwnNotes preference for the current subfolder.
 - Treat excluding a subfolder from the list as a view preference only. Excluded folders must still be synchronized, and excluding one must never influence the pull or remote-deletion detection.
-- Do not offer the root `media` or `attachments` trees in the selector. QOwnNotes reserves them for files referenced by notes. A same-named segment below another category, such as `Projects/media`, remains a normal category. Internal-category notes remain synchronized and visible through All categories.
+- Exclude the root `media` and `attachments` trees from the local note cache. QOwnNotes reserves
+  them for files referenced by notes, so files that the Notes API reports from those trees are child
+  objects rather than notes. Keep pulling the complete remote collection for checkpoint correctness,
+  but discard these entries while applying it transactionally. A same-named segment below another
+  category, such as `Projects/media`, remains a normal category.
 
 ### Query Rules
 

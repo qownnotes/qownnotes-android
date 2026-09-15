@@ -14,6 +14,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Files returned by the Nextcloud Notes API from QOwnNotes' top-level `attachments/` and `media/`
+  trees no longer appear as notes (for [#7](https://github.com/qownnotes/qownnotes-android/issues/7)).
 - Large Markdown notes no longer lay out the editor as a document-height Android view. The bounded
   editor uses a cheaper text layout and drawing path while retaining inertial swipe and rail
   scrolling.

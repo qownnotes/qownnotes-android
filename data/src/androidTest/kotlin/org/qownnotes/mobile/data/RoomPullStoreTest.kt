@@ -89,6 +89,76 @@ class RoomPullStoreTest {
     }
 
     @Test
+    fun pullExcludesQOwnNotesAttachmentAndMediaTrees() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        accounts.save(testAccount())
+
+        store.applyPull(
+            "account",
+            PullResult(
+                notes = listOf(
+                    RemoteNote(40, "etag-media", "Media", "asset", "media", 20),
+                    RemoteNote(
+                        41,
+                        "etag-attachment",
+                        "Attachment",
+                        "asset",
+                        "Attachments/archive",
+                        20
+                    ),
+                    RemoteNote(
+                        42,
+                        "etag-project",
+                        "Project note",
+                        "# Project",
+                        "Projects/media",
+                        20
+                    )
+                ),
+                collectionEtag = "etag-2",
+                lastModifiedEpochSeconds = 20
+            )
+        )
+
+        assertNull(database.noteDao().getByRemoteId("account", 40))
+        assertNull(database.noteDao().getByRemoteId("account", 41))
+        assertNotNull(database.noteDao().getByRemoteId("account", 42))
+        assertEquals("etag-2", accounts.get("account")!!.collectionEtag)
+    }
+
+    @Test
+    fun pullRemovesCachedInternalNotesWithoutDiscardingPendingWork() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(40, SyncState.SYNCHRONIZED).copy(category = "media/archive")
+        )
+        database.noteDao().upsert(
+            localNote(41, SyncState.LOCALLY_MODIFIED).copy(category = "attachments")
+        )
+
+        store.applyPull(
+            "account",
+            PullResult(
+                notes = listOf(
+                    RemoteNote(40, "etag-pruned", null, null, null, null),
+                    RemoteNote(41, "etag-pending", "Remote", "Remote", "attachments", 20)
+                ),
+                collectionEtag = "etag-2",
+                lastModifiedEpochSeconds = 20
+            )
+        )
+
+        assertNull(database.noteDao().getByRemoteId("account", 40))
+        assertEquals(
+            SyncState.LOCALLY_MODIFIED,
+            database.noteDao().getByRemoteId("account", 41)!!.syncState
+        )
+    }
+
+    @Test
     fun pullPreservesEveryUnsynchronizedState() = runBlocking {
         val accounts = RoomAccountRepository(database.accountDao())
         val store = RoomPullStore(database)

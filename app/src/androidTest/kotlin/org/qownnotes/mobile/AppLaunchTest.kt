@@ -91,7 +91,7 @@ class AppLaunchTest {
     }
 
     @Test
-    fun categorySelectorDefaultsToUndefinedAndHidesInternalCategories() {
+    fun categorySelectorDefaultsToUndefinedAndExcludesInternalFiles() {
         val account = testAccount("alice")
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(
@@ -129,7 +129,8 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("category-option-all").performClick()
         composeRule.waitForText("Work note")
         composeRule.onNodeWithText("Root note").assertIsDisplayed()
-        composeRule.onNodeWithText("Media note").assertIsDisplayed()
+        composeRule.onNodeWithText("Media note").assertDoesNotExist()
+        composeRule.onNodeWithText("Attachment note").assertDoesNotExist()
         listAction("category-selector")
 
         composeRule.onNodeWithTag("category-option-Work").performClick()
