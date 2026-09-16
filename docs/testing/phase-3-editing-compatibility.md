@@ -57,6 +57,9 @@ Create one table for each tested combination.
 | Input methods | Pass with SwiftKey and Gboard |
 | Representative large note | Pass at approximately 100 KiB; see measurements below |
 
+The complete connected-device suite passed on this device at commit `7437652` on 2026-09-16: 5
+backend tests, 38 Markdown tests, 40 data tests, and 80 application tests (163 total).
+
 The server-version fields remain required before this environment can establish a supported server
 combination. The adopt-server-only and server-unavailable conflict-resolution paths remain to be
 run against the real server; automated application tests cover both paths.

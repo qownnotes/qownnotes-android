@@ -938,10 +938,10 @@ Remaining verification:
 The reproducible procedure, environment record, and pass criteria are in
 [`docs/testing/phase-3-editing-compatibility.md`](docs/testing/phase-3-editing-compatibility.md).
 
-- Verify canonical title sanitization and HTTP 412 conflict behavior against supported real
-  Nextcloud and Notes server versions. MockWebServer and application fakes cover these paths, but no
-  real-server result is recorded. Real-server `POST` creation and formatting-triggered `PUT` updates
-  are confirmed.
+- Record the Nextcloud server, Notes app, and reported Notes API versions for the real-server
+  canonical-title and HTTP 412 results. Canonical collision handling, local-text preservation, and
+  preserve-local-copy resolution pass on the recorded server, but adopt-server-only and
+  server-unavailable conflict resolution remain to be exercised there.
 - Repeat large-note responsiveness testing on another physical device. A representative 100 KiB
   mixed-Markdown note now passes on the OPPO CPH2653 after bounding the editor viewport, enabling
   simple software text drawing, and omitting source highlighting above 64 KiB. The separate
@@ -950,6 +950,8 @@ The reproducible procedure, environment record, and pass criteria are in
 - Repeat non-Latin text, input-method composition, and software-keyboard validation on another
   physical device. SwiftKey and Gboard pass the complete checklist on the OPPO CPH2653 running
   Android 16.
+- The complete connected-device suite passes on the OPPO CPH2653 at commit `7437652`: 5 backend,
+  38 Markdown, 40 data, and 80 application tests (163 total).
 
 Resolved physical-device issue recorded on 2026-09-01:
 
