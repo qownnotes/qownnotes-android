@@ -82,6 +82,11 @@ retry indefinitely; the app keeps the local state and reports that attention is 
 the live draft cache is in memory, an abrupt process kill can lose only the characters entered since
 the latest idle or periodic Room checkpoint.
 
+If a server note disappears while local edits are pending, the note remains on the device and can
+be recreated as a new server note or discarded explicitly. If a note becomes read-only while local
+content changes are pending, the app can first preserve those changes as a new writable note before
+adopting the read-only server version.
+
 ## NixOS Recipes
 
 ### Enter The Development Environment

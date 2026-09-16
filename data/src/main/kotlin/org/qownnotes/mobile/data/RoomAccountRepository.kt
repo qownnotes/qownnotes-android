@@ -77,12 +77,54 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
                             lastSyncError = null
                         )
                     )
+                } else if (
+                    remote.readOnly &&
+                    existing.syncState != SyncState.PENDING_DELETION &&
+                    existing.hasProtectedLocalChanges()
+                ) {
+                    dao.upsert(
+                        existing.copy(
+                            readOnly = true,
+                            syncState = SyncState.READ_ONLY_CONFLICT,
+                            lastSyncError = READ_ONLY_CONFLICT_MESSAGE
+                        )
+                    )
+                } else if (
+                    !remote.readOnly &&
+                    existing.syncState in
+                    setOf(SyncState.REMOTE_MISSING, SyncState.READ_ONLY_CONFLICT)
+                ) {
+                    dao.upsert(
+                        existing.copy(
+                            readOnly = false,
+                            syncState = SyncState.CONFLICT,
+                            lastSyncError = REMOTE_CHANGED_MESSAGE
+                        )
+                    )
+                } else if (existing.readOnly != remote.readOnly) {
+                    dao.upsert(existing.copy(readOnly = remote.readOnly))
                 }
             }
 
-            dao.getSynchronizedRemoteNoteReferences(accountId)
-                .filter { it.remoteId !in remoteIds || NoteCategories.isInternal(it.category) }
-                .forEach { dao.deleteByLocalId(it.localId) }
+            dao.getRemoteNoteReferences(accountId).forEach { note ->
+                val internal = NoteCategories.isInternal(note.category)
+                when {
+                    internal && note.syncState == SyncState.SYNCHRONIZED ->
+                        dao.deleteByLocalId(note.localId)
+                    internal || note.remoteId in remoteIds -> Unit
+                    note.syncState == SyncState.SYNCHRONIZED -> dao.deleteByLocalId(note.localId)
+                    note.syncState in setOf(
+                        SyncState.PENDING_DELETION,
+                        SyncState.LOCALLY_CREATED
+                    ) -> Unit
+                    else -> dao.markServerIssue(
+                        note.localId,
+                        readOnly = false,
+                        SyncState.REMOTE_MISSING,
+                        REMOTE_MISSING_MESSAGE
+                    )
+                }
+            }
 
             database.accountDao().upsert(
                 account.copy(
@@ -110,3 +152,11 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
         }
     }
 }
+
+private fun NoteEntity.hasProtectedLocalChanges(): Boolean =
+    title != lastSyncedTitle || content != lastSyncedContent || category != lastSyncedCategory
+
+private const val READ_ONLY_CONFLICT_MESSAGE =
+    "The note became read-only while local changes were pending"
+private const val REMOTE_MISSING_MESSAGE = "The note no longer exists on the server"
+private const val REMOTE_CHANGED_MESSAGE = "The note changed on the server"

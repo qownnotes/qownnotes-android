@@ -2002,6 +2002,11 @@ private fun NoteDetailScreen(
     var showConflictResolution by rememberSaveable(localId) { mutableStateOf(false) }
     var resolvingConflict by rememberSaveable(localId) { mutableStateOf(false) }
     var conflictResolutionError by rememberSaveable(localId) { mutableStateOf<String?>(null) }
+    var showRemoteMissingResolution by rememberSaveable(localId) { mutableStateOf(false) }
+    var resolvingRemoteMissing by rememberSaveable(localId) { mutableStateOf(false) }
+    var remoteMissingResolutionError by rememberSaveable(localId) {
+        mutableStateOf<String?>(null)
+    }
     var renaming by rememberSaveable(localId) { mutableStateOf(false) }
     var changingCategory by rememberSaveable(localId) { mutableStateOf(false) }
     var noteMenuOpen by rememberSaveable(localId) { mutableStateOf(false) }
@@ -2227,6 +2232,27 @@ private fun NoteDetailScreen(
             resolvingConflict = false
         }
     }
+    val resolveRemoteMissing = { recreate: Boolean ->
+        resolvingRemoteMissing = true
+        remoteMissingResolutionError = null
+        scope.launch {
+            runCatching { component.resolveRemoteMissing(localId, recreate) }
+                .onSuccess { resolved ->
+                    if (resolved) {
+                        showRemoteMissingResolution = false
+                        if (!recreate) onBackToList()
+                    } else {
+                        remoteMissingResolutionError =
+                            "The note changed. Close this dialog and try again."
+                    }
+                }
+                .onFailure {
+                    remoteMissingResolutionError =
+                        it.message ?: "Could not resolve the missing note"
+                }
+            resolvingRemoteMissing = false
+        }
+    }
     Scaffold(
         topBar = {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
@@ -2274,7 +2300,12 @@ private fun NoteDetailScreen(
                                 current != null &&
                                 !current.readOnly &&
                                 !hasEncryptedContent &&
-                                current.syncState != SyncState.CONFLICT &&
+                                current.syncState !in
+                                setOf(
+                                    SyncState.CONFLICT,
+                                    SyncState.REMOTE_MISSING,
+                                    SyncState.READ_ONLY_CONFLICT
+                                ) &&
                                 (current.syncState != SyncState.FAILED || current.remoteId != null)
                             ) {
                                 IconButton(
@@ -2356,7 +2387,12 @@ private fun NoteDetailScreen(
                                     if (
                                         current != null &&
                                         !current.readOnly &&
-                                        current.syncState != SyncState.CONFLICT
+                                        current.syncState !in
+                                        setOf(
+                                            SyncState.CONFLICT,
+                                            SyncState.REMOTE_MISSING,
+                                            SyncState.READ_ONLY_CONFLICT
+                                        )
                                     ) {
                                         DropdownMenuItem(
                                             text = { Text("Change category") },
@@ -2367,7 +2403,16 @@ private fun NoteDetailScreen(
                                             modifier = Modifier.testTag("change-note-category")
                                         )
                                     }
-                                    if (current != null && !current.readOnly) {
+                                    if (
+                                        current != null &&
+                                        !current.readOnly &&
+                                        current.syncState !in
+                                        setOf(
+                                            SyncState.CONFLICT,
+                                            SyncState.REMOTE_MISSING,
+                                            SyncState.READ_ONLY_CONFLICT
+                                        )
+                                    ) {
                                         DropdownMenuItem(
                                             text = { Text("Rename") },
                                             onClick = {
@@ -2476,10 +2521,17 @@ private fun NoteDetailScreen(
                         testTag = "note-sync-error",
                         modifier = Modifier.padding(16.dp)
                     )
-                    if (note?.syncState == SyncState.CONFLICT) {
+                    if (
+                        note?.syncState in
+                        setOf(
+                            SyncState.CONFLICT,
+                            SyncState.REMOTE_MISSING,
+                            SyncState.READ_ONLY_CONFLICT
+                        )
+                    ) {
                         Text(
                             "Your local changes are safe on this device. Finish editing to " +
-                                "choose which version to keep.",
+                                "choose how to resolve the server change.",
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
@@ -2711,7 +2763,10 @@ private fun NoteDetailScreen(
                         testTag = "note-sync-error",
                         modifier = Modifier.padding(16.dp)
                     )
-                    if (note?.syncState == SyncState.CONFLICT) {
+                    if (
+                        note?.syncState in
+                        setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
+                    ) {
                         Text(
                             "Your local changes are safe on this device.",
                             modifier = Modifier.padding(horizontal = 16.dp)
@@ -2724,6 +2779,19 @@ private fun NoteDetailScreen(
                             modifier = Modifier.padding(horizontal = 4.dp)
                                 .testTag("resolve-note-conflict")
                         ) { Text("Resolve conflict") }
+                    } else if (note?.syncState == SyncState.REMOTE_MISSING) {
+                        Text(
+                            "Your local changes are safe on this device.",
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        TextButton(
+                            onClick = {
+                                remoteMissingResolutionError = null
+                                showRemoteMissingResolution = true
+                            },
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                                .testTag("resolve-remote-missing")
+                        ) { Text("Resolve missing note") }
                     }
                 }
                 Column(
@@ -2793,7 +2861,16 @@ private fun NoteDetailScreen(
                                             }
                                         }
                                     },
-                                    onTaskToggle = if (source != null && !source.readOnly) {
+                                    onTaskToggle = if (
+                                        source != null &&
+                                        !source.readOnly &&
+                                        source.syncState !in
+                                        setOf(
+                                            SyncState.CONFLICT,
+                                            SyncState.REMOTE_MISSING,
+                                            SyncState.READ_ONLY_CONFLICT
+                                        )
+                                    ) {
                                         { taskIndex ->
                                             if (!togglingTask) {
                                                 toggleTaskListItem(source.content, taskIndex)?.let {
@@ -2915,8 +2992,14 @@ private fun NoteDetailScreen(
             text = {
                 Column {
                     Text(
-                        "The note changed on the server after your local edit. Load the server " +
-                            "version, or first preserve your local version as a new note."
+                        if (note?.syncState == SyncState.READ_ONLY_CONFLICT) {
+                            "The note became read-only while your local changes were pending. " +
+                                "Load the server version, or first preserve your local version " +
+                                "as a new writable note."
+                        } else {
+                            "The note changed on the server after your local edit. Load the " +
+                                "server version, or first preserve your local version as a new note."
+                        }
                     )
                     conflictResolutionError?.let {
                         Text(
@@ -2951,6 +3034,56 @@ private fun NoteDetailScreen(
                     TextButton(
                         onClick = { showConflictResolution = false },
                         enabled = !resolvingConflict
+                    ) { Text("Cancel") }
+                }
+            }
+        )
+    }
+    if (showRemoteMissingResolution) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!resolvingRemoteMissing) showRemoteMissingResolution = false
+            },
+            title = { Text("Resolve missing note") },
+            text = {
+                Column {
+                    Text(
+                        "This note was deleted on the server while local changes were pending. " +
+                            "Recreate it as a new server note, or discard the local version."
+                    )
+                    remoteMissingResolutionError?.let {
+                        Text(
+                            it,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 12.dp)
+                                .testTag("remote-missing-resolution-error")
+                        )
+                    }
+                    if (resolvingRemoteMissing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(top = 16.dp)
+                                .testTag("remote-missing-resolution-progress")
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { resolveRemoteMissing(true) },
+                    enabled = !resolvingRemoteMissing,
+                    modifier = Modifier.testTag("recreate-remote-missing")
+                ) { Text("Recreate note") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = { resolveRemoteMissing(false) },
+                        enabled = !resolvingRemoteMissing,
+                        modifier = Modifier.testTag("discard-remote-missing")
+                    ) { Text("Discard local") }
+                    TextButton(
+                        onClick = { showRemoteMissingResolution = false },
+                        enabled = !resolvingRemoteMissing
                     ) { Text("Cancel") }
                 }
             }

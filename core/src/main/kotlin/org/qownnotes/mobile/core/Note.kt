@@ -27,5 +27,7 @@ enum class SyncState {
     PENDING_DELETION,
     SYNCHRONIZING,
     CONFLICT,
+    REMOTE_MISSING,
+    READ_ONLY_CONFLICT,
     FAILED
 }

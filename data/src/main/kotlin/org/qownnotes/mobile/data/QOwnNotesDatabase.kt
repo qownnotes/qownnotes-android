@@ -68,13 +68,15 @@ interface NoteDao {
         """UPDATE notes SET localRevision = localRevision + 1,
            syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END
            WHERE localId = :localId AND readOnly = 0
-             AND NOT (syncState = 'FAILED' AND remoteId IS NULL)"""
+              AND syncState NOT IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
+              AND NOT (syncState = 'FAILED' AND remoteId IS NULL)"""
     )
     suspend fun beginEditing(localId: String): Int
 
     @Query(
         """UPDATE notes SET syncState = :restoredSyncState
-           WHERE localId = :localId AND localRevision = :expectedRevision"""
+           WHERE localId = :localId AND localRevision = :expectedRevision
+             AND syncState IN ('LOCALLY_CREATED', 'LOCALLY_MODIFIED')"""
     )
     suspend fun releaseEditReservation(
         localId: String,
@@ -86,9 +88,17 @@ interface NoteDao {
         """UPDATE notes SET content = :content,
            modifiedAtEpochSeconds = :modifiedAtEpochSeconds,
            localRevision = localRevision + 1,
-           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
-           lastSyncError = NULL
-           WHERE localId = :localId AND readOnly = 0 AND content != :content"""
+           syncState = CASE
+             WHEN syncState IN ('REMOTE_MISSING', 'READ_ONLY_CONFLICT') THEN syncState
+             WHEN remoteId IS NULL THEN 'LOCALLY_CREATED'
+             ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = CASE
+             WHEN syncState IN ('REMOTE_MISSING', 'READ_ONLY_CONFLICT') THEN lastSyncError
+             ELSE NULL END
+           WHERE localId = :localId
+             AND (readOnly = 0 OR syncState = 'READ_ONLY_CONFLICT')
+             AND syncState != 'CONFLICT'
+             AND content != :content"""
     )
     suspend fun updateDraft(localId: String, content: String, modifiedAtEpochSeconds: Long): Int
 
@@ -98,7 +108,9 @@ interface NoteDao {
            localRevision = localRevision + 1,
            syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
            lastSyncError = NULL
-           WHERE localId = :localId AND readOnly = 0 AND title != :title"""
+           WHERE localId = :localId AND readOnly = 0
+             AND syncState NOT IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
+             AND title != :title"""
     )
     suspend fun updateTitle(localId: String, title: String, modifiedAtEpochSeconds: Long): Int
 
@@ -108,7 +120,9 @@ interface NoteDao {
            localRevision = localRevision + 1,
            syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
            lastSyncError = NULL
-           WHERE localId = :localId AND readOnly = 0 AND (title != :title OR content != :content)"""
+           WHERE localId = :localId AND readOnly = 0
+             AND syncState NOT IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
+             AND (title != :title OR content != :content)"""
     )
     suspend fun updateTitleAndContent(
         localId: String,
@@ -122,7 +136,9 @@ interface NoteDao {
            localRevision = localRevision + 1,
            syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
            lastSyncError = NULL
-           WHERE localId = :localId AND favorite != :favorite"""
+           WHERE localId = :localId
+             AND syncState NOT IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
+             AND favorite != :favorite"""
     )
     suspend fun updateFavorite(localId: String, favorite: Boolean): Int
 
@@ -131,7 +147,8 @@ interface NoteDao {
            localRevision = localRevision + 1,
            syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
            lastSyncError = NULL
-           WHERE localId = :localId AND readOnly = 0 AND syncState != 'CONFLICT'
+           WHERE localId = :localId AND readOnly = 0
+             AND syncState NOT IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
              AND category != :category"""
     )
     suspend fun updateCategory(localId: String, category: String): Int
@@ -158,10 +175,21 @@ interface NoteDao {
     suspend fun getByRemoteId(accountId: String, remoteId: Long): NoteEntity?
 
     @Query(
-        """SELECT localId, remoteId, category FROM notes WHERE accountId = :accountId
-           AND remoteId IS NOT NULL AND syncState = 'SYNCHRONIZED'"""
+        "SELECT localId, remoteId, category, syncState FROM notes " +
+            "WHERE accountId = :accountId AND remoteId IS NOT NULL"
     )
-    suspend fun getSynchronizedRemoteNoteReferences(accountId: String): List<RemoteNoteReference>
+    suspend fun getRemoteNoteReferences(accountId: String): List<RemoteNoteReference>
+
+    @Query(
+        "UPDATE notes SET readOnly = :readOnly, syncState = :syncState, lastSyncError = :message " +
+            "WHERE localId = :localId"
+    )
+    suspend fun markServerIssue(
+        localId: String,
+        readOnly: Boolean,
+        syncState: SyncState,
+        message: String
+    )
 
     @Query("DELETE FROM notes WHERE accountId = :accountId AND syncState = 'SYNCHRONIZED'")
     suspend fun deleteSynchronized(accountId: String)

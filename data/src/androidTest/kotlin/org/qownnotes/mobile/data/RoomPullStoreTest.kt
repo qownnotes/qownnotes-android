@@ -85,7 +85,9 @@ class RoomPullStoreTest {
         store.applyPull("account", PullResult(emptyList(), "etag-2", 20))
 
         assertNull(database.noteDao().getByRemoteId("account", 42))
-        assertNotNull(database.noteDao().getByRemoteId("account", 43))
+        val preserved = database.noteDao().getByRemoteId("account", 43)!!
+        assertEquals(SyncState.REMOTE_MISSING, preserved.syncState)
+        assertEquals("Local content", preserved.content)
     }
 
     @Test
@@ -163,7 +165,13 @@ class RoomPullStoreTest {
         val accounts = RoomAccountRepository(database.accountDao())
         val store = RoomPullStore(database)
         accounts.save(testAccount())
-        val pendingStates = SyncState.entries.filterNot { it == SyncState.SYNCHRONIZED }
+        val pendingStates = SyncState.entries.filterNot {
+            it in setOf(
+                SyncState.SYNCHRONIZED,
+                SyncState.REMOTE_MISSING,
+                SyncState.READ_ONLY_CONFLICT
+            )
+        }
         pendingStates.forEachIndexed { index, state ->
             database.noteDao().upsert(localNote(index.toLong(), state))
         }
@@ -185,6 +193,84 @@ class RoomPullStoreTest {
             assertEquals(state, note.syncState)
             assertEquals("local error", note.lastSyncError)
         }
+    }
+
+    @Test
+    fun pullPreservesLocalChangesWhenTheRemoteNoteBecomesReadOnly() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.LOCALLY_MODIFIED).copy(
+                content = "Unsynchronized local content",
+                lastSyncedContent = "Base content"
+            )
+        )
+
+        store.applyPull(
+            "account",
+            PullResult(
+                listOf(
+                    RemoteNote(
+                        42,
+                        "server-etag",
+                        "Remote title",
+                        "Server content",
+                        "Remote category",
+                        20,
+                        readOnly = true
+                    )
+                ),
+                "collection-etag",
+                20
+            )
+        )
+
+        val note = database.noteDao().getByRemoteId("account", 42)!!
+        assertEquals("Unsynchronized local content", note.content)
+        assertEquals("Base content", note.lastSyncedContent)
+        assertTrue(note.readOnly)
+        assertEquals(SyncState.READ_ONLY_CONFLICT, note.syncState)
+    }
+
+    @Test
+    fun readOnlyFavoriteOnlyChangeRemainsPending() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.LOCALLY_MODIFIED).copy(
+                favorite = true,
+                lastSyncedTitle = "Local",
+                lastSyncedContent = "Local content",
+                lastSyncedCategory = "Local category",
+                lastSyncedFavorite = false
+            )
+        )
+
+        store.applyPull(
+            "account",
+            PullResult(
+                listOf(
+                    RemoteNote(
+                        42,
+                        "server-etag",
+                        "Local",
+                        "Local content",
+                        "Local category",
+                        20,
+                        readOnly = true
+                    )
+                ),
+                "collection-etag",
+                20
+            )
+        )
+
+        val note = database.noteDao().getByRemoteId("account", 42)!!
+        assertTrue(note.favorite)
+        assertTrue(note.readOnly)
+        assertEquals(SyncState.LOCALLY_MODIFIED, note.syncState)
     }
 
     @Test
@@ -752,7 +838,7 @@ class RoomPullStoreTest {
             "account-local-42",
             1,
             "Older request conflicted",
-            conflict = true
+            SyncState.CONFLICT
         )
 
         val note = notes.get("account-local-42")!!
@@ -792,7 +878,7 @@ class RoomPullStoreTest {
 
         RoomPushStore(
             database
-        ).recordFailure("account-local-42", 0, "Outcome unknown", terminal = true)
+        ).recordFailure("account-local-42", 0, "Outcome unknown", SyncState.FAILED)
         assertEquals(SyncState.FAILED, notes.get("account-local-42")!!.syncState)
         assertNull(notes.beginEditing("account-local-42"))
         assertTrue(notes.retry("account-local-42"))
@@ -879,6 +965,114 @@ class RoomPullStoreTest {
         assertEquals("Local content", note.content)
         assertTrue(note.favorite)
         assertEquals(SyncState.CONFLICT, note.syncState)
+    }
+
+    @Test
+    fun recreatingARemotelyMissingNoteKeepsItsIdentityAndClearsRemoteState() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.REMOTE_MISSING))
+
+        assertTrue(
+            RoomPushStore(database).resolveRemoteMissing(
+                "account-local-42",
+                0,
+                recreate = true
+            )
+        )
+
+        val note = notes.get("account-local-42")!!
+        assertEquals("account-local-42", note.localId)
+        assertEquals("Local content", note.content)
+        assertNull(note.remoteId)
+        assertNull(note.remoteEtag)
+        assertEquals(SyncState.LOCALLY_CREATED, note.syncState)
+        assertEquals(1L, note.localRevision)
+        assertNull(note.lastSyncedContent)
+    }
+
+    @Test
+    fun discardingARemotelyMissingNoteRemovesOnlyThatRevision() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.REMOTE_MISSING))
+
+        assertFalse(
+            RoomPushStore(database).resolveRemoteMissing(
+                "account-local-42",
+                1,
+                recreate = false
+            )
+        )
+        assertNotNull(notes.get("account-local-42"))
+        assertTrue(
+            RoomPushStore(database).resolveRemoteMissing(
+                "account-local-42",
+                0,
+                recreate = false
+            )
+        )
+        assertNull(notes.get("account-local-42"))
+    }
+
+    @Test
+    fun resolvingReadOnlyConflictCanPreserveAWritableLocalCopy() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        val conflicted = localNote(42, SyncState.READ_ONLY_CONFLICT).copy(readOnly = true)
+        database.noteDao().upsert(conflicted)
+        val localCopy = conflicted.toDomain().copy(
+            localId = "read-only-copy",
+            remoteId = null,
+            remoteEtag = null,
+            readOnly = false,
+            syncState = SyncState.LOCALLY_CREATED
+        )
+
+        assertTrue(
+            RoomPushStore(database).resolveConflict(
+                conflicted.localId,
+                conflicted.localRevision,
+                RemoteNote(
+                    42,
+                    "server-etag",
+                    "Server",
+                    "Server content",
+                    "Remote",
+                    20,
+                    readOnly = true
+                ),
+                localCopy
+            )
+        )
+
+        assertTrue(notes.get(conflicted.localId)!!.readOnly)
+        assertEquals("Server content", notes.get(conflicted.localId)!!.content)
+        assertFalse(notes.get("read-only-copy")!!.readOnly)
+        assertEquals("Local content", notes.get("read-only-copy")!!.content)
+    }
+
+    @Test
+    fun activeDraftCanFinishPersistingAfterServerRecoveryBecomesRequired() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.READ_ONLY_CONFLICT).copy(readOnly = true)
+        )
+
+        assertNull(notes.beginEditing("account-local-42"))
+        assertTrue(notes.updateDraft("account-local-42", "Newest editor text", 20))
+        assertFalse(notes.updateFavorite("account-local-42", true))
+
+        val note = notes.get("account-local-42")!!
+        assertEquals("Newest editor text", note.content)
+        assertEquals(SyncState.READ_ONLY_CONFLICT, note.syncState)
+        assertEquals("local error", note.lastSyncError)
+        assertEquals(1L, note.localRevision)
     }
 
     private fun testAccount(id: String = "account") = org.qownnotes.mobile.core.Account(

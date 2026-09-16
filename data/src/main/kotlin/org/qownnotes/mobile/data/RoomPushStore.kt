@@ -57,19 +57,14 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
         localId: String,
         submittedRevision: Long,
         message: String,
-        conflict: Boolean,
-        terminal: Boolean
+        failureState: SyncState?
     ) {
         database.withTransaction {
             val current = database.noteDao().get(localId) ?: return@withTransaction
             if (current.localRevision != submittedRevision) return@withTransaction
             database.noteDao().upsert(
                 current.copy(
-                    syncState = when {
-                        conflict -> SyncState.CONFLICT
-                        terminal -> SyncState.FAILED
-                        else -> current.syncState
-                    },
+                    syncState = failureState ?: current.syncState,
                     lastSyncError = message
                 )
             )
@@ -84,7 +79,7 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
     ): Boolean = database.withTransaction {
         val current = database.noteDao().get(localId) ?: return@withTransaction false
         if (
-            current.syncState != SyncState.CONFLICT ||
+            current.syncState !in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT) ||
             current.localRevision != expectedRevision ||
             current.remoteId != remote.id
         ) {
@@ -117,6 +112,39 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
                 localRevision = current.localRevision + 1
             )
         )
+        true
+    }
+
+    override suspend fun resolveRemoteMissing(
+        localId: String,
+        expectedRevision: Long,
+        recreate: Boolean
+    ): Boolean = database.withTransaction {
+        val current = database.noteDao().get(localId) ?: return@withTransaction false
+        if (
+            current.syncState != SyncState.REMOTE_MISSING ||
+            current.localRevision != expectedRevision
+        ) {
+            return@withTransaction false
+        }
+        if (recreate) {
+            database.noteDao().upsert(
+                current.copy(
+                    remoteId = null,
+                    remoteEtag = null,
+                    readOnly = false,
+                    syncState = SyncState.LOCALLY_CREATED,
+                    lastSyncedTitle = null,
+                    lastSyncedContent = null,
+                    lastSyncedCategory = null,
+                    lastSyncedFavorite = null,
+                    lastSyncError = null,
+                    localRevision = current.localRevision + 1
+                )
+            )
+        } else {
+            database.noteDao().deleteByLocalId(localId)
+        }
         true
     }
 }

@@ -991,12 +991,18 @@ Implemented:
   whether the server accepted the `POST`.
 - Made push failures and conflict resolution revision-aware, incremented the revision when deletion
   intent is persisted, and preserved that intent when an older update response arrives.
+- Added explicit `REMOTE_MISSING` and `READ_ONLY_CONFLICT` states. A completed pull preserves dirty
+  notes that disappeared remotely, and preserves local content when the corresponding server note
+  becomes read-only.
+- Added recovery actions to recreate a remotely deleted note with its stable local identity,
+  discard that local version, adopt a read-only server version, or first preserve local changes as
+  a new writable note.
 - Added focused policy, worker, and Room regression coverage for retry decisions, constrained work,
-  uncertain creation, stale failures, stale successes, and conflict-resolution races.
+  uncertain creation, stale failures, stale successes, remote deletion, read-only transitions, and
+  conflict-resolution races.
 
 Remaining:
 
-- Complete read-only transition and deleted-remote-note recovery policies and user actions.
 - Persist complete conflict snapshots, add side-by-side review, and implement three-way merging.
 - Expand the existing secret-redacted diagnostics into a durable bug-report summary.
 - Complete the real-device and process-restart checklist in

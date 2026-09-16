@@ -71,7 +71,12 @@ data class NoteListItemEntity(
     val excerpt: String
 )
 
-data class RemoteNoteReference(val localId: String, val remoteId: Long?, val category: String)
+data class RemoteNoteReference(
+    val localId: String,
+    val remoteId: Long,
+    val category: String,
+    val syncState: SyncState
+)
 
 fun NoteEntity.toDomain() = Note(
     localId = localId,

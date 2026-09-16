@@ -18,6 +18,12 @@ The automated suites verify:
 - Retryable failures request WorkManager backoff, while authentication failures and uncertain
   creates do not retry automatically.
 - Local deletion intent is visible in Room before synchronization is scheduled.
+- Dirty notes omitted by a completed pull enter an explicit remote-missing state without losing
+  local content and can be recreated or discarded through revision-guarded transactions.
+- A note that becomes read-only while protected local fields differ from their synchronized base
+  keeps those changes and can preserve them as a writable copy before adopting the server version.
+- Favorite-only changes remain pending when a note is read-only because the Notes API permits that
+  attribute to be updated independently.
 
 Run host checks with:
 
@@ -56,10 +62,13 @@ API version, Nextcloud Files version, date, and result for each case.
 
 ## Remaining Phase 4 Checks
 
-These checks become required when their corresponding recovery UI is implemented:
+These checks require real-server evidence:
 
 - A shared read-only note becoming read-only while a local edit is pending.
 - A server-side deletion while the local note is unchanged.
 - A server-side deletion while a local edit is pending.
+
+These checks become required when their corresponding features are implemented:
+
 - Side-by-side conflict review and three-way merge behavior.
 - A complete, secret-redacted diagnostic report after process restart.

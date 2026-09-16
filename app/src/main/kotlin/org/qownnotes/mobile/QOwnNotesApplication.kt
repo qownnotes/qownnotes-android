@@ -418,7 +418,7 @@ class ApplicationComponent(
 
     private suspend fun saveDraftLocked(localId: String, content: String): Boolean {
         val note = noteRepository.get(localId) ?: return false
-        if (note.readOnly) return false
+        if (note.readOnly && note.syncState != SyncState.READ_ONLY_CONFLICT) return false
         if (note.content == content) {
             editorDrafts.markPersisted(localId, content)
             if (note.syncState == SyncState.LOCALLY_MODIFIED ||
@@ -442,7 +442,9 @@ class ApplicationComponent(
             // A checkpoint captured before a newer text callback must never overwrite that text.
             if (!editorDrafts.current(localId, content)) return@withLock true
             val note = noteRepository.get(localId) ?: return@withLock false
-            if (note.readOnly) return@withLock false
+            if (note.readOnly && note.syncState != SyncState.READ_ONLY_CONFLICT) {
+                return@withLock false
+            }
             if (note.content == content) {
                 editorDrafts.markPersisted(localId, content)
                 return@withLock true
@@ -529,7 +531,11 @@ class ApplicationComponent(
         val accountId = noteRepository.get(localId)?.accountId ?: return false
         return accountMutex(accountId).withLock {
             val note = noteRepository.get(localId) ?: return@withLock false
-            if (note.syncState != SyncState.CONFLICT) return@withLock false
+            if (
+                note.syncState !in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
+            ) {
+                return@withLock false
+            }
             val account = accountRepository.get(accountId) ?: return@withLock false
             val remote = backend.get(account, requireNotNull(note.remoteId))
             val localCopy = if (keepLocalCopy) {
@@ -561,6 +567,26 @@ class ApplicationComponent(
                     editReservations.remove(localId)
                     clearNoteSyncDiagnostic(localId)
                     if (localCopy != null) scheduleSync(accountId, 0)
+                }
+            }
+        }
+    }
+
+    suspend fun resolveRemoteMissing(localId: String, recreate: Boolean): Boolean {
+        val note = noteRepository.get(localId) ?: return false
+        return accountMutex(note.accountId).withLock {
+            val current = noteRepository.get(localId) ?: return@withLock false
+            if (current.syncState != SyncState.REMOTE_MISSING) return@withLock false
+            pushStore.resolveRemoteMissing(
+                localId,
+                current.localRevision,
+                recreate
+            ).also { resolved ->
+                if (resolved) {
+                    editorDrafts.remove(listOf(localId))
+                    editReservations.remove(localId)
+                    clearNoteSyncDiagnostic(localId)
+                    if (recreate) scheduleSync(current.accountId, 0)
                 }
             }
         }

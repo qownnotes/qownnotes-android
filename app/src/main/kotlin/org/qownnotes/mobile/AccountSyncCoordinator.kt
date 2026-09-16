@@ -12,6 +12,7 @@ import org.qownnotes.mobile.core.PullStore
 import org.qownnotes.mobile.core.PushStore
 import org.qownnotes.mobile.core.SyncCoordinator
 import org.qownnotes.mobile.core.SyncOutcome
+import org.qownnotes.mobile.core.SyncState
 
 internal class AccountSyncCoordinator(
     private val accountRepository: AccountRepository,
@@ -62,13 +63,13 @@ internal class AccountSyncCoordinator(
                 pushStore.applySuccess(note.localId, note.localRevision, remote)
                 onNoteSuccess(note.localId)
             } catch (error: BackendException.Conflict) {
-                recordFailure(note, error, conflict = true)
+                recordFailure(note, error, SyncState.CONFLICT)
                 issue = issue ?: SyncOutcome.UserActionRequired(error)
             } catch (error: BackendException.RemoteMissing) {
-                recordFailure(note, error, terminal = true)
+                recordFailure(note, error, SyncState.REMOTE_MISSING)
                 issue = issue ?: SyncOutcome.UserActionRequired(error)
             } catch (error: BackendException.Permission) {
-                recordFailure(note, error, terminal = true)
+                recordFailure(note, error, SyncState.FAILED)
                 issue = issue ?: SyncOutcome.UserActionRequired(error)
             } catch (error: BackendException.InsufficientStorage) {
                 recordFailure(note, error)
@@ -79,7 +80,7 @@ internal class AccountSyncCoordinator(
                         error !is BackendException.AuthorizationRequired &&
                         error !is BackendException.AccountRemoved
                 val uncertainCreate = note.remoteId == null && requestMayHaveCompleted
-                recordFailure(note, error, terminal = uncertainCreate)
+                recordFailure(note, error, if (uncertainCreate) SyncState.FAILED else null)
                 if (uncertainCreate) {
                     issue = issue ?: SyncOutcome.UserActionRequired(error)
                 } else {
@@ -93,16 +94,14 @@ internal class AccountSyncCoordinator(
     private suspend fun recordFailure(
         note: Note,
         error: Throwable,
-        conflict: Boolean = false,
-        terminal: Boolean = false
+        failureState: SyncState? = null
     ) {
         onNoteFailure(note.localId, error)
         pushStore.recordFailure(
             note.localId,
             note.localRevision,
             error.message ?: "Synchronization failed",
-            conflict,
-            terminal
+            failureState
         )
     }
 

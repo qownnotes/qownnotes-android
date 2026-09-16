@@ -133,8 +133,7 @@ interface PushStore {
         localId: String,
         submittedRevision: Long,
         message: String,
-        conflict: Boolean = false,
-        terminal: Boolean = false
+        failureState: SyncState? = null
     )
 
     suspend fun resolveConflict(
@@ -142,6 +141,12 @@ interface PushStore {
         expectedRevision: Long,
         remote: RemoteNote,
         localCopy: Note?
+    ): Boolean
+
+    suspend fun resolveRemoteMissing(
+        localId: String,
+        expectedRevision: Long,
+        recreate: Boolean
     ): Boolean
 }
 

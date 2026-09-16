@@ -11,6 +11,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Persisted note changes now schedule account-scoped background synchronization through
   WorkManager, with network constraints and backoff for retryable failures.
+- Notes deleted remotely while local changes are pending can now be recreated without losing their
+  local identity or explicitly discarded.
+- Local changes to a note that becomes read-only can now be preserved as a new writable note before
+  adopting the server version.
 
 ### Changed
 
@@ -21,6 +25,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Late synchronization failures and successful updates can no longer replace a newer local edit or
   undo deletion intent.
+- Completed pulls preserve local edits when the server note disappears or becomes read-only and
+  expose an explicit recovery action instead of offering a retry that cannot succeed.
 - Files returned by the Nextcloud Notes API from QOwnNotes' top-level `attachments/` and `media/`
   trees no longer appear as notes (for [#7](https://github.com/qownnotes/qownnotes-android/issues/7)).
 - Large Markdown notes no longer lay out the editor as a document-height Android view. The bounded

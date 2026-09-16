@@ -46,6 +46,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -914,6 +915,121 @@ class AppLaunchTest {
         assertEquals(SyncState.CONFLICT, conflicted.syncState)
         assertEquals("The note changed on the server", conflicted.lastSyncError)
         assertEquals("# Existing note\n\nBase content", conflicted.lastSyncedContent)
+    }
+
+    @Test
+    fun remotelyMissingNoteCanBeRecreatedWithoutLosingItsLocalIdentity() {
+        val account = importAccount(
+            "alice",
+            "Existing note",
+            "etag-1",
+            10,
+            "# Existing note\n\nBase content"
+        )
+        val note = runBlocking { notesOf("alice").single() }
+        application.fakeSyncScheduler.pause()
+        application.fakeBackend.updateFailure = BackendException.RemoteMissing()
+
+        runBlocking {
+            application.component.replaceNoteContent(
+                note.localId,
+                "# Existing note\n\nLocal content"
+            )
+            application.component.refresh(account.localAccountId())
+        }
+
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.waitForTag("resolve-remote-missing")
+        composeRule.onNodeWithTag("resolve-remote-missing").performClick()
+        composeRule.onNodeWithTag("recreate-remote-missing").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                application.component.noteRepository.get(note.localId)?.syncState ==
+                    SyncState.LOCALLY_CREATED
+            }
+        }
+        val recreated = runBlocking { application.component.noteRepository.get(note.localId)!! }
+        assertEquals(note.localId, recreated.localId)
+        assertEquals("# Existing note\n\nLocal content", recreated.content)
+        assertEquals(null, recreated.remoteId)
+        assertEquals(null, recreated.remoteEtag)
+    }
+
+    @Test
+    fun readOnlyTransitionCanPreserveLocalChangesAsAWritableCopy() {
+        val account = importAccount(
+            "alice",
+            "Existing note",
+            "etag-1",
+            10,
+            "# Existing note\n\nBase content"
+        )
+        val localId = runBlocking {
+            val note = notesOf("alice").single()
+            application.component.noteRepository.save(
+                note.copy(
+                    content = "# Existing note\n\nLocal content",
+                    syncState = SyncState.LOCALLY_MODIFIED,
+                    localRevision = note.localRevision + 1
+                )
+            )
+            note.localId
+        }
+        application.fakeBackend.enqueue(
+            account.localAccountId(),
+            PullResult(
+                listOf(
+                    RemoteNote(
+                        42,
+                        "etag-2",
+                        "Existing note",
+                        "# Existing note\n\nServer content",
+                        "",
+                        20,
+                        readOnly = true
+                    )
+                ),
+                "collection-etag-2",
+                20
+            )
+        )
+        application.fakeBackend.remoteNotes[42] = RemoteNote(
+            42,
+            "etag-2",
+            "Existing note",
+            "# Existing note\n\nServer content",
+            "",
+            20,
+            readOnly = true
+        )
+
+        runBlocking { application.component.refresh(account.localAccountId()) }
+
+        val conflicted = runBlocking { application.component.noteRepository.get(localId)!! }
+        assertEquals(SyncState.READ_ONLY_CONFLICT, conflicted.syncState)
+        assertEquals("# Existing note\n\nLocal content", conflicted.content)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.waitForTag("resolve-note-conflict")
+        composeRule.onNodeWithTag("resolve-note-conflict").performClick()
+        composeRule.onNodeWithTag("keep-local-conflict-copy").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                val notes = notesOf("alice")
+                notes.size == 2 &&
+                    notes.single { it.localId == localId }.readOnly &&
+                    notes.single { it.localId != localId }.content.contains("Local content")
+            }
+        }
+        val notes = runBlocking { notesOf("alice") }
+        assertEquals(
+            "# Existing note\n\nServer content",
+            notes.single {
+                it.localId == localId
+            }.content
+        )
+        assertFalse(notes.single { it.localId != localId }.readOnly)
     }
 
     @Test
