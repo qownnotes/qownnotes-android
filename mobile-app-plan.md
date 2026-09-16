@@ -1,6 +1,6 @@
 # QOwnNotes Mobile Application Plan
 
-Status: Phase 3 in progress
+Status: Phase 4 in progress; Phase 3 compatibility verification remains open
 Primary platform: Android
 Potential later platform: iOS
 Project location: Separate repository
@@ -33,6 +33,13 @@ The Phase 1 local bootstrap account has been replaced by Nextcloud SSO account o
 Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account and pull-checkpoint persistence, Notes API capability validation, incremental chunked pulls, transactional Room caching, offline search, profile-picture account markers, direct two-account switching and a chooser for larger account sets, local cache removal, reconnect handling, and Markwon rendering. The implementation and automated coverage are complete, including the configured CI device job; broader real-server interoperability must be verified before Phase 2 is marked fully complete.
 
 Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, source-text finding, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, keyboard input, a representative 100 KiB note, canonical collision titles, and conflict preservation are verified on the OPPO CPH2653; source highlighting is intentionally omitted above 64 KiB to keep large-note editing responsive. Every listed Phase 3 implementation task is complete, but server-version records, remaining real-server conflict-resolution paths, and a second physical-device input check are still open. See the Phase 3 section for the full list.
+
+Phase 4 has started with account-scoped WorkManager synchronization. Persisted mutations enqueue
+unique connected-network work, retryable failures use WorkManager backoff, and authentication,
+permission, conflict, missing-note, storage, uncertain-create, and protocol failures stop automatic
+retry. Foreground refresh and workers use the same coordinator. Revision guards now also prevent a
+late failure, conflict resolution, or successful update from replacing newer local state or undoing
+deletion intent.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -961,6 +968,8 @@ Resolved physical-device issue recorded on 2026-09-01:
 
 ### Phase 4: Synchronization Safety
 
+Status: In progress
+
 - Implement reliable WorkManager scheduling and constraints.
 - Separate retryable errors from user-action-required errors.
 - Handle read-only notes.
@@ -969,6 +978,29 @@ Resolved physical-device issue recorded on 2026-09-01:
   initial resolution UI can adopt the server note or preserve local changes as a new note first.
 - Verify no local edit can be replaced by an older pull or push result.
 - Add telemetry-free diagnostics suitable for user bug reports.
+
+Implemented:
+
+- Added unique account-scoped WorkManager requests with a connected-network constraint, delayed
+  edit synchronization, exponential retry backoff, startup reconciliation, and cancellation when
+  an account is removed.
+- Extracted synchronization orchestration behind the core `SyncCoordinator` contract and added
+  typed success, retryable, user-action-required, and permanent outcomes shared by foreground
+  refresh and background workers.
+- Kept uncertain initial creates out of automatic retry because a lost response cannot establish
+  whether the server accepted the `POST`.
+- Made push failures and conflict resolution revision-aware, incremented the revision when deletion
+  intent is persisted, and preserved that intent when an older update response arrives.
+- Added focused policy, worker, and Room regression coverage for retry decisions, constrained work,
+  uncertain creation, stale failures, stale successes, and conflict-resolution races.
+
+Remaining:
+
+- Complete read-only transition and deleted-remote-note recovery policies and user actions.
+- Persist complete conflict snapshots, add side-by-side review, and implement three-way merging.
+- Expand the existing secret-redacted diagnostics into a durable bug-report summary.
+- Complete the real-device and process-restart checklist in
+  [`docs/testing/phase-4-synchronization-safety.md`](docs/testing/phase-4-synchronization-safety.md).
 
 ### Phase 5: Note Folders
 

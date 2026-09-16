@@ -145,7 +145,8 @@ interface NoteDao {
     suspend fun retry(localId: String): Int
 
     @Query(
-        "UPDATE notes SET syncState = 'PENDING_DELETION', lastSyncError = NULL " +
+        "UPDATE notes SET localRevision = localRevision + 1, " +
+            "syncState = 'PENDING_DELETION', lastSyncError = NULL " +
             "WHERE accountId = :accountId AND localId IN (:localIds)"
     )
     suspend fun moveToTrash(accountId: String, localIds: List<String>)

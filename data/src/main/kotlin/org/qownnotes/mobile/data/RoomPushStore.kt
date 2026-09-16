@@ -37,8 +37,12 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
                     remoteEtag = etag,
                     readOnly = remote.readOnly,
                     favorite = if (unchanged) remote.favorite else current.favorite,
-                    syncState =
-                    if (unchanged) SyncState.SYNCHRONIZED else SyncState.LOCALLY_MODIFIED,
+                    syncState = when {
+                        unchanged -> SyncState.SYNCHRONIZED
+                        current.syncState == SyncState.PENDING_DELETION ->
+                            SyncState.PENDING_DELETION
+                        else -> SyncState.LOCALLY_MODIFIED
+                    },
                     lastSyncedTitle = title,
                     lastSyncedContent = content,
                     lastSyncedCategory = category,
@@ -51,12 +55,14 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
 
     override suspend fun recordFailure(
         localId: String,
+        submittedRevision: Long,
         message: String,
         conflict: Boolean,
         terminal: Boolean
     ) {
         database.withTransaction {
             val current = database.noteDao().get(localId) ?: return@withTransaction
+            if (current.localRevision != submittedRevision) return@withTransaction
             database.noteDao().upsert(
                 current.copy(
                     syncState = when {
@@ -72,11 +78,16 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
 
     override suspend fun resolveConflict(
         localId: String,
+        expectedRevision: Long,
         remote: RemoteNote,
         localCopy: Note?
     ): Boolean = database.withTransaction {
         val current = database.noteDao().get(localId) ?: return@withTransaction false
-        if (current.syncState != SyncState.CONFLICT || current.remoteId != remote.id) {
+        if (
+            current.syncState != SyncState.CONFLICT ||
+            current.localRevision != expectedRevision ||
+            current.remoteId != remote.id
+        ) {
             return@withTransaction false
         }
         val title = requireNotNull(remote.title) { "Nextcloud response is missing its title" }

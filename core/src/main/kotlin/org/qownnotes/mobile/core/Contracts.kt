@@ -131,12 +131,18 @@ interface PushStore {
 
     suspend fun recordFailure(
         localId: String,
+        submittedRevision: Long,
         message: String,
         conflict: Boolean = false,
         terminal: Boolean = false
     )
 
-    suspend fun resolveConflict(localId: String, remote: RemoteNote, localCopy: Note?): Boolean
+    suspend fun resolveConflict(
+        localId: String,
+        expectedRevision: Long,
+        remote: RemoteNote,
+        localCopy: Note?
+    ): Boolean
 }
 
 data class BackendCapabilities(
@@ -146,8 +152,18 @@ data class BackendCapabilities(
     val readOnlyNotes: Boolean = false
 )
 
+sealed interface SyncOutcome {
+    data object Success : SyncOutcome
+
+    data class RetryableFailure(val error: Throwable) : SyncOutcome
+
+    data class UserActionRequired(val error: Throwable) : SyncOutcome
+
+    data class PermanentFailure(val error: Throwable) : SyncOutcome
+}
+
 interface SyncCoordinator {
-    suspend fun synchronize(accountId: String)
+    suspend fun synchronize(accountId: String): SyncOutcome
 }
 
 interface MarkdownLinkResolver {

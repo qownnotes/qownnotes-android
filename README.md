@@ -70,15 +70,17 @@ Editing does not wait for Nextcloud. Changes are cached immediately while the ap
 written to Room after a 500 ms pause, at least every five seconds during continuous typing, when
 the editor loses focus, when editing finishes, or when the screen stops. A persisted edit remains
 visible after restarting the app and stays queued if synchronization cannot reach the server. A
-later edit, manual refresh, or return to the note list tries synchronization again.
+connected-network WorkManager job retries transient failures with backoff, even after the app
+process is restarted. A later edit or manual refresh also requests synchronization.
 
 Updates use the last known ETag. If the server copy changed in the meantime, the app keeps the
 local text and marks the note as conflicted instead of overwriting the server. Open the conflict in
 the note view and choose **Resolve conflict** to load the server version or first preserve the local
 version as a new note. If the server cannot be reached, the local conflict remains untouched.
-Durable background retry is not implemented yet. Because the live draft cache is in memory, an
-abrupt process kill can lose only the characters entered since the latest idle or periodic Room
-checkpoint.
+Authentication, permission, conflict, missing-note, storage, and malformed-response failures do not
+retry indefinitely; the app keeps the local state and reports that attention is required. Because
+the live draft cache is in memory, an abrupt process kill can lose only the characters entered since
+the latest idle or periodic Room checkpoint.
 
 ## NixOS Recipes
 

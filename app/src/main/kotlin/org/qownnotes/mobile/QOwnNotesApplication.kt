@@ -13,11 +13,8 @@ import java.util.UUID
 import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,10 +35,10 @@ import org.qownnotes.mobile.core.NoteFactory
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
-import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.SharedText
+import org.qownnotes.mobile.core.SyncOutcome
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.data.MIGRATION_1_2
@@ -86,6 +83,7 @@ class ApplicationComponent(
     private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
     private val noteSettingsBackend: NoteSettingsBackend? = backend as? NoteSettingsBackend,
     val settings: AppSettings = AppSettings(application),
+    private val syncScheduler: SyncScheduler = WorkManagerSyncScheduler(application),
     internal val draftCheckpointIntervalMillis: Long = 5_000,
     avatarFetcher: suspend (Account) -> ByteArray? = { account ->
         fetchAttachment(
@@ -117,6 +115,16 @@ class ApplicationComponent(
         mutableNoteSyncDiagnostics.asStateFlow()
     private val mutableImportState = MutableStateFlow<SyncUiState>(SyncUiState.Idle)
     val importState: StateFlow<SyncUiState> = mutableImportState.asStateFlow()
+    private val syncCoordinator =
+        AccountSyncCoordinator(
+            accountRepository,
+            noteRepository,
+            pullStore,
+            pushStore,
+            backend,
+            onNoteFailure = ::recordNoteSyncDiagnostic,
+            onNoteSuccess = ::clearNoteSyncDiagnostic
+        )
 
     /**
      * Text another application shared that has not become a note yet. A share can arrive before
@@ -126,7 +134,6 @@ class ApplicationComponent(
     val pendingShare: StateFlow<SharedText?> = mutablePendingShare.asStateFlow()
     private val refreshMutexes = ConcurrentHashMap<String, Mutex>()
     private val editMutexes = ConcurrentHashMap<String, Mutex>()
-    private val syncJobs = ConcurrentHashMap<String, Job>()
     private val editorDrafts = EditorDraftCache()
     private val editReservations = ConcurrentHashMap<String, EditReservation>()
     private val accountAvatars = AccountAvatarStore(application, avatarFetcher)
@@ -134,9 +141,9 @@ class ApplicationComponent(
 
     init {
         applicationScope.launch {
-            settings.migrateShowCategory(
-                accountRepository.observeAccounts().first().map(Account::id)
-            )
+            val accountIds = accountRepository.observeAccounts().first().map(Account::id)
+            settings.migrateShowCategory(accountIds)
+            accountIds.forEach(syncScheduler::ensureScheduled)
         }
     }
 
@@ -202,13 +209,20 @@ class ApplicationComponent(
         accountRepository.save(account)
         mutableImportState.value = SyncUiState.Idle
         updateSyncState(id, SyncUiState.Idle)
-        if (existing != null) refreshLocked(id)
+        if (existing != null) {
+            refreshLocked(id)
+        } else {
+            scheduleSync(id, 0)
+        }
         return accountRepository.get(id) ?: account
     }
 
     suspend fun refresh(accountId: String) {
         accountMutex(accountId).withLock { refreshLocked(accountId) }
     }
+
+    internal suspend fun synchronizeFromWorker(accountId: String): SyncOutcome =
+        accountMutex(accountId).withLock { refreshLocked(accountId) }
 
     suspend fun removeLocalData(accountId: String) {
         accountMutex(accountId).withLock {
@@ -222,6 +236,7 @@ class ApplicationComponent(
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
             accountAvatars.remove(accountId)
+            syncScheduler.cancel(accountId)
         }
     }
 
@@ -535,7 +550,12 @@ class ApplicationComponent(
             } else {
                 null
             }
-            pushStore.resolveConflict(localId, remote, localCopy).also { resolved ->
+            pushStore.resolveConflict(
+                localId,
+                note.localRevision,
+                remote,
+                localCopy
+            ).also { resolved ->
                 if (resolved) {
                     editorDrafts.replaceWithPersisted(localId, requireNotNull(remote.content))
                     editReservations.remove(localId)
@@ -581,80 +601,42 @@ class ApplicationComponent(
     }
 
     private fun scheduleSync(accountId: String, delayMillis: Long = 1_500) {
-        lateinit var job: Job
-        job = applicationScope.launch(start = CoroutineStart.LAZY) {
-            delay(delayMillis)
-            syncJobs.remove(accountId, job)
-            refresh(accountId)
-        }
-        syncJobs.put(accountId, job)?.cancel()
-        job.start()
+        syncScheduler.schedule(accountId, delayMillis)
     }
 
-    private suspend fun refreshLocked(accountId: String, propagateFailure: Boolean = false) {
-        var account = accountRepository.get(accountId) ?: return
+    private suspend fun refreshLocked(
+        accountId: String,
+        propagateFailure: Boolean = false
+    ): SyncOutcome {
         updateSyncState(accountId, SyncUiState.Refreshing)
-        try {
-            val apiVersion = account.apiVersion ?: backend.validateAccount(account)
-            account = account.copy(apiVersion = apiVersion, lastSyncError = null)
-            accountRepository.save(account)
-            val result =
-                backend.pull(
-                    account,
-                    PullCheckpoint(account.collectionEtag, account.lastModifiedEpochSeconds)
-                )
-            pullStore.applyPull(accountId, result)
-            pushPendingDeletions(account)
-            pushPending(account)
-            updateSyncState(accountId, SyncUiState.Idle)
+        val outcome = try {
+            syncCoordinator.synchronize(accountId)
         } catch (error: CancellationException) {
             updateSyncState(accountId, SyncUiState.Idle)
             throw error
-        } catch (error: Exception) {
-            val message = error.message ?: "Synchronization failed"
-            accountRepository.updateSyncError(accountId, message)
-            updateSyncState(accountId, error.toSyncUiState(message))
-            if (propagateFailure) throw error
         }
+        when (outcome) {
+            SyncOutcome.Success -> updateSyncState(accountId, SyncUiState.Idle)
+            is SyncOutcome.RetryableFailure -> reportSyncFailure(accountId, outcome.error)
+            is SyncOutcome.UserActionRequired -> reportSyncFailure(accountId, outcome.error)
+            is SyncOutcome.PermanentFailure -> reportSyncFailure(accountId, outcome.error)
+        }
+        if (propagateFailure && outcome is SyncOutcome.RetryableFailure) throw outcome.error
+        if (propagateFailure && outcome is SyncOutcome.UserActionRequired) throw outcome.error
+        if (propagateFailure && outcome is SyncOutcome.PermanentFailure) throw outcome.error
+        return outcome
     }
 
-    private suspend fun pushPending(account: Account) {
-        noteRepository.pending(account.id).forEach { note ->
-            try {
-                val remote =
-                    if (note.remoteId == null) {
-                        backend.create(account, note)
-                    } else {
-                        backend.update(account, note)
-                    }
-                pushStore.applySuccess(note.localId, note.localRevision, remote)
-                clearNoteSyncDiagnostic(note.localId)
-            } catch (error: BackendException.Conflict) {
-                recordNoteSyncDiagnostic(note.localId, error)
-                pushStore.recordFailure(note.localId, error.message.orEmpty(), conflict = true)
-            } catch (error: BackendException.RemoteMissing) {
-                recordNoteSyncDiagnostic(note.localId, error)
-                pushStore.recordFailure(note.localId, error.message.orEmpty(), terminal = true)
-            } catch (error: BackendException.Permission) {
-                recordNoteSyncDiagnostic(note.localId, error)
-                pushStore.recordFailure(note.localId, error.message.orEmpty(), terminal = true)
-            } catch (error: BackendException.InsufficientStorage) {
-                recordNoteSyncDiagnostic(note.localId, error)
-                pushStore.recordFailure(note.localId, error.message.orEmpty())
-            } catch (error: Exception) {
-                recordNoteSyncDiagnostic(note.localId, error)
-                val requestMayHaveCompleted =
-                    error !is BackendException.Authentication &&
-                        error !is BackendException.AuthorizationRequired &&
-                        error !is BackendException.AccountRemoved
-                pushStore.recordFailure(
-                    note.localId,
-                    error.message ?: "Synchronization failed",
-                    terminal = note.remoteId == null && requestMayHaveCompleted
-                )
-                throw error
+    private fun reportSyncFailure(accountId: String, error: Throwable) {
+        val message = error.message ?: "Synchronization failed"
+        updateSyncState(
+            accountId,
+            if (error is Exception) {
+                error.toSyncUiState(message)
+            } else {
+                SyncUiState.Failed(message, error.toSyncDiagnosticText())
             }
-        }
+        )
     }
 
     private fun recordNoteSyncDiagnostic(localId: String, error: Throwable) {
@@ -663,14 +645,6 @@ class ApplicationComponent(
 
     private fun clearNoteSyncDiagnostic(localId: String) {
         mutableNoteSyncDiagnostics.update { it - localId }
-    }
-
-    private suspend fun pushPendingDeletions(account: Account) {
-        noteRepository.pendingDeletions(account.id).forEach { note ->
-            val remoteId = note.remoteId
-            if (remoteId != null) backend.delete(account, remoteId)
-            noteRepository.remove(note.localId)
-        }
     }
 
     fun beginAccountImport() {

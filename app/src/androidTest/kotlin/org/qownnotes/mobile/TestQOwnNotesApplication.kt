@@ -6,7 +6,13 @@ import androidx.room.Room
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import java.util.ArrayDeque
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.Note
@@ -27,6 +33,7 @@ import org.qownnotes.mobile.data.QOwnNotesDatabase
 class TestQOwnNotesApplication : QOwnNotesApplication() {
     val fakeBackend = FakePullBackend()
     val fakeAccountImporter = FakeAccountImportGateway()
+    val fakeSyncScheduler = FakeSyncScheduler()
 
     override fun createComponent(): ApplicationComponent {
         val database =
@@ -36,14 +43,17 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
                 .build()
         // A dedicated preference file keeps device tests from reading or writing real user
         // settings, and lets `reset` restore defaults without touching the production store.
-        return ApplicationComponent(
+        val component = ApplicationComponent(
             this,
             database,
             fakeBackend,
             settings = AppSettings(this, TEST_SETTINGS),
+            syncScheduler = fakeSyncScheduler,
             draftCheckpointIntervalMillis = 100,
             avatarFetcher = { null }
         )
+        fakeSyncScheduler.bind(component::refresh)
+        return component
     }
 
     override fun createAccountImportGateway(): AccountImportGateway = fakeAccountImporter
@@ -60,11 +70,62 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         component.settings.setSwipeNoteActions(false)
         fakeBackend.reset()
         fakeAccountImporter.reset()
+        fakeSyncScheduler.reset()
     }
 
     private companion object {
         const val TEST_DATABASE = "qownnotes-device-test.db"
         const val TEST_SETTINGS = "qownnotes-device-test-settings"
+    }
+}
+
+class FakeSyncScheduler : SyncScheduler {
+    val scheduled = mutableListOf<Pair<String, Long>>()
+    val ensured = mutableListOf<String>()
+    val cancelled = mutableListOf<String>()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val jobs = mutableMapOf<String, Job>()
+    private var synchronize: suspend (String) -> Unit = {}
+    private var executeScheduledWork = true
+
+    fun bind(synchronize: suspend (String) -> Unit) {
+        this.synchronize = synchronize
+    }
+
+    override fun schedule(accountId: String, delayMillis: Long) {
+        scheduled += accountId to delayMillis
+        if (!executeScheduledWork) return
+        jobs.remove(accountId)?.cancel()
+        jobs[accountId] = scope.launch {
+            delay(delayMillis)
+            jobs.remove(accountId)
+            synchronize(accountId)
+        }
+    }
+
+    override fun ensureScheduled(accountId: String) {
+        ensured += accountId
+        if (executeScheduledWork && jobs[accountId] == null) schedule(accountId, 0)
+    }
+
+    override fun cancel(accountId: String) {
+        cancelled += accountId
+        jobs.remove(accountId)?.cancel()
+    }
+
+    fun reset() {
+        jobs.values.forEach(Job::cancel)
+        jobs.clear()
+        scheduled.clear()
+        ensured.clear()
+        cancelled.clear()
+        executeScheduledWork = true
+    }
+
+    fun pause() {
+        jobs.values.forEach(Job::cancel)
+        jobs.clear()
+        executeScheduledWork = false
     }
 }
 
@@ -205,8 +266,16 @@ class FakePullBackend :
         queue(account).add(Result.success(result))
     }
 
+    fun enqueue(accountId: String, result: PullResult) {
+        pulls.getOrPut(accountId) { ArrayDeque() }.add(Result.success(result))
+    }
+
     fun enqueueFailure(account: SingleSignOnAccount, error: Throwable) {
         queue(account).add(Result.failure(error))
+    }
+
+    fun enqueueFailure(accountId: String, error: Throwable) {
+        pulls.getOrPut(accountId) { ArrayDeque() }.add(Result.failure(error))
     }
 
     fun reset() {
