@@ -29,6 +29,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Note-list items no longer shift horizontally when swipe actions are disabled.
 - Late synchronization failures and successful updates can no longer replace a newer local edit or
   undo deletion intent.
 - Conflict actions are bound to the server version shown in the review and are rejected if a newer

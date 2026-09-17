@@ -1694,22 +1694,6 @@ private fun NoteListItem(
     onToggleFavorite: () -> Unit,
     onTrash: () -> Unit
 ) {
-    val currentOnToggleFavorite by rememberUpdatedState(onToggleFavorite)
-    val swipeState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    currentOnToggleFavorite()
-                    false
-                }
-                SwipeToDismissBoxValue.EndToStart -> {
-                    onTrash()
-                    true
-                }
-                SwipeToDismissBoxValue.Settled -> true
-            }
-        }
-    )
     val favoriteDescription =
         if (note.favorite) "Remove from favorites" else "Add to favorites"
     val favoriteTint =
@@ -1718,40 +1702,7 @@ private fun NoteListItem(
         } else {
             MaterialTheme.colorScheme.outlineVariant
         }
-    SwipeToDismissBox(
-        state = swipeState,
-        enableDismissFromStartToEnd = swipeEnabled && !selectionActive,
-        enableDismissFromEndToStart = swipeEnabled && !selectionActive,
-        backgroundContent = {
-            val favoriteAction = swipeState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
-            val actionIcon = if (favoriteAction) Icons.Filled.Star else Icons.Filled.Delete
-            val actionLabel =
-                if (favoriteAction) {
-                    if (note.favorite) "Unfavorite" else "Favorite"
-                } else {
-                    "Move to trash"
-                }
-            Row(
-                modifier = Modifier.fillMaxSize()
-                    .background(
-                        if (favoriteAction) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.errorContainer
-                        }
-                    )
-                    .clearAndSetSemantics {}
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement =
-                if (favoriteAction) Arrangement.Start else Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(actionIcon, contentDescription = null)
-                Text(actionLabel, modifier = Modifier.padding(start = 8.dp))
-            }
-        },
-        modifier = Modifier.testTag("swipe-note-${note.localId}")
-    ) {
+    val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier.fillMaxWidth().testTag("note-${note.localId}")
                 .background(
@@ -1805,6 +1756,61 @@ private fun NoteListItem(
             }
         }
     }
+
+    if (!swipeEnabled || selectionActive) {
+        Box(modifier = Modifier.testTag("swipe-note-${note.localId}")) { content() }
+        return
+    }
+
+    val currentOnToggleFavorite by rememberUpdatedState(onToggleFavorite)
+    val swipeState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    currentOnToggleFavorite()
+                    false
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onTrash()
+                    true
+                }
+                SwipeToDismissBoxValue.Settled -> true
+            }
+        }
+    )
+    SwipeToDismissBox(
+        state = swipeState,
+        backgroundContent = {
+            val favoriteAction = swipeState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+            val actionIcon = if (favoriteAction) Icons.Filled.Star else Icons.Filled.Delete
+            val actionLabel =
+                if (favoriteAction) {
+                    if (note.favorite) "Unfavorite" else "Favorite"
+                } else {
+                    "Move to trash"
+                }
+            Row(
+                modifier = Modifier.fillMaxSize()
+                    .background(
+                        if (favoriteAction) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.errorContainer
+                        }
+                    )
+                    .clearAndSetSemantics {}
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement =
+                if (favoriteAction) Arrangement.Start else Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(actionIcon, contentDescription = null)
+                Text(actionLabel, modifier = Modifier.padding(start = 8.dp))
+            }
+        },
+        modifier = Modifier.testTag("swipe-note-${note.localId}"),
+        content = { content() }
+    )
 }
 
 @Composable
