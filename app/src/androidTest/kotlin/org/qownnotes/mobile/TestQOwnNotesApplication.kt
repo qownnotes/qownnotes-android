@@ -30,6 +30,7 @@ import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
 import org.qownnotes.mobile.data.MIGRATION_4_5
 import org.qownnotes.mobile.data.MIGRATION_5_6
+import org.qownnotes.mobile.data.MIGRATION_6_7
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 
 class TestQOwnNotesApplication : QOwnNotesApplication() {
@@ -45,7 +46,8 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
                     MIGRATION_2_3,
                     MIGRATION_3_4,
                     MIGRATION_4_5,
-                    MIGRATION_5_6
+                    MIGRATION_5_6,
+                    MIGRATION_6_7
                 )
                 .allowMainThreadQueries()
                 .build()

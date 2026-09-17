@@ -33,6 +33,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   undo deletion intent.
 - Conflict actions are bound to the server version shown in the review and are rejected if a newer
   pull refreshes that version before the action completes.
+- Database startup now recovers safely from the earlier Phase 4 version-6 conflict snapshot layout.
 - Completed pulls preserve local edits when the server note disappears or becomes read-only and
   expose an explicit recovery action instead of offering a retry that cannot succeed.
 - Files returned by the Nextcloud Notes API from QOwnNotes' top-level `attachments/` and `media/`

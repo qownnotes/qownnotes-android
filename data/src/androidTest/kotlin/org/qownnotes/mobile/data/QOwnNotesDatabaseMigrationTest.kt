@@ -214,6 +214,134 @@ class QOwnNotesDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationSixToSevenPreservesConflictSnapshots() {
+        helper.createDatabase(DATABASE_NAME, 6).use { database ->
+            insertVersionSixConflict(database)
+        }
+
+        helper.runMigrationsAndValidate(DATABASE_NAME, 7, true, MIGRATION_6_7).use { database ->
+            assertConflictSnapshotPreserved(database)
+        }
+    }
+
+    @Test
+    fun migrationSixToSevenAcceptsEarlyVersionSixConflictLayout() {
+        helper.createDatabase(DATABASE_NAME, 5).use { database ->
+            insertAccountAndNote(database)
+            database.execSQL(
+                """CREATE TABLE IF NOT EXISTS `note_conflicts` (
+                    `localId` TEXT NOT NULL,
+                    `baseTitle` TEXT NOT NULL,
+                    `baseContent` TEXT NOT NULL,
+                    `baseCategory` TEXT NOT NULL,
+                    `baseEtag` TEXT,
+                    `baseFavorite` INTEGER NOT NULL,
+                    `remoteId` INTEGER NOT NULL,
+                    `remoteTitle` TEXT NOT NULL,
+                    `remoteContent` TEXT NOT NULL,
+                    `remoteCategory` TEXT NOT NULL,
+                    `remoteModifiedAtEpochSeconds` INTEGER NOT NULL,
+                    `remoteEtag` TEXT NOT NULL,
+                    `remoteReadOnly` INTEGER NOT NULL,
+                    `remoteFavorite` INTEGER NOT NULL,
+                    PRIMARY KEY(`localId`),
+                    FOREIGN KEY(`localId`) REFERENCES `notes`(`localId`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )"""
+            )
+            insertConflict(database, includeBase = true)
+            database.execSQL("PRAGMA user_version = 6")
+        }
+
+        helper.runMigrationsAndValidate(DATABASE_NAME, 7, true, MIGRATION_6_7).use { database ->
+            assertConflictSnapshotPreserved(database)
+        }
+    }
+
+    @Test
+    fun migrationFourToSevenPreservesReleasedAppData() {
+        helper.createDatabase(DATABASE_NAME, 4).use { database ->
+            insertAccountAndNote(database)
+        }
+
+        helper.runMigrationsAndValidate(
+            DATABASE_NAME,
+            7,
+            true,
+            MIGRATION_4_5,
+            MIGRATION_5_6,
+            MIGRATION_6_7
+        ).use { database ->
+            database.query("SELECT * FROM notes WHERE localId = 'local'").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("Local content", cursor.string("content"))
+                assertEquals("Base content", cursor.string("lastSyncedContent"))
+                assertEquals("CONFLICT", cursor.string("syncState"))
+            }
+        }
+    }
+
+    private fun insertVersionSixConflict(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+        insertAccountAndNote(database)
+        insertConflict(database, includeBase = false)
+    }
+
+    private fun insertAccountAndNote(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+        database.execSQL(
+            """INSERT INTO accounts (
+                id, displayName, serverUrl, ssoAccountName, userId,
+                lastModifiedEpochSeconds
+            ) VALUES (?, ?, ?, ?, ?, ?)""",
+            arrayOf<Any>("account", "Account", "https://cloud.example", "sso", "user", 0)
+        )
+        database.execSQL(
+            """INSERT INTO notes (
+                localId, accountId, remoteId, title, content, category,
+                modifiedAtEpochSeconds, remoteEtag, readOnly, favorite, syncState,
+                lastSyncedTitle, lastSyncedContent, lastSyncedCategory, lastSyncedFavorite,
+                lastSyncError, localRevision
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            arrayOf<Any?>(
+                "local", "account", 42, "Local", "Local content", "", 10, "etag-1", 0, 0,
+                "CONFLICT", "Base", "Base content", "", 0, "Conflict", 2
+            )
+        )
+    }
+
+    private fun insertConflict(
+        database: androidx.sqlite.db.SupportSQLiteDatabase,
+        includeBase: Boolean
+    ) {
+        val baseColumns = if (includeBase) {
+            "baseTitle, baseContent, baseCategory, baseEtag, baseFavorite,"
+        } else {
+            ""
+        }
+        val basePlaceholders = if (includeBase) "?, ?, ?, ?, ?," else ""
+        val values = buildList<Any?> {
+            add("local")
+            if (includeBase) addAll(listOf("Base", "Base content", "", "etag-1", 0))
+            addAll(listOf(42, "Server", "Server content", "", 20, "etag-2", 0, 0))
+        }.toTypedArray()
+        database.execSQL(
+            """INSERT INTO note_conflicts (
+                localId, $baseColumns remoteId, remoteTitle, remoteContent, remoteCategory,
+                remoteModifiedAtEpochSeconds, remoteEtag, remoteReadOnly, remoteFavorite
+            ) VALUES (?, $basePlaceholders ?, ?, ?, ?, ?, ?, ?, ?)""",
+            values
+        )
+    }
+
+    private fun assertConflictSnapshotPreserved(
+        database: androidx.sqlite.db.SupportSQLiteDatabase
+    ) {
+        database.query("SELECT * FROM note_conflicts WHERE localId = 'local'").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("Server content", cursor.string("remoteContent"))
+            assertEquals("etag-2", cursor.string("remoteEtag"))
+        }
+    }
+
     private fun android.database.Cursor.string(column: String) =
         getString(getColumnIndexOrThrow(column))
 

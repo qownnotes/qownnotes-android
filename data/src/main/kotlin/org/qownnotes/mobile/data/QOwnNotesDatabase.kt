@@ -273,7 +273,7 @@ class DatabaseConverters {
         SyncDiagnosticEntity::class,
         NoteConflictEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
@@ -355,5 +355,39 @@ val MIGRATION_5_6 =
                     FOREIGN KEY(`localId`) REFERENCES `notes`(`localId`) ON UPDATE NO ACTION ON DELETE CASCADE
                 )"""
             )
+        }
+    }
+
+val MIGRATION_6_7 =
+    object : Migration(6, 7) {
+        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            // An early version-6 build stored duplicate base fields in this table. Rebuild it from
+            // the columns shared by both version-6 layouts so those installations remain usable.
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS `note_conflicts_new` (
+                    `localId` TEXT NOT NULL,
+                    `remoteId` INTEGER NOT NULL,
+                    `remoteTitle` TEXT NOT NULL,
+                    `remoteContent` TEXT NOT NULL,
+                    `remoteCategory` TEXT NOT NULL,
+                    `remoteModifiedAtEpochSeconds` INTEGER NOT NULL,
+                    `remoteEtag` TEXT NOT NULL,
+                    `remoteReadOnly` INTEGER NOT NULL,
+                    `remoteFavorite` INTEGER NOT NULL,
+                    PRIMARY KEY(`localId`),
+                    FOREIGN KEY(`localId`) REFERENCES `notes`(`localId`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )"""
+            )
+            db.execSQL(
+                """INSERT INTO `note_conflicts_new` (
+                    `localId`, `remoteId`, `remoteTitle`, `remoteContent`, `remoteCategory`,
+                    `remoteModifiedAtEpochSeconds`, `remoteEtag`, `remoteReadOnly`, `remoteFavorite`
+                ) SELECT
+                    `localId`, `remoteId`, `remoteTitle`, `remoteContent`, `remoteCategory`,
+                    `remoteModifiedAtEpochSeconds`, `remoteEtag`, `remoteReadOnly`, `remoteFavorite`
+                FROM `note_conflicts`"""
+            )
+            db.execSQL("DROP TABLE `note_conflicts`")
+            db.execSQL("ALTER TABLE `note_conflicts_new` RENAME TO `note_conflicts`")
         }
     }
