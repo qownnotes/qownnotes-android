@@ -15,6 +15,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   local identity or explicitly discarded.
 - Local changes to a note that becomes read-only can now be preserved as a new writable note before
   adopting the server version.
+- Settings now provides a durable, bounded synchronization diagnostic report with app and device
+  information. Reports omit exception messages and account, server, and note identifiers, remain
+  available after process restarts, and are copied only through an explicit user action.
 
 ### Changed
 

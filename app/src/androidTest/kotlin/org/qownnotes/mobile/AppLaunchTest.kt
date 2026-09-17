@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -915,6 +916,13 @@ class AppLaunchTest {
         assertEquals(SyncState.CONFLICT, conflicted.syncState)
         assertEquals("The note changed on the server", conflicted.lastSyncError)
         assertEquals("# Existing note\n\nBase content", conflicted.lastSyncedContent)
+
+        listAction("settings")
+        composeRule.onNodeWithTag("open-diagnostics").performClick()
+        composeRule.waitForText("Category: Conflict", substring = true)
+        composeRule.onNodeWithTag("diagnostic-report-text").assertTextContains(
+            "QOwnNotes Mobile diagnostic report"
+        )
     }
 
     @Test

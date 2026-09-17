@@ -28,6 +28,7 @@ import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
+import org.qownnotes.mobile.data.MIGRATION_4_5
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 
 class TestQOwnNotesApplication : QOwnNotesApplication() {
@@ -38,7 +39,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
     override fun createComponent(): ApplicationComponent {
         val database =
             Room.databaseBuilder(this, QOwnNotesDatabase::class.java, TEST_DATABASE)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .allowMainThreadQueries()
                 .build()
         // A dedicated preference file keeps device tests from reading or writing real user

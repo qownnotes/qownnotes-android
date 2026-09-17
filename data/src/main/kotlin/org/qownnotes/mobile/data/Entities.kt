@@ -7,6 +7,8 @@ import androidx.room.PrimaryKey
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteListItem
+import org.qownnotes.mobile.core.SyncDiagnostic
+import org.qownnotes.mobile.core.SyncDiagnosticSource
 import org.qownnotes.mobile.core.SyncState
 
 @Entity(tableName = "accounts")
@@ -52,6 +54,27 @@ data class NoteEntity(
     val lastSyncedFavorite: Boolean? = null,
     val lastSyncError: String?,
     val localRevision: Long = 0
+)
+
+@Entity(
+    tableName = "sync_diagnostics",
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("accountId")]
+)
+data class SyncDiagnosticEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val accountId: String,
+    val occurredAtEpochSeconds: Long,
+    val source: SyncDiagnosticSource,
+    val category: String,
+    val details: String
 )
 
 /**
@@ -128,6 +151,24 @@ fun NoteListItemEntity.toDomain() = NoteListItem(
     favorite = favorite,
     syncState = syncState,
     excerpt = excerpt
+)
+
+fun SyncDiagnosticEntity.toDomain() = SyncDiagnostic(
+    id = id,
+    accountId = accountId,
+    occurredAtEpochSeconds = occurredAtEpochSeconds,
+    source = source,
+    category = category,
+    details = details
+)
+
+fun SyncDiagnostic.toEntity() = SyncDiagnosticEntity(
+    id = id,
+    accountId = accountId,
+    occurredAtEpochSeconds = occurredAtEpochSeconds,
+    source = source,
+    category = category,
+    details = details
 )
 
 fun AccountEntity.toDomain() = Account(

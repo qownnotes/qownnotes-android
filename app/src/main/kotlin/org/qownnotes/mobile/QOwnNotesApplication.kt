@@ -9,6 +9,7 @@ import com.nextcloud.android.sso.aidl.NextcloudRequest
 import com.nextcloud.android.sso.api.NextcloudAPI
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import java.time.Clock
+import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
@@ -38,17 +39,21 @@ import org.qownnotes.mobile.core.NoteSettingsBackend
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.SharedText
+import org.qownnotes.mobile.core.SyncDiagnostic
+import org.qownnotes.mobile.core.SyncDiagnosticSource
 import org.qownnotes.mobile.core.SyncOutcome
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
+import org.qownnotes.mobile.data.MIGRATION_4_5
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 import org.qownnotes.mobile.data.RoomAccountRepository
 import org.qownnotes.mobile.data.RoomNoteRepository
 import org.qownnotes.mobile.data.RoomPullStore
 import org.qownnotes.mobile.data.RoomPushStore
+import org.qownnotes.mobile.data.RoomSyncDiagnosticRepository
 import org.qownnotes.mobile.markdown.MarkdownRenderer
 import org.qownnotes.mobile.markdown.NextcloudAttachmentHttpClient
 
@@ -74,10 +79,10 @@ sealed interface SyncUiState {
 }
 
 class ApplicationComponent(
-    application: Application,
+    private val application: Application,
     database: QOwnNotesDatabase =
         Room.databaseBuilder(application, QOwnNotesDatabase::class.java, "qownnotes.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build(),
     private val backend: NoteBackend = NextcloudBackend(application),
     private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
@@ -105,6 +110,8 @@ class ApplicationComponent(
     private val attachmentOpener = AttachmentOpener(application, attachmentHttpClient::fetch)
     private val pullStore = RoomPullStore(database)
     private val pushStore = RoomPushStore(database)
+    private val syncDiagnosticRepository =
+        RoomSyncDiagnosticRepository(database.syncDiagnosticDao())
     private val clock = Clock.systemDefaultZone()
     private val noteFactory =
         NoteFactory(QOwnNotesNamingPolicy(application.getString(R.string.note_label), clock), clock)
@@ -653,8 +660,9 @@ class ApplicationComponent(
         return outcome
     }
 
-    private fun reportSyncFailure(accountId: String, error: Throwable) {
+    private suspend fun reportSyncFailure(accountId: String, error: Throwable) {
         val message = error.message ?: "Synchronization failed"
+        recordSyncDiagnosticSafely(accountId, SyncDiagnosticSource.ACCOUNT, error)
         updateSyncState(
             accountId,
             if (error is Exception) {
@@ -665,13 +673,68 @@ class ApplicationComponent(
         )
     }
 
-    private fun recordNoteSyncDiagnostic(localId: String, error: Throwable) {
+    private suspend fun recordNoteSyncDiagnostic(localId: String, error: Throwable) {
         mutableNoteSyncDiagnostics.update { it + (localId to error.toSyncDiagnosticText()) }
+        try {
+            noteRepository.get(localId)?.let { note ->
+                recordSyncDiagnosticSafely(note.accountId, SyncDiagnosticSource.NOTE, error)
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            android.util.Log.w("QOwnNotes", "Could not persist synchronization diagnostics")
+        }
     }
 
     private fun clearNoteSyncDiagnostic(localId: String) {
         mutableNoteSyncDiagnostics.update { it - localId }
     }
+
+    private suspend fun recordSyncDiagnosticSafely(
+        accountId: String,
+        source: SyncDiagnosticSource,
+        error: Throwable
+    ) {
+        try {
+            if (accountRepository.get(accountId) == null) return
+            syncDiagnosticRepository.record(
+                SyncDiagnostic(
+                    accountId = accountId,
+                    occurredAtEpochSeconds = clock.instant().epochSecond,
+                    source = source,
+                    category = error.syncDiagnosticCategory(),
+                    // Arbitrary exception messages can contain private user data that cannot be
+                    // reliably recognized. Keep only the useful exception type chain on disk.
+                    details = error.toSyncDiagnosticTypeChain()
+                )
+            )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            android.util.Log.w("QOwnNotes", "Could not persist synchronization diagnostics")
+        }
+    }
+
+    suspend fun syncDiagnosticReport(): String {
+        val diagnostics = syncDiagnosticRepository.list()
+        val apiVersions = accountRepository.observeAccounts().first().mapNotNull(
+            Account::apiVersion
+        )
+            .distinct().sorted()
+        return buildSyncDiagnosticReport(
+            appVersion = application.packageManager
+                .getPackageInfo(application.packageName, 0).versionName.orEmpty(),
+            commit = BuildConfig.GIT_COMMIT,
+            androidVersion = android.os.Build.VERSION.RELEASE,
+            androidApi = android.os.Build.VERSION.SDK_INT,
+            device = listOf(android.os.Build.MANUFACTURER, android.os.Build.MODEL)
+                .filter(String::isNotBlank).joinToString(" "),
+            notesApiVersions = apiVersions,
+            diagnostics = diagnostics
+        )
+    }
+
+    suspend fun clearSyncDiagnostics() = syncDiagnosticRepository.clear()
 
     fun beginAccountImport() {
         mutableImportState.value = SyncUiState.Refreshing
@@ -803,6 +866,63 @@ internal fun Throwable.toSyncDiagnosticText(): String {
     } else {
         diagnostics.take(MAX_DIAGNOSTIC_LENGTH - 14) + "\n<truncated>"
     }
+}
+
+internal fun Throwable.toSyncDiagnosticTypeChain(): String = buildList {
+    val seen = java.util.Collections.newSetFromMap(
+        java.util.IdentityHashMap<Throwable, Boolean>()
+    )
+    var current: Throwable? = this@toSyncDiagnosticTypeChain
+    var depth = 0
+    while (current != null && depth < MAX_DIAGNOSTIC_CAUSES && seen.add(current)) {
+        add((if (depth == 0) "" else "Caused by: ") + current.javaClass.name)
+        current = current.cause
+        depth++
+    }
+    if (current != null) add("Caused by: <additional causes omitted>")
+}.joinToString("\n")
+
+internal fun buildSyncDiagnosticReport(
+    appVersion: String,
+    commit: String,
+    androidVersion: String,
+    androidApi: Int,
+    device: String,
+    notesApiVersions: List<String>,
+    diagnostics: List<SyncDiagnostic>
+): String = buildString {
+    appendLine("QOwnNotes Mobile diagnostic report")
+    appendLine("Generated: ${Instant.now()}")
+    appendLine("App: $appVersion (${commit.take(7)})")
+    appendLine("Android: $androidVersion (API $androidApi)")
+    appendLine("Device: $device")
+    appendLine("Notes API: ${notesApiVersions.ifEmpty { listOf("unknown") }.joinToString()}")
+    appendLine("Telemetry: disabled; this report is only shared by explicit user action")
+    appendLine()
+    if (diagnostics.isEmpty()) {
+        appendLine("No synchronization diagnostics have been recorded.")
+    } else {
+        diagnostics.forEachIndexed { index, diagnostic ->
+            if (index > 0) appendLine()
+            appendLine("[${Instant.ofEpochSecond(diagnostic.occurredAtEpochSeconds)}]")
+            appendLine("Scope: ${diagnostic.source.name.lowercase()}")
+            appendLine("Category: ${diagnostic.category}")
+            appendLine(diagnostic.details)
+        }
+    }
+}.trimEnd()
+
+private fun Throwable.syncDiagnosticCategory(): String = when (this) {
+    is BackendException.Retryable -> "Connectivity"
+    is BackendException.Authentication -> "Authentication"
+    is BackendException.AuthorizationRequired -> "Authorization"
+    is BackendException.AccountRemoved -> "Account removed"
+    is BackendException.Permission -> "Permission"
+    is BackendException.Conflict -> "Conflict"
+    is BackendException.RemoteMissing -> "Remote note missing"
+    is BackendException.InsufficientStorage -> "Storage"
+    is BackendException.Protocol -> "Protocol"
+    else -> "Unexpected failure"
 }
 
 private fun String.sanitizeDiagnosticText(): String {

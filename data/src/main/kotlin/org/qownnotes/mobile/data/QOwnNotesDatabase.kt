@@ -2,13 +2,16 @@ package org.qownnotes.mobile.data
 
 import androidx.room.Dao
 import androidx.room.Database
+import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.Upsert
 import androidx.room.migration.Migration
 import kotlinx.coroutines.flow.Flow
+import org.qownnotes.mobile.core.SyncDiagnosticSource
 import org.qownnotes.mobile.core.SyncState
 
 @Dao
@@ -213,18 +216,56 @@ interface AccountDao {
     suspend fun updateSyncError(accountId: String, message: String?)
 }
 
+@Dao
+interface SyncDiagnosticDao {
+    @Query("SELECT * FROM sync_diagnostics ORDER BY occurredAtEpochSeconds DESC, id DESC")
+    suspend fun list(): List<SyncDiagnosticEntity>
+
+    @Insert
+    suspend fun insert(diagnostic: SyncDiagnosticEntity)
+
+    @Query(
+        "DELETE FROM sync_diagnostics WHERE id NOT IN " +
+            "(SELECT id FROM sync_diagnostics ORDER BY occurredAtEpochSeconds DESC, id DESC " +
+            "LIMIT :limit)"
+    )
+    suspend fun trimTo(limit: Int)
+
+    @Query("DELETE FROM sync_diagnostics")
+    suspend fun clear()
+
+    @Transaction
+    suspend fun record(diagnostic: SyncDiagnosticEntity, limit: Int) {
+        insert(diagnostic)
+        trimTo(limit)
+    }
+}
+
 class DatabaseConverters {
     @TypeConverter fun syncStateToString(value: SyncState): String = value.name
 
     @TypeConverter fun stringToSyncState(value: String): SyncState = SyncState.valueOf(value)
+
+    @TypeConverter
+    fun syncDiagnosticSourceToString(value: SyncDiagnosticSource): String = value.name
+
+    @TypeConverter
+    fun stringToSyncDiagnosticSource(value: String): SyncDiagnosticSource =
+        SyncDiagnosticSource.valueOf(value)
 }
 
-@Database(entities = [AccountEntity::class, NoteEntity::class], version = 4, exportSchema = true)
+@Database(
+    entities = [AccountEntity::class, NoteEntity::class, SyncDiagnosticEntity::class],
+    version = 5,
+    exportSchema = true
+)
 @TypeConverters(DatabaseConverters::class)
 abstract class QOwnNotesDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
 
     abstract fun noteDao(): NoteDao
+
+    abstract fun syncDiagnosticDao(): SyncDiagnosticDao
 }
 
 val MIGRATION_1_2 =
@@ -253,5 +294,26 @@ val MIGRATION_3_4 =
         override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE notes ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
             db.execSQL("ALTER TABLE notes ADD COLUMN lastSyncedFavorite INTEGER")
+        }
+    }
+
+val MIGRATION_4_5 =
+    object : Migration(4, 5) {
+        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS `sync_diagnostics` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `accountId` TEXT NOT NULL,
+                    `occurredAtEpochSeconds` INTEGER NOT NULL,
+                    `source` TEXT NOT NULL,
+                    `category` TEXT NOT NULL,
+                    `details` TEXT NOT NULL,
+                    FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )"""
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_sync_diagnostics_accountId` " +
+                    "ON `sync_diagnostics` (`accountId`)"
+            )
         }
     }

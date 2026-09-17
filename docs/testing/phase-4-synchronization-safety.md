@@ -24,6 +24,8 @@ The automated suites verify:
   keeps those changes and can preserve them as a writable copy before adopting the server version.
 - Favorite-only changes remain pending when a note is read-only because the Notes API permits that
   attribute to be updated independently.
+- Sanitized synchronization failures are retained in a bounded diagnostic history and the generated
+  report omits internal account identities while including non-sensitive environment information.
 
 Run host checks with:
 
@@ -71,4 +73,5 @@ These checks require real-server evidence:
 These checks become required when their corresponding features are implemented:
 
 - Side-by-side conflict review and three-way merge behavior.
-- A complete, secret-redacted diagnostic report after process restart.
+- Confirm the secret-redacted diagnostic report remains available after terminating and restarting
+  the application process, can be cleared locally, and is never sent without explicit user action.

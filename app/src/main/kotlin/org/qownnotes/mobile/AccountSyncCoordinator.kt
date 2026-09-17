@@ -20,8 +20,8 @@ internal class AccountSyncCoordinator(
     private val pullStore: PullStore,
     private val pushStore: PushStore,
     private val backend: NoteBackend,
-    private val onNoteFailure: (String, Throwable) -> Unit,
-    private val onNoteSuccess: (String) -> Unit
+    private val onNoteFailure: suspend (String, Throwable) -> Unit,
+    private val onNoteSuccess: suspend (String) -> Unit
 ) : SyncCoordinator {
     override suspend fun synchronize(accountId: String): SyncOutcome {
         var account = accountRepository.get(accountId) ?: return SyncOutcome.Success
@@ -96,13 +96,13 @@ internal class AccountSyncCoordinator(
         error: Throwable,
         failureState: SyncState? = null
     ) {
-        onNoteFailure(note.localId, error)
         pushStore.recordFailure(
             note.localId,
             note.localRevision,
             error.message ?: "Synchronization failed",
             failureState
         )
+        onNoteFailure(note.localId, error)
     }
 
     private suspend fun pushPendingDeletions(account: Account) {

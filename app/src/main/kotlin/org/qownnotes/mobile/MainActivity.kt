@@ -766,6 +766,8 @@ private fun NoteListScreen(
     var searchFocused by remember { mutableStateOf(false) }
     var showAccountChooser by rememberSaveable(accountId) { mutableStateOf(false) }
     var showSettings by rememberSaveable(accountId) { mutableStateOf(false) }
+    var showDiagnostics by rememberSaveable(accountId) { mutableStateOf(false) }
+    var diagnosticReport by remember(accountId) { mutableStateOf<String?>(null) }
     var showAbout by rememberSaveable(accountId) { mutableStateOf(false) }
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var noteListMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -1299,6 +1301,17 @@ private fun NoteListScreen(
                         onCheckedChange = component.settings::setSwipeNoteActions,
                         testTag = "toggle-swipe-note-actions"
                     )
+                    Button(
+                        onClick = {
+                            showSettings = false
+                            diagnosticReport = null
+                            showDiagnostics = true
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                            .testTag("open-diagnostics")
+                    ) {
+                        Text("Debug diagnostics")
+                    }
                 }
             },
             confirmButton = {
@@ -1308,6 +1321,91 @@ private fun NoteListScreen(
                 ) { Text("Close") }
             },
             modifier = Modifier.testTag("settings-dialog")
+        )
+    }
+    if (showDiagnostics) {
+        val context = LocalContext.current
+        LaunchedEffect(showDiagnostics) {
+            diagnosticReport = withContext(UiDispatcher) {
+                try {
+                    component.syncDiagnosticReport()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    "Could not load synchronization diagnostics."
+                }
+            }
+        }
+        AlertDialog(
+            onDismissRequest = { showDiagnostics = false },
+            title = { Text("Debug diagnostics") },
+            text = {
+                Column(
+                    modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())
+                        .testTag("diagnostic-report")
+                ) {
+                    Text(
+                        "This report is stored only on this device and is never sent " +
+                            "automatically. Exception messages are not retained, so account, " +
+                            "server, and note identifiers are excluded. Review it before sharing.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    val report = diagnosticReport
+                    if (report == null) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.testTag("diagnostics-loading")
+                        )
+                    } else {
+                        SelectionContainer {
+                            Text(
+                                report,
+                                fontFamily = FontFamily.Monospace,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("diagnostic-report-text")
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        diagnosticReport?.let { report ->
+                            context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
+                                ClipData.newPlainText("QOwnNotes diagnostic report", report)
+                            )
+                        }
+                    },
+                    enabled = diagnosticReport != null,
+                    modifier = Modifier.testTag("copy-diagnostic-report")
+                ) { Text("Copy report") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                diagnosticReport = try {
+                                    component.clearSyncDiagnostics()
+                                    component.syncDiagnosticReport()
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (_: Exception) {
+                                    "Could not clear synchronization diagnostics."
+                                }
+                            }
+                        },
+                        enabled = diagnosticReport != null,
+                        modifier = Modifier.testTag("clear-diagnostics")
+                    ) { Text("Clear") }
+                    TextButton(
+                        onClick = { showDiagnostics = false },
+                        modifier = Modifier.testTag("close-diagnostics")
+                    ) { Text("Close") }
+                }
+            },
+            modifier = Modifier.testTag("diagnostics-dialog")
         )
     }
     if (showAccountChooser) {

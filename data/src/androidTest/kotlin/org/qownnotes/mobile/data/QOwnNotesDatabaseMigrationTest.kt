@@ -85,7 +85,7 @@ class QOwnNotesDatabaseMigrationTest {
                     id, displayName, serverUrl, ssoAccountName, userId,
                     lastModifiedEpochSeconds
                 ) VALUES (?, ?, ?, ?, ?, ?)""",
-                arrayOf("account", "Account", "https://cloud.example", "sso", "user", 0)
+                arrayOf<Any>("account", "Account", "https://cloud.example", "sso", "user", 0)
             )
             database.execSQL(
                 """INSERT INTO notes (
@@ -140,6 +140,33 @@ class QOwnNotesDatabaseMigrationTest {
                 assertEquals(0L, cursor.getLong(cursor.getColumnIndexOrThrow("favorite")))
                 assertNull(cursor.nullableString("lastSyncedFavorite"))
                 assertEquals(3L, cursor.getLong(cursor.getColumnIndexOrThrow("localRevision")))
+            }
+        }
+    }
+
+    @Test
+    fun migrationFourToFivePreservesAccountsAndAddsDiagnostics() {
+        helper.createDatabase(DATABASE_NAME, 4).use { database ->
+            database.execSQL(
+                """INSERT INTO accounts (
+                    id, displayName, serverUrl, ssoAccountName, userId,
+                    lastModifiedEpochSeconds
+                ) VALUES (?, ?, ?, ?, ?, ?)""",
+                arrayOf("account", "Account", "https://cloud.example", "sso", "user", 0)
+            )
+        }
+
+        helper.runMigrationsAndValidate(DATABASE_NAME, 5, true, MIGRATION_4_5).use { database ->
+            database.execSQL(
+                """INSERT INTO sync_diagnostics (
+                    accountId, occurredAtEpochSeconds, source, category, details
+                ) VALUES (?, ?, ?, ?, ?)""",
+                arrayOf<Any>("account", 10, "ACCOUNT", "Connectivity", "redacted details")
+            )
+            database.query("SELECT * FROM sync_diagnostics").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("account", cursor.string("accountId"))
+                assertEquals("redacted details", cursor.string("details"))
             }
         }
     }

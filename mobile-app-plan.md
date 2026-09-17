@@ -41,6 +41,9 @@ retry. Foreground refresh and workers use the same coordinator. Revision guards 
 late failure, conflict resolution, or successful update from replacing newer local state or undoing
 deletion intent.
 
+A bounded, secret-redacted synchronization diagnostic report is persisted across process restarts
+and can be reviewed, copied, or cleared from Settings without sending telemetry.
+
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
 ## Purpose
@@ -1000,11 +1003,15 @@ Implemented:
 - Added focused policy, worker, and Room regression coverage for retry decisions, constrained work,
   uncertain creation, stale failures, stale successes, remote deletion, read-only transitions, and
   conflict-resolution races.
+- Added a bounded, durable diagnostic history containing failure categories and exception type
+  chains plus non-sensitive app, Android, device, and Notes API versions. Exception messages are
+  deliberately not persisted because arbitrary text cannot be reliably redacted. The report is
+  available under Settings for explicit review, copy, and deletion and is never transmitted
+  automatically.
 
 Remaining:
 
 - Persist complete conflict snapshots, add side-by-side review, and implement three-way merging.
-- Expand the existing secret-redacted diagnostics into a durable bug-report summary.
 - Complete the real-device and process-restart checklist in
   [`docs/testing/phase-4-synchronization-safety.md`](docs/testing/phase-4-synchronization-safety.md).
 
