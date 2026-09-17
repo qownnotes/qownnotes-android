@@ -77,11 +77,37 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
                             lastSyncError = null
                         )
                     )
+                    database.noteConflictDao().delete(existing.localId)
+                } else if (
+                    existing.syncState in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
+                ) {
+                    val nextState = if (remote.readOnly) {
+                        SyncState.READ_ONLY_CONFLICT
+                    } else {
+                        SyncState.CONFLICT
+                    }
+                    database.noteConflictDao().upsert(existing.toConflictEntity(remote))
+                    dao.upsert(
+                        existing.copy(
+                            readOnly = remote.readOnly,
+                            syncState = nextState,
+                            lastSyncError = if (nextState == existing.syncState) {
+                                existing.lastSyncError
+                            } else {
+                                if (remote.readOnly) {
+                                    READ_ONLY_CONFLICT_MESSAGE
+                                } else {
+                                    REMOTE_CHANGED_MESSAGE
+                                }
+                            }
+                        )
+                    )
                 } else if (
                     remote.readOnly &&
                     existing.syncState != SyncState.PENDING_DELETION &&
                     existing.hasProtectedLocalChanges()
                 ) {
+                    database.noteConflictDao().upsert(existing.toConflictEntity(remote))
                     dao.upsert(
                         existing.copy(
                             readOnly = true,
@@ -91,9 +117,9 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
                     )
                 } else if (
                     !remote.readOnly &&
-                    existing.syncState in
-                    setOf(SyncState.REMOTE_MISSING, SyncState.READ_ONLY_CONFLICT)
+                    existing.syncState == SyncState.REMOTE_MISSING
                 ) {
+                    database.noteConflictDao().upsert(existing.toConflictEntity(remote))
                     dao.upsert(
                         existing.copy(
                             readOnly = false,
@@ -117,12 +143,15 @@ class RoomPullStore(private val database: QOwnNotesDatabase) : PullStore {
                         SyncState.PENDING_DELETION,
                         SyncState.LOCALLY_CREATED
                     ) -> Unit
-                    else -> dao.markServerIssue(
-                        note.localId,
-                        readOnly = false,
-                        SyncState.REMOTE_MISSING,
-                        REMOTE_MISSING_MESSAGE
-                    )
+                    else -> {
+                        database.noteConflictDao().delete(note.localId)
+                        dao.markServerIssue(
+                            note.localId,
+                            readOnly = false,
+                            SyncState.REMOTE_MISSING,
+                            REMOTE_MISSING_MESSAGE
+                        )
+                    }
                 }
             }
 

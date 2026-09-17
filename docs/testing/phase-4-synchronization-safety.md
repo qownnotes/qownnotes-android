@@ -26,6 +26,14 @@ The automated suites verify:
   attribute to be updated independently.
 - Sanitized synchronization failures are retained in a bounded diagnostic history and the generated
   report omits internal account identities while including non-sensitive environment information.
+- Conflicts retain the exact remote version while the note retains its local and common-base
+  versions. Resolution validates both the local revision and reviewed remote ETag, and later pulls
+  refresh the remote side without discarding local changes.
+- Three-way merge combines independent scalar and contiguous line changes, while overlapping edits
+  remain unresolved and cannot silently replace either version.
+
+The complete connected-device suite passed on the OPPO CPH2653 running Android 16 on 2026-09-17:
+5 backend, 54 data, 38 Markdown, and 88 application tests (185 total).
 
 Run host checks with:
 
@@ -70,8 +78,7 @@ These checks require real-server evidence:
 - A server-side deletion while the local note is unchanged.
 - A server-side deletion while a local edit is pending.
 
-These checks become required when their corresponding features are implemented:
-
-- Side-by-side conflict review and three-way merge behavior.
+- Review local, server, and common-base versions after restarting the application, then verify an
+  independent three-way merge reaches the server and overlapping changes remain blocked.
 - Confirm the secret-redacted diagnostic report remains available after terminating and restarting
   the application process, can be cleared locally, and is never sent without explicit user action.

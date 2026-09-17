@@ -241,6 +241,18 @@ interface SyncDiagnosticDao {
     }
 }
 
+@Dao
+interface NoteConflictDao {
+    @Query("SELECT * FROM note_conflicts WHERE localId = :localId")
+    suspend fun get(localId: String): NoteConflictEntity?
+
+    @Upsert
+    suspend fun upsert(conflict: NoteConflictEntity)
+
+    @Query("DELETE FROM note_conflicts WHERE localId = :localId")
+    suspend fun delete(localId: String)
+}
+
 class DatabaseConverters {
     @TypeConverter fun syncStateToString(value: SyncState): String = value.name
 
@@ -255,8 +267,13 @@ class DatabaseConverters {
 }
 
 @Database(
-    entities = [AccountEntity::class, NoteEntity::class, SyncDiagnosticEntity::class],
-    version = 5,
+    entities = [
+        AccountEntity::class,
+        NoteEntity::class,
+        SyncDiagnosticEntity::class,
+        NoteConflictEntity::class
+    ],
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
@@ -266,6 +283,8 @@ abstract class QOwnNotesDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
 
     abstract fun syncDiagnosticDao(): SyncDiagnosticDao
+
+    abstract fun noteConflictDao(): NoteConflictDao
 }
 
 val MIGRATION_1_2 =
@@ -314,6 +333,27 @@ val MIGRATION_4_5 =
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_sync_diagnostics_accountId` " +
                     "ON `sync_diagnostics` (`accountId`)"
+            )
+        }
+    }
+
+val MIGRATION_5_6 =
+    object : Migration(5, 6) {
+        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS `note_conflicts` (
+                    `localId` TEXT NOT NULL,
+                    `remoteId` INTEGER NOT NULL,
+                    `remoteTitle` TEXT NOT NULL,
+                    `remoteContent` TEXT NOT NULL,
+                    `remoteCategory` TEXT NOT NULL,
+                    `remoteModifiedAtEpochSeconds` INTEGER NOT NULL,
+                    `remoteEtag` TEXT NOT NULL,
+                    `remoteReadOnly` INTEGER NOT NULL,
+                    `remoteFavorite` INTEGER NOT NULL,
+                    PRIMARY KEY(`localId`),
+                    FOREIGN KEY(`localId`) REFERENCES `notes`(`localId`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )"""
             )
         }
     }

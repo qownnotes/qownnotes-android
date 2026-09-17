@@ -171,6 +171,49 @@ class QOwnNotesDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationFiveToSixPreservesNotesAndAddsConflictSnapshots() {
+        helper.createDatabase(DATABASE_NAME, 5).use { database ->
+            database.execSQL(
+                """INSERT INTO accounts (
+                    id, displayName, serverUrl, ssoAccountName, userId,
+                    lastModifiedEpochSeconds
+                ) VALUES (?, ?, ?, ?, ?, ?)""",
+                arrayOf<Any>("account", "Account", "https://cloud.example", "sso", "user", 0)
+            )
+            database.execSQL(
+                """INSERT INTO notes (
+                    localId, accountId, remoteId, title, content, category,
+                    modifiedAtEpochSeconds, remoteEtag, readOnly, favorite, syncState,
+                    lastSyncedTitle, lastSyncedContent, lastSyncedCategory, lastSyncedFavorite,
+                    lastSyncError, localRevision
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                arrayOf<Any?>(
+                    "local", "account", 42, "Local", "Local content", "", 10, "etag", 0, 0,
+                    "CONFLICT", "Base", "Base content", "", 0, "Conflict", 2
+                )
+            )
+        }
+
+        helper.runMigrationsAndValidate(DATABASE_NAME, 6, true, MIGRATION_5_6).use { database ->
+            database.query("SELECT COUNT(*) AS count FROM note_conflicts").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals(0L, cursor.getLong(cursor.getColumnIndexOrThrow("count")))
+            }
+            database.query("SELECT displayName FROM accounts WHERE id = 'account'").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("Account", cursor.string("displayName"))
+            }
+            database.query("SELECT * FROM notes WHERE localId = 'local'").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("Local content", cursor.string("content"))
+                assertEquals("Base content", cursor.string("lastSyncedContent"))
+                assertEquals("CONFLICT", cursor.string("syncState"))
+                assertEquals(2L, cursor.getLong(cursor.getColumnIndexOrThrow("localRevision")))
+            }
+        }
+    }
+
     private fun android.database.Cursor.string(column: String) =
         getString(getColumnIndexOrThrow(column))
 

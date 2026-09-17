@@ -18,6 +18,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Settings now provides a durable, bounded synchronization diagnostic report with app and device
   information. Reports omit exception messages and account, server, and note identifiers, remain
   available after process restarts, and are copied only through an explicit user action.
+- Conflicts now retain the exact server version for offline review alongside the local version and
+  their common base. Independent title, content, category, and favorite changes can be merged
+  automatically; overlapping changes remain unresolved for an explicit choice.
 
 ### Changed
 
@@ -28,6 +31,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Late synchronization failures and successful updates can no longer replace a newer local edit or
   undo deletion intent.
+- Conflict actions are bound to the server version shown in the review and are rejected if a newer
+  pull refreshes that version before the action completes.
 - Completed pulls preserve local edits when the server note disappears or becomes read-only and
   expose an explicit recovery action instead of offering a retry that cannot succeed.
 - Files returned by the Nextcloud Notes API from QOwnNotes' top-level `attachments/` and `media/`

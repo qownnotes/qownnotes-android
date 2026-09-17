@@ -231,6 +231,11 @@ class RoomPullStoreTest {
         assertEquals("Base content", note.lastSyncedContent)
         assertTrue(note.readOnly)
         assertEquals(SyncState.READ_ONLY_CONFLICT, note.syncState)
+        val conflict = RoomPushStore(database).conflict(note.localId)!!
+        assertEquals("Base content", conflict.base.content)
+        assertEquals("Unsynchronized local content", conflict.local.content)
+        assertEquals("Server content", conflict.remote.content)
+        assertEquals("server-etag", conflict.remote.etag)
     }
 
     @Test
@@ -892,6 +897,8 @@ class RoomPullStoreTest {
         accounts.save(testAccount())
         val conflicted = localNote(42, SyncState.CONFLICT)
         database.noteDao().upsert(conflicted)
+        val remote = RemoteNote(42, "server-etag", "Server", "Server content", "Remote", 20)
+        assertTrue(RoomPushStore(database).captureConflict(conflicted.localId, 0, remote))
         val localCopy = conflicted.toDomain().copy(
             localId = "local-copy",
             remoteId = null,
@@ -910,7 +917,9 @@ class RoomPullStoreTest {
             RoomPushStore(database).resolveConflict(
                 conflicted.localId,
                 conflicted.localRevision,
-                RemoteNote(42, "server-etag", "Server", "Server content", "Remote", 20),
+                "server-etag",
+                30,
+                null,
                 localCopy
             )
         )
@@ -922,6 +931,103 @@ class RoomPullStoreTest {
         assertNull(resolved.lastSyncError)
         assertEquals("Local content", notes.get("local-copy")!!.content)
         assertEquals(SyncState.LOCALLY_CREATED, notes.get("local-copy")!!.syncState)
+        assertNull(RoomPushStore(database).conflict(conflicted.localId))
+    }
+
+    @Test
+    fun resolvingConflictWithMergedFieldsRebasesAndQueuesTheMerge() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        val store = RoomPushStore(database)
+        accounts.save(testAccount())
+        val conflicted = localNote(42, SyncState.CONFLICT)
+        database.noteDao().upsert(conflicted)
+        assertTrue(
+            store.captureConflict(
+                conflicted.localId,
+                0,
+                RemoteNote(42, "server-etag", "Server", "Server content", "Remote", 20)
+            )
+        )
+
+        assertTrue(
+            store.resolveConflict(
+                conflicted.localId,
+                0,
+                "server-etag",
+                30,
+                org.qownnotes.mobile.core.MergedNoteFields(
+                    "Merged",
+                    "Merged content",
+                    "Remote",
+                    false
+                ),
+                null
+            )
+        )
+
+        val resolved = notes.get(conflicted.localId)!!
+        assertEquals("Merged content", resolved.content)
+        assertEquals("Server content", resolved.lastSyncedContent)
+        assertEquals("server-etag", resolved.remoteEtag)
+        assertEquals(SyncState.LOCALLY_MODIFIED, resolved.syncState)
+        assertEquals(1L, resolved.localRevision)
+        assertEquals(30L, resolved.modifiedAtEpochSeconds)
+        assertNull(store.conflict(conflicted.localId))
+    }
+
+    @Test
+    fun pullRefreshesTheServerSideOfAnExistingConflict() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        val pushStore = RoomPushStore(database)
+        accounts.save(testAccount())
+        val conflicted = localNote(42, SyncState.CONFLICT)
+        database.noteDao().upsert(conflicted)
+        assertTrue(
+            pushStore.captureConflict(
+                conflicted.localId,
+                0,
+                RemoteNote(42, "etag-2", "Server 2", "Server content 2", "", 20)
+            )
+        )
+
+        RoomPullStore(database).applyPull(
+            "account",
+            PullResult(
+                notes = listOf(
+                    RemoteNote(42, "etag-3", "Server 3", "Server content 3", "", 30)
+                ),
+                collectionEtag = "collection-3",
+                lastModifiedEpochSeconds = 30
+            )
+        )
+
+        assertEquals("Local content", notes.get(conflicted.localId)!!.content)
+        val refreshed = pushStore.conflict(conflicted.localId)!!
+        assertEquals("etag-3", refreshed.remote.etag)
+        assertEquals("Server content 3", refreshed.remote.content)
+        assertFalse(
+            pushStore.resolveConflict(
+                conflicted.localId,
+                0,
+                "etag-2",
+                40,
+                null,
+                null
+            )
+        )
+        assertTrue(
+            pushStore.resolveConflict(
+                conflicted.localId,
+                0,
+                "etag-3",
+                40,
+                null,
+                null
+            )
+        )
+        assertEquals("Server content 3", notes.get(conflicted.localId)!!.content)
     }
 
     @Test
@@ -935,7 +1041,9 @@ class RoomPullStoreTest {
             RoomPushStore(database).resolveConflict(
                 "account-local-42",
                 0,
-                RemoteNote(42, "server-etag", "Server", "Server content", "", 20),
+                "server-etag",
+                30,
+                null,
                 null
             )
         )
@@ -950,13 +1058,22 @@ class RoomPullStoreTest {
         accounts.save(testAccount())
         val conflicted = localNote(42, SyncState.CONFLICT)
         database.noteDao().upsert(conflicted)
+        assertTrue(
+            RoomPushStore(database).captureConflict(
+                conflicted.localId,
+                0,
+                RemoteNote(42, "server-etag", "Server", "Server content", "", 20)
+            )
+        )
         database.noteDao().upsert(conflicted.copy(localRevision = 1, favorite = true))
 
         assertFalse(
             RoomPushStore(database).resolveConflict(
                 conflicted.localId,
                 0,
-                RemoteNote(42, "server-etag", "Server", "Server content", "", 20),
+                "server-etag",
+                30,
+                null,
                 null
             )
         )
@@ -1024,6 +1141,21 @@ class RoomPullStoreTest {
         accounts.save(testAccount())
         val conflicted = localNote(42, SyncState.READ_ONLY_CONFLICT).copy(readOnly = true)
         database.noteDao().upsert(conflicted)
+        assertTrue(
+            RoomPushStore(database).captureConflict(
+                conflicted.localId,
+                0,
+                RemoteNote(
+                    42,
+                    "server-etag",
+                    "Server",
+                    "Server content",
+                    "Remote",
+                    20,
+                    readOnly = true
+                )
+            )
+        )
         val localCopy = conflicted.toDomain().copy(
             localId = "read-only-copy",
             remoteId = null,
@@ -1036,15 +1168,9 @@ class RoomPullStoreTest {
             RoomPushStore(database).resolveConflict(
                 conflicted.localId,
                 conflicted.localRevision,
-                RemoteNote(
-                    42,
-                    "server-etag",
-                    "Server",
-                    "Server content",
-                    "Remote",
-                    20,
-                    readOnly = true
-                ),
+                "server-etag",
+                30,
+                null,
                 localCopy
             )
         )

@@ -32,6 +32,7 @@ import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteCategories
+import org.qownnotes.mobile.core.NoteConflict
 import org.qownnotes.mobile.core.NoteFactory
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSettings
@@ -44,10 +45,12 @@ import org.qownnotes.mobile.core.SyncDiagnosticSource
 import org.qownnotes.mobile.core.SyncOutcome
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
+import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
 import org.qownnotes.mobile.data.MIGRATION_4_5
+import org.qownnotes.mobile.data.MIGRATION_5_6
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 import org.qownnotes.mobile.data.RoomAccountRepository
 import org.qownnotes.mobile.data.RoomNoteRepository
@@ -82,7 +85,13 @@ class ApplicationComponent(
     private val application: Application,
     database: QOwnNotesDatabase =
         Room.databaseBuilder(application, QOwnNotesDatabase::class.java, "qownnotes.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6
+            )
             .build(),
     private val backend: NoteBackend = NextcloudBackend(application),
     private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
@@ -534,24 +543,73 @@ class ApplicationComponent(
         if (noteRepository.retry(localId)) scheduleSync(note.accountId, 0)
     }
 
-    suspend fun resolveNoteConflict(localId: String, keepLocalCopy: Boolean): Boolean {
+    suspend fun noteConflict(localId: String): NoteConflict? {
+        pushStore.conflict(localId)?.let { return it }
+        val accountId = noteRepository.get(localId)?.accountId ?: return null
+        return accountMutex(accountId).withLock {
+            pushStore.conflict(localId)?.let { return@withLock it }
+            val note = noteRepository.get(localId) ?: return@withLock null
+            if (note.syncState !in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)) {
+                return@withLock null
+            }
+            val account = accountRepository.get(accountId) ?: return@withLock null
+            val remote = backend.get(account, requireNotNull(note.remoteId))
+            if (!pushStore.captureConflict(localId, note.localRevision, remote)) {
+                return@withLock null
+            }
+            pushStore.conflict(localId)
+        }
+    }
+
+    suspend fun resolveNoteConflict(
+        localId: String,
+        expectedRevision: Long,
+        expectedRemoteEtag: String,
+        keepLocalCopy: Boolean,
+        merge: Boolean = false
+    ): Boolean {
         val accountId = noteRepository.get(localId)?.accountId ?: return false
         return accountMutex(accountId).withLock {
             val note = noteRepository.get(localId) ?: return@withLock false
             if (
-                note.syncState !in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
+                note.syncState !in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT) ||
+                note.localRevision != expectedRevision
             ) {
                 return@withLock false
             }
-            val account = accountRepository.get(accountId) ?: return@withLock false
-            val remote = backend.get(account, requireNotNull(note.remoteId))
-            val localCopy = if (keepLocalCopy) {
+            val conflict = pushStore.conflict(localId) ?: return@withLock false
+            if (conflict.remote.etag != expectedRemoteEtag) return@withLock false
+            val merged = if (merge) {
+                mergeNoteConflict(conflict).takeIf { it.isClean }?.merged
+                    ?: return@withLock false
+            } else {
+                null
+            }
+            val copyFields = when {
+                merge && conflict.remote.readOnly -> merged
+                keepLocalCopy -> org.qownnotes.mobile.core.MergedNoteFields(
+                    note.title,
+                    note.content,
+                    note.category,
+                    note.favorite
+                )
+                else -> null
+            }
+            val localCopy = copyFields?.let { fields ->
                 note.copy(
                     localId = UUID.randomUUID().toString(),
                     remoteId = null,
-                    title = NoteNames.sanitize("${note.title.take(95)} (local conflict copy)"),
+                    title = NoteNames.sanitize("${fields.title.take(95)} (local conflict copy)"),
+                    content = fields.content,
+                    category = fields.category,
+                    modifiedAtEpochSeconds = maxOf(
+                        note.modifiedAtEpochSeconds,
+                        conflict.remote.modifiedAtEpochSeconds ?: 0,
+                        clock.instant().epochSecond
+                    ),
                     remoteEtag = null,
                     readOnly = false,
+                    favorite = fields.favorite,
                     syncState = SyncState.LOCALLY_CREATED,
                     lastSyncedTitle = null,
                     lastSyncedContent = null,
@@ -560,20 +618,23 @@ class ApplicationComponent(
                     lastSyncError = null,
                     localRevision = 0
                 )
-            } else {
-                null
             }
             pushStore.resolveConflict(
                 localId,
-                note.localRevision,
-                remote,
+                expectedRevision,
+                expectedRemoteEtag,
+                clock.instant().epochSecond,
+                merged.takeUnless { conflict.remote.readOnly },
                 localCopy
             ).also { resolved ->
                 if (resolved) {
-                    editorDrafts.replaceWithPersisted(localId, requireNotNull(remote.content))
+                    val resolvedNote = noteRepository.get(localId) ?: return@also
+                    editorDrafts.replaceWithPersisted(localId, resolvedNote.content)
                     editReservations.remove(localId)
                     clearNoteSyncDiagnostic(localId)
-                    if (localCopy != null) scheduleSync(accountId, 0)
+                    if (localCopy != null || resolvedNote.syncState == SyncState.LOCALLY_MODIFIED) {
+                        scheduleSync(accountId, 0)
+                    }
                 }
             }
         }

@@ -6,7 +6,9 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteConflict
 import org.qownnotes.mobile.core.NoteListItem
+import org.qownnotes.mobile.core.NoteVersionSnapshot
 import org.qownnotes.mobile.core.SyncDiagnostic
 import org.qownnotes.mobile.core.SyncDiagnosticSource
 import org.qownnotes.mobile.core.SyncState
@@ -75,6 +77,29 @@ data class SyncDiagnosticEntity(
     val source: SyncDiagnosticSource,
     val category: String,
     val details: String
+)
+
+@Entity(
+    tableName = "note_conflicts",
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["localId"],
+            childColumns = ["localId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class NoteConflictEntity(
+    @PrimaryKey val localId: String,
+    val remoteId: Long,
+    val remoteTitle: String,
+    val remoteContent: String,
+    val remoteCategory: String,
+    val remoteModifiedAtEpochSeconds: Long,
+    val remoteEtag: String,
+    val remoteReadOnly: Boolean,
+    val remoteFavorite: Boolean
 )
 
 /**
@@ -169,6 +194,39 @@ fun SyncDiagnostic.toEntity() = SyncDiagnosticEntity(
     source = source,
     category = category,
     details = details
+)
+
+fun NoteConflictEntity.toDomain(note: NoteEntity) = NoteConflict(
+    localId = localId,
+    localRevision = note.localRevision,
+    remoteId = remoteId,
+    base = NoteVersionSnapshot(
+        title = note.lastSyncedTitle ?: note.title,
+        content = note.lastSyncedContent ?: note.content,
+        category = note.lastSyncedCategory ?: note.category,
+        modifiedAtEpochSeconds = null,
+        etag = note.remoteEtag,
+        readOnly = false,
+        favorite = note.lastSyncedFavorite ?: note.favorite
+    ),
+    local = NoteVersionSnapshot(
+        title = note.title,
+        content = note.content,
+        category = note.category,
+        modifiedAtEpochSeconds = note.modifiedAtEpochSeconds,
+        etag = note.remoteEtag,
+        readOnly = note.readOnly,
+        favorite = note.favorite
+    ),
+    remote = NoteVersionSnapshot(
+        title = remoteTitle,
+        content = remoteContent,
+        category = remoteCategory,
+        modifiedAtEpochSeconds = remoteModifiedAtEpochSeconds,
+        etag = remoteEtag,
+        readOnly = remoteReadOnly,
+        favorite = remoteFavorite
+    )
 )
 
 fun AccountEntity.toDomain() = Account(

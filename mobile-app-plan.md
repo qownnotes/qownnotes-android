@@ -34,7 +34,7 @@ Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account a
 
 Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, source-text finding, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, keyboard input, a representative 100 KiB note, canonical collision titles, and conflict preservation are verified on the OPPO CPH2653; source highlighting is intentionally omitted above 64 KiB to keep large-note editing responsive. Every listed Phase 3 implementation task is complete, but server-version records, remaining real-server conflict-resolution paths, and a second physical-device input check are still open. See the Phase 3 section for the full list.
 
-Phase 4 has started with account-scoped WorkManager synchronization. Persisted mutations enqueue
+Phase 4 implementation now includes account-scoped WorkManager synchronization. Persisted mutations enqueue
 unique connected-network work, retryable failures use WorkManager backoff, and authentication,
 permission, conflict, missing-note, storage, uncertain-create, and protocol failures stop automatic
 retry. Foreground refresh and workers use the same coordinator. Revision guards now also prevent a
@@ -43,6 +43,11 @@ deletion intent.
 
 A bounded, secret-redacted synchronization diagnostic report is persisted across process restarts
 and can be reviewed, copied, or cleared from Settings without sending telemetry.
+
+Conflict handling now persists the exact remote version while the note row retains the local and
+common-base versions. The resolution dialog compares all three, supports conservative three-way
+merging of independent field and line changes, and rejects actions if the reviewed local or remote
+revision has changed.
 
 Verified development commands are documented in `README.md`. The baseline verification command is `devenv shell -- just check`; device tests use `just create-avd`, `just start-emulator`, and `just device-test` from inside `devenv shell`.
 
@@ -840,7 +845,7 @@ CI verification completed:
 
 ### Phase 3: Highlighted Editing and Creation
 
-Status: In progress
+Status: Implementation complete; real-server verification in progress
 
 - Add the highlighted Markdown source editor.
 - Add asynchronous, stale-result-safe highlighting.
@@ -1008,10 +1013,13 @@ Implemented:
   deliberately not persisted because arbitrary text cannot be reliably redacted. The report is
   available under Settings for explicit review, copy, and deletion and is never transmitted
   automatically.
+- Persisted complete conflict inputs across process restarts without duplicating the base note body,
+  added responsive local/server/common-base review, and added conservative three-way merging for
+  independent scalar and line changes. Resolution is guarded by both the local revision and the
+  reviewed remote ETag, while overlapping changes continue to require an explicit version choice.
 
 Remaining:
 
-- Persist complete conflict snapshots, add side-by-side review, and implement three-way merging.
 - Complete the real-device and process-restart checklist in
   [`docs/testing/phase-4-synchronization-safety.md`](docs/testing/phase-4-synchronization-safety.md).
 

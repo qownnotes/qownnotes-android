@@ -64,6 +64,7 @@ internal class AccountSyncCoordinator(
                 onNoteSuccess(note.localId)
             } catch (error: BackendException.Conflict) {
                 recordFailure(note, error, SyncState.CONFLICT)
+                captureConflict(account, note)
                 issue = issue ?: SyncOutcome.UserActionRequired(error)
             } catch (error: BackendException.RemoteMissing) {
                 recordFailure(note, error, SyncState.REMOTE_MISSING)
@@ -103,6 +104,17 @@ internal class AccountSyncCoordinator(
             failureState
         )
         onNoteFailure(note.localId, error)
+    }
+
+    private suspend fun captureConflict(account: Account, note: Note) {
+        try {
+            val remote = backend.get(account, requireNotNull(note.remoteId))
+            pushStore.captureConflict(note.localId, note.localRevision, remote)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // The local conflict is already durable. Its server snapshot can be loaded later.
+        }
     }
 
     private suspend fun pushPendingDeletions(account: Account) {

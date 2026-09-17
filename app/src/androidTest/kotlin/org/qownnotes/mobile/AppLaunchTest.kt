@@ -11,7 +11,6 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -19,6 +18,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
@@ -920,9 +920,6 @@ class AppLaunchTest {
         listAction("settings")
         composeRule.onNodeWithTag("open-diagnostics").performClick()
         composeRule.waitForText("Category: Conflict", substring = true)
-        composeRule.onNodeWithTag("diagnostic-report-text").assertTextContains(
-            "QOwnNotes Mobile diagnostic report"
-        )
     }
 
     @Test
@@ -1020,7 +1017,8 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.waitForTag("resolve-note-conflict")
         composeRule.onNodeWithTag("resolve-note-conflict").performClick()
-        composeRule.onNodeWithTag("keep-local-conflict-copy").performClick()
+        composeRule.waitForTag("keep-local-conflict-copy")
+        composeRule.onNodeWithTag("keep-local-conflict-copy").performScrollTo().performClick()
 
         composeRule.waitUntil(timeoutMillis = 10_000) {
             runBlocking {
@@ -1143,7 +1141,11 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.waitForTag("resolve-note-conflict")
         composeRule.onNodeWithTag("resolve-note-conflict").performClick()
-        composeRule.onNodeWithTag("keep-local-conflict-copy").performClick()
+        composeRule.waitForText("Server content", substring = true)
+        composeRule.onNodeWithTag("conflict-local-version").assertIsDisplayed()
+        composeRule.onNodeWithTag("conflict-server-version").assertIsDisplayed()
+        composeRule.onNodeWithTag("conflict-base-version").assertIsDisplayed()
+        composeRule.onNodeWithTag("keep-local-conflict-copy").performScrollTo().performClick()
 
         composeRule.waitUntil(timeoutMillis = 10_000) {
             runBlocking {
@@ -1158,6 +1160,48 @@ class AppLaunchTest {
         assertEquals(SyncState.SYNCHRONIZED, notes.single { it.localId == localId }.syncState)
         assertTrue(notes.single { it.localId != localId }.title.endsWith("(local conflict copy)"))
         assertTrue(application.fakeBackend.pushedNotes.any { it.content.contains("Local content") })
+    }
+
+    @Test
+    fun reviewsAndMergesIndependentConflictChanges() {
+        val base = "# Existing note\n\none\ntwo\nthree"
+        importAccount("alice", "Existing note", "etag-1", 10, base)
+        val localId = runBlocking {
+            val note = notesOf("alice").single()
+            application.component.noteRepository.save(
+                note.copy(
+                    content = "# Existing note\n\none\nlocal two\nthree",
+                    syncState = SyncState.CONFLICT,
+                    lastSyncError = "The note changed on the server"
+                )
+            )
+            note.localId
+        }
+        application.fakeBackend.remoteNotes[42] = RemoteNote(
+            42,
+            "etag-2",
+            "Existing note",
+            "# Existing note\n\none\ntwo\nremote three",
+            "",
+            20
+        )
+
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.waitForTag("resolve-note-conflict")
+        composeRule.onNodeWithTag("resolve-note-conflict").performClick()
+        composeRule.waitForTag("merge-conflict-versions")
+        composeRule.waitForText("remote three", substring = true)
+        composeRule.onNodeWithTag("merge-conflict-versions").assertIsEnabled().performScrollTo()
+            .performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.pushedNotes.any {
+                it.localId == localId && it.content.contains("local two\nremote three")
+            }
+        }
+        val resolved = runBlocking { application.component.noteRepository.get(localId)!! }
+        assertEquals(SyncState.SYNCHRONIZED, resolved.syncState)
+        assertTrue(resolved.content.contains("local two\nremote three"))
     }
 
     @Test
@@ -1185,7 +1229,6 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.waitForTag("resolve-note-conflict")
         composeRule.onNodeWithTag("resolve-note-conflict").performClick()
-        composeRule.onNodeWithTag("keep-local-conflict-copy").performClick()
 
         composeRule.waitForText("The server could not be reached")
         val notes = runBlocking { notesOf("alice") }

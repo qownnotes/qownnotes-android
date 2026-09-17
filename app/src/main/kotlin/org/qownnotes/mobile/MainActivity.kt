@@ -162,17 +162,20 @@ import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteCategoryScope
+import org.qownnotes.mobile.core.NoteConflict
 import org.qownnotes.mobile.core.NoteExcerpt
 import org.qownnotes.mobile.core.NoteListItem
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSortOrder
+import org.qownnotes.mobile.core.NoteVersionSnapshot
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
+import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.core.resolveInternalNoteLink
 import org.qownnotes.mobile.markdown.MarkdownEditText
 import org.qownnotes.mobile.markdown.MarkdownEditorBinding
@@ -2100,6 +2103,7 @@ private fun NoteDetailScreen(
     var showConflictResolution by rememberSaveable(localId) { mutableStateOf(false) }
     var resolvingConflict by rememberSaveable(localId) { mutableStateOf(false) }
     var conflictResolutionError by rememberSaveable(localId) { mutableStateOf<String?>(null) }
+    var conflictSnapshot by remember(localId) { mutableStateOf<NoteConflict?>(null) }
     var showRemoteMissingResolution by rememberSaveable(localId) { mutableStateOf(false) }
     var resolvingRemoteMissing by rememberSaveable(localId) { mutableStateOf(false) }
     var remoteMissingResolutionError by rememberSaveable(localId) {
@@ -2312,21 +2316,50 @@ private fun NoteDetailScreen(
             if (versionsRequestId == requestId) versionsState = result
         }
     }
-    val resolveConflict = { keepLocalCopy: Boolean ->
+    val resolveConflict = { keepLocalCopy: Boolean, merge: Boolean ->
+        val reviewed = conflictSnapshot
+        if (reviewed != null) {
+            resolvingConflict = true
+            conflictResolutionError = null
+            scope.launch {
+                runCatching {
+                    component.resolveNoteConflict(
+                        localId,
+                        reviewed.localRevision,
+                        requireNotNull(reviewed.remote.etag),
+                        keepLocalCopy,
+                        merge
+                    )
+                }
+                    .onSuccess { resolved ->
+                        if (resolved) {
+                            showConflictResolution = false
+                        } else {
+                            conflictResolutionError =
+                                "The note conflict changed. Close and try again."
+                        }
+                    }
+                    .onFailure {
+                        conflictResolutionError = it.message ?: "Could not load the server version"
+                    }
+                resolvingConflict = false
+            }
+        }
+    }
+    LaunchedEffect(showConflictResolution, note?.localRevision) {
+        if (!showConflictResolution) return@LaunchedEffect
         resolvingConflict = true
         conflictResolutionError = null
-        scope.launch {
-            runCatching { component.resolveNoteConflict(localId, keepLocalCopy) }
-                .onSuccess { resolved ->
-                    if (resolved) {
-                        showConflictResolution = false
-                    } else {
-                        conflictResolutionError = "The note conflict changed. Close and try again."
-                    }
-                }
-                .onFailure {
-                    conflictResolutionError = it.message ?: "Could not load the server version"
-                }
+        try {
+            conflictSnapshot = withContext(UiDispatcher) { component.noteConflict(localId) }
+            if (conflictSnapshot == null) {
+                conflictResolutionError = "The note conflict changed. Close and try again."
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            conflictResolutionError = error.message ?: "Could not load the server version"
+        } finally {
             resolvingConflict = false
         }
     }
@@ -2872,6 +2905,7 @@ private fun NoteDetailScreen(
                         TextButton(
                             onClick = {
                                 conflictResolutionError = null
+                                conflictSnapshot = null
                                 showConflictResolution = true
                             },
                             modifier = Modifier.padding(horizontal = 4.dp)
@@ -3082,13 +3116,16 @@ private fun NoteDetailScreen(
         )
     }
     if (showConflictResolution) {
+        val mergeResult = conflictSnapshot?.let(::mergeNoteConflict)
         AlertDialog(
             onDismissRequest = {
                 if (!resolvingConflict) showConflictResolution = false
             },
             title = { Text("Resolve note conflict") },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState())
+                ) {
                     Text(
                         if (note?.syncState == SyncState.READ_ONLY_CONFLICT) {
                             "The note became read-only while your local changes were pending. " +
@@ -3113,27 +3150,80 @@ private fun NoteDetailScreen(
                                 .testTag("conflict-resolution-progress")
                         )
                     }
+                    conflictSnapshot?.let { conflict ->
+                        BoxWithConstraints(
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                        ) {
+                            if (maxWidth >= 480.dp) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ConflictVersionCard(
+                                        "Local version",
+                                        conflict.local,
+                                        Modifier.weight(1f).testTag("conflict-local-version")
+                                    )
+                                    ConflictVersionCard(
+                                        "Server version",
+                                        conflict.remote,
+                                        Modifier.weight(1f).testTag("conflict-server-version")
+                                    )
+                                }
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ConflictVersionCard(
+                                        "Local version",
+                                        conflict.local,
+                                        Modifier.testTag("conflict-local-version")
+                                    )
+                                    ConflictVersionCard(
+                                        "Server version",
+                                        conflict.remote,
+                                        Modifier.testTag("conflict-server-version")
+                                    )
+                                }
+                            }
+                        }
+                        ConflictVersionCard(
+                            "Common base",
+                            conflict.base,
+                            Modifier.padding(top = 12.dp).testTag("conflict-base-version")
+                        )
+                        if (mergeResult?.isClean == false) {
+                            Text(
+                                "Automatic merge is unavailable because both versions changed " +
+                                    mergeResult.conflicts.joinToString {
+                                        it.name.lowercase()
+                                    } + ".",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 12.dp)
+                                    .testTag("conflict-merge-unavailable")
+                            )
+                        }
+                        TextButton(
+                            onClick = { resolveConflict(false, true) },
+                            enabled = !resolvingConflict && mergeResult?.isClean == true,
+                            modifier = Modifier.fillMaxWidth().testTag("merge-conflict-versions")
+                        ) { Text("Use merged version") }
+                        TextButton(
+                            onClick = { resolveConflict(true, false) },
+                            enabled = !resolvingConflict,
+                            modifier = Modifier.fillMaxWidth().testTag("keep-local-conflict-copy")
+                        ) { Text("Keep local as copy") }
+                        TextButton(
+                            onClick = { resolveConflict(false, false) },
+                            enabled = !resolvingConflict,
+                            modifier = Modifier.fillMaxWidth().testTag(
+                                "use-server-conflict-version"
+                            )
+                        ) { Text("Use server") }
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
-                    onClick = { resolveConflict(true) },
-                    enabled = !resolvingConflict,
-                    modifier = Modifier.testTag("keep-local-conflict-copy")
-                ) { Text("Keep local as copy") }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(
-                        onClick = { resolveConflict(false) },
-                        enabled = !resolvingConflict,
-                        modifier = Modifier.testTag("use-server-conflict-version")
-                    ) { Text("Use server") }
-                    TextButton(
-                        onClick = { showConflictResolution = false },
-                        enabled = !resolvingConflict
-                    ) { Text("Cancel") }
-                }
+                    onClick = { showConflictResolution = false },
+                    enabled = !resolvingConflict
+                ) { Text("Close") }
             }
         )
     }
@@ -3279,6 +3369,36 @@ private fun NoteDetailScreen(
                 TextButton(onClick = { versionToRestore = null }) { Text("Cancel") }
             }
         )
+    }
+}
+
+@Composable
+private fun ConflictVersionCard(
+    label: String,
+    version: NoteVersionSnapshot,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.titleSmall)
+        Text(
+            "Title: ${version.title}\nCategory: ${version.category.ifBlank { "Undefined" }}\n" +
+                "Favorite: ${if (version.favorite) "Yes" else "No"}",
+            style = MaterialTheme.typography.labelSmall
+        )
+        SelectionContainer {
+            Text(
+                version.content,
+                fontFamily = FontFamily.Monospace,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 96.dp)
+                    .verticalScroll(rememberScrollState())
+            )
+        }
     }
 }
 

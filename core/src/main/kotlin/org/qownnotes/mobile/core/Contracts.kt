@@ -136,10 +136,20 @@ interface PushStore {
         failureState: SyncState? = null
     )
 
+    suspend fun conflict(localId: String): NoteConflict?
+
+    suspend fun captureConflict(
+        localId: String,
+        expectedRevision: Long,
+        remote: RemoteNote
+    ): Boolean
+
     suspend fun resolveConflict(
         localId: String,
         expectedRevision: Long,
-        remote: RemoteNote,
+        expectedRemoteEtag: String,
+        resolvedAtEpochSeconds: Long,
+        merged: MergedNoteFields?,
         localCopy: Note?
     ): Boolean
 
