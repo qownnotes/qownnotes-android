@@ -1,0 +1,3 @@
+• Background synchronization with network constraints and retry backoff
+• Review, merge, and recover conflicting or remotely changed notes safely
+• Durable synchronization diagnostics and improved large-note editing performance
