@@ -658,29 +658,31 @@ class AppLaunchTest {
 
     @Test
     fun createButtonHidesOnScrollByDefaultAndCanBeDisabled() {
-        val account = importAccount("alice", "First note", "etag-1", 10)
-        runBlocking {
-            repeat(20) { index ->
-                application.component.noteRepository.save(
-                    Note(
-                        localId = "scroll-note-$index",
-                        accountId = account.localAccountId(),
-                        remoteId = 100L + index,
-                        title = "Scroll note $index",
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = (0..20).map { index ->
+                    RemoteNote(
+                        id = 100L + index,
+                        etag = "etag-scroll-$index",
+                        title = if (index == 0) "First note" else "Scroll note $index",
                         content = "# Scroll note $index",
-                        modifiedAtEpochSeconds = 100L + index,
-                        remoteEtag = "etag-scroll-$index",
-                        syncState = SyncState.SYNCHRONIZED
+                        category = "",
+                        modifiedAtEpochSeconds = 10L + index
                     )
-                )
-            }
-        }
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking { notesOf("alice").size == 21 }
-        }
+                },
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 30
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Scroll note 20")
 
         composeRule.onNodeWithTag("create-note").assertIsDisplayed()
         composeRule.onNodeWithTag("note-list").performTouchInput { swipeUp() }
+        composeRule.waitForTextToGo("Scroll note 20")
         composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithTag("create-note").fetchSemanticsNodes().isEmpty()
         }
@@ -697,7 +699,7 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("create-note").assertIsDisplayed()
 
         composeRule.activityRule.scenario.recreate()
-        composeRule.waitForText("First note")
+        composeRule.waitForTag("note-list")
         listAction("settings")
         composeRule.onNodeWithTag("toggle-hide-create-button-on-scroll").assertIsOff()
     }

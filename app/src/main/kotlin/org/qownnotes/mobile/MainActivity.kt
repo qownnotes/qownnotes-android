@@ -113,6 +113,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -839,6 +840,30 @@ private fun NoteListScreen(
         notes?.filter { NoteCategories.matches(it.category, categoryScope) }
     }
     val noteListState = key(accountId) { rememberLazyListState() }
+    var createButtonVisible by remember(accountId) { mutableStateOf(true) }
+    // List refreshes restore the action; only subsequent viewport movement controls visibility.
+    LaunchedEffect(accountId, noteListState, visibleNotes) {
+        withFrameNanos {}
+        createButtonVisible = true
+        var previousIndex = noteListState.firstVisibleItemIndex
+        var previousOffset = noteListState.firstVisibleItemScrollOffset
+        snapshotFlow {
+            Pair(
+                noteListState.firstVisibleItemIndex,
+                noteListState.firstVisibleItemScrollOffset
+            )
+        }.collect { (index, offset) ->
+            if (index > previousIndex || index == previousIndex && offset > previousOffset) {
+                createButtonVisible = false
+            } else if (
+                index < previousIndex || index == previousIndex && offset < previousOffset
+            ) {
+                createButtonVisible = true
+            }
+            previousIndex = index
+            previousOffset = offset
+        }
+    }
     val createNote = {
         val category = (categoryScope as? NoteCategoryScope.Category)?.value.orEmpty()
         onCreate(accountId, category)
@@ -868,7 +893,7 @@ private fun NoteListScreen(
         floatingActionButton = {
             if (
                 !selectionActive &&
-                (!hideCreateButtonOnScroll || !noteListState.lastScrolledForward)
+                (!hideCreateButtonOnScroll || createButtonVisible)
             ) {
                 FloatingActionButton(
                     onClick = createNote,
