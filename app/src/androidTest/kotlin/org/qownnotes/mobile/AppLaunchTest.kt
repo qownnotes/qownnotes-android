@@ -144,7 +144,7 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Root note").assertDoesNotExist()
 
         val existingIds = runBlocking { notesOf("alice").map(Note::localId).toSet() }
-        listAction("create-note")
+        composeRule.onNodeWithTag("create-note").performClick()
         composeRule.waitUntil(timeoutMillis = 10_000) {
             runBlocking {
                 notesOf("alice").any { it.localId !in existingIds && it.category == "Work" }
@@ -849,7 +849,7 @@ class AppLaunchTest {
     fun createsAndEditsANoteOfflineFirst() {
         importAccount("alice", "Existing note", "etag-1", 10)
 
-        listAction("create-note")
+        composeRule.onNodeWithTag("create-note").assertIsDisplayed().performClick()
         composeRule.waitForTag("markdown-editor")
         composeRule.onNodeWithTag("finish-editing").assertIsDisplayed()
         onView(withId(R.id.markdown_editor)).check { view, _ ->

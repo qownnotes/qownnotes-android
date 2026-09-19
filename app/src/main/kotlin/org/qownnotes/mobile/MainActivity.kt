@@ -85,6 +85,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -834,6 +835,10 @@ private fun NoteListScreen(
     val visibleNotes = remember(notes, categoryScope) {
         notes?.filter { NoteCategories.matches(it.category, categoryScope) }
     }
+    val createNote = {
+        val category = (categoryScope as? NoteCategoryScope.Category)?.value.orEmpty()
+        onCreate(accountId, category)
+    }
 
     LaunchedEffect(accountId) { withContext(UiDispatcher) { component.refresh(accountId) } }
     LaunchedEffect(allNotes, categories, categoryScope) {
@@ -856,6 +861,16 @@ private fun NoteListScreen(
     BackHandler(enabled = searchFocused && !selectionActive) { leaveSearch() }
 
     Scaffold(
+        floatingActionButton = {
+            if (!selectionActive) {
+                FloatingActionButton(
+                    onClick = createNote,
+                    modifier = Modifier.testTag("create-note")
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "New note")
+                }
+            }
+        },
         topBar = {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                 TopAppBar(
@@ -1004,20 +1019,6 @@ private fun NoteListScreen(
                                     expanded = noteListMenuOpen,
                                     onDismissRequest = { noteListMenuOpen = false }
                                 ) {
-                                    DropdownMenuItem(
-                                        text = { Text("New note") },
-                                        leadingIcon = {
-                                            Icon(Icons.Filled.Add, contentDescription = null)
-                                        },
-                                        onClick = {
-                                            noteListMenuOpen = false
-                                            val category =
-                                                (categoryScope as? NoteCategoryScope.Category)
-                                                    ?.value.orEmpty()
-                                            onCreate(accountId, category)
-                                        },
-                                        modifier = Modifier.testTag("create-note")
-                                    )
                                     DropdownMenuItem(
                                         text = {
                                             Text(

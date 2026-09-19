@@ -7,6 +7,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Note creation is now available from a floating plus button at the bottom-right of the note list.
+
 ## [0.7.0] - 2026-09-17
 
 ### Added
