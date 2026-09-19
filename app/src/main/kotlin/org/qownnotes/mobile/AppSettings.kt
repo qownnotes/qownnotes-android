@@ -63,6 +63,19 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableSwipeNoteActions.value = enabled
     }
 
+    private val mutableHideCreateButtonOnScroll =
+        MutableStateFlow(preferences.getBoolean(HIDE_CREATE_BUTTON_ON_SCROLL, true))
+
+    /** Whether scrolling down the note list hides its create-note button. */
+    val hideCreateButtonOnScroll: StateFlow<Boolean> =
+        mutableHideCreateButtonOnScroll.asStateFlow()
+
+    fun setHideCreateButtonOnScroll(enabled: Boolean) {
+        if (enabled == mutableHideCreateButtonOnScroll.value) return
+        preferences.edit().putBoolean(HIDE_CREATE_BUTTON_ON_SCROLL, enabled).apply()
+        mutableHideCreateButtonOnScroll.value = enabled
+    }
+
     private val mutableShowCategories = mutableMapOf<String, MutableStateFlow<Boolean>>()
 
     /** Whether the note list shows each note's category for this account. */
@@ -127,6 +140,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val NOTE_TEXT_SIZE_SP = "noteTextSizeSp"
         const val SHOW_NOTE_PREVIEW = "showNotePreview"
         const val SWIPE_NOTE_ACTIONS = "swipeNoteActions"
+        const val HIDE_CREATE_BUTTON_ON_SCROLL = "hideCreateButtonOnScroll"
 
         // Legacy global key migrated to existing accounts when the application starts.
         const val SHOW_CATEGORY = "showCategory"

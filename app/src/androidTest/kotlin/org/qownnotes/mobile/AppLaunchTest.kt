@@ -657,6 +657,52 @@ class AppLaunchTest {
     }
 
     @Test
+    fun createButtonHidesOnScrollByDefaultAndCanBeDisabled() {
+        val account = importAccount("alice", "First note", "etag-1", 10)
+        runBlocking {
+            repeat(20) { index ->
+                application.component.noteRepository.save(
+                    Note(
+                        localId = "scroll-note-$index",
+                        accountId = account.localAccountId(),
+                        remoteId = 100L + index,
+                        title = "Scroll note $index",
+                        content = "# Scroll note $index",
+                        modifiedAtEpochSeconds = 100L + index,
+                        remoteEtag = "etag-scroll-$index",
+                        syncState = SyncState.SYNCHRONIZED
+                    )
+                )
+            }
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").size == 21 }
+        }
+
+        composeRule.onNodeWithTag("create-note").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-list").performTouchInput { swipeUp() }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("create-note").fetchSemanticsNodes().isEmpty()
+        }
+        composeRule.onNodeWithTag("note-list").performTouchInput { swipeDown() }
+        composeRule.waitForTag("create-note")
+
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-hide-create-button-on-scroll").assertIsOn()
+            .performClick()
+        composeRule.onNodeWithTag("toggle-hide-create-button-on-scroll").assertIsOff()
+        composeRule.onNodeWithTag("close-settings").performClick()
+
+        composeRule.onNodeWithTag("note-list").performTouchInput { swipeUp() }
+        composeRule.onNodeWithTag("create-note").assertIsDisplayed()
+
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForText("First note")
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-hide-create-button-on-scroll").assertIsOff()
+    }
+
+    @Test
     fun longPressSelectsMultipleNotesAndMovesThemToTrash() {
         val account = importAccount("alice", "First note", "etag-1", 10)
         val accountId = account.localAccountId()

@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -828,6 +829,8 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val swipeNoteActions by component.settings.swipeNoteActions
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val hideCreateButtonOnScroll by component.settings.hideCreateButtonOnScroll
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     val showCategoryFlow = remember(accountId) { component.settings.showCategory(accountId) }
     val showCategory by showCategoryFlow
         .collectAsStateWithLifecycle(context = UiDispatcher)
@@ -835,6 +838,7 @@ private fun NoteListScreen(
     val visibleNotes = remember(notes, categoryScope) {
         notes?.filter { NoteCategories.matches(it.category, categoryScope) }
     }
+    val noteListState = key(accountId) { rememberLazyListState() }
     val createNote = {
         val category = (categoryScope as? NoteCategoryScope.Category)?.value.orEmpty()
         onCreate(accountId, category)
@@ -862,7 +866,10 @@ private fun NoteListScreen(
 
     Scaffold(
         floatingActionButton = {
-            if (!selectionActive) {
+            if (
+                !selectionActive &&
+                (!hideCreateButtonOnScroll || !noteListState.lastScrolledForward)
+            ) {
                 FloatingActionButton(
                     onClick = createNote,
                     modifier = Modifier.testTag("create-note")
@@ -1207,7 +1214,10 @@ private fun NoteListScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 SyncStatus(syncState, reconnect = { onReconnectAccount(accountId) })
-                LazyColumn(modifier = Modifier.weight(1f).testTag("note-list")) {
+                LazyColumn(
+                    state = noteListState,
+                    modifier = Modifier.weight(1f).testTag("note-list")
+                ) {
                     if (importState is SyncUiState.Failed) {
                         item {
                             Text(
@@ -1304,6 +1314,13 @@ private fun NoteListScreen(
                         checked = swipeNoteActions,
                         onCheckedChange = component.settings::setSwipeNoteActions,
                         testTag = "toggle-swipe-note-actions"
+                    )
+                    SettingsCheckbox(
+                        label = "Hide create button while scrolling",
+                        description = "Hide when scrolling down and show when scrolling up.",
+                        checked = hideCreateButtonOnScroll,
+                        onCheckedChange = component.settings::setHideCreateButtonOnScroll,
+                        testTag = "toggle-hide-create-button-on-scroll"
                     )
                     Button(
                         onClick = {
