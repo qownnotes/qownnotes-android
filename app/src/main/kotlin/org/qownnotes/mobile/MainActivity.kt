@@ -112,6 +112,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
@@ -358,6 +359,7 @@ private fun NotesNavigation(
     var navigationRequest by rememberSaveable { mutableStateOf(0) }
     var noteHistory by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var managingAccounts by rememberSaveable { mutableStateOf(false) }
+    val noteListStateHolder = rememberSaveableStateHolder()
 
     LaunchedEffect(accounts, selectedAccountId) {
         val loadedAccounts = accounts ?: return@LaunchedEffect
@@ -447,33 +449,35 @@ private fun NotesNavigation(
             }
         )
     } else {
-        NoteListScreen(
-            component = component,
-            accounts = loadedAccounts,
-            accountId = requireNotNull(activeAccountId),
-            importState = importState,
-            onSelectAccount = { selectedAccountId = it },
-            onImportAccount = onImportAccount,
-            onReconnectAccount = onReconnectAccount,
-            onManageAccounts = { managingAccounts = true },
-            onCreate = { accountId, category ->
-                scope.launch {
-                    val note = component.createNote(accountId, category)
+        noteListStateHolder.SaveableStateProvider("note-list") {
+            NoteListScreen(
+                component = component,
+                accounts = loadedAccounts,
+                accountId = requireNotNull(activeAccountId),
+                importState = importState,
+                onSelectAccount = { selectedAccountId = it },
+                onImportAccount = onImportAccount,
+                onReconnectAccount = onReconnectAccount,
+                onManageAccounts = { managingAccounts = true },
+                onCreate = { accountId, category ->
+                    scope.launch {
+                        val note = component.createNote(accountId, category)
+                        noteHistory = emptyList()
+                        selectedNoteId = note.localId
+                        selectedHeading = null
+                        editOnOpenNoteId = note.localId
+                        navigationRequest++
+                    }
+                },
+                onOpen = {
                     noteHistory = emptyList()
-                    selectedNoteId = note.localId
+                    selectedNoteId = it
                     selectedHeading = null
-                    editOnOpenNoteId = note.localId
+                    editOnOpenNoteId = null
                     navigationRequest++
                 }
-            },
-            onOpen = {
-                noteHistory = emptyList()
-                selectedNoteId = it
-                selectedHeading = null
-                editOnOpenNoteId = null
-                navigationRequest++
-            }
-        )
+            )
+        }
     }
 }
 

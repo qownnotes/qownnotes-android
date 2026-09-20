@@ -553,6 +553,35 @@ class AppLaunchTest {
     }
 
     @Test
+    fun noteSearchRemainsActiveAfterOpeningANoteAndReturning() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(42, "etag-match", "Matching note", "# Match", "", 10),
+                    RemoteNote(43, "etag-other", "Other note", "# Other", "", 11)
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 11
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Matching note")
+
+        composeRule.onNodeWithTag("note-search").performTextInput("Matching")
+        composeRule.waitForTextToGo("Other note")
+        composeRule.onNodeWithText("Matching note").performClick()
+        composeRule.waitUntilDisplayed("back-to-note-list")
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+
+        composeRule.waitForText("Matching note")
+        composeRule.onNodeWithText("Other note").assertDoesNotExist()
+        composeRule.onNodeWithTag("clear-note-search").assertIsDisplayed()
+    }
+
+    @Test
     fun noteSearchCanBeLimitedToTitles() {
         val account = testAccount("alice")
         application.fakeAccountImporter.enqueue(account)

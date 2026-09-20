@@ -913,11 +913,11 @@ Implemented:
   the profile menu. The compact search field and synchronization status stay fixed while notes
   scroll below them. While focused, search replaces the surrounding actions with a back action and
   expands across the whole top bar. Leaving search restores those actions and keeps the query, so a
-  filtered list can still be acted on; the field's clear action is what empties it. A filter action
-  in the field switches between title-and-content and title-only matching and survives activity
-  recreation with the query. The note-action menu sorts the same local result flow by latest
-  modification or by title in ascending or descending order; the selected order also survives
-  activity recreation.
+  filtered list can still be acted on; the field's clear action is what empties it. The query and
+  filtered list also remain active after opening a note and returning. A filter action in the field
+  switches between title-and-content and title-only matching and survives activity recreation with
+  the query. The note-action menu sorts the same local result flow by latest modification or by
+  title in ascending or descending order; the selected order also survives activity recreation.
 - Moved supplemental QOwnNotes source highlighting off the main thread. Each result is applied only
   if its request and source are still current, and explicit tests cover every required source syntax
   plus a large generated document.
