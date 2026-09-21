@@ -15,11 +15,15 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -85,6 +89,7 @@ sealed interface SyncUiState {
     data class AccountRemoved(val message: String) : SyncUiState
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ApplicationComponent(
     private val application: Application,
     database: QOwnNotesDatabase =
@@ -154,6 +159,8 @@ class ApplicationComponent(
      */
     private val mutablePendingShare = MutableStateFlow<SharedText?>(null)
     val pendingShare: StateFlow<SharedText?> = mutablePendingShare.asStateFlow()
+    private val mutableWidgetRequest = MutableStateFlow<WidgetRequest?>(null)
+    val widgetRequest: StateFlow<WidgetRequest?> = mutableWidgetRequest.asStateFlow()
     private val refreshMutexes = ConcurrentHashMap<String, Mutex>()
     private val editMutexes = ConcurrentHashMap<String, Mutex>()
     private val editorDrafts = EditorDraftCache()
@@ -167,6 +174,17 @@ class ApplicationComponent(
             val accountIds = accountRepository.observeAccounts().first().map(Account::id)
             settings.migrateShowCategory(accountIds)
             accountIds.forEach(syncScheduler::ensureScheduled)
+        }
+        applicationScope.launch {
+            accountRepository.observeAccounts()
+                .flatMapLatest { accounts ->
+                    if (accounts.isEmpty()) {
+                        flowOf(Unit)
+                    } else {
+                        combine(accounts.map { noteRepository.observeNotes(it.id) }) { Unit }
+                    }
+                }
+                .collect { NoteWidgetUpdater.updateAll(application) }
         }
     }
 
@@ -405,6 +423,12 @@ class ApplicationComponent(
      * application that shared it.
      */
     fun takePendingShare(): SharedText? = mutablePendingShare.getAndUpdate { null }
+
+    fun receiveWidgetRequest(request: WidgetRequest) {
+        mutableWidgetRequest.value = request
+    }
+
+    fun takeWidgetRequest(): WidgetRequest? = mutableWidgetRequest.getAndUpdate { null }
 
     suspend fun beginEditing(localId: String): Note? =
         editMutexes.getOrPut(localId, ::Mutex).withLock {

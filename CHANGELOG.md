@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added configurable home-screen widgets for an account's note list and for one selected note.
+  Widget actions open cached notes, create a new offline-first note, or capture a photo into a new
+  note (for [#13](https://github.com/qownnotes/qownnotes-android/issues/13)).
 - Added an offline bookmark browser for QOwnNotes-style list bookmarks, with text search, tag
   filters, and an account-specific relative bookmarks file that defaults to `Bookmarks.md`.
 - Images can now be selected while editing a note. JPEG, PNG, and WebP files up to 5 MB are stored

@@ -397,6 +397,7 @@ private fun NotesNavigation(
     val activeAccountId = loadedAccounts?.firstOrNull { it.id == selectedAccountId }?.id
         ?: loadedAccounts?.firstOrNull()?.id
     val pendingShare by component.pendingShare.collectAsStateWithLifecycle(context = UiDispatcher)
+    val widgetRequest by component.widgetRequest.collectAsStateWithLifecycle(context = UiDispatcher)
     // Text another application shared becomes a note in the account that is being looked at, and
     // that note is opened, so the share ends where the user can see and correct it. A share that
     // arrives before any account exists waits here until onboarding has produced one.
@@ -415,6 +416,41 @@ private fun NotesNavigation(
             selectedNoteId = note.localId
             selectedHeading = null
             navigationRequest++
+        }
+    }
+    LaunchedEffect(widgetRequest, loadedAccounts) {
+        val request = widgetRequest ?: return@LaunchedEffect
+        if (loadedAccounts == null) return@LaunchedEffect
+        component.takeWidgetRequest()
+        when (request) {
+            is WidgetRequest.OpenNote -> {
+                if (
+                    withContext(UiDispatcher) {
+                        component.noteRepository.get(request.localId)
+                    } != null
+                ) {
+                    browsingBookmarks = false
+                    managingAccounts = false
+                    noteHistory = emptyList()
+                    selectedNoteId = request.localId
+                    selectedHeading = null
+                    editOnOpenNoteId = null
+                    navigationRequest++
+                }
+            }
+            is WidgetRequest.CreateNote -> {
+                val accountId = request.accountId.takeIf { requested ->
+                    loadedAccounts.any { it.id == requested }
+                } ?: loadedAccounts.firstOrNull()?.id ?: return@LaunchedEffect
+                val note = withContext(UiDispatcher) { component.createNote(accountId) }
+                browsingBookmarks = false
+                managingAccounts = false
+                noteHistory = emptyList()
+                selectedNoteId = note.localId
+                selectedHeading = null
+                editOnOpenNoteId = note.localId
+                navigationRequest++
+            }
         }
     }
     val noteId = selectedNoteId

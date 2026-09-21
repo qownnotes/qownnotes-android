@@ -44,6 +44,11 @@ deletion intent.
 A bounded, secret-redacted synchronization diagnostic report is persisted across process restarts
 and can be reviewed, copied, or cleared from Settings without sending telemetry.
 
+Android home-screen widgets can show an account's cached note list or one selected note. Widget
+actions open notes, create an offline-first note, and capture a picture into a new note through the
+existing authenticated media upload path. Widget content observes Room rather than network
+responses and remains available offline.
+
 An offline bookmark browser parses QOwnNotes Desktop-compatible list bookmarks from an
 account-scoped relative Markdown path, `Bookmarks.md` by default. It searches bookmark names, URLs,
 and descriptions, supports AND-style tag filtering, and opens only safe HTTP or HTTPS destinations.
@@ -1094,7 +1099,8 @@ The source lookup and displayed content come from Room rather than a direct netw
 - Interactive task checkboxes
 - Image sharing and general attachments
 - Sharing
-- Widgets
+- Widgets: account note-list, single-note, creation, and camera actions are implemented; filtering
+  and presentation customization remain future work.
 - Multiple configured backends
 - Folder renaming and deletion across every contained note
 - Per-folder exclusion from the note list

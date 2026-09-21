@@ -1,4 +1,19 @@
 <resources>
+    <string name="widget_note_list">Note list</string>
+    <string name="widget_note_list_description">View notes and quickly create a note</string>
+    <string name="widget_single_note">Single note</string>
+    <string name="widget_single_note_description">Display a note on the home screen</string>
+    <string name="widget_choose_account">Choose an account</string>
+    <string name="widget_choose_note">Choose a note</string>
+    <string name="widget_no_accounts">Add an account in QOwnNotes before configuring a widget.</string>
+    <string name="widget_no_notes">No notes</string>
+    <string name="widget_note_unavailable">Note unavailable</string>
+    <string name="widget_create_note">Create note</string>
+    <string name="widget_create_button">+</string>
+    <string name="widget_take_picture">Take picture as note</string>
+    <string name="widget_camera_button">Photo</string>
+    <string name="widget_picture_failed">Could not create a note from the picture</string>
+    <string name="widget_camera_unavailable">No camera application is available</string>
     <string name="app_name">QOwnNotes</string>
     <string name="note_label">Note</string>
     <string name="share_to_new_note">New note</string>

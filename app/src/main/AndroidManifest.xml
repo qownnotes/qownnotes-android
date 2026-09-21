@@ -46,5 +46,49 @@
                 <data android:mimeType="text/*" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".CaptureNoteActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QOwnNotes" />
+        <activity
+            android:name=".WidgetActionActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:theme="@style/Theme.QOwnNotes" />
+        <activity
+            android:name=".WidgetConfigurationActivity"
+            android:exported="true"
+            android:theme="@style/Theme.QOwnNotes">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <receiver
+            android:name=".NoteListWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_note_list">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/note_list_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".SingleNoteWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_single_note">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/single_note_widget_info" />
+        </receiver>
+        <service
+            android:name=".NoteListWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
     </application>
 </manifest>
