@@ -4,6 +4,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.view.LayoutInflater
+import android.widget.ListView
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
@@ -93,6 +95,21 @@ class NoteWidgetTest {
                 ComponentName(context, WidgetActionActivity::class.java),
                 0
             ).exported
+        )
+        assertTrue(
+            !context.packageManager.getServiceInfo(
+                ComponentName(context, SingleNoteWidgetService::class.java),
+                0
+            ).exported
+        )
+    }
+
+    @Test
+    fun singleNoteBodyUsesScrollableCollection() {
+        val layout = LayoutInflater.from(context).inflate(R.layout.widget_single_note, null)
+
+        assertTrue(
+            layout.findViewById<ListView>(R.id.widget_single_content).isVerticalScrollBarEnabled
         )
     }
 }

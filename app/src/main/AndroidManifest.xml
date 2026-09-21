@@ -90,5 +90,9 @@
             android:name=".NoteListWidgetService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
+        <service
+            android:name=".SingleNoteWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
     </application>
 </manifest>

@@ -277,8 +277,7 @@ class SingleNoteWidgetProvider : AppWidgetProvider() {
                 manager,
                 widgetId,
                 localId,
-                note?.title ?: context.getString(R.string.widget_note_unavailable),
-                note?.content.orEmpty()
+                note?.title ?: context.getString(R.string.widget_note_unavailable)
             )
         }
 
@@ -287,12 +286,25 @@ class SingleNoteWidgetProvider : AppWidgetProvider() {
             manager: AppWidgetManager,
             widgetId: Int,
             localId: String,
-            title: String,
-            content: String
+            title: String
         ) {
             val views = RemoteViews(context.packageName, R.layout.widget_single_note)
             views.setTextViewText(R.id.widget_single_title, title)
-            views.setTextViewText(R.id.widget_single_content, content.take(8_000))
+            views.setRemoteAdapter(
+                R.id.widget_single_content,
+                Intent(context, SingleNoteWidgetService::class.java)
+                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                    .setData("qownnotes://widget/single/$widgetId".toUri())
+            )
+            views.setPendingIntentTemplate(
+                R.id.widget_single_content,
+                PendingIntent.getActivity(
+                    context,
+                    widgetId,
+                    WidgetIntents.openNoteTemplate(context),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                )
+            )
             views.setOnClickPendingIntent(
                 R.id.widget_single_note,
                 PendingIntent.getActivity(
@@ -303,8 +315,60 @@ class SingleNoteWidgetProvider : AppWidgetProvider() {
                 )
             )
             manager.updateAppWidget(widgetId, views)
+            manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_single_content)
         }
     }
+}
+
+class SingleNoteWidgetService : RemoteViewsService() {
+    override fun onGetViewFactory(intent: Intent): RemoteViewsFactory =
+        SingleNoteWidgetFactory(applicationContext, intent)
+}
+
+private class SingleNoteWidgetFactory(context: Context, intent: Intent) :
+    RemoteViewsService.RemoteViewsFactory {
+    private val context = context.applicationContext
+    private val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
+    private var localId: String? = null
+    private var lines = emptyList<String>()
+
+    override fun onCreate() = Unit
+
+    override fun onDataSetChanged() {
+        localId = WidgetPreferences.noteId(context, widgetId)
+        val noteId = localId
+        lines = if (noteId == null) {
+            emptyList()
+        } else {
+            runBlocking(Dispatchers.IO) {
+                application(context).component.noteRepository.get(noteId)?.content
+            }?.take(8_000)?.lines().orEmpty()
+        }
+    }
+
+    override fun onDestroy() = Unit
+
+    override fun getCount(): Int = lines.size
+
+    override fun getViewAt(position: Int): RemoteViews? = lines.getOrNull(position)?.let { line ->
+        RemoteViews(context.packageName, R.layout.widget_single_note_line).apply {
+            setTextViewText(R.id.widget_single_note_line, line)
+            localId?.let {
+                setOnClickFillInIntent(
+                    R.id.widget_single_note_line,
+                    WidgetIntents.openNoteFillIn(it)
+                )
+            }
+        }
+    }
+
+    override fun getLoadingView(): RemoteViews? = null
+
+    override fun getViewTypeCount(): Int = 1
+
+    override fun getItemId(position: Int): Long = position.toLong()
+
+    override fun hasStableIds(): Boolean = true
 }
 
 class WidgetConfigurationActivity : ComponentActivity() {
@@ -348,8 +412,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 manager,
                 widgetId,
                 note.localId,
-                note.title,
-                note.excerpt
+                note.title
             )
             CoroutineScope(Dispatchers.IO).launch {
                 SingleNoteWidgetProvider.update(

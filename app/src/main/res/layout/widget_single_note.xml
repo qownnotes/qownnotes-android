@@ -17,15 +17,13 @@
         android:textSize="18sp"
         android:textStyle="bold" />
 
-    <TextView
+    <ListView
         android:id="@+id/widget_single_content"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:ellipsize="end"
-        android:gravity="top"
-        android:maxLines="12"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="0dp"
         android:paddingTop="8dp"
-        android:textColor="@color/widget_text_secondary"
-        android:textSize="14sp" />
+        android:scrollbars="vertical" />
 </LinearLayout>
