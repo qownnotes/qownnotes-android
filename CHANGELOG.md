@@ -9,6 +9,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Long notes now show a draggable scrollbar in the note view for position feedback and fast
+  navigation.
 - Added configurable home-screen widgets for an account's note list and for one selected note.
   Widget actions open cached notes, create a new offline-first note, or capture a photo into a new
   note (for [#13](https://github.com/qownnotes/qownnotes-android/issues/13)).

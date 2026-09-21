@@ -3107,14 +3107,15 @@ private fun NoteDetailScreen(
                         ) { Text("Resolve missing note") }
                     }
                 }
-                Column(
-                    modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(scrollState)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     AndroidView(
                         factory = { context ->
                             AppCompatTextView(context).also {
                                 it.id = R.id.markdown_view
-                                it.setTextSize(TypedValue.COMPLEX_UNIT_SP, noteTextSizeSp.toFloat())
+                                it.setTextSize(
+                                    TypedValue.COMPLEX_UNIT_SP,
+                                    noteTextSizeSp.toFloat()
+                                )
                                 renderedView = it
                             }
                         },
@@ -3189,7 +3190,10 @@ private fun NoteDetailScreen(
                                                 toggleTaskListItem(source.content, taskIndex)?.let {
                                                     togglingTask = true
                                                     scope.launch {
-                                                        component.replaceNoteContent(localId, it)
+                                                        component.replaceNoteContent(
+                                                            localId,
+                                                            it
+                                                        )
                                                         togglingTask = false
                                                     }
                                                 }
@@ -3228,7 +3232,12 @@ private fun NoteDetailScreen(
                             )
                             if (found != matches) matches = found
                         },
-                        modifier = Modifier.fillMaxWidth().padding(20.dp).testTag("markdown-view")
+                        modifier = Modifier.fillMaxWidth().padding(end = 48.dp)
+                            .verticalScroll(scrollState).padding(20.dp).testTag("markdown-view")
+                    )
+                    NoteFastScroller(
+                        scrollState = scrollState,
+                        modifier = Modifier.align(Alignment.CenterEnd)
                     )
                 }
             }
@@ -3745,12 +3754,14 @@ private fun CategoryDestinationRow(
 }
 
 @Composable
-internal fun EditorFastScroller(scrollState: ScrollState, modifier: Modifier = Modifier) {
+private fun NoteFastScroller(scrollState: ScrollState, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope { UiDispatcher }
-    EditorFastScroller(
+    FastScroller(
         scrollValue = scrollState.value,
         scrollRange = scrollState.maxValue,
         onScrollTo = { value -> scope.launch { scrollState.scrollTo(value) } },
+        contentDescription = "Note fast scroll",
+        testTag = "note-fast-scroll",
         modifier = modifier
     )
 }
@@ -3762,11 +3773,30 @@ internal fun EditorFastScroller(
     onScrollTo: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    FastScroller(
+        scrollValue = scrollValue,
+        scrollRange = scrollRange,
+        onScrollTo = onScrollTo,
+        contentDescription = "Editor fast scroll",
+        testTag = "editor-fast-scroll",
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun FastScroller(
+    scrollValue: Int,
+    scrollRange: Int,
+    onScrollTo: (Int) -> Unit,
+    contentDescription: String,
+    testTag: String,
+    modifier: Modifier = Modifier
+) {
     if (scrollRange <= 0) return
     BoxWithConstraints(
         modifier = modifier.fillMaxHeight().width(48.dp)
-            .semantics { contentDescription = "Editor fast scroll" }
-            .testTag("editor-fast-scroll")
+            .semantics { this.contentDescription = contentDescription }
+            .testTag(testTag)
     ) {
         val density = LocalDensity.current
         val trackHeight = constraints.maxHeight.toFloat()

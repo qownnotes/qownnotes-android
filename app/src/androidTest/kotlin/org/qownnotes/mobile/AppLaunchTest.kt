@@ -2042,6 +2042,35 @@ class AppLaunchTest {
     }
 
     @Test
+    fun longRenderedNoteHasAFastScroller() {
+        importAccount(
+            "alice",
+            "Long note",
+            "etag-1",
+            10,
+            (1..80).joinToString("\n\n") { "Paragraph $it of a note that is longer than a screen." }
+        )
+        composeRule.onNodeWithText("Long note").performClick()
+        composeRule.onNodeWithTag("note-fast-scroll").assertIsDisplayed()
+        val before = screenTopOf(R.id.markdown_view)
+
+        composeRule.onNodeWithTag("note-fast-scroll").performTouchInput { swipeDown() }
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            screenTopOf(R.id.markdown_view) < before - 1_000
+        }
+    }
+
+    @Test
+    fun shortRenderedNoteDoesNotShowAFastScroller() {
+        importAccount("alice", "Short note", "etag-1", 10, "A short note.")
+        composeRule.onNodeWithText("Short note").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        composeRule.onNodeWithTag("note-fast-scroll").assertDoesNotExist()
+    }
+
+    @Test
     fun findInNoteCountsCyclesAndClearsMatches() {
         importAccount(
             "alice",

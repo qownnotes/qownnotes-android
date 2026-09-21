@@ -266,6 +266,8 @@ A note is read far more often than it is edited, and taking a phone number, a co
 - Keep links tappable while the text is selectable. Selection has to be the base behavior, because the framework only offers selection when the movement method reports that it can select arbitrarily and the link-only movement method also discards the selection as soon as a touch lands outside a link.
 - Distinguish the gestures rather than letting them compete: only a short, stationary touch follows a link, so a press long enough to start a selection and a drag that scrolls the note leave the link alone.
 - Keep the note scrollable. A selectable text view consumes touches a read-only one ignores, and scrolling is the more common gesture.
+- Show a draggable scrollbar for long notes so the reader can see their position and move quickly
+  without interfering with rendered-text selection or links.
 
 ### Note Text Size
 
@@ -947,6 +949,8 @@ Implemented:
   input. The complete 100 KiB editing checklist passes on the OPPO CPH2653.
 - Kept synchronization and conflict messages outside the rendered note's scrolling container so
   they remain visible while a long note is scrolled.
+- Added a visible, draggable scrollbar to long rendered notes while keeping its touch target clear
+  of selectable text, links, and task-list controls.
 
 Every listed Phase 3 implementation task is complete, but the phase is not finished. The gaps below are open.
 
