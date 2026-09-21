@@ -905,6 +905,11 @@ Implemented:
   restoration becomes a normal local edit and uses the existing ETag-protected upload path; trash
   restoration runs on the server and is followed by a normal Notes refresh. The feature reads but
   never writes the Notes app's configured path and suffix.
+- Added editor image insertion through Android's image picker. Supported images are bounded before
+  upload, assigned collision-resistant names, written through authenticated WebDAV to the
+  QOwnNotes-compatible top-level `media/` folder with overwrite prevention, and linked relative to
+  the note category. This deliberately does not use Notes API 1.4 attachment upload because that
+  endpoint stores new files in note-specific `.attachments.<id>` folders.
 - Added opt-in synchronization details in the note list and editor. The dialog explains local-server
   connectivity checks and, while the current application process retains it, shows a bounded,
   secret-redacted exception chain that can be copied for a bug report without telemetry.
@@ -1087,7 +1092,7 @@ The source lookup and displayed content come from Room rather than a direct netw
 ### Phase 7: Extended Features
 
 - Interactive task checkboxes
-- Images and attachments
+- Image sharing and general attachments
 - Sharing
 - Widgets
 - Multiple configured backends

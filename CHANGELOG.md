@@ -11,6 +11,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Added an offline bookmark browser for QOwnNotes-style list bookmarks, with text search, tag
   filters, and an account-specific relative bookmarks file that defaults to `Bookmarks.md`.
+- Images can now be selected while editing a note. JPEG, PNG, and WebP files up to 5 MB are stored
+  under the account's QOwnNotes-compatible top-level `media/` folder with unique names, and the
+  relative Markdown image link is inserted at the caret (for
+  [#12](https://github.com/qownnotes/qownnotes-android/issues/12)).
 
 ### Changed
 

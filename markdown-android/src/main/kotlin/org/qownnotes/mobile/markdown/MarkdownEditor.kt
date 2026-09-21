@@ -47,6 +47,26 @@ enum class MarkdownFormatAction {
 
 data class MarkdownTextEdit(val text: String, val selectionStart: Int, val selectionEnd: Int)
 
+fun insertMarkdownImage(
+    source: String,
+    selectionStart: Int,
+    selectionEnd: Int,
+    fallbackDescription: String,
+    path: String
+): MarkdownTextEdit {
+    val start = minOf(selectionStart, selectionEnd).coerceIn(0, source.length)
+    val end = maxOf(selectionStart, selectionEnd).coerceIn(start, source.length)
+    val description = source.substring(start, end).ifBlank { fallbackDescription }
+        .replace("\r", " ")
+        .replace("\n", " ")
+        .replace("\\", "\\\\")
+        .replace("[", "\\[")
+        .replace("]", "\\]")
+    val replacement = "![$description]($path)"
+    val caret = start + replacement.length
+    return MarkdownTextEdit(source.replaceRange(start, end, replacement), caret, caret)
+}
+
 fun supportsMarkdownSourceHighlighting(sourceLength: Int): Boolean =
     sourceLength <= MAX_HIGHLIGHTED_SOURCE_LENGTH
 
@@ -289,6 +309,21 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
             edit.selectionStart.coerceIn(0, editable.length),
             edit.selectionEnd.coerceIn(0, editable.length)
         )
+    }
+
+    fun insertImage(description: String, path: String) {
+        val editable = text ?: return
+        onEditBoundary?.invoke()
+        val source = editable.toString()
+        val edit = insertMarkdownImage(
+            source,
+            selectionStart.coerceAtLeast(0),
+            selectionEnd.coerceAtLeast(0),
+            description,
+            path
+        )
+        replaceChangedRange(editable, source, edit.text)
+        setSelection(edit.selectionStart)
     }
 
     /**

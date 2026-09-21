@@ -10,8 +10,10 @@ import android.util.TypedValue
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -57,6 +59,7 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
@@ -2204,6 +2207,7 @@ private fun NoteDetailScreen(
     }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope { UiDispatcher }
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var editing by rememberSaveable(localId) { mutableStateOf(false) }
     var draft by remember(localId) { mutableStateOf<String?>(null) }
@@ -2229,6 +2233,28 @@ private fun NoteDetailScreen(
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
+    var importingImage by remember(localId) { mutableStateOf(false) }
+    val imagePicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                importingImage = true
+                scope.launch {
+                    runCatching { component.importImage(localId, uri) }
+                        .onSuccess { image ->
+                            editor?.insertImage(image.description, image.markdownPath)
+                            editor?.focusForInput()
+                        }
+                        .onFailure { error ->
+                            Toast.makeText(
+                                context,
+                                error.message ?: "Could not insert image",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    importingImage = false
+                }
+            }
+        }
     // Hiding the keyboard and the state change that takes the editor away have to happen in one
     // go on [UiDispatcher]: the input method is only reachable while the editor still has a window
     // token, and editing is left from callbacks that have already waited for a repository call.
@@ -2872,6 +2898,13 @@ private fun NoteDetailScreen(
                             editor,
                             "Insert link",
                             "format-link"
+                        )
+                        ActionIconButton(
+                            icon = Icons.Filled.AddPhotoAlternate,
+                            description = "Insert image",
+                            testTag = "insert-image",
+                            enabled = !importingImage,
+                            onClick = { imagePicker.launch("image/*") }
                         )
                         FormatButton(
                             Icons.Filled.Title,

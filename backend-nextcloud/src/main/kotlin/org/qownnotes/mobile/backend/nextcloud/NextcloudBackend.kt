@@ -1,6 +1,7 @@
 package org.qownnotes.mobile.backend.nextcloud
 
 import android.content.Context
+import android.net.Uri
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonParseException
@@ -23,12 +24,16 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
+import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
 import org.qownnotes.mobile.core.PullCheckpoint
@@ -42,6 +47,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -51,6 +57,7 @@ import retrofit2.http.Query
 class NextcloudBackend(context: Context) :
     NoteBackend,
     NoteArchiveBackend,
+    NoteMediaBackend,
     NoteSettingsBackend {
     private val applicationContext = context.applicationContext
     private val gson = GsonBuilder().create()
@@ -112,6 +119,22 @@ class NextcloudBackend(context: Context) :
     override suspend fun delete(account: Account, remoteId: Long) = withContext(Dispatchers.IO) {
         try {
             withApis(account) { _, notesApi, _ -> deleteWithApi(notesApi, remoteId) }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun uploadImage(
+        account: Account,
+        notesPath: String,
+        fileName: String,
+        mimeType: String,
+        content: ByteArray
+    ): String = withContext(Dispatchers.IO) {
+        try {
+            withMediaApi(account, notesPath) { api ->
+                uploadImageWithApi(api, fileName, mimeType, content)
+            }
         } catch (error: Throwable) {
             throw error.asBackendException()
         }
@@ -203,6 +226,32 @@ class NextcloudBackend(context: Context) :
                 NextcloudRetrofitApiBuilder(api, QOWNNOTES_API_ENDPOINT)
                     .create(QOwnNotesApi::class.java)
             )
+        } finally {
+            api.close()
+        }
+    }
+
+    private fun <T> withMediaApi(account: Account, notesPath: String, block: (MediaApi) -> T): T {
+        if (AccountImporter.getAccountForName(applicationContext, account.ssoAccountName) == null) {
+            throw BackendException.AccountRemoved()
+        }
+        val ssoAccount = try {
+            AccountImporter.getSingleSignOnAccount(applicationContext, account.ssoAccountName)
+        } catch (error: NextcloudFilesAppAccountNotFoundException) {
+            throw BackendException.AuthorizationRequired(error)
+        }
+        val api = NextcloudAPI(applicationContext, ssoAccount, gson)
+        return try {
+            val endpoint = buildString {
+                append("/remote.php/dav/files/")
+                append(Uri.encode(account.userId))
+                append('/')
+                notesPath.trim('/').split('/').filter(String::isNotBlank).forEach { segment ->
+                    append(Uri.encode(segment))
+                    append('/')
+                }
+            }
+            block(NextcloudRetrofitApiBuilder(api, endpoint).create(MediaApi::class.java))
         } finally {
             api.close()
         }
@@ -617,6 +666,7 @@ private class NotesHttpException(val statusCode: Int) :
 private const val NOTES_CHUNK_SIZE = 200
 private const val SSO_TRANSPORT_ERROR = 900
 private const val HTTP_LOCKED = 423
+private const val HTTP_METHOD_NOT_ALLOWED = 405
 private const val HTTP_TOO_MANY_REQUESTS = 429
 private const val HTTP_INSUFFICIENT_STORAGE = 507
 private const val MIN_QOWNNOTES_API_VERSION = "0.4.4"
@@ -680,6 +730,45 @@ internal interface NotesApi {
         @Query("chunkSize") chunkSize: Int,
         @Query("chunkCursor") chunkCursor: String
     ): Call<List<RemoteNoteDto>>
+}
+
+internal interface MediaApi {
+    @HTTP(method = "MKCOL", path = "media")
+    fun createMediaDirectory(): Call<Void>
+
+    @PUT("media/{fileName}")
+    fun uploadImage(
+        @Path("fileName") fileName: String,
+        @Header("Content-Type") mimeType: String,
+        @Header("If-None-Match") ifNoneMatch: String,
+        @Body content: RequestBody
+    ): Call<Void>
+}
+
+internal fun uploadImageWithApi(
+    api: MediaApi,
+    fileName: String,
+    mimeType: String,
+    content: ByteArray
+): String {
+    require(fileName.isNotBlank() && '/' !in fileName && '\\' !in fileName)
+    val directoryResponse = api.createMediaDirectory().execute()
+    if (!directoryResponse.isSuccessful && directoryResponse.code() != HTTP_METHOD_NOT_ALLOWED) {
+        throw backendExceptionForHttpStatus(
+            directoryResponse.code(),
+            NotesHttpException(directoryResponse.code())
+        )
+    }
+    val response = api.uploadImage(
+        fileName,
+        mimeType,
+        "*",
+        content.toRequestBody(mimeType.toMediaType())
+    ).execute()
+    if (!response.isSuccessful) {
+        throw backendExceptionForHttpStatus(response.code(), NotesHttpException(response.code()))
+    }
+    return fileName
 }
 
 internal interface QOwnNotesApi {

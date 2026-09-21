@@ -99,6 +99,17 @@ interface NoteSettingsBackend {
     ): NoteSettings
 }
 
+interface NoteMediaBackend {
+    /** Uploads an image to the top-level media folder and returns its unique file name. */
+    suspend fun uploadImage(
+        account: Account,
+        notesPath: String,
+        fileName: String,
+        mimeType: String,
+        content: ByteArray
+    ): String
+}
+
 data class RemoteNoteVersion(val timestamp: Long, val displayTimestamp: String, val content: String)
 
 data class TrashedNote(

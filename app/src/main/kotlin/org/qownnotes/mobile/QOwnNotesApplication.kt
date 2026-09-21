@@ -34,6 +34,7 @@ import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteConflict
 import org.qownnotes.mobile.core.NoteFactory
+import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
@@ -45,7 +46,9 @@ import org.qownnotes.mobile.core.SyncDiagnosticSource
 import org.qownnotes.mobile.core.SyncOutcome
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
+import org.qownnotes.mobile.core.mediaImagePath
 import org.qownnotes.mobile.core.mergeNoteConflict
+import org.qownnotes.mobile.core.uniqueMediaImageFileName
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
@@ -97,6 +100,7 @@ class ApplicationComponent(
             .build(),
     private val backend: NoteBackend = NextcloudBackend(application),
     private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
+    private val mediaBackend: NoteMediaBackend? = backend as? NoteMediaBackend,
     private val noteSettingsBackend: NoteSettingsBackend? = backend as? NoteSettingsBackend,
     val settings: AppSettings = AppSettings(application),
     private val syncScheduler: SyncScheduler = WorkManagerSyncScheduler(application),
@@ -155,6 +159,7 @@ class ApplicationComponent(
     private val editorDrafts = EditorDraftCache()
     private val editReservations = ConcurrentHashMap<String, EditReservation>()
     private val accountAvatars = AccountAvatarStore(application, avatarFetcher)
+    private val selectedImageReader = SelectedImageReader(application.contentResolver)
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     init {
@@ -262,6 +267,26 @@ class ApplicationComponent(
     suspend fun noteSettings(accountId: String): NoteSettings = accountMutex(accountId).withLock {
         val account = accountRepository.get(accountId) ?: error("The account no longer exists")
         requireNoteSettingsBackend().settings(account)
+    }
+
+    internal suspend fun importImage(localId: String, uri: android.net.Uri): ImportedImage {
+        val selected = selectedImageReader.read(uri)
+        val fileName = uniqueMediaImageFileName(selected.mimeType)
+        val note = noteRepository.get(localId) ?: error("The note no longer exists")
+        require(!note.readOnly) { "This note is read only" }
+        return accountMutex(note.accountId).withLock {
+            val account = accountRepository.get(note.accountId)
+                ?: error("The account no longer exists")
+            val settings = requireNoteSettingsBackend().settings(account)
+            val uploadedName = requireNoteMediaBackend().uploadImage(
+                account,
+                settings.notesPath,
+                fileName,
+                selected.mimeType,
+                selected.content
+            )
+            ImportedImage(selected.description, mediaImagePath(note.category, uploadedName))
+        }
     }
 
     suspend fun updateNoteSettings(
@@ -832,6 +857,11 @@ class ApplicationComponent(
     private fun requireNoteSettingsBackend(): NoteSettingsBackend = noteSettingsBackend
         ?: throw BackendException.FeatureUnavailable(
             "This account backend does not provide note folder settings"
+        )
+
+    private fun requireNoteMediaBackend(): NoteMediaBackend = mediaBackend
+        ?: throw BackendException.FeatureUnavailable(
+            "This account backend does not support image uploads"
         )
 }
 

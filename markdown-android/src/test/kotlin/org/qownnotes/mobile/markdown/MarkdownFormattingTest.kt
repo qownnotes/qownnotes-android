@@ -5,6 +5,28 @@ import org.junit.Test
 
 class MarkdownFormattingTest {
     @Test
+    fun insertsAnImageAtTheSelection() {
+        assertEquals(
+            MarkdownTextEdit("Before ![selected](media/image-unique.png) after", 42, 42),
+            insertMarkdownImage(
+                "Before selected after",
+                7,
+                15,
+                "photo",
+                "media/image-unique.png"
+            )
+        )
+    }
+
+    @Test
+    fun escapesTheFallbackImageDescription() {
+        assertEquals(
+            "![photo \\[one\\] two](../media/image.png)",
+            insertMarkdownImage("", 0, 0, "photo [one]\ntwo", "../media/image.png").text
+        )
+    }
+
+    @Test
     fun wrapsSelectedTextWithoutChangingTheSelectionContents() {
         val edit = applyMarkdownFormat("some text", 5, 9, MarkdownFormatAction.BOLD)
 
