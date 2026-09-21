@@ -36,6 +36,17 @@ class NoteWidgetTest {
     }
 
     @Test
+    fun noteListDataIdentifiesTheNoteWhenTheLauncherDropsFillInExtras() {
+        val fillIn = WidgetIntents.openNoteFillIn("local-note")
+        val withoutExtras = WidgetIntents.openNoteTemplate(context).setData(fillIn.data)
+
+        assertEquals(
+            WidgetRequest.OpenNote("local-note"),
+            WidgetIntents.request(withoutExtras)
+        )
+    }
+
+    @Test
     fun widgetPreferencesKeepConfigurationsSeparate() {
         val account = org.qownnotes.mobile.core.Account(
             id = "account-id",

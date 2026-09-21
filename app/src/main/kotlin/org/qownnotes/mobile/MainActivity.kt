@@ -419,15 +419,15 @@ private fun NotesNavigation(
         }
     }
     LaunchedEffect(widgetRequest, loadedAccounts) {
-        val request = widgetRequest ?: return@LaunchedEffect
-        if (loadedAccounts == null) return@LaunchedEffect
-        component.takeWidgetRequest()
-        when (request) {
-            is WidgetRequest.OpenNote -> {
-                if (
-                    withContext(UiDispatcher) {
-                        component.noteRepository.get(request.localId)
-                    } != null
+        if (widgetRequest == null) return@LaunchedEffect
+        val availableAccounts = loadedAccounts ?: return@LaunchedEffect
+        val request = component.takeWidgetRequest() ?: return@LaunchedEffect
+        // Taking the request restarts this effect. Navigation belongs to the screen scope so a
+        // repository suspension cannot cancel it between accepting the tap and opening the note.
+        scope.launch {
+            when (request) {
+                is WidgetRequest.OpenNote -> if (
+                    component.noteRepository.get(request.localId) != null
                 ) {
                     browsingBookmarks = false
                     managingAccounts = false
@@ -437,19 +437,19 @@ private fun NotesNavigation(
                     editOnOpenNoteId = null
                     navigationRequest++
                 }
-            }
-            is WidgetRequest.CreateNote -> {
-                val accountId = request.accountId.takeIf { requested ->
-                    loadedAccounts.any { it.id == requested }
-                } ?: loadedAccounts.firstOrNull()?.id ?: return@LaunchedEffect
-                val note = withContext(UiDispatcher) { component.createNote(accountId) }
-                browsingBookmarks = false
-                managingAccounts = false
-                noteHistory = emptyList()
-                selectedNoteId = note.localId
-                selectedHeading = null
-                editOnOpenNoteId = note.localId
-                navigationRequest++
+                is WidgetRequest.CreateNote -> {
+                    val accountId = request.accountId.takeIf { requested ->
+                        availableAccounts.any { it.id == requested }
+                    } ?: availableAccounts.firstOrNull()?.id ?: return@launch
+                    val note = component.createNote(accountId)
+                    browsingBookmarks = false
+                    managingAccounts = false
+                    noteHistory = emptyList()
+                    selectedNoteId = note.localId
+                    selectedHeading = null
+                    editOnOpenNoteId = note.localId
+                    navigationRequest++
+                }
             }
         }
     }

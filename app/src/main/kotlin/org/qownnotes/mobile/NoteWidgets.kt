@@ -55,12 +55,21 @@ internal object WidgetIntents {
     const val EXTRA_NOTE_ID = "noteId"
 
     fun request(intent: Intent?): WidgetRequest? = when (intent?.action) {
-        ACTION_OPEN_NOTE -> intent.getStringExtra(EXTRA_NOTE_ID)?.let(WidgetRequest::OpenNote)
+        ACTION_OPEN_NOTE -> noteId(intent)?.let(WidgetRequest::OpenNote)
         ACTION_CREATE_NOTE -> intent.getStringExtra(
             EXTRA_ACCOUNT_ID
         )?.let(WidgetRequest::CreateNote)
         else -> null
     }
+
+    private fun noteId(intent: Intent): String? =
+        intent.getStringExtra(EXTRA_NOTE_ID)?.takeIf(String::isNotBlank)
+            ?: intent.data?.takeIf { uri ->
+                uri.scheme == "qownnotes" &&
+                    uri.host == "widget" &&
+                    uri.pathSegments.size == 2 &&
+                    uri.pathSegments.first() == "note"
+            }?.lastPathSegment?.takeIf(String::isNotBlank)
 
     fun openNote(context: Context, localId: String): Intent =
         Intent(context, WidgetActionActivity::class.java)

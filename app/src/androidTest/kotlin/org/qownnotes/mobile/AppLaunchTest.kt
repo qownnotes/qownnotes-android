@@ -1407,6 +1407,20 @@ class AppLaunchTest {
         assertTrue(application.fakeBackend.pushedNotes.isEmpty())
     }
 
+    @Test
+    fun widgetRequestOpensTheSelectedCachedNote() {
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking {
+            application.component.noteRepository.observeNotes(account.localAccountId()).first()
+                .single()
+        }
+
+        application.component.receiveWidgetRequest(WidgetRequest.OpenNote(note.localId))
+
+        composeRule.waitForTag("back-to-note-list")
+        composeRule.waitForTag("markdown-view")
+    }
+
     /**
      * Sharing text from another application. The intent is sent for real, so this covers the
      * manifest filter, the single-task delivery into the running activity, and the note it makes.
