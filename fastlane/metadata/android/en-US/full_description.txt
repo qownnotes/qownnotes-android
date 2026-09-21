@@ -11,6 +11,8 @@ Features include:
 * CommonMark and GitHub Flavored Markdown rendering and source editing
 * QOwnNotes wiki links, task states, note naming, categories, and favorites
 * Safe remote images and authenticated Nextcloud note attachments
+* Home-screen widgets for note lists and selected notes
+* Offline bookmark browsing and image insertion while editing
 * Light and dark themes on Android 9 and newer
 * Optional note version and remote trash access through the QOwnNotesAPI server app
 

@@ -1,0 +1,4 @@
+* Added configurable home-screen widgets for note lists and selected notes
+* Browse offline bookmarks with search and tag filters
+* Insert images into notes and navigate long notes with a draggable scrollbar
+* Improved note creation and search navigation
