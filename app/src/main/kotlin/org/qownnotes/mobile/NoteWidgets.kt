@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -273,23 +272,36 @@ class SingleNoteWidgetProvider : AppWidgetProvider() {
         suspend fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val localId = WidgetPreferences.noteId(context, widgetId) ?: return
             val note = application(context).component.noteRepository.get(localId)
-            val views = RemoteViews(context.packageName, R.layout.widget_single_note)
-            views.setTextViewText(
-                R.id.widget_single_title,
-                note?.title ?: context.getString(R.string.widget_note_unavailable)
+            updateSnapshot(
+                context,
+                manager,
+                widgetId,
+                localId,
+                note?.title ?: context.getString(R.string.widget_note_unavailable),
+                note?.content.orEmpty()
             )
-            views.setTextViewText(R.id.widget_single_content, note?.content.orEmpty().take(8_000))
-            if (note != null) {
-                views.setOnClickPendingIntent(
-                    R.id.widget_single_note,
-                    PendingIntent.getActivity(
-                        context,
-                        widgetId,
-                        WidgetIntents.openNote(context, localId),
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
+        }
+
+        fun updateSnapshot(
+            context: Context,
+            manager: AppWidgetManager,
+            widgetId: Int,
+            localId: String,
+            title: String,
+            content: String
+        ) {
+            val views = RemoteViews(context.packageName, R.layout.widget_single_note)
+            views.setTextViewText(R.id.widget_single_title, title)
+            views.setTextViewText(R.id.widget_single_content, content.take(8_000))
+            views.setOnClickPendingIntent(
+                R.id.widget_single_note,
+                PendingIntent.getActivity(
+                    context,
+                    widgetId,
+                    WidgetIntents.openNote(context, localId),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-            }
+            )
             manager.updateAppWidget(widgetId, views)
         }
     }
@@ -322,41 +334,43 @@ class WidgetConfigurationActivity : ComponentActivity() {
         }
     }
 
-    private fun completeConfiguration(account: Account, noteId: String?) {
+    private fun completeConfiguration(account: Account, note: NoteListItem?) {
         if (completingConfiguration) return
         completingConfiguration = true
         val manager = AppWidgetManager.getInstance(this)
-        lifecycleScope.launch {
-            if (noteId == null) {
-                WidgetPreferences.saveAccount(this@WidgetConfigurationActivity, widgetId, account)
-                NoteListWidgetProvider.update(
-                    this@WidgetConfigurationActivity,
-                    manager,
-                    widgetId
-                )
-            } else {
-                WidgetPreferences.saveNote(
-                    this@WidgetConfigurationActivity,
-                    widgetId,
-                    account,
-                    noteId
-                )
+        if (note == null) {
+            WidgetPreferences.saveAccount(this, widgetId, account)
+            NoteListWidgetProvider.update(this, manager, widgetId)
+        } else {
+            WidgetPreferences.saveNote(this, widgetId, account, note.localId)
+            SingleNoteWidgetProvider.updateSnapshot(
+                this,
+                manager,
+                widgetId,
+                note.localId,
+                note.title,
+                note.excerpt
+            )
+            CoroutineScope(Dispatchers.IO).launch {
                 SingleNoteWidgetProvider.update(
                     this@WidgetConfigurationActivity,
                     manager,
                     widgetId
                 )
             }
-            setResult(
-                Activity.RESULT_OK,
-                Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
-            )
-            finish()
         }
+        setResult(
+            Activity.RESULT_OK,
+            Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+        )
+        finish()
     }
 
     @Composable
-    private fun ConfigurationScreen(singleNote: Boolean, onConfigured: (Account, String?) -> Unit) {
+    private fun ConfigurationScreen(
+        singleNote: Boolean,
+        onConfigured: (Account, NoteListItem?) -> Unit
+    ) {
         val component = application(this).component
         val accounts by component.accountRepository.observeAccounts()
             .collectAsStateWithLifecycle(initialValue = emptyList())
@@ -397,7 +411,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 }
             } else {
                 items(notes, key = NoteListItem::localId) { note ->
-                    ConfigurationItem(note.title) { onConfigured(account, note.localId) }
+                    ConfigurationItem(note.title) { onConfigured(account, note) }
                 }
             }
         }
