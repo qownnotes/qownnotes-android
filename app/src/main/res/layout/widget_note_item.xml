@@ -26,4 +26,15 @@
         android:paddingTop="2dp"
         android:textColor="@color/widget_text_secondary"
         android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/widget_note_open"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:paddingTop="6dp"
+        android:text="@string/widget_open_note"
+        android:textColor="@color/widget_text"
+        android:textSize="12sp"
+        android:textStyle="bold" />
 </LinearLayout>

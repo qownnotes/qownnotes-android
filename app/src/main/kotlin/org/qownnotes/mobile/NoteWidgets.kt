@@ -68,6 +68,13 @@ internal object WidgetIntents {
             .putExtra(EXTRA_NOTE_ID, localId)
             .setData("qownnotes://widget/note/$localId".toUri())
 
+    fun openNoteTemplate(context: Context): Intent =
+        Intent(context, WidgetActionActivity::class.java).setAction(ACTION_OPEN_NOTE)
+
+    fun openNoteFillIn(localId: String): Intent = Intent()
+        .putExtra(EXTRA_NOTE_ID, localId)
+        .setData("qownnotes://widget/note/$localId".toUri())
+
     fun createNote(context: Context, accountId: String): Intent =
         Intent(context, WidgetActionActivity::class.java)
             .setAction(ACTION_CREATE_NOTE)
@@ -144,7 +151,7 @@ class NoteListWidgetProvider : AppWidgetProvider() {
                 PendingIntent.getActivity(
                     context,
                     widgetId,
-                    Intent(context, WidgetActionActivity::class.java),
+                    WidgetIntents.openNoteTemplate(context),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                 )
             )
@@ -220,10 +227,9 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
                 R.id.widget_note_excerpt,
                 if (note.excerpt.isBlank()) View.GONE else View.VISIBLE
             )
-            setOnClickFillInIntent(
-                R.id.widget_note_item,
-                WidgetIntents.openNote(context, note.localId)
-            )
+            val open = WidgetIntents.openNoteFillIn(note.localId)
+            setOnClickFillInIntent(R.id.widget_note_item, open)
+            setOnClickFillInIntent(R.id.widget_note_open, open)
         }
     }
 

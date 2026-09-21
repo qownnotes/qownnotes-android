@@ -27,6 +27,15 @@ class NoteWidgetTest {
     }
 
     @Test
+    fun noteListFillInOpensItsNoteThroughTheTemplateAction() {
+        val combined = WidgetIntents.openNoteTemplate(context)
+        combined.fillIn(WidgetIntents.openNoteFillIn("local-note"), 0)
+
+        assertEquals(WidgetRequest.OpenNote("local-note"), WidgetIntents.request(combined))
+        assertEquals(WidgetActionActivity::class.java.name, combined.component?.className)
+    }
+
+    @Test
     fun widgetPreferencesKeepConfigurationsSeparate() {
         val account = org.qownnotes.mobile.core.Account(
             id = "account-id",

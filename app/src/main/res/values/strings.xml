@@ -8,6 +8,7 @@
     <string name="widget_no_accounts">Add an account in QOwnNotes before configuring a widget.</string>
     <string name="widget_no_notes">No notes</string>
     <string name="widget_note_unavailable">Note unavailable</string>
+    <string name="widget_open_note">Open</string>
     <string name="widget_create_note">Create note</string>
     <string name="widget_create_button">+</string>
     <string name="widget_take_picture">Take picture as note</string>
