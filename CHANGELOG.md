@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Note-list widget rows now use their full width as the open-note target without a redundant arrow
+  (for [#13](https://github.com/qownnotes/qownnotes-android/issues/13)).
+
 ## [0.8.0] - 2026-09-21
 
 ### Added

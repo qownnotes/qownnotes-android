@@ -238,7 +238,6 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
             )
             val open = WidgetIntents.openNoteFillIn(note.localId)
             setOnClickFillInIntent(R.id.widget_note_item, open)
-            setOnClickFillInIntent(R.id.widget_note_open, open)
         }
     }
 
