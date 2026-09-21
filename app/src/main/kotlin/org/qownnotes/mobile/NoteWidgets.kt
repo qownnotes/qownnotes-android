@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -295,6 +296,7 @@ class SingleNoteWidgetProvider : AppWidgetProvider() {
 }
 
 class WidgetConfigurationActivity : ComponentActivity() {
+    private var completingConfiguration = false
     private val widgetId by lazy {
         intent.getIntExtra(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
@@ -314,32 +316,42 @@ class WidgetConfigurationActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    ConfigurationScreen(singleNote) { account, noteId ->
-                        if (noteId == null) {
-                            WidgetPreferences.saveAccount(this, widgetId, account)
-                            NoteListWidgetProvider.update(
-                                this,
-                                AppWidgetManager.getInstance(this),
-                                widgetId
-                            )
-                        } else {
-                            WidgetPreferences.saveNote(this, widgetId, account, noteId)
-                            CoroutineScope(Dispatchers.IO).launch {
-                                SingleNoteWidgetProvider.update(
-                                    this@WidgetConfigurationActivity,
-                                    AppWidgetManager.getInstance(this@WidgetConfigurationActivity),
-                                    widgetId
-                                )
-                            }
-                        }
-                        setResult(
-                            Activity.RESULT_OK,
-                            Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
-                        )
-                        finish()
-                    }
+                    ConfigurationScreen(singleNote, ::completeConfiguration)
                 }
             }
+        }
+    }
+
+    private fun completeConfiguration(account: Account, noteId: String?) {
+        if (completingConfiguration) return
+        completingConfiguration = true
+        val manager = AppWidgetManager.getInstance(this)
+        lifecycleScope.launch {
+            if (noteId == null) {
+                WidgetPreferences.saveAccount(this@WidgetConfigurationActivity, widgetId, account)
+                NoteListWidgetProvider.update(
+                    this@WidgetConfigurationActivity,
+                    manager,
+                    widgetId
+                )
+            } else {
+                WidgetPreferences.saveNote(
+                    this@WidgetConfigurationActivity,
+                    widgetId,
+                    account,
+                    noteId
+                )
+                SingleNoteWidgetProvider.update(
+                    this@WidgetConfigurationActivity,
+                    manager,
+                    widgetId
+                )
+            }
+            setResult(
+                Activity.RESULT_OK,
+                Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+            )
+            finish()
         }
     }
 
