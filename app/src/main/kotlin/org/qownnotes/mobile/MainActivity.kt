@@ -57,6 +57,7 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
@@ -180,6 +181,7 @@ import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.core.mergeNoteConflict
+import org.qownnotes.mobile.core.parseBookmarksSource
 import org.qownnotes.mobile.core.resolveInternalNoteLink
 import org.qownnotes.mobile.markdown.MarkdownEditText
 import org.qownnotes.mobile.markdown.MarkdownEditorBinding
@@ -339,7 +341,7 @@ private fun QOwnNotesTheme(content: @Composable () -> Unit) {
  * a hosted Android view. None of that may leave the thread the composition and its views live on,
  * so every coroutine that ends in the user interface names the dispatcher it needs.
  */
-private val UiDispatcher get() = Dispatchers.Main.immediate
+internal val UiDispatcher get() = Dispatchers.Main.immediate
 
 @Composable
 private fun NotesNavigation(
@@ -359,7 +361,9 @@ private fun NotesNavigation(
     var navigationRequest by rememberSaveable { mutableStateOf(0) }
     var noteHistory by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var managingAccounts by rememberSaveable { mutableStateOf(false) }
+    var browsingBookmarks by rememberSaveable { mutableStateOf(false) }
     val noteListStateHolder = rememberSaveableStateHolder()
+    val bookmarksStateHolder = rememberSaveableStateHolder()
 
     LaunchedEffect(accounts, selectedAccountId) {
         val loadedAccounts = accounts ?: return@LaunchedEffect
@@ -382,6 +386,9 @@ private fun NotesNavigation(
     BackHandler(enabled = managingAccounts && selectedNoteId == null) {
         managingAccounts = false
     }
+    BackHandler(enabled = browsingBookmarks && selectedNoteId == null) {
+        browsingBookmarks = false
+    }
 
     val loadedAccounts = accounts
     val activeAccountId = loadedAccounts?.firstOrNull { it.id == selectedAccountId }?.id
@@ -400,6 +407,7 @@ private fun NotesNavigation(
         // to the screen rather than to this run of the effect, and the screen's scope survives.
         scope.launch {
             val note = component.createSharedNote(activeAccountId, shared)
+            browsingBookmarks = false
             noteHistory = emptyList()
             selectedNoteId = note.localId
             selectedHeading = null
@@ -448,6 +456,23 @@ private fun NotesNavigation(
                 }
             }
         )
+    } else if (browsingBookmarks) {
+        bookmarksStateHolder.SaveableStateProvider("bookmarks-$activeAccountId") {
+            key(activeAccountId) {
+                BookmarkScreen(
+                    component = component,
+                    accountId = requireNotNull(activeAccountId),
+                    onBack = { browsingBookmarks = false },
+                    onOpenSourceNote = { localId ->
+                        noteHistory = emptyList()
+                        selectedNoteId = localId
+                        selectedHeading = null
+                        editOnOpenNoteId = null
+                        navigationRequest++
+                    }
+                )
+            }
+        }
     } else {
         noteListStateHolder.SaveableStateProvider("note-list") {
             NoteListScreen(
@@ -459,6 +484,7 @@ private fun NotesNavigation(
                 onImportAccount = onImportAccount,
                 onReconnectAccount = onReconnectAccount,
                 onManageAccounts = { managingAccounts = true },
+                onOpenBookmarks = { browsingBookmarks = true },
                 onCreate = { accountId, category ->
                     scope.launch {
                         val note = component.createNote(accountId, category)
@@ -767,6 +793,7 @@ private fun NoteListScreen(
     onImportAccount: () -> Unit,
     onReconnectAccount: (String) -> Unit,
     onManageAccounts: () -> Unit,
+    onOpenBookmarks: () -> Unit,
     onCreate: (String, String) -> Unit,
     onOpen: (String) -> Unit
 ) {
@@ -839,6 +866,8 @@ private fun NoteListScreen(
     val showCategoryFlow = remember(accountId) { component.settings.showCategory(accountId) }
     val showCategory by showCategoryFlow
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val bookmarksPathFlow = remember(accountId) { component.settings.bookmarksPath(accountId) }
+    val bookmarksPath by bookmarksPathFlow.collectAsStateWithLifecycle(context = UiDispatcher)
     val categories = remember(allNotes) { NoteCategories.selectable(allNotes.orEmpty()) }
     val visibleNotes = remember(notes, categoryScope) {
         notes?.filter { NoteCategories.matches(it.category, categoryScope) }
@@ -1105,6 +1134,17 @@ private fun NoteListScreen(
                                         modifier = Modifier.testTag("category-selector")
                                     )
                                     DropdownMenuItem(
+                                        text = { Text("Bookmarks") },
+                                        leadingIcon = {
+                                            Icon(Icons.Filled.Bookmarks, contentDescription = null)
+                                        },
+                                        onClick = {
+                                            noteListMenuOpen = false
+                                            onOpenBookmarks()
+                                        },
+                                        modifier = Modifier.testTag("bookmarks-menu")
+                                    )
+                                    DropdownMenuItem(
                                         text = { Text("Trash") },
                                         leadingIcon = {
                                             Icon(Icons.Filled.Delete, contentDescription = null)
@@ -1324,7 +1364,10 @@ private fun NoteListScreen(
             onDismissRequest = { showSettings = false },
             title = { Text("Settings") },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier.heightIn(max = 520.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
                     SettingsCheckbox(
                         label = "Show note preview",
                         checked = showNotePreview,
@@ -1350,6 +1393,22 @@ private fun NoteListScreen(
                         checked = hideCreateButtonOnScroll,
                         onCheckedChange = component.settings::setHideCreateButtonOnScroll,
                         testTag = "toggle-hide-create-button-on-scroll"
+                    )
+                    OutlinedTextField(
+                        value = bookmarksPath,
+                        onValueChange = { component.settings.setBookmarksPath(accountId, it) },
+                        label = { Text("Bookmarks file") },
+                        singleLine = true,
+                        isError = parseBookmarksSource(bookmarksPath) == null,
+                        supportingText = {
+                            if (parseBookmarksSource(bookmarksPath) == null) {
+                                Text("Use a relative path ending in .md")
+                            } else {
+                                Text("Examples: Bookmarks.md or Work/Bookmarks.md")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                            .testTag("bookmarks-path")
                     )
                     Button(
                         onClick = {

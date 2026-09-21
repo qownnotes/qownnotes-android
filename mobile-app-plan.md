@@ -44,6 +44,10 @@ deletion intent.
 A bounded, secret-redacted synchronization diagnostic report is persisted across process restarts
 and can be reviewed, copied, or cleared from Settings without sending telemetry.
 
+An offline bookmark browser parses QOwnNotes Desktop-compatible list bookmarks from an
+account-scoped relative Markdown path, `Bookmarks.md` by default. It searches bookmark names, URLs,
+and descriptions, supports AND-style tag filtering, and opens only safe HTTP or HTTPS destinations.
+
 Conflict handling now persists the exact remote version while the note row retains the local and
 common-base versions. The resolution dialog compares all three, supports conservative three-way
 merging of independent field and line changes, and rejects actions if the reviewed local or remote
@@ -1048,6 +1052,26 @@ categories from the note view. Hierarchical navigation remains planned below.
 
 Explicitly out of scope for this phase: creating durable empty folders and renaming or deleting
 category folders.
+
+### Implemented Bookmark Browser
+
+The bookmark browser treats a cached note as the source of truth and therefore remains available
+offline. Each account has a device-local relative Markdown path, defaulting to `Bookmarks.md`;
+nested paths such as `Work/Bookmarks.md` map to the existing Nextcloud category and note title.
+
+Parsing follows `Bookmark::parseBookmarks` from QOwnNotes Desktop in its normal
+`withBasicUrls = false` mode:
+
+- Accept `- [name](scheme://url)` and `* [name](scheme://url)` entries.
+- Extract unique `#tags` from trailing text and retain the remainder as the description.
+- Merge duplicate exact, case-sensitive URLs, combining tags and descriptions and preferring the
+  longest non-empty name.
+- Ignore ordinary inline Markdown links and angle-bracket URLs.
+
+The mobile browser sorts by name, searches names, URLs, and descriptions with case-insensitive AND
+tokens, and combines selected tags with AND semantics. Parsing remains Desktop-compatible, while
+opening follows the mobile Markdown safety policy and permits only HTTP and HTTPS URLs with a host.
+The source lookup and displayed content come from Room rather than a direct network request.
 
 ### Phase 6: Local-Only Folder Backend
 

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -90,6 +91,93 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("account-menu").assertIsDisplayed()
         composeRule.onNodeWithText("alice @ cloud.example").assertDoesNotExist()
         composeRule.onNodeWithText("Alice note").assertIsDisplayed()
+    }
+
+    @Test
+    fun browsesSearchesAndFiltersDesktopStyleBookmarks() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(
+                        42,
+                        "etag-bookmarks",
+                        "Bookmarks",
+                        """# Bookmarks
+
+                        |- [Zulu](https://z.example/docs) #docs #work Reference
+                        |- [Alpha](https://a.example) #docs Personal
+                        |[Ignored](https://ignored.example)
+                        |
+                        """.trimMargin(),
+                        "",
+                        10
+                    )
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 10
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Bookmarks")
+
+        listAction("bookmarks-menu")
+
+        composeRule.waitForTag("bookmarks-page")
+        composeRule.onNodeWithText("Alpha").assertIsDisplayed()
+        composeRule.onNodeWithText("Zulu").assertIsDisplayed()
+        composeRule.onNodeWithText("Ignored").assertDoesNotExist()
+        composeRule.onNodeWithTag("bookmarks-search").performTextInput("z.example reference")
+        composeRule.waitForTextToGo("Alpha")
+        composeRule.onNodeWithText("Zulu").assertIsDisplayed()
+        composeRule.onNodeWithTag("bookmarks-search").performTextReplacement("")
+        composeRule.onNodeWithTag("bookmarks-filter-work").performClick()
+        composeRule.waitForTextToGo("Alpha")
+
+        composeRule.onNodeWithTag("bookmarks-open-source").performClick()
+        composeRule.waitForTag("back-to-note-list")
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+
+        composeRule.waitForTag("bookmarks-page")
+        composeRule.onNodeWithTag("bookmarks-filter-work").assertIsSelected()
+        composeRule.onNodeWithText("Zulu").assertIsDisplayed()
+        composeRule.onNodeWithText("Alpha").assertDoesNotExist()
+    }
+
+    @Test
+    fun configuresABookmarksFileInANestedCategory() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(
+                        42,
+                        "etag-bookmarks",
+                        "Bookmarks",
+                        "- [Nested bookmark](https://example.com)",
+                        "Work",
+                        10
+                    )
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 10
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForTag("note-list-menu")
+
+        listAction("settings")
+        composeRule.onNodeWithTag("bookmarks-path").performScrollTo()
+            .performTextReplacement("Work/Bookmarks.md")
+        composeRule.onNodeWithTag("close-settings").performClick()
+        listAction("bookmarks-menu")
+
+        composeRule.waitForText("Nested bookmark")
+        composeRule.onNodeWithText("Nested bookmark").assertIsDisplayed()
     }
 
     @Test

@@ -1201,6 +1201,45 @@ class RoomPullStoreTest {
         assertEquals(1L, note.localRevision)
     }
 
+    @Test
+    fun observesFullBookmarkSourceAtExactAccountCategoryAndTitle() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        accounts.save(testAccount("other"))
+        val content = "- [Example](https://example.com)" + "x".repeat(1_000)
+        database.noteDao().upsert(
+            localNote(40, SyncState.SYNCHRONIZED, title = "Bookmarks").copy(
+                category = "Work",
+                content = content
+            )
+        )
+        database.noteDao().upsert(
+            localNote(41, SyncState.SYNCHRONIZED, title = "bookmarks").copy(category = "Work")
+        )
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, title = "Bookmarks").copy(category = "Other")
+        )
+        database.noteDao().upsert(
+            localNote(43, SyncState.PENDING_DELETION, title = "Bookmarks").copy(
+                category = "Work",
+                modifiedAtEpochSeconds = 20
+            )
+        )
+        database.noteDao().upsert(
+            localNote(40, SyncState.SYNCHRONIZED, accountId = "other", title = "Bookmarks").copy(
+                category = "Work"
+            )
+        )
+
+        val source = notes.observeNoteAt("account", "Work", "Bookmarks").first()
+
+        assertEquals("account-local-40", source?.localId)
+        assertEquals(content, source?.content)
+        assertNull(notes.observeNoteAt("account", "work", "Bookmarks").first())
+        assertNull(notes.observeNoteAt("account", "Work", "BOOKMARKS").first())
+    }
+
     private fun testAccount(id: String = "account") = org.qownnotes.mobile.core.Account(
         id,
         "Account $id",

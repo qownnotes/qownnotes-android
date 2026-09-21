@@ -25,6 +25,8 @@ interface NoteRepository {
 
     fun observeNote(localId: String): Flow<Note?>
 
+    fun observeNoteAt(accountId: String, category: String, title: String): Flow<Note?>
+
     suspend fun get(localId: String): Note?
 
     suspend fun pending(accountId: String): List<Note>

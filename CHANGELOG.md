@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Added an offline bookmark browser for QOwnNotes-style list bookmarks, with text search, tag
+  filters, and an account-specific relative bookmarks file that defaults to `Bookmarks.md`.
+
 ### Changed
 
 - Note creation is now available from a floating plus button at the bottom-right of the note list,

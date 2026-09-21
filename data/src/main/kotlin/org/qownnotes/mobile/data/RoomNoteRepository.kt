@@ -29,6 +29,9 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
 
     override fun observeNote(localId: String) = noteDao.observe(localId).map { it?.toDomain() }
 
+    override fun observeNoteAt(accountId: String, category: String, title: String) =
+        noteDao.observeAt(accountId, category, title).map { it?.toDomain() }
+
     override suspend fun get(localId: String) = noteDao.get(localId)?.toDomain()
 
     override suspend fun pending(accountId: String) =

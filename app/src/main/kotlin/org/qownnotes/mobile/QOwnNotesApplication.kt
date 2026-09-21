@@ -251,6 +251,7 @@ class ApplicationComponent(
             localNoteIds.forEach(editReservations::remove)
             settings.removeShowCategory(accountId)
             settings.removeNoteCategoryScope(accountId)
+            settings.removeBookmarksPath(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
             accountAvatars.remove(accountId)

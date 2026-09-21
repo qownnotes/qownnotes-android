@@ -4,6 +4,7 @@ import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.qownnotes.mobile.core.DEFAULT_BOOKMARKS_PATH
 import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.markdown.NoteTextSize
 
@@ -77,6 +78,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
     }
 
     private val mutableShowCategories = mutableMapOf<String, MutableStateFlow<Boolean>>()
+    private val mutableBookmarksPaths = mutableMapOf<String, MutableStateFlow<String>>()
 
     /** Whether the note list shows each note's category for this account. */
     fun showCategory(accountId: String): StateFlow<Boolean> =
@@ -128,10 +130,34 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         preferences.edit().remove("$NOTE_CATEGORY_SCOPE_PREFIX$accountId").apply()
     }
 
+    /** Relative Markdown path of the bookmarks note for this account. */
+    fun bookmarksPath(accountId: String): StateFlow<String> =
+        mutableBookmarksPath(accountId).asStateFlow()
+
+    fun setBookmarksPath(accountId: String, path: String) {
+        val state = mutableBookmarksPath(accountId)
+        if (path == state.value) return
+        preferences.edit().putString("$BOOKMARKS_PATH_PREFIX$accountId", path).apply()
+        state.value = path
+    }
+
+    fun removeBookmarksPath(accountId: String) {
+        preferences.edit().remove("$BOOKMARKS_PATH_PREFIX$accountId").apply()
+        mutableBookmarksPaths.remove(accountId)
+    }
+
     private fun mutableShowCategory(accountId: String): MutableStateFlow<Boolean> =
         mutableShowCategories.getOrPut(accountId) {
             MutableStateFlow(
                 preferences.getBoolean("$SHOW_CATEGORY_PREFIX$accountId", false)
+            )
+        }
+
+    private fun mutableBookmarksPath(accountId: String): MutableStateFlow<String> =
+        mutableBookmarksPaths.getOrPut(accountId) {
+            MutableStateFlow(
+                preferences.getString("$BOOKMARKS_PATH_PREFIX$accountId", DEFAULT_BOOKMARKS_PATH)
+                    ?: DEFAULT_BOOKMARKS_PATH
             )
         }
 
@@ -146,6 +172,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val SHOW_CATEGORY = "showCategory"
         const val SHOW_CATEGORY_PREFIX = "showCategory."
         const val NOTE_CATEGORY_SCOPE_PREFIX = "noteCategoryScope."
+        const val BOOKMARKS_PATH_PREFIX = "bookmarksPath."
         const val UNDEFINED_CATEGORY = "undefined"
         const val ALL_CATEGORIES = "all"
         const val CATEGORY_PREFIX = "category:"

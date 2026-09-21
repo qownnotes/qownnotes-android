@@ -27,6 +27,8 @@ The initial F-Droid submission merge request is [fdroiddata!48269](https://gitla
   QOwnNotesAPI app is installed.
 - Favorite notes with a star and keep them above other notes, including while offline.
 - Filter notes by Nextcloud category, with per-account selections that remain available offline.
+- Browse and search QOwnNotes-style bookmarks from an account-specific Markdown note, with
+  `Bookmarks.md` used by default and optional tag filtering.
 - Create a note from text shared by another Android application.
 - Render CommonMark and GitHub Flavored Markdown, QOwnNotes task states, wiki links, legacy
   `note://` links, tables, fenced code, and safe remote images.

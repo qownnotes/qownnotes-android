@@ -49,6 +49,13 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE localId = :localId")
     fun observe(localId: String): Flow<NoteEntity?>
 
+    @Query(
+        "SELECT * FROM notes WHERE accountId = :accountId AND category = :category " +
+            "AND title = :title AND syncState != 'PENDING_DELETION' " +
+            "ORDER BY modifiedAtEpochSeconds DESC, localId ASC LIMIT 1"
+    )
+    fun observeAt(accountId: String, category: String, title: String): Flow<NoteEntity?>
+
     @Query("SELECT * FROM notes WHERE localId = :localId")
     suspend fun get(localId: String): NoteEntity?
 
