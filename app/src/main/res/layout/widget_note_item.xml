@@ -4,37 +4,43 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/widget_item_background"
-    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
     android:padding="10dp">
 
-    <TextView
-        android:id="@+id/widget_note_title"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="@color/widget_text"
-        android:textSize="15sp"
-        android:textStyle="bold" />
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/widget_note_excerpt"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="2"
-        android:paddingTop="2dp"
-        android:textColor="@color/widget_text_secondary"
-        android:textSize="13sp" />
+        <TextView
+            android:id="@+id/widget_note_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_text"
+            android:textSize="15sp"
+            android:textStyle="bold" />
 
-    <TextView
+        <TextView
+            android:id="@+id/widget_note_excerpt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:paddingTop="2dp"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <ImageButton
         android:id="@+id/widget_note_open"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="end"
-        android:paddingTop="6dp"
-        android:text="@string/widget_open_note"
-        android:textColor="@color/widget_text"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/widget_open_note"
+        android:padding="12dp"
+        android:src="@drawable/ic_widget_open" />
 </LinearLayout>

@@ -24,21 +24,23 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <Button
+        <ImageButton
             android:id="@+id/widget_camera"
-            android:layout_width="wrap_content"
+            android:layout_width="48dp"
             android:layout_height="48dp"
+            android:background="@android:color/transparent"
             android:contentDescription="@string/widget_take_picture"
-            android:minWidth="48dp"
-            android:text="@string/widget_camera_button" />
+            android:padding="12dp"
+            android:src="@drawable/ic_widget_camera" />
 
-        <Button
+        <ImageButton
             android:id="@+id/widget_create"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:background="@android:color/transparent"
             android:contentDescription="@string/widget_create_note"
-            android:text="@string/widget_create_button"
-            android:textSize="22sp" />
+            android:padding="12dp"
+            android:src="@drawable/ic_widget_add" />
     </LinearLayout>
 
     <ListView

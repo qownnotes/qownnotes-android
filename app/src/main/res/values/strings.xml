@@ -10,9 +10,7 @@
     <string name="widget_note_unavailable">Note unavailable</string>
     <string name="widget_open_note">Open</string>
     <string name="widget_create_note">Create note</string>
-    <string name="widget_create_button">+</string>
     <string name="widget_take_picture">Take picture as note</string>
-    <string name="widget_camera_button">Photo</string>
     <string name="widget_picture_failed">Could not create a note from the picture</string>
     <string name="widget_camera_unavailable">No camera application is available</string>
     <string name="app_name">QOwnNotes</string>
