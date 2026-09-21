@@ -1,6 +1,8 @@
 package org.qownnotes.mobile.backend.nextcloud
 
 import com.google.gson.GsonBuilder
+import com.nextcloud.android.sso.api.EmptyResponse
+import java.lang.reflect.ParameterizedType
 import java.net.HttpURLConnection
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -289,7 +291,7 @@ class NotesApiMockServerTest {
 
     @Test
     fun deletesNoteAndTreatsAnAlreadyMissingNoteAsDeleted() {
-        server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_OK))
+        server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_NO_CONTENT))
         server.enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND))
 
         deleteWithApi(api, 42)
@@ -300,6 +302,14 @@ class NotesApiMockServerTest {
         assertEquals("DELETE", first.method)
         assertEquals("/index.php/apps/notes/api/v1/notes/42", first.requestUrl!!.encodedPath)
         assertEquals("/index.php/apps/notes/api/v1/notes/43", second.requestUrl!!.encodedPath)
+    }
+
+    @Test
+    fun usesSsoEmptyResponseForBodylessDelete() {
+        val returnType = NotesApi::class.java.getMethod("deleteNote", Long::class.javaPrimitiveType)
+            .genericReturnType as ParameterizedType
+
+        assertEquals(EmptyResponse::class.java, returnType.actualTypeArguments.single())
     }
 
     @Test

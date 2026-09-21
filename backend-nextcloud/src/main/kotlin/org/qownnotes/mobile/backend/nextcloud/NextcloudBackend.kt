@@ -9,6 +9,7 @@ import com.google.gson.annotations.SerializedName
 import com.google.gson.stream.MalformedJsonException
 import com.nextcloud.android.sso.AccountImporter
 import com.nextcloud.android.sso.aidl.NextcloudRequest
+import com.nextcloud.android.sso.api.EmptyResponse
 import com.nextcloud.android.sso.api.NextcloudAPI
 import com.nextcloud.android.sso.api.ParsedResponse
 import com.nextcloud.android.sso.exceptions.NextcloudApiNotRespondingException
@@ -715,7 +716,7 @@ internal interface NotesApi {
     ): Call<RemoteNoteDto>
 
     @DELETE("notes/{id}")
-    fun deleteNote(@Path("id") id: Long): Call<Void>
+    fun deleteNote(@Path("id") id: Long): Call<EmptyResponse>
 
     @GET("notes")
     fun getNotes(

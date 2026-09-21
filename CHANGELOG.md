@@ -28,6 +28,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in Settings.
 - Note-list searches now remain active after opening a note and returning to the list.
 
+### Fixed
+
+- Moving a note to the server trash no longer reports a false connectivity error after a
+  successful bodyless response from Nextcloud.
+
 ## [0.7.0] - 2026-09-17
 
 ### Added
