@@ -8,6 +8,7 @@ import com.google.gson.JsonParseException
 import com.google.gson.annotations.SerializedName
 import com.google.gson.stream.MalformedJsonException
 import com.nextcloud.android.sso.AccountImporter
+import com.nextcloud.android.sso.aidl.NextcloudRequest
 import com.nextcloud.android.sso.api.NextcloudAPI
 import com.nextcloud.android.sso.api.ParsedResponse
 import com.nextcloud.android.sso.exceptions.NextcloudApiNotRespondingException
@@ -24,9 +25,6 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.BackendException
@@ -47,7 +45,6 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
-import retrofit2.http.HTTP
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -132,8 +129,8 @@ class NextcloudBackend(context: Context) :
         content: ByteArray
     ): String = withContext(Dispatchers.IO) {
         try {
-            withMediaApi(account, notesPath) { api ->
-                uploadImageWithApi(api, fileName, mimeType, content)
+            withMediaClient(account, notesPath) { client, endpoint ->
+                uploadImageWithClient(client, endpoint, fileName, mimeType, content)
             }
         } catch (error: Throwable) {
             throw error.asBackendException()
@@ -231,7 +228,11 @@ class NextcloudBackend(context: Context) :
         }
     }
 
-    private fun <T> withMediaApi(account: Account, notesPath: String, block: (MediaApi) -> T): T {
+    private fun <T> withMediaClient(
+        account: Account,
+        notesPath: String,
+        block: (MediaRequestClient, String) -> T
+    ): T {
         if (AccountImporter.getAccountForName(applicationContext, account.ssoAccountName) == null) {
             throw BackendException.AccountRemoved()
         }
@@ -251,7 +252,7 @@ class NextcloudBackend(context: Context) :
                     append('/')
                 }
             }
-            block(NextcloudRetrofitApiBuilder(api, endpoint).create(MediaApi::class.java))
+            block(NextcloudMediaRequestClient(api), endpoint)
         } finally {
             api.close()
         }
@@ -732,41 +733,56 @@ internal interface NotesApi {
     ): Call<List<RemoteNoteDto>>
 }
 
-internal interface MediaApi {
-    @HTTP(method = "MKCOL", path = "media")
-    fun createMediaDirectory(): Call<Void>
-
-    @PUT("media/{fileName}")
-    fun uploadImage(
-        @Path("fileName") fileName: String,
-        @Header("Content-Type") mimeType: String,
-        @Header("If-None-Match") ifNoneMatch: String,
-        @Body content: RequestBody
-    ): Call<Void>
+internal fun interface MediaRequestClient {
+    /** Returns an HTTP error status, or null after a successful request. */
+    fun execute(request: NextcloudRequest): Int?
 }
 
-internal fun uploadImageWithApi(
-    api: MediaApi,
+private class NextcloudMediaRequestClient(private val api: NextcloudAPI) : MediaRequestClient {
+    override fun execute(request: NextcloudRequest): Int? = try {
+        api.performNetworkRequestV2(request).body.use { }
+        null
+    } catch (error: NextcloudHttpRequestFailedException) {
+        error.statusCode
+    }
+}
+
+internal fun uploadImageWithClient(
+    client: MediaRequestClient,
+    endpoint: String,
     fileName: String,
     mimeType: String,
     content: ByteArray
 ): String {
     require(fileName.isNotBlank() && '/' !in fileName && '\\' !in fileName)
-    val directoryResponse = api.createMediaDirectory().execute()
-    if (!directoryResponse.isSuccessful && directoryResponse.code() != HTTP_METHOD_NOT_ALLOWED) {
+    val mediaEndpoint = "${endpoint.trimEnd('/')}/media"
+    val directoryStatus = client.execute(
+        NextcloudRequest.Builder()
+            .setMethod("MKCOL")
+            .setUrl(mediaEndpoint)
+            .build()
+    )
+    if (directoryStatus != null && directoryStatus != HTTP_METHOD_NOT_ALLOWED) {
         throw backendExceptionForHttpStatus(
-            directoryResponse.code(),
-            NotesHttpException(directoryResponse.code())
+            directoryStatus,
+            NotesHttpException(directoryStatus)
         )
     }
-    val response = api.uploadImage(
-        fileName,
-        mimeType,
-        "*",
-        content.toRequestBody(mimeType.toMediaType())
-    ).execute()
-    if (!response.isSuccessful) {
-        throw backendExceptionForHttpStatus(response.code(), NotesHttpException(response.code()))
+    val uploadStatus = client.execute(
+        NextcloudRequest.Builder()
+            .setMethod("PUT")
+            .setUrl("$mediaEndpoint/$fileName")
+            .setHeader(
+                mapOf(
+                    "Content-Type" to listOf(mimeType),
+                    "If-None-Match" to listOf("*")
+                )
+            )
+            .setRequestBodyAsStream(content.inputStream())
+            .build()
+    )
+    if (uploadStatus != null) {
+        throw backendExceptionForHttpStatus(uploadStatus, NotesHttpException(uploadStatus))
     }
     return fileName
 }

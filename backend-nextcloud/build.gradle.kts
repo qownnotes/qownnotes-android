@@ -24,7 +24,6 @@ dependencies {
     implementation(project(":core"))
     api(libs.nextcloud.sso)
     implementation(libs.gson)
-    implementation(libs.okhttp)
     implementation(libs.retrofit)
     implementation(libs.rxjava2)
     implementation(libs.kotlinx.coroutines.core)
