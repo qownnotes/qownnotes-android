@@ -197,6 +197,31 @@ class MarkdownEditorInstrumentedTest {
     }
 
     @Test
+    fun clipboardUrlIsReplacedByAFetchedMarkdownLink() {
+        lateinit var view: MarkdownEditText
+
+        instrumentation.runOnMainSync {
+            view = editor()
+            view.setText("Read this")
+            view.setSelection(5, 9)
+            view.loadLinkTitle = { FetchedLink(it, "Example [page]") }
+            view.linkTitleTaskExecutor = java.util.concurrent.Executor { it.run() }
+            view.clipboardWebUrlProvider = { "https://example.com/article" }
+
+            assertTrue(view.pasteClipboardUrlAsMarkdownLink())
+        }
+        instrumentation.waitForIdleSync()
+
+        instrumentation.runOnMainSync {
+            assertEquals(
+                "Read [Example \\[page\\]](https://example.com/article)",
+                view.text.toString()
+            )
+            assertEquals(view.length(), view.selectionStart)
+        }
+    }
+
+    @Test
     fun enterRemovesEmptyListAndChecklistMarkers() {
         lateinit var listView: MarkdownEditText
         lateinit var listBinding: MarkdownEditorBinding

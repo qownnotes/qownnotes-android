@@ -1,6 +1,7 @@
 package org.qownnotes.mobile.markdown
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class MarkdownFormattingTest {
@@ -40,6 +41,34 @@ class MarkdownFormattingTest {
 
         assertEquals("[label](url)", edit.text)
         assertEquals("url", edit.text.substring(edit.selectionStart, edit.selectionEnd))
+    }
+
+    @Test
+    fun extractsAndEscapesAnHtmlTitleForAMarkdownLink() {
+        val title = extractHtmlTitle(
+            "<html><head><TITLE> One &amp; Two &#91;notes&#93; </TITLE></head></html>"
+        )
+
+        assertEquals("One & Two [notes]", title)
+        assertEquals(
+            "[One & Two \\[notes\\]](https://example.com/article)",
+            markdownLink(requireNotNull(title), "https://example.com/article")
+        )
+    }
+
+    @Test
+    fun ignoresMissingAndEmptyHtmlTitles() {
+        assertNull(extractHtmlTitle("<html><body>No title</body></html>"))
+        assertNull(extractHtmlTitle("<title>  \n </title>"))
+    }
+
+    @Test
+    fun acceptsOnlyCredentialFreeWebUrls() {
+        assertEquals("https://example.com/path", canonicalSafeWebUrl(" https://example.com/path "))
+        assertEquals("http://example.com/", canonicalSafeWebUrl("http://example.com"))
+        assertNull(canonicalSafeWebUrl("file:///tmp/private"))
+        assertNull(canonicalSafeWebUrl("https://user:secret@example.com"))
+        assertNull(canonicalSafeWebUrl("not a URL"))
     }
 
     @Test

@@ -30,6 +30,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.markwon.linkify)
     testImplementation(libs.junit)
+    testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
 }

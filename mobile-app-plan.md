@@ -875,6 +875,9 @@ Implemented:
 - Added application-level coverage that a failed initial upload keeps the complete local note and
   stable UUID, then synchronizes that same note through explicit retry without creating a duplicate.
 - Added an `AppCompatEditText` Markdown source editor with asynchronous Markwon highlighting, supplemental QOwnNotes syntax highlighting, cursor preservation, and a mobile formatting toolbar.
+- Added a native editor long-press action that turns a clipboard HTTP(S) URL into a Markdown link,
+  fetching and escaping the page title off the UI thread while rejecting private-network targets,
+  unsafe redirects, non-HTML responses, and oversized pages.
 - Added debounced and periodic Room draft persistence, lifecycle flushing, and application-scoped draft retention across activity recreation.
 - Added Room schema version 3 with monotonically increasing local revisions so stale write responses cannot replace newer editor content.
 - Added Notes API `POST` creation and `PUT` updates with quoted `If-Match` ETags, strict canonical-response validation, and explicit conflict, missing-note, and insufficient-storage failures.

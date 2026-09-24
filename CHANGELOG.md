@@ -9,6 +9,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The Markdown editor's long-press menu can now turn a clipboard web URL into a Markdown link whose
+  label is fetched from the page title.
 - Note view now provides an information dialog with modified time, Markdown size, text statistics,
   category, account, synchronization, access, favorite, and remote ID details.
 

@@ -1,5 +1,6 @@
 package org.qownnotes.mobile.markdown
 
+import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Color
 import android.graphics.text.LineBreaker
@@ -12,14 +13,18 @@ import android.text.Spanned
 import android.text.TextWatcher
 import android.text.style.ForegroundColorSpan
 import android.util.AttributeSet
+import android.view.ActionMode
 import android.view.GestureDetector
 import android.view.Gravity
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.OverScroller
+import android.widget.Toast
 import androidx.appcompat.widget.AppCompatEditText
 import io.noties.markwon.Markwon
 import io.noties.markwon.editor.MarkwonEditor
@@ -187,6 +192,10 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
     // The view hierarchy may only be touched from the thread that created it, which is the thread
     // constructing this view.
     private val viewThread = Handler(Looper.myLooper() ?: Looper.getMainLooper())
+    internal var loadLinkTitle: (String) -> FetchedLink = LinkTitleFetcher()::fetch
+    internal var linkTitleTaskExecutor: Executor = linkTitleExecutor
+    internal var clipboardWebUrlProvider: () -> String? = ::readClipboardWebUrl
+    private var attachmentGeneration = 0
     private val verticalFling = OverScroller(context)
     private val flingDetector =
         GestureDetector(
@@ -225,6 +234,32 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
      */
     var onEditBoundary: (() -> Unit)? = null
 
+    private val markdownLinkActionModeCallback =
+        object : ActionMode.Callback {
+            override fun onCreateActionMode(mode: ActionMode?, menu: Menu): Boolean {
+                if (clipboardWebUrlProvider() != null) {
+                    menu.add(
+                        Menu.NONE,
+                        R.id.paste_as_markdown_link,
+                        Menu.NONE,
+                        R.string.paste_as_markdown_link
+                    ).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                }
+                return true
+            }
+
+            override fun onPrepareActionMode(mode: ActionMode?, menu: Menu): Boolean = false
+
+            override fun onActionItemClicked(mode: ActionMode?, item: MenuItem): Boolean {
+                if (item.itemId != R.id.paste_as_markdown_link) return false
+                val handled = pasteClipboardUrlAsMarkdownLink()
+                if (handled) mode?.finish()
+                return handled
+            }
+
+            override fun onDestroyActionMode(mode: ActionMode?) = Unit
+        }
+
     init {
         gravity = Gravity.TOP or Gravity.START
         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
@@ -247,6 +282,8 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
         // The editor fills a Compose surface that already supplies padding and background.
         background = null
         isVerticalScrollBarEnabled = true
+        customSelectionActionModeCallback = markdownLinkActionModeCallback
+        customInsertionActionModeCallback = markdownLinkActionModeCallback
     }
 
     /** Gives the editor input focus and asks the input method to open. */
@@ -326,6 +363,40 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
         setSelection(edit.selectionStart)
     }
 
+    internal fun pasteClipboardUrlAsMarkdownLink(): Boolean {
+        val url = clipboardWebUrlProvider() ?: return false
+        val source = text?.toString() ?: return false
+        val start = minOf(selectionStart, selectionEnd).coerceIn(0, source.length)
+        val end = maxOf(selectionStart, selectionEnd).coerceIn(start, source.length)
+        val expectedAttachmentGeneration = attachmentGeneration
+        linkTitleTaskExecutor.execute {
+            val fetched = runCatching { loadLinkTitle(url) }
+            viewThread.post {
+                if (
+                    attachmentGeneration != expectedAttachmentGeneration ||
+                    text?.toString() != source
+                ) {
+                    return@post
+                }
+                fetched.onSuccess { link ->
+                    val editable = text ?: return@onSuccess
+                    onEditBoundary?.invoke()
+                    val replacement = markdownLink(link.title, link.url)
+                    editable.replace(start, end, replacement)
+                    setSelection(start + replacement.length)
+                    resetInputMethod()
+                }.onFailure {
+                    Toast.makeText(
+                        context,
+                        R.string.paste_markdown_link_failed,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+        return true
+    }
+
     /**
      * Tells the input method to read the editor again, after the text moved underneath whatever it
      * was composing.
@@ -346,6 +417,11 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
     override fun onTouchEvent(event: MotionEvent): Boolean {
         flingDetector.onTouchEvent(event)
         return super.onTouchEvent(event)
+    }
+
+    override fun onDetachedFromWindow() {
+        attachmentGeneration++
+        super.onDetachedFromWindow()
     }
 
     override fun computeScroll() {
@@ -374,6 +450,14 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
     private fun inputMethodManager() =
         context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
 
+    private fun readClipboardWebUrl(): String? {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+            ?: return null
+        val clip = clipboard.primaryClip ?: return null
+        if (clip.itemCount != 1) return null
+        return clip.getItemAt(0).text?.toString()?.let(::canonicalSafeWebUrl)
+    }
+
     private fun reportVerticalScroll() {
         onVerticalScrollChanged?.invoke(scrollY, verticalScrollRange())
     }
@@ -382,6 +466,10 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
         val textLayout = layout ?: return 0
         val contentBottom = textLayout.getLineBottom(textLayout.lineCount - 1)
         return (contentBottom + totalPaddingTop + totalPaddingBottom - height).coerceAtLeast(0)
+    }
+
+    private companion object {
+        val linkTitleExecutor = Executors.newFixedThreadPool(2)
     }
 }
 
