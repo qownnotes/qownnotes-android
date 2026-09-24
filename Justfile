@@ -97,6 +97,10 @@ deploy-dev: _wait-for-android
     ./gradlew assembleDebug installDebug
     adb shell am start -n org.qownnotes.mobile.dev/org.qownnotes.mobile.MainActivity
 
+# Uninstall the development app and its local data from a connected device.
+uninstall-dev: _wait-for-android
+    adb uninstall org.qownnotes.mobile.dev
+
 # Install and launch the shared-key-signed development app on a connected device.
 deploy-dev-signed: _wait-for-android
     ./scripts/with-android-signing development ./gradlew assembleDebug installDebug
