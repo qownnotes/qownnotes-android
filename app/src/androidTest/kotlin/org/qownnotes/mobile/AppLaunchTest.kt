@@ -1862,11 +1862,50 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("find-in-note").assertIsDisplayed()
         composeRule.onNodeWithTag("edit-note").assertIsDisplayed()
         composeRule.onNodeWithTag("rename-note").assertDoesNotExist()
+        composeRule.onNodeWithTag("note-information").assertDoesNotExist()
 
         composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("note-information").assertIsDisplayed()
         composeRule.onNodeWithTag("rename-note").assertIsDisplayed()
         composeRule.onNodeWithTag("change-note-category").assertIsDisplayed()
         composeRule.onNodeWithTag("delete-note").assertIsDisplayed()
+    }
+
+    @Test
+    fun noteInformationShowsAvailableMetadata() {
+        importAccount(
+            "alice",
+            "Existing note",
+            "etag-1",
+            1_788_177_600,
+            content = "one two\nπ"
+        )
+        composeRule.onNodeWithText("Existing note").performClick()
+
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("note-information").performClick()
+
+        composeRule.onNodeWithTag("note-information-dialog").assertIsDisplayed()
+        composeRule.onNodeWithText("Modified").assertIsDisplayed()
+        composeRule.onNodeWithText("Markdown size").assertIsDisplayed()
+        composeRule.onNodeWithText("10 B").assertIsDisplayed()
+        composeRule.onNodeWithText("Words").assertIsDisplayed()
+        composeRule.onNodeWithText("3").assertIsDisplayed()
+        composeRule.onNodeWithText("Characters").assertIsDisplayed()
+        composeRule.onNodeWithText("9").assertIsDisplayed()
+        composeRule.onNodeWithText("Lines").assertIsDisplayed()
+        composeRule.onNodeWithText("2").assertIsDisplayed()
+        composeRule.onNodeWithText("Category").assertIsDisplayed()
+        composeRule.onNodeWithText("Root").assertIsDisplayed()
+        composeRule.onNodeWithText("Account").assertIsDisplayed()
+        composeRule.onNodeWithText("alice @ cloud.example").assertIsDisplayed()
+        composeRule.onNodeWithText("Synchronized").assertIsDisplayed()
+        composeRule.onNodeWithText("Writable").assertIsDisplayed()
+        composeRule.onNodeWithText("42").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("close-note-information").performClick()
+        composeRule.onNodeWithTag("note-information-dialog").assertDoesNotExist()
+        composeRule.onNodeWithTag("markdown-view").assertIsDisplayed()
     }
 
     @Test

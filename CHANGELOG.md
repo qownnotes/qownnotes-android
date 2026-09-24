@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Note view now provides an information dialog with modified time, Markdown size, text statistics,
+  category, account, synchronization, access, favorite, and remote ID details.
+
 ### Changed
 
 - Note-list widget rows now use their full width as the open-note target without a redundant arrow

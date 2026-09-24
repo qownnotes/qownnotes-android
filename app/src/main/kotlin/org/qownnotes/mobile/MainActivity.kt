@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.format.Formatter
 import android.util.TypedValue
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -158,6 +159,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
+import java.text.DateFormat
+import java.util.Date
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -2263,6 +2266,7 @@ private fun NoteDetailScreen(
     }
     var renaming by rememberSaveable(localId) { mutableStateOf(false) }
     var changingCategory by rememberSaveable(localId) { mutableStateOf(false) }
+    var showingInformation by rememberSaveable(localId) { mutableStateOf(false) }
     var noteMenuOpen by rememberSaveable(localId) { mutableStateOf(false) }
     var noteName by rememberSaveable(localId) { mutableStateOf("") }
     var updateHeading by rememberSaveable(localId) { mutableStateOf(true) }
@@ -2687,6 +2691,16 @@ private fun NoteDetailScreen(
                                                 showVersions()
                                             },
                                             modifier = Modifier.testTag("note-versions")
+                                        )
+                                    }
+                                    if (current != null) {
+                                        DropdownMenuItem(
+                                            text = { Text("Information") },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                showingInformation = true
+                                            },
+                                            modifier = Modifier.testTag("note-information")
                                         )
                                     }
                                     if (
@@ -3497,6 +3511,15 @@ private fun NoteDetailScreen(
             )
         }
     }
+    if (showingInformation) {
+        note?.let { current ->
+            NoteInformationDialog(
+                note = current,
+                account = account,
+                onDismiss = { showingInformation = false }
+            )
+        }
+    }
     if (versionToRestore == null) {
         when (val state = versionsState) {
             ArchiveLoadState.Idle -> Unit
@@ -3560,6 +3583,77 @@ private fun NoteDetailScreen(
             }
         )
     }
+}
+
+@Composable
+private fun NoteInformationDialog(note: Note, account: Account?, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val modified = remember(note.modifiedAtEpochSeconds) {
+        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+            .format(Date(note.modifiedAtEpochSeconds * 1_000))
+    }
+    val markdownSize = remember(note.content) {
+        Formatter.formatShortFileSize(context, note.content.encodeToByteArray().size.toLong())
+    }
+    val wordCount = remember(note.content) { Regex("\\S+").findAll(note.content).count() }
+    val lineCount = remember(note.content) {
+        if (note.content.isEmpty()) 0 else note.content.count { it == '\n' } + 1
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Note information") },
+        text = {
+            SelectionContainer {
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                        .testTag("note-information-dialog"),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    NoteInformationRow("Modified", modified)
+                    NoteInformationRow("Markdown size", markdownSize)
+                    NoteInformationRow("Words", wordCount.toString())
+                    NoteInformationRow("Characters", note.content.length.toString())
+                    NoteInformationRow("Lines", lineCount.toString())
+                    NoteInformationRow("Category", note.category.ifBlank { "Root" })
+                    account?.let { NoteInformationRow("Account", it.displayName) }
+                    NoteInformationRow("Synchronization", note.syncState.displayName())
+                    NoteInformationRow("Access", if (note.readOnly) "Read only" else "Writable")
+                    NoteInformationRow("Favorite", if (note.favorite) "Yes" else "No")
+                    note.remoteId?.let { NoteInformationRow("Note ID", it.toString()) }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("close-note-information")
+            ) { Text("Close") }
+        }
+    )
+}
+
+@Composable
+private fun NoteInformationRow(label: String, value: String) {
+    Column {
+        Text(
+            label,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelMedium
+        )
+        Text(value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+private fun SyncState.displayName(): String = when (this) {
+    SyncState.SYNCHRONIZED -> "Synchronized"
+    SyncState.LOCALLY_CREATED -> "Not yet synchronized"
+    SyncState.LOCALLY_MODIFIED -> "Local changes pending"
+    SyncState.PENDING_DELETION -> "Pending deletion"
+    SyncState.SYNCHRONIZING -> "Synchronizing"
+    SyncState.CONFLICT -> "Conflict"
+    SyncState.REMOTE_MISSING -> "Missing on server"
+    SyncState.READ_ONLY_CONFLICT -> "Read-only conflict"
+    SyncState.FAILED -> "Synchronization failed"
 }
 
 @Composable
