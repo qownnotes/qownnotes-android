@@ -65,6 +65,7 @@ import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
@@ -83,8 +84,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StrikethroughS
 import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
-import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -2980,6 +2981,19 @@ private fun NoteDetailScreen(
                             onClick = {
                                 editor?.insertText(
                                     LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                                )
+                                editor?.focusForInput()
+                            }
+                        )
+                        ActionIconButton(
+                            icon = Icons.Filled.DateRange,
+                            description = "Insert date and time",
+                            testTag = "insert-datetime",
+                            onClick = {
+                                editor?.insertText(
+                                    LocalDateTime.now().format(
+                                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                    )
                                 )
                                 editor?.focusForInput()
                             }

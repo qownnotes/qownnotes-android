@@ -11,6 +11,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Search text can be turned into a new note named after the query in the selected category.
 - The Markdown editor toolbar can insert the local date at the cursor.
+- The Markdown editor toolbar can insert the local date and time at the cursor.
 - The Markdown editor's long-press menu can now turn a clipboard web URL into a Markdown link whose
   label is fetched from the page title.
 - Note view now provides an information dialog with modified time, Markdown size, text statistics,

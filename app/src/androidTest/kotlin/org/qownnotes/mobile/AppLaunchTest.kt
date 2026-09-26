@@ -44,6 +44,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import java.io.IOException
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -1670,6 +1671,32 @@ class AppLaunchTest {
         onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
         composeRule.onNodeWithTag("undo-edit").performClick()
         onView(withId(R.id.markdown_editor)).check(matches(withText("before after")))
+    }
+
+    @Test
+    fun toolbarInsertsLocalDateTimeAtTheSelection() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText("before after"))
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(7, 12)
+        }
+
+        val before = LocalDateTime.now()
+        composeRule.onNodeWithTag("insert-datetime").performScrollTo().performClick()
+        val after = LocalDateTime.now()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            val text = composeRule.runOnIdle {
+                composeRule.activity.findViewById<TextView>(R.id.markdown_editor).text.toString()
+            }
+            text == "before ${before.format(formatter)}" ||
+                text == "before ${after.format(formatter)}"
+        }
+        onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
     }
 
     @Test
