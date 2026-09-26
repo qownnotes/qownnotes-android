@@ -83,6 +83,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StrikethroughS
 import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -161,6 +162,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import java.text.DateFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
@@ -2969,6 +2972,17 @@ private fun NoteDetailScreen(
                             testTag = "insert-image",
                             enabled = !importingImage,
                             onClick = { imagePicker.launch("image/*") }
+                        )
+                        ActionIconButton(
+                            icon = Icons.Filled.Today,
+                            description = "Insert date",
+                            testTag = "insert-date",
+                            onClick = {
+                                editor?.insertText(
+                                    LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                                )
+                                editor?.focusForInput()
+                            }
                         )
                         FormatButton(
                             Icons.Filled.Title,

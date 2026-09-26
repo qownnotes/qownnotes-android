@@ -363,6 +363,17 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
         setSelection(edit.selectionStart)
     }
 
+    /** Inserts at the caret, or replaces the selected source as one undoable action. */
+    fun insertText(value: String) {
+        val editable = text ?: return
+        onEditBoundary?.invoke()
+        val start = minOf(selectionStart, selectionEnd).coerceIn(0, editable.length)
+        val end = maxOf(selectionStart, selectionEnd).coerceIn(start, editable.length)
+        editable.replace(start, end, value)
+        setSelection(start + value.length)
+        resetInputMethod()
+    }
+
     internal fun pasteClipboardUrlAsMarkdownLink(): Boolean {
         val url = clipboardWebUrlProvider() ?: return false
         val source = text?.toString() ?: return false

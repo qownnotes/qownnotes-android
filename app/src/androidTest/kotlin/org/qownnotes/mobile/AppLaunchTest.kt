@@ -43,6 +43,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import java.io.IOException
+import java.time.LocalDateTime
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -1649,6 +1650,26 @@ class AppLaunchTest {
 
         awaitEditorText("**")
         onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
+    }
+
+    @Test
+    fun toolbarInsertsLocalDateAtTheSelectionAndCanUndo() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText("before after"))
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(7, 12)
+        }
+
+        val today = LocalDateTime.now().toLocalDate().toString()
+        composeRule.onNodeWithTag("insert-date").performScrollTo().performClick()
+        awaitEditorText("before $today")
+        onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
+        composeRule.onNodeWithTag("undo-edit").performClick()
+        onView(withId(R.id.markdown_editor)).check(matches(withText("before after")))
     }
 
     @Test
