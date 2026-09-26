@@ -64,6 +64,13 @@ class NoteFactory(
     fun create(accountId: String, category: String = ""): Note =
         create(accountId, namingPolicy.createName(), body = "", category)
 
+    /** Uses the search text as the new note's name in the currently selected category. */
+    fun createFromSearch(accountId: String, query: String, category: String = ""): Note {
+        val title = NoteNames.sanitize(query)
+        require(title.isNotEmpty()) { "Search text must contain a usable note name" }
+        return create(accountId, title, body = "", category)
+    }
+
     /**
      * Creates a note holding text another application shared.
      *

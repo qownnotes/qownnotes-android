@@ -670,6 +670,27 @@ class AppLaunchTest {
     }
 
     @Test
+    fun createsANoteFromTheSearchTextInTheSelectedAccount() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithTag("note-search").performTextInput("  New: idea  ")
+        composeRule.waitUntilDisplayed("create-note-from-search")
+        composeRule.onNodeWithTag("create-note-from-search").performClick()
+
+        composeRule.waitUntilDisplayed("markdown-editor")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                notesOf("alice").any {
+                    it.title == "New idea" && it.content == "# New idea\n\n"
+                }
+            }
+        }
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+        composeRule.onNodeWithTag("clear-note-search").performClick()
+        composeRule.waitForText("New idea")
+    }
+
+    @Test
     fun noteSearchCanBeLimitedToTitles() {
         val account = testAccount("alice")
         application.fakeAccountImporter.enqueue(account)

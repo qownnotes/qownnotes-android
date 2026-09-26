@@ -5,6 +5,7 @@ import java.time.Instant
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class NoteFactoryTest {
@@ -34,6 +35,19 @@ class NoteFactoryTest {
         val note = factory().create("account", "Projects/Android")
 
         assertEquals("Projects/Android", note.category)
+    }
+
+    @Test
+    fun `creates a searchable named note in the selected category`() {
+        val note = factory().createFromSearch("account", "  Report: 2026/08  ", "Projects")
+
+        assertEquals("Report 2026 08", note.title)
+        assertEquals("# Report 2026 08\n\n", note.content)
+        assertEquals("Projects", note.category)
+        assertEquals(SyncState.LOCALLY_CREATED, note.syncState)
+        assertThrows(IllegalArgumentException::class.java) {
+            factory().createFromSearch("account", " / ")
+        }
     }
 
     @Test

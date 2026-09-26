@@ -397,6 +397,9 @@ class ApplicationComponent(
     suspend fun createNote(accountId: String, category: String = ""): Note =
         persistNewNote(noteFactory.create(accountId, category))
 
+    suspend fun createNoteFromSearch(accountId: String, query: String, category: String): Note =
+        persistNewNote(noteFactory.createFromSearch(accountId, query, category))
+
     /** Creates the note that text shared by another application is put into. */
     suspend fun createSharedNote(accountId: String, shared: SharedText): Note =
         persistNewNote(noteFactory.createFromSharedText(accountId, shared))

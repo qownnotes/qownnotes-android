@@ -91,6 +91,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -527,9 +528,13 @@ private fun NotesNavigation(
                 onReconnectAccount = onReconnectAccount,
                 onManageAccounts = { managingAccounts = true },
                 onOpenBookmarks = { browsingBookmarks = true },
-                onCreate = { accountId, category ->
+                onCreate = { accountId, category, searchText ->
                     scope.launch {
-                        val note = component.createNote(accountId, category)
+                        val note = if (searchText == null) {
+                            component.createNote(accountId, category)
+                        } else {
+                            component.createNoteFromSearch(accountId, searchText, category)
+                        }
                         noteHistory = emptyList()
                         selectedNoteId = note.localId
                         selectedHeading = null
@@ -836,7 +841,7 @@ private fun NoteListScreen(
     onReconnectAccount: (String) -> Unit,
     onManageAccounts: () -> Unit,
     onOpenBookmarks: () -> Unit,
-    onCreate: (String, String) -> Unit,
+    onCreate: (String, String, String?) -> Unit,
     onOpen: (String) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -941,7 +946,7 @@ private fun NoteListScreen(
     }
     val createNote = {
         val category = (categoryScope as? NoteCategoryScope.Category)?.value.orEmpty()
-        onCreate(accountId, category)
+        onCreate(accountId, category, query.takeIf(NoteNames::isValid))
     }
 
     LaunchedEffect(accountId) { withContext(UiDispatcher) { component.refresh(accountId) } }
@@ -970,11 +975,20 @@ private fun NoteListScreen(
                 !selectionActive &&
                 (!hideCreateButtonOnScroll || createButtonVisible)
             ) {
-                FloatingActionButton(
-                    onClick = createNote,
-                    modifier = Modifier.testTag("create-note")
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "New note")
+                if (NoteNames.isValid(query)) {
+                    ExtendedFloatingActionButton(
+                        onClick = createNote,
+                        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                        text = { Text("Create from search") },
+                        modifier = Modifier.testTag("create-note-from-search")
+                    )
+                } else {
+                    FloatingActionButton(
+                        onClick = createNote,
+                        modifier = Modifier.testTag("create-note")
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "New note")
+                    }
                 }
             }
         },
