@@ -891,6 +891,50 @@ class RoomPullStoreTest {
     }
 
     @Test
+    fun uncertainCreateCannotBeRequeuedByLocalChanges() = runBlocking {
+        val notes = RoomNoteRepository(database.noteDao())
+        RoomAccountRepository(database.accountDao()).save(testAccount())
+        val localId = "account-local-42"
+        database.noteDao().upsert(
+            localNote(42, SyncState.LOCALLY_CREATED).copy(remoteId = null)
+        )
+        val push = RoomPushStore(database)
+        push.recordFailure(localId, 0, "Create outcome unknown", SyncState.FAILED)
+
+        assertTrue(notes.updateDraft(localId, "Edited after failure", 20))
+        assertTrue(notes.updateTitle(localId, "Renamed", 21))
+        assertTrue(notes.updateFavorite(localId, true))
+        assertTrue(notes.updateCategory(localId, "Projects"))
+        val failed = notes.get(localId)!!
+        assertEquals(SyncState.FAILED, failed.syncState)
+        assertEquals("Create outcome unknown", failed.lastSyncError)
+        assertEquals("Edited after failure", failed.content)
+        assertTrue(notes.pending("account").isEmpty())
+
+        assertTrue(notes.retry(localId))
+        assertEquals(SyncState.LOCALLY_CREATED, notes.pending("account").single().syncState)
+    }
+
+    @Test
+    fun uncertainCreateFailureAfterANewerDraftStillBlocksReplay() = runBlocking {
+        val notes = RoomNoteRepository(database.noteDao())
+        RoomAccountRepository(database.accountDao()).save(testAccount())
+        val localId = "account-local-42"
+        database.noteDao().upsert(
+            localNote(42, SyncState.LOCALLY_CREATED).copy(remoteId = null)
+        )
+        assertTrue(notes.updateDraft(localId, "Changed during POST", 20))
+
+        RoomPushStore(database).recordFailure(localId, 0, "Response lost", SyncState.FAILED)
+
+        val failed = notes.get(localId)!!
+        assertEquals("Changed during POST", failed.content)
+        assertEquals(SyncState.FAILED, failed.syncState)
+        assertEquals("Response lost", failed.lastSyncError)
+        assertTrue(notes.pending("account").isEmpty())
+    }
+
+    @Test
     fun resolvingConflictAtomicallyKeepsLocalCopyAndAdoptsServerNote() = runBlocking {
         val accounts = RoomAccountRepository(database.accountDao())
         val notes = RoomNoteRepository(database.noteDao())

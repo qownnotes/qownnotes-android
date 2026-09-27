@@ -64,7 +64,16 @@ class RoomPushStore(private val database: QOwnNotesDatabase) : PushStore {
     ) {
         database.withTransaction {
             val current = database.noteDao().get(localId) ?: return@withTransaction
-            if (current.localRevision != submittedRevision) return@withTransaction
+            // A create may have reached the server even when its response was lost. A newer
+            // editor checkpoint must not make that uncertain create eligible for another POST.
+            if (current.localRevision != submittedRevision &&
+                !(
+                    failureState == SyncState.FAILED && current.remoteId == null &&
+                        current.syncState == SyncState.LOCALLY_CREATED
+                    )
+            ) {
+                return@withTransaction
+            }
             database.noteDao().upsert(
                 current.copy(
                     syncState = failureState ?: current.syncState,

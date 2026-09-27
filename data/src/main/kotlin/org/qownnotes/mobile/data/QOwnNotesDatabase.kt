@@ -99,11 +99,13 @@ interface NoteDao {
            modifiedAtEpochSeconds = :modifiedAtEpochSeconds,
            localRevision = localRevision + 1,
            syncState = CASE
-             WHEN syncState IN ('REMOTE_MISSING', 'READ_ONLY_CONFLICT') THEN syncState
+             WHEN syncState IN ('REMOTE_MISSING', 'READ_ONLY_CONFLICT')
+               OR (syncState = 'FAILED' AND remoteId IS NULL) THEN syncState
              WHEN remoteId IS NULL THEN 'LOCALLY_CREATED'
              ELSE 'LOCALLY_MODIFIED' END,
            lastSyncError = CASE
-             WHEN syncState IN ('REMOTE_MISSING', 'READ_ONLY_CONFLICT') THEN lastSyncError
+             WHEN syncState IN ('REMOTE_MISSING', 'READ_ONLY_CONFLICT')
+               OR (syncState = 'FAILED' AND remoteId IS NULL) THEN lastSyncError
              ELSE NULL END
            WHERE localId = :localId
              AND (readOnly = 0 OR syncState = 'READ_ONLY_CONFLICT')
@@ -116,8 +118,11 @@ interface NoteDao {
         """UPDATE notes SET title = :title,
            modifiedAtEpochSeconds = :modifiedAtEpochSeconds,
            localRevision = localRevision + 1,
-           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
-           lastSyncError = NULL
+           syncState = CASE
+             WHEN syncState = 'FAILED' AND remoteId IS NULL THEN syncState
+             WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = CASE WHEN syncState = 'FAILED' AND remoteId IS NULL
+             THEN lastSyncError ELSE NULL END
            WHERE localId = :localId AND readOnly = 0
              AND syncState NOT IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
              AND title != :title"""
@@ -128,8 +133,11 @@ interface NoteDao {
         """UPDATE notes SET title = :title, content = :content,
            modifiedAtEpochSeconds = :modifiedAtEpochSeconds,
            localRevision = localRevision + 1,
-           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
-           lastSyncError = NULL
+           syncState = CASE
+             WHEN syncState = 'FAILED' AND remoteId IS NULL THEN syncState
+             WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = CASE WHEN syncState = 'FAILED' AND remoteId IS NULL
+             THEN lastSyncError ELSE NULL END
            WHERE localId = :localId AND readOnly = 0
              AND syncState NOT IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
              AND (title != :title OR content != :content)"""
@@ -144,8 +152,11 @@ interface NoteDao {
     @Query(
         """UPDATE notes SET favorite = :favorite,
            localRevision = localRevision + 1,
-           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
-           lastSyncError = NULL
+           syncState = CASE
+             WHEN syncState = 'FAILED' AND remoteId IS NULL THEN syncState
+             WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = CASE WHEN syncState = 'FAILED' AND remoteId IS NULL
+             THEN lastSyncError ELSE NULL END
            WHERE localId = :localId
              AND syncState NOT IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
              AND favorite != :favorite"""
@@ -155,8 +166,11 @@ interface NoteDao {
     @Query(
         """UPDATE notes SET category = :category,
            localRevision = localRevision + 1,
-           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
-           lastSyncError = NULL
+           syncState = CASE
+             WHEN syncState = 'FAILED' AND remoteId IS NULL THEN syncState
+             WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END,
+           lastSyncError = CASE WHEN syncState = 'FAILED' AND remoteId IS NULL
+             THEN lastSyncError ELSE NULL END
            WHERE localId = :localId AND readOnly = 0
              AND syncState NOT IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
              AND category != :category"""

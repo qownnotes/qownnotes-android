@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- An uncertain note creation no longer gets queued for another upload when an editor checkpoint or
+  another local change arrives after the failed request (for
+  [#17](https://github.com/qownnotes/qownnotes-android/issues/17)).
+
 ### Added
 
 - Search text can be turned into a new note named after the query in the selected category.
