@@ -102,12 +102,12 @@ class NextcloudProtocolTest {
     }
 
     @Test
-    fun classifiesSsoTransportStatusAsRetryable() {
+    fun ssoTransportFailureAsksToOpenFilesInsteadOfRetrying() {
         assertTrue(
             backendExceptionForHttpStatus(
                 900,
                 IllegalStateException()
-            ) is BackendException.Retryable
+            ) is BackendException.FilesAppUnavailable
         )
     }
 

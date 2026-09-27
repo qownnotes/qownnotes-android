@@ -75,6 +75,9 @@ internal class AccountSyncCoordinator(
             } catch (error: BackendException.InsufficientStorage) {
                 recordFailure(note, error)
                 issue = issue ?: SyncOutcome.UserActionRequired(error)
+            } catch (error: BackendException.FilesAppUnavailable) {
+                recordFailure(note, error, if (note.remoteId == null) SyncState.FAILED else null)
+                issue = issue ?: SyncOutcome.UserActionRequired(error)
             } catch (error: Exception) {
                 val requestMayHaveCompleted =
                     error !is BackendException.Authentication &&
@@ -130,6 +133,7 @@ internal fun Throwable.toSyncOutcome(): SyncOutcome = when (this) {
     is BackendException.Retryable -> SyncOutcome.RetryableFailure(this)
     is BackendException.Authentication,
     is BackendException.AuthorizationRequired,
+    is BackendException.FilesAppUnavailable,
     is BackendException.AccountRemoved,
     is BackendException.Permission,
     is BackendException.InsufficientStorage,

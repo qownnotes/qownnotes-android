@@ -56,6 +56,56 @@ class SyncWorkerTest {
     }
 
     @Test
+    fun unavailableFilesAppDoesNotScheduleRepeatedSsoBindings() = runBlocking {
+        application.fakeBackend.enqueueFailure(
+            ACCOUNT_ID,
+            BackendException.FilesAppUnavailable(IOException("SSO service not responding"))
+        )
+
+        assertSameResult(ListenableWorker.Result.success(), worker().doWork())
+        assertEquals(
+            "Can't reach Nextcloud Files. Open the Files app and retry sync.",
+            application.component.accountRepository.get(ACCOUNT_ID)?.lastSyncError
+        )
+    }
+
+    @Test
+    fun existingNoteEditedDuringSsoOutageUpdatesItsRemoteIdOnRecovery() = runBlocking {
+        application.component.noteRepository.save(
+            Note(
+                localId = "existing-note",
+                accountId = ACCOUNT_ID,
+                remoteId = 42,
+                title = "Existing",
+                content = "Original",
+                category = "",
+                modifiedAtEpochSeconds = 1,
+                remoteEtag = "etag-old",
+                syncState = SyncState.SYNCHRONIZED,
+                lastSyncedTitle = "Existing",
+                lastSyncedContent = "Original",
+                lastSyncedCategory = "",
+                lastSyncedFavorite = false
+            )
+        )
+        application.fakeBackend.enqueueFailure(
+            ACCOUNT_ID,
+            BackendException.FilesAppUnavailable(IOException("SSO unavailable"))
+        )
+        assertSameResult(ListenableWorker.Result.success(), worker().doWork())
+        application.component.noteRepository.updateDraft("existing-note", "Offline edit", 2)
+
+        assertSameResult(ListenableWorker.Result.success(), worker().doWork())
+
+        val pushed = application.fakeBackend.pushedNotes.single()
+        assertEquals(42L, pushed.remoteId)
+        assertEquals("etag-old", pushed.remoteEtag)
+        assertEquals("Offline edit", pushed.content)
+        assertEquals(emptyList<Long>(), application.fakeBackend.deletedRemoteIds)
+        assertEquals(42L, application.component.noteRepository.get("existing-note")?.remoteId)
+    }
+
+    @Test
     fun uncertainCreateFailureDoesNotRetryOrLoseTheLocalNote() = runBlocking {
         application.fakeBackend.enqueue(
             ACCOUNT_ID,

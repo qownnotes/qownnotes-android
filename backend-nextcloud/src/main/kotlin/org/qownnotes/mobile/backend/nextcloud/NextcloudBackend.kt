@@ -639,8 +639,8 @@ internal fun Throwable.toBackendException(): BackendException = when (this) {
     is NextcloudFilesAppAccountPermissionNotGrantedException ->
         BackendException.AuthorizationRequired(this)
     is NextcloudFilesAppAccountNotFoundException -> BackendException.AccountRemoved(this)
-    is NextcloudApiNotRespondingException, is NextcloudNetworkException ->
-        BackendException.Retryable(this)
+    is NextcloudApiNotRespondingException -> BackendException.FilesAppUnavailable(this)
+    is NextcloudNetworkException -> BackendException.Retryable(this)
     is JsonParseException -> BackendException.Protocol("Nextcloud returned malformed JSON", this)
     is MalformedJsonException -> BackendException.Protocol(
         "Nextcloud returned malformed JSON",
@@ -655,7 +655,8 @@ internal fun backendExceptionForHttpStatus(statusCode: Int, cause: Throwable): B
         HttpURLConnection.HTTP_UNAUTHORIZED -> BackendException.Authentication(cause)
         HttpURLConnection.HTTP_FORBIDDEN -> BackendException.Permission(cause)
         HTTP_INSUFFICIENT_STORAGE -> BackendException.InsufficientStorage(cause)
-        SSO_TRANSPORT_ERROR, HTTP_LOCKED, HTTP_TOO_MANY_REQUESTS,
+        SSO_TRANSPORT_ERROR -> BackendException.FilesAppUnavailable(cause)
+        HTTP_LOCKED, HTTP_TOO_MANY_REQUESTS,
         HttpURLConnection.HTTP_CLIENT_TIMEOUT,
         HttpURLConnection.HTTP_UNAVAILABLE, in 500..506, in 508..599 ->
             BackendException.Retryable(cause)

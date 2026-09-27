@@ -20,6 +20,7 @@ class SyncOutcomeTest {
         listOf(
             BackendException.Authentication(),
             BackendException.AuthorizationRequired(),
+            BackendException.FilesAppUnavailable(IOException("SSO unavailable")),
             BackendException.AccountRemoved(),
             BackendException.Permission(),
             BackendException.InsufficientStorage()

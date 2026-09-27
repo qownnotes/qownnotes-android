@@ -40,10 +40,10 @@ class BackendExceptionClassificationTest {
     }
 
     @Test
-    fun serviceAndNetworkFailuresRemainRetryable() {
+    fun serviceFailureRequiresOpeningFilesButNetworkFailureRemainsRetryable() {
         assertTrue(
             NextcloudApiNotRespondingException(context).toBackendException() is
-                BackendException.Retryable
+                BackendException.FilesAppUnavailable
         )
         assertTrue(
             NextcloudNetworkException(IllegalStateException()).toBackendException() is

@@ -60,6 +60,9 @@ sealed class BackendException(message: String, cause: Throwable? = null) :
 
     class Retryable(cause: Throwable) : BackendException("The server could not be reached", cause)
 
+    class FilesAppUnavailable(cause: Throwable) :
+        BackendException("Can't reach Nextcloud Files. Open the Files app and retry sync.", cause)
+
     class Conflict(cause: Throwable? = null) :
         BackendException("The note changed on the server", cause)
 

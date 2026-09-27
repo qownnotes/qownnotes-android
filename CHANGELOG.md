@@ -12,6 +12,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - An uncertain note creation no longer gets queued for another upload when an editor checkpoint or
   another local change arrives after the failed request (for
   [#17](https://github.com/qownnotes/qownnotes-android/issues/17)).
+- Nextcloud Files SSO transport failures now ask users to open the Files app and stop automatic
+  retries that could leave dead service bindings behind (for
+  [#18](https://github.com/qownnotes/qownnotes-android/issues/18)).
 
 ### Added
 
