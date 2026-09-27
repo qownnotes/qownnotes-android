@@ -1,0 +1,4 @@
+• Create notes from search queries
+• Insert the local date or date and time while editing
+• Turn copied web links into titled Markdown links
+• View note details and enjoy more responsive editing for medium-large notes

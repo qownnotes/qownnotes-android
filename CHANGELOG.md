@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-27
+
 ### Fixed
 
 - Editing medium-large notes with many links and tasks now stays responsive by switching to plain
@@ -334,6 +336,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
 [Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v0.8.0...HEAD
+[0.9.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.5.0...v0.6.0
