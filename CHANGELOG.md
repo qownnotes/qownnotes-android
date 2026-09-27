@@ -9,6 +9,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Editing medium-large notes with many links and tasks now stays responsive by switching to plain
+  source editing above 32 KiB instead of waiting until 64 KiB.
 - An uncertain note creation no longer gets queued for another upload when an editor checkpoint or
   another local change arrives after the failed request (for
   [#17](https://github.com/qownnotes/qownnotes-android/issues/17)).

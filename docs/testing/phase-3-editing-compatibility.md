@@ -118,9 +118,10 @@ The phase gate is a representative 100 KiB mixed-Markdown note. A 1 MiB note is 
 not a release blocker unless ordinary editing corrupts or loses text.
 
 The fixture should repeat prose, headings, emphasis, links, task lists, tables, wiki links, YAML
-frontmatter, HTML comments, and fenced code. Source highlighting is intentionally omitted above 64
-KiB after physical testing demonstrated that Android's full-document span updates made text input
-unusable. The rendered view still exercises Markwon, and smaller editor fixtures exercise both
+frontmatter, HTML comments, and fenced code. Source highlighting is intentionally omitted above 32
+KiB; physical testing showed full-document span updates made 100 KiB text input unusable, and a
+link- and task-heavy note below the former 64 KiB limit was also slow. The rendered view still
+exercises Markwon, and smaller editor fixtures exercise both
 Markwon and supplemental source highlighting.
 
 For each device and fixture size, record:

@@ -6,6 +6,7 @@ import android.text.Editable
 import android.text.Layout
 import android.text.TextWatcher
 import android.view.ContextThemeWrapper
+import android.view.View
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.concurrent.LinkedBlockingQueue
@@ -60,6 +61,29 @@ class MarkdownEditorInstrumentedTest {
             assertTrue(
                 view.text!!.getSpans(0, view.length(), SupplementalSyntaxSpan::class.java).isEmpty()
             )
+            binding.close()
+        }
+    }
+
+    @Test
+    fun linkAndTaskHeavySourceBelowOldLimitUsesPlainEditingWithUndo() {
+        lateinit var view: MarkdownEditText
+        lateinit var binding: MarkdownEditorBinding
+        val source = ("- [ ] [Example product](https://example.com/product?item=12345)\n")
+            .repeat(950)
+        assertTrue(source.length in 32 * 1024 + 1..64 * 1024)
+
+        instrumentation.runOnMainSync {
+            view = editor()
+            view.setText(source)
+            binding = MarkdownEditorBinding(view.context, view) {}
+            assertFalse(binding.sourceHighlightingEnabled)
+            assertEquals(View.LAYER_TYPE_SOFTWARE, view.layerType)
+            view.setSelection(source.length)
+            view.text!!.append('x')
+            assertTrue(binding.undo())
+            assertEquals(source, view.text.toString())
+            assertEquals(source.length, view.selectionStart)
             binding.close()
         }
     }

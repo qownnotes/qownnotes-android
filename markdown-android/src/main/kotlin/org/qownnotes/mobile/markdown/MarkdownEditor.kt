@@ -659,7 +659,9 @@ class MarkdownEditorBinding(
     }
 }
 
-private const val MAX_HIGHLIGHTED_SOURCE_LENGTH = 64 * 1024
+// Link- and task-heavy notes around 60 KiB already make full-document span updates stall input.
+// Use the plain-source drawing path before reaching that size, not only for 100 KiB notes.
+private const val MAX_HIGHLIGHTED_SOURCE_LENGTH = 32 * 1024
 
 private class ListContinuationWatcher(private val editText: MarkdownEditText) : TextWatcher {
     private var newlineOffset: Int? = null
