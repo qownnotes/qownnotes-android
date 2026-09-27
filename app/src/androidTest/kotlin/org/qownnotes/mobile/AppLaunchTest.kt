@@ -1385,6 +1385,9 @@ class AppLaunchTest {
         composeRule.waitUntil(timeoutMillis = 10_000) {
             application.fakeBackend.pushedNotes.any {
                 it.localId == localId && it.content.contains("local two\nremote three")
+            } && runBlocking {
+                application.component.noteRepository.get(localId)?.syncState ==
+                    SyncState.SYNCHRONIZED
             }
         }
         val resolved = runBlocking { application.component.noteRepository.get(localId)!! }
@@ -1669,8 +1672,9 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("insert-date").performScrollTo().performClick()
         awaitEditorText("before $today")
         onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
-        composeRule.onNodeWithTag("undo-edit").performClick()
-        onView(withId(R.id.markdown_editor)).check(matches(withText("before after")))
+        // The date action scrolls the horizontal toolbar away from Undo.
+        composeRule.onNodeWithTag("undo-edit").performScrollTo().assertIsEnabled().performClick()
+        awaitEditorText("before after")
     }
 
     @Test
