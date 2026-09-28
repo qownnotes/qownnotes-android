@@ -15,6 +15,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Note-list widgets can show all notes, uncategorized notes, or a single category. Their header now
   shows what is listed in bold with the account name below it (for
   [#15](https://github.com/qownnotes/qownnotes-android/issues/15)).
+- Widgets have an appearance step during configuration: background color and opacity, header
+  color, note-row color, and an optional frame. It applies to the note-list and single-note
+  widgets, and text color adapts to the chosen colors for readability (for
+  [#15](https://github.com/qownnotes/qownnotes-android/issues/15)).
 
 ### Changed
 

@@ -8,28 +8,37 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -102,6 +111,20 @@ internal object WidgetPreferences {
     private const val ACCOUNT_NAME_PREFIX = "accountName."
     private const val NOTE_PREFIX = "note."
     private const val CATEGORY_SCOPE_PREFIX = "categoryScope."
+    private const val BACKGROUND_PREFIX = "background."
+    private const val OPACITY_PREFIX = "backgroundOpacity."
+    private const val HEADER_PREFIX = "header."
+    private const val ROW_PREFIX = "row."
+    private const val FRAME_PREFIX = "frame."
+    private const val FRAME_COLOR_PREFIX = "frameColor."
+    private val APPEARANCE_PREFIXES = listOf(
+        BACKGROUND_PREFIX,
+        OPACITY_PREFIX,
+        HEADER_PREFIX,
+        ROW_PREFIX,
+        FRAME_PREFIX,
+        FRAME_COLOR_PREFIX
+    )
 
     fun saveAccount(context: Context, widgetId: Int, account: Account) {
         preferences(context).edit {
@@ -115,6 +138,52 @@ internal object WidgetPreferences {
         preferences(context).edit {
             putString("$CATEGORY_SCOPE_PREFIX$widgetId", NoteCategoryScopeCodec.encode(scope))
         }
+    }
+
+    fun saveAppearance(context: Context, widgetId: Int, appearance: WidgetAppearance) {
+        preferences(context).edit {
+            putColor("$BACKGROUND_PREFIX$widgetId", appearance.background)
+            putInt(
+                "$OPACITY_PREFIX$widgetId",
+                AppearanceColors.coerceOpacity(appearance.backgroundOpacityPercent)
+            )
+            putColor("$HEADER_PREFIX$widgetId", appearance.header)
+            putColor("$ROW_PREFIX$widgetId", appearance.row)
+            putBoolean("$FRAME_PREFIX$widgetId", appearance.frame)
+            putColor("$FRAME_COLOR_PREFIX$widgetId", appearance.frameColor)
+        }
+    }
+
+    /** Widgets configured before appearance options existed keep the default look. */
+    fun appearance(context: Context, widgetId: Int): WidgetAppearance {
+        val preferences = preferences(context)
+        fun color(prefix: String): Int? = "$prefix$widgetId".let { key ->
+            if (preferences.contains(
+                    key
+                )
+            ) {
+                AppearanceColors.opaque(preferences.getInt(key, 0))
+            } else {
+                null
+            }
+        }
+        return WidgetAppearance(
+            background = color(BACKGROUND_PREFIX),
+            backgroundOpacityPercent = AppearanceColors.coerceOpacity(
+                preferences.getInt(
+                    "$OPACITY_PREFIX$widgetId",
+                    AppearanceColors.MAX_OPACITY_PERCENT
+                )
+            ),
+            header = color(HEADER_PREFIX),
+            row = color(ROW_PREFIX),
+            frame = preferences.getBoolean("$FRAME_PREFIX$widgetId", false),
+            frameColor = color(FRAME_COLOR_PREFIX)
+        )
+    }
+
+    private fun android.content.SharedPreferences.Editor.putColor(key: String, color: Int?) {
+        if (color == null) remove(key) else putInt(key, AppearanceColors.opaque(color))
     }
 
     /** Widgets configured before category filtering existed keep showing every note. */
@@ -144,6 +213,7 @@ internal object WidgetPreferences {
             remove("$ACCOUNT_NAME_PREFIX$widgetId")
             remove("$NOTE_PREFIX$widgetId")
             remove("$CATEGORY_SCOPE_PREFIX$widgetId")
+            APPEARANCE_PREFIXES.forEach { remove("$it$widgetId") }
         }
     }
 
@@ -164,11 +234,20 @@ class NoteListWidgetProvider : AppWidgetProvider() {
         fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val accountId = WidgetPreferences.accountId(context, widgetId) ?: return
             val views = RemoteViews(context.packageName, R.layout.widget_note_list)
+            val appearance = WidgetPreferences.appearance(context, widgetId)
+            WidgetAppearanceViews.applyContainer(views, appearance)
             NoteListWidgetHeader.apply(
                 context,
                 views,
                 WidgetPreferences.categoryScope(context, widgetId),
-                WidgetPreferences.accountName(context, widgetId)
+                WidgetPreferences.accountName(context, widgetId),
+                appearance
+            )
+            WidgetAppearanceViews.setSecondaryText(
+                context,
+                views,
+                R.id.widget_empty,
+                appearance.background
             )
             views.setRemoteAdapter(
                 R.id.widget_note_list,
@@ -233,12 +312,14 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
     private val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
     private var notes = emptyList<NoteListItem>()
     private var compact = false
+    private var appearance = WidgetAppearance.DEFAULT
 
     override fun onCreate() = Unit
 
     override fun onDataSetChanged() {
         val accountId = WidgetPreferences.accountId(context, widgetId)
         val scope = WidgetPreferences.categoryScope(context, widgetId)
+        appearance = WidgetPreferences.appearance(context, widgetId)
         compact = application(context).component.settings.compactNoteList.value
         notes = if (accountId == null) {
             emptyList()
@@ -254,7 +335,7 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
     override fun getCount(): Int = notes.size
 
     override fun getViewAt(position: Int): RemoteViews? = notes.getOrNull(position)?.let { note ->
-        NoteListWidgetRows.row(context, note, compact)
+        NoteListWidgetRows.row(context, note, compact, appearance)
     }
 
     override fun getLoadingView(): RemoteViews? = null
@@ -269,6 +350,82 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
     override fun hasStableIds(): Boolean = true
 }
 
+/**
+ * Applies a [WidgetAppearance] to widget views.
+ *
+ * Launchers may reapply new RemoteViews onto the existing view tree, so every property is set
+ * explicitly, including the defaults, or a previously chosen color would survive a reset.
+ * A zero color filter leaves the day/night resource drawables untouched.
+ */
+internal object WidgetAppearanceViews {
+    private const val NO_TINT = 0
+
+    fun applyContainer(views: RemoteViews, appearance: WidgetAppearance) {
+        views.setInt(R.id.widget_background, "setColorFilter", appearance.background ?: NO_TINT)
+        views.setInt(
+            R.id.widget_background,
+            "setImageAlpha",
+            AppearanceColors.alpha(appearance.backgroundOpacityPercent)
+        )
+        views.setViewVisibility(
+            R.id.widget_frame,
+            if (appearance.frame) View.VISIBLE else View.GONE
+        )
+        views.setInt(R.id.widget_frame, "setColorFilter", appearance.frameColor ?: NO_TINT)
+        views.setViewVisibility(
+            R.id.widget_header_background,
+            if (appearance.header == null) View.GONE else View.VISIBLE
+        )
+        views.setInt(R.id.widget_header_background, "setColorFilter", appearance.header ?: NO_TINT)
+    }
+
+    /** Surface under the header text; `null` when it is the default widget background. */
+    fun headerSurface(appearance: WidgetAppearance): Int? =
+        appearance.header ?: appearance.background
+
+    fun setPrimaryText(context: Context, views: RemoteViews, viewId: Int, surface: Int?) =
+        setTextColor(
+            context,
+            views,
+            viewId,
+            surface?.let(AppearanceColors::contentColor),
+            R.color.widget_text
+        )
+
+    fun setSecondaryText(context: Context, views: RemoteViews, viewId: Int, surface: Int?) =
+        setTextColor(
+            context,
+            views,
+            viewId,
+            surface?.let(AppearanceColors::secondaryContentColor),
+            R.color.widget_text_secondary
+        )
+
+    fun setIconTint(views: RemoteViews, viewId: Int, surface: Int?) {
+        views.setInt(
+            viewId,
+            "setColorFilter",
+            surface?.let(AppearanceColors::contentColor) ?: NO_TINT
+        )
+    }
+
+    private fun setTextColor(
+        context: Context,
+        views: RemoteViews,
+        viewId: Int,
+        custom: Int?,
+        defaultResource: Int
+    ) {
+        when {
+            custom != null -> views.setTextColor(viewId, custom)
+            // Resolved by the launcher when applied, so it still follows day and night mode.
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+                views.setColor(viewId, "setTextColor", defaultResource)
+            else -> views.setTextColor(viewId, context.getColor(defaultResource))
+        }
+    }
+}
+
 /** Two-line note-list widget header: what the widget shows, then whose notes they are. */
 internal object NoteListWidgetHeader {
     fun title(context: Context, scope: NoteCategoryScope): String = when (scope) {
@@ -281,7 +438,8 @@ internal object NoteListWidgetHeader {
         context: Context,
         views: RemoteViews,
         scope: NoteCategoryScope,
-        accountName: String?
+        accountName: String?,
+        appearance: WidgetAppearance = WidgetAppearance.DEFAULT
     ) {
         views.setTextViewText(R.id.widget_title, title(context, scope))
         views.setTextViewText(R.id.widget_subtitle, accountName.orEmpty())
@@ -289,6 +447,11 @@ internal object NoteListWidgetHeader {
             R.id.widget_subtitle,
             if (accountName.isNullOrBlank()) View.GONE else View.VISIBLE
         )
+        val header = WidgetAppearanceViews.headerSurface(appearance)
+        WidgetAppearanceViews.setPrimaryText(context, views, R.id.widget_title, header)
+        WidgetAppearanceViews.setSecondaryText(context, views, R.id.widget_subtitle, header)
+        WidgetAppearanceViews.setIconTint(views, R.id.widget_camera, header)
+        WidgetAppearanceViews.setIconTint(views, R.id.widget_create, header)
     }
 }
 
@@ -296,17 +459,28 @@ internal object NoteListWidgetRows {
     fun layout(compact: Boolean): Int =
         if (compact) R.layout.widget_note_item_compact else R.layout.widget_note_item
 
-    fun row(context: Context, note: NoteListItem, compact: Boolean): RemoteViews =
-        RemoteViews(context.packageName, layout(compact)).apply {
-            setTextViewText(R.id.widget_note_title, note.title)
-            setTextViewText(R.id.widget_note_excerpt, note.excerpt)
-            setViewVisibility(
-                R.id.widget_note_excerpt,
-                if (note.excerpt.isBlank()) View.GONE else View.VISIBLE
-            )
-            val open = WidgetIntents.openNoteFillIn(note.localId)
-            setOnClickFillInIntent(R.id.widget_note_item, open)
-        }
+    fun row(
+        context: Context,
+        note: NoteListItem,
+        compact: Boolean,
+        appearance: WidgetAppearance = WidgetAppearance.DEFAULT
+    ): RemoteViews = RemoteViews(context.packageName, layout(compact)).apply {
+        setInt(R.id.widget_note_item_background, "setColorFilter", appearance.row ?: 0)
+        WidgetAppearanceViews.setPrimaryText(context, this, R.id.widget_note_title, appearance.row)
+        WidgetAppearanceViews.setSecondaryText(
+            context,
+            this,
+            R.id.widget_note_excerpt,
+            appearance.row
+        )
+        setTextViewText(R.id.widget_note_title, note.title)
+        setTextViewText(R.id.widget_note_excerpt, note.excerpt)
+        setViewVisibility(
+            R.id.widget_note_excerpt,
+            if (note.excerpt.isBlank()) View.GONE else View.VISIBLE
+        )
+        setOnClickFillInIntent(R.id.widget_note_item, WidgetIntents.openNoteFillIn(note.localId))
+    }
 }
 
 class SingleNoteWidgetProvider : AppWidgetProvider() {
@@ -347,6 +521,14 @@ class SingleNoteWidgetProvider : AppWidgetProvider() {
         ) {
             val views = RemoteViews(context.packageName, R.layout.widget_single_note)
             views.setTextViewText(R.id.widget_single_title, title)
+            val appearance = WidgetPreferences.appearance(context, widgetId)
+            WidgetAppearanceViews.applyContainer(views, appearance)
+            WidgetAppearanceViews.setPrimaryText(
+                context,
+                views,
+                R.id.widget_single_title,
+                WidgetAppearanceViews.headerSurface(appearance)
+            )
             views.setRemoteAdapter(
                 R.id.widget_single_content,
                 Intent(context, SingleNoteWidgetService::class.java)
@@ -388,11 +570,13 @@ private class SingleNoteWidgetFactory(context: Context, intent: Intent) :
     private val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
     private var localId: String? = null
     private var lines = emptyList<String>()
+    private var background: Int? = null
 
     override fun onCreate() = Unit
 
     override fun onDataSetChanged() {
         localId = WidgetPreferences.noteId(context, widgetId)
+        background = WidgetPreferences.appearance(context, widgetId).background
         val noteId = localId
         lines = if (noteId == null) {
             emptyList()
@@ -410,6 +594,12 @@ private class SingleNoteWidgetFactory(context: Context, intent: Intent) :
     override fun getViewAt(position: Int): RemoteViews? = lines.getOrNull(position)?.let { line ->
         RemoteViews(context.packageName, R.layout.widget_single_note_line).apply {
             setTextViewText(R.id.widget_single_note_line, line)
+            WidgetAppearanceViews.setSecondaryText(
+                context,
+                this,
+                R.id.widget_single_note_line,
+                background
+            )
             localId?.let {
                 setOnClickFillInIntent(
                     R.id.widget_single_note_line,
@@ -459,19 +649,29 @@ class WidgetConfigurationActivity : ComponentActivity() {
         }
     }
 
-    private fun completeNoteList(account: Account, scope: NoteCategoryScope) {
+    private fun completeNoteList(
+        account: Account,
+        scope: NoteCategoryScope,
+        appearance: WidgetAppearance
+    ) {
         if (completingConfiguration) return
         completingConfiguration = true
         WidgetPreferences.saveNoteList(this, widgetId, account, scope)
+        WidgetPreferences.saveAppearance(this, widgetId, appearance)
         NoteListWidgetProvider.update(this, AppWidgetManager.getInstance(this), widgetId)
         finishConfigured()
     }
 
-    private fun completeSingleNote(account: Account, note: NoteListItem) {
+    private fun completeSingleNote(
+        account: Account,
+        note: NoteListItem,
+        appearance: WidgetAppearance
+    ) {
         if (completingConfiguration) return
         completingConfiguration = true
         val manager = AppWidgetManager.getInstance(this)
         WidgetPreferences.saveNote(this, widgetId, account, note.localId)
+        WidgetPreferences.saveAppearance(this, widgetId, appearance)
         SingleNoteWidgetProvider.updateSnapshot(this, manager, widgetId, note.localId, note.title)
         CoroutineScope(Dispatchers.IO).launch {
             SingleNoteWidgetProvider.update(this@WidgetConfigurationActivity, manager, widgetId)
@@ -490,13 +690,17 @@ class WidgetConfigurationActivity : ComponentActivity() {
     @Composable
     private fun ConfigurationScreen(
         singleNote: Boolean,
-        onNoteList: (Account, NoteCategoryScope) -> Unit,
-        onSingleNote: (Account, NoteListItem) -> Unit
+        onNoteList: (Account, NoteCategoryScope, WidgetAppearance) -> Unit,
+        onSingleNote: (Account, NoteListItem, WidgetAppearance) -> Unit
     ) {
         val component = application(this).component
         val accounts by component.accountRepository.observeAccounts()
             .collectAsStateWithLifecycle(initialValue = emptyList())
         var selectedAccount by remember { mutableStateOf<Account?>(null) }
+        var chosenScope by remember { mutableStateOf<NoteCategoryScope?>(null) }
+        var chosenNote by remember { mutableStateOf<NoteListItem?>(null) }
+        // Reconfiguring starts from the widget's current look; new widgets start from defaults.
+        var appearance by remember { mutableStateOf(WidgetPreferences.appearance(this, widgetId)) }
         val account = selectedAccount
         val notes by (
             account?.let { component.noteRepository.observeNotes(it.id) }
@@ -504,6 +708,31 @@ class WidgetConfigurationActivity : ComponentActivity() {
             )
             .collectAsStateWithLifecycle(initialValue = emptyList())
         val categories = remember(notes) { NoteCategories.selectable(notes) }
+        BackHandler(enabled = account != null) {
+            if (chosenScope != null || chosenNote != null) {
+                chosenScope = null
+                chosenNote = null
+            } else {
+                selectedAccount = null
+            }
+        }
+        val scope = chosenScope
+        val note = chosenNote
+        if (account != null && (scope != null || note != null)) {
+            WidgetAppearanceStep(
+                appearance = appearance,
+                singleNote = singleNote,
+                onChange = { appearance = it },
+                onSave = {
+                    if (note != null) {
+                        onSingleNote(account, note, appearance)
+                    } else if (scope != null) {
+                        onNoteList(account, scope, appearance)
+                    }
+                }
+            )
+            return
+        }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -535,13 +764,49 @@ class WidgetConfigurationActivity : ComponentActivity() {
                     }
                 }
             } else if (singleNote) {
-                items(notes, key = NoteListItem::localId) { note ->
-                    WidgetConfigurationItem(note.title, "widget-note-${note.localId}") {
-                        onSingleNote(account, note)
+                items(notes, key = NoteListItem::localId) { item ->
+                    WidgetConfigurationItem(item.title, "widget-note-${item.localId}") {
+                        chosenNote = item
                     }
                 }
             } else {
-                widgetCategoryChoices(categories) { onNoteList(account, it) }
+                widgetCategoryChoices(categories) { chosenScope = it }
+            }
+        }
+    }
+}
+
+/** Last configuration step: adjust the look, then save the whole widget configuration. */
+@Composable
+internal fun WidgetAppearanceStep(
+    appearance: WidgetAppearance,
+    singleNote: Boolean,
+    onChange: (WidgetAppearance) -> Unit,
+    onSave: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+                .testTag("widget-appearance")
+        ) {
+            Text(
+                stringResource(R.string.widget_customize_appearance),
+                style = MaterialTheme.typography.headlineSmall
+            )
+            WidgetAppearanceEditor(appearance, singleNote, onChange)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+        ) {
+            TextButton(
+                onClick = { onChange(WidgetAppearance.DEFAULT) },
+                modifier = Modifier.testTag("widget-appearance-reset")
+            ) { Text(stringResource(R.string.widget_reset_appearance)) }
+            Button(onClick = onSave, modifier = Modifier.testTag("widget-appearance-save")) {
+                Text(stringResource(R.string.widget_save))
             }
         }
     }

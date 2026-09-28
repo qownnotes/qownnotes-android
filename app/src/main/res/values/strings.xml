@@ -7,6 +7,9 @@
     <string name="widget_choose_note">Choose a note</string>
     <string name="widget_no_accounts">Add an account in QOwnNotes before configuring a widget.</string>
     <string name="widget_choose_category">Choose which notes to show</string>
+    <string name="widget_customize_appearance">Appearance</string>
+    <string name="widget_reset_appearance">Reset</string>
+    <string name="widget_save">Save</string>
     <string name="widget_all_notes">Notes</string>
     <string name="widget_all_categories">All categories</string>
     <string name="widget_uncategorized">Uncategorized</string>

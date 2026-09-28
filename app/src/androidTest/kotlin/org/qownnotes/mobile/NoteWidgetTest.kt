@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.ListView
 import android.widget.RemoteViews
 import android.widget.TextView
@@ -115,6 +116,124 @@ class NoteWidgetTest {
     }
 
     @Test
+    fun widgetAppearanceIsStoredPerWidgetAndRemovedWithIt() {
+        val custom = WidgetAppearance(
+            background = 0xFF1565C0.toInt(),
+            backgroundOpacityPercent = 60,
+            header = 0xFFC62828.toInt(),
+            row = 0xFFDCEDC8.toInt(),
+            frame = true,
+            frameColor = 0xFF000000.toInt()
+        )
+        try {
+            WidgetPreferences.saveAppearance(context, 301, custom)
+
+            assertEquals(custom, WidgetPreferences.appearance(context, 301))
+            assertEquals(WidgetAppearance.DEFAULT, WidgetPreferences.appearance(context, 302))
+
+            WidgetPreferences.saveAppearance(context, 301, WidgetAppearance.DEFAULT)
+            assertEquals(WidgetAppearance.DEFAULT, WidgetPreferences.appearance(context, 301))
+
+            WidgetPreferences.saveAppearance(context, 301, custom)
+            WidgetPreferences.remove(context, 301)
+            assertEquals(WidgetAppearance.DEFAULT, WidgetPreferences.appearance(context, 301))
+        } finally {
+            WidgetPreferences.remove(context, 301)
+        }
+    }
+
+    @Test
+    fun customAppearanceColorsTheWidgetAndResettingRestoresDefaultsOnTheSameViews() {
+        val blue = 0xFF1565C0.toInt()
+        val lightGreen = 0xFFDCEDC8.toInt()
+        val custom = WidgetAppearance(
+            background = blue,
+            backgroundOpacityPercent = 60,
+            header = 0xFFFFF9C4.toInt(),
+            row = lightGreen,
+            frame = true
+        )
+        fun list(appearance: WidgetAppearance) =
+            RemoteViews(context.packageName, R.layout.widget_note_list).apply {
+                WidgetAppearanceViews.applyContainer(this, appearance)
+                NoteListWidgetHeader.apply(
+                    context,
+                    this,
+                    NoteCategoryScope.All,
+                    "Personal",
+                    appearance
+                )
+            }
+        val view = list(custom).apply(context, FrameLayout(context))
+
+        assertEquals(
+            AppearanceColors.alpha(60),
+            view.findViewById<ImageView>(R.id.widget_background).imageAlpha
+        )
+        assertEquals(View.VISIBLE, view.findViewById<View>(R.id.widget_frame).visibility)
+        assertEquals(
+            View.VISIBLE,
+            view.findViewById<View>(R.id.widget_header_background).visibility
+        )
+        // Light yellow header: dark title text.
+        assertEquals(
+            AppearanceColors.DARK_CONTENT,
+            view.findViewById<TextView>(R.id.widget_title).currentTextColor
+        )
+
+        // Launchers reapply onto the existing tree; defaults must undo every custom value.
+        list(WidgetAppearance.DEFAULT).reapply(context, view)
+        assertEquals(255, view.findViewById<ImageView>(R.id.widget_background).imageAlpha)
+        assertEquals(View.GONE, view.findViewById<View>(R.id.widget_frame).visibility)
+        assertEquals(View.GONE, view.findViewById<View>(R.id.widget_header_background).visibility)
+        assertEquals(
+            context.getColor(R.color.widget_text),
+            view.findViewById<TextView>(R.id.widget_title).currentTextColor
+        )
+
+        val row = NoteListWidgetRows.row(context, sampleNote(), compact = false, custom)
+            .apply(context, FrameLayout(context))
+        assertEquals(
+            AppearanceColors.contentColor(lightGreen),
+            row.findViewById<TextView>(R.id.widget_note_title).currentTextColor
+        )
+    }
+
+    @Test
+    fun singleNoteWidgetUsesTheSameTintableContainer() {
+        val views = RemoteViews(context.packageName, R.layout.widget_single_note)
+        WidgetAppearanceViews.applyContainer(
+            views,
+            WidgetAppearance(background = 0xFF000000.toInt(), frame = true)
+        )
+        WidgetAppearanceViews.setPrimaryText(
+            context,
+            views,
+            R.id.widget_single_title,
+            0xFF000000.toInt()
+        )
+        val view = views.apply(context, FrameLayout(context))
+
+        assertEquals(View.VISIBLE, view.findViewById<View>(R.id.widget_frame).visibility)
+        assertEquals(
+            AppearanceColors.LIGHT_CONTENT,
+            view.findViewById<TextView>(R.id.widget_single_title).currentTextColor
+        )
+    }
+
+    private fun sampleNote() = NoteListItem(
+        localId = "local-note",
+        accountId = "account-id",
+        remoteId = 1,
+        title = "Title",
+        category = "",
+        modifiedAtEpochSeconds = 10,
+        favorite = false,
+        syncState = SyncState.SYNCHRONIZED,
+        excerpt = "Excerpt"
+    )
+
+    @Test
     fun noteListHeaderShowsWhatIsListedAboveTheAccountName() {
         val parent = FrameLayout(context)
         fun header(scope: NoteCategoryScope, accountName: String?): View {
@@ -200,9 +319,12 @@ class NoteWidgetTest {
         assertEquals(View.VISIBLE, compactExcerpt.visibility)
         assertEquals(2, regularExcerpt.maxLines)
         assertEquals(1, compactExcerpt.maxLines)
-        assertTrue(compact.paddingTop < regular.paddingTop)
-        assertTrue(compact.paddingBottom < regular.paddingBottom)
-        assertEquals(regular.paddingStart, compact.paddingStart)
+        // Padding sits on the text container above the row's tintable background image.
+        val regularContent = regularExcerpt.parent as View
+        val compactContent = compactExcerpt.parent as View
+        assertTrue(compactContent.paddingTop < regularContent.paddingTop)
+        assertTrue(compactContent.paddingBottom < regularContent.paddingBottom)
+        assertEquals(regularContent.paddingStart, compactContent.paddingStart)
     }
 
     @Test
