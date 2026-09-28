@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -185,6 +186,10 @@ class ApplicationComponent(
                     }
                 }
                 .collect { NoteWidgetUpdater.updateAll(application) }
+        }
+        applicationScope.launch {
+            // The initial value is already rendered; only later changes need widget rows rebuilt.
+            settings.compactNoteList.drop(1).collect { NoteWidgetUpdater.updateAll(application) }
         }
     }
 

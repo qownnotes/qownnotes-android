@@ -552,6 +552,38 @@ class AppLaunchTest {
     }
 
     @Test
+    fun compactNoteListReducesRowHeightAndPersists() {
+        val account = importAccount(
+            "alice",
+            "Spacious note",
+            "etag-a",
+            10,
+            content = "# Spacious note\nFirst preview line with enough words to wrap. " +
+                "Second preview sentence that keeps going across the row width."
+        )
+        val localId = runBlocking {
+            application.component.noteRepository.observeNotes(account.localAccountId())
+                .first().single().localId
+        }
+        fun rowHeight() =
+            composeRule.onNodeWithTag("note-$localId").fetchSemanticsNode().boundsInRoot.height
+        val regularHeight = rowHeight()
+
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-compact-note-list").assertIsOff().performClick()
+        composeRule.onNodeWithTag("toggle-compact-note-list").assertIsOn()
+        composeRule.onNodeWithTag("close-settings").performClick()
+        composeRule.waitForIdle()
+        val compactHeight = rowHeight()
+        assertTrue("regular=$regularHeight, compact=$compactHeight", compactHeight < regularHeight)
+        assertTrue(application.component.settings.compactNoteList.value)
+
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForText("Spacious note")
+        assertEquals(compactHeight, rowHeight())
+    }
+
+    @Test
     fun switchingAmongThreeAccountsLetsTheUserChooseTheAccount() {
         val alice = importAccount("alice", "Alice note", "etag-a", 10)
         importAccount("bob", "Bob note", "etag-b", 20)

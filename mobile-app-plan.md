@@ -1108,8 +1108,9 @@ The source lookup and displayed content come from Room rather than a direct netw
 - Interactive task checkboxes
 - Image sharing and general attachments
 - Sharing
-- Widgets: account note-list, single-note, creation, and camera actions are implemented; filtering
-  and presentation customization remain future work.
+- Widgets: account note-list, single-note, creation, and camera actions are implemented. The
+  note-list widget follows the app's compact note-list setting. Filtering and further presentation
+  customization (header, colors, frame) remain future work (#15).
 - Multiple configured backends
 - Folder renaming and deletion across every contained note
 - Per-folder exclusion from the note list

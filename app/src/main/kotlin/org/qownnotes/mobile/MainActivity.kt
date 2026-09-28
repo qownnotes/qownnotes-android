@@ -914,6 +914,8 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val hideCreateButtonOnScroll by component.settings.hideCreateButtonOnScroll
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val compactNoteList by component.settings.compactNoteList
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     val showCategoryFlow = remember(accountId) { component.settings.showCategory(accountId) }
     val showCategory by showCategoryFlow
         .collectAsStateWithLifecycle(context = UiDispatcher)
@@ -1383,6 +1385,7 @@ private fun NoteListScreen(
                                 selectionActive = selectionActive,
                                 showCategory = showCategory,
                                 showNotePreview = showNotePreview,
+                                compact = compactNoteList,
                                 swipeEnabled = swipeNoteActions,
                                 onClick = {
                                     if (selectionActive) {
@@ -1439,6 +1442,13 @@ private fun NoteListScreen(
                         checked = showCategory,
                         onCheckedChange = { component.settings.setShowCategory(accountId, it) },
                         testTag = "toggle-category"
+                    )
+                    SettingsCheckbox(
+                        label = "Compact note list",
+                        description = "Reduce spacing in the note list and list widgets.",
+                        checked = compactNoteList,
+                        onCheckedChange = component.settings::setCompactNoteList,
+                        testTag = "toggle-compact-note-list"
                     )
                     SettingsCheckbox(
                         label = "Swipe note actions",
@@ -1854,12 +1864,18 @@ private fun NoteListItem(
     selectionActive: Boolean,
     showCategory: Boolean,
     showNotePreview: Boolean,
+    compact: Boolean,
     swipeEnabled: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onToggleFavorite: () -> Unit,
     onTrash: () -> Unit
 ) {
+    // Compact rows remove only decorative spacing. The favorite button keeps its minimum touch
+    // target, which also bounds the height of a title-only row.
+    val rowVerticalPadding = if (compact) 0.dp else 6.dp
+    val textVerticalPadding = if (compact) 4.dp else 8.dp
+    val previewMaxLines = if (compact) 1 else 2
     val favoriteDescription =
         if (note.favorite) "Remove from favorites" else "Add to favorites"
     val favoriteTint =
@@ -1879,13 +1895,18 @@ private fun NoteListItem(
                     }
                 )
                 .semantics { this.selected = selected }
-                .padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                .padding(
+                    start = 20.dp,
+                    end = 8.dp,
+                    top = rowVerticalPadding,
+                    bottom = rowVerticalPadding
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
                 modifier = Modifier.weight(1f)
                     .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = textVerticalPadding)
             ) {
                 Text(note.title, style = MaterialTheme.typography.titleMedium)
                 if (showCategory) {
@@ -1903,7 +1924,7 @@ private fun NoteListItem(
                             excerpt,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
+                            maxLines = previewMaxLines,
                             overflow = TextOverflow.Ellipsis
                         )
                     }

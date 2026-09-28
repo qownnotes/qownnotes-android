@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- A "Compact note list" setting reduces row spacing and limits previews to one line in the note
+  list and the note-list widgets (for
+  [#15](https://github.com/qownnotes/qownnotes-android/issues/15)).
+
 ### Changed
 
 - The app is now built with Gradle 9.8, Android Gradle Plugin 9.4, Kotlin 2.4, and KSP 2.3, using

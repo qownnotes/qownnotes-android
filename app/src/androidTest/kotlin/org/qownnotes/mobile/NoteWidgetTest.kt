@@ -5,7 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.view.LayoutInflater
+import android.view.View
+import android.widget.FrameLayout
 import android.widget.ListView
+import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
@@ -13,6 +16,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.qownnotes.mobile.core.NoteListItem
+import org.qownnotes.mobile.core.SyncState
 
 @RunWith(AndroidJUnit4::class)
 class NoteWidgetTest {
@@ -102,6 +107,35 @@ class NoteWidgetTest {
                 0
             ).exported
         )
+    }
+
+    @Test
+    fun compactNoteListRowsUseLessSpacingAndOnePreviewLine() {
+        val note = NoteListItem(
+            localId = "local-note",
+            accountId = "account-id",
+            remoteId = 1,
+            title = "Title",
+            category = "",
+            modifiedAtEpochSeconds = 10,
+            favorite = false,
+            syncState = SyncState.SYNCHRONIZED,
+            excerpt = "First line\nSecond line"
+        )
+        val parent = FrameLayout(context)
+
+        val regular = NoteListWidgetRows.row(context, note, compact = false).apply(context, parent)
+        val compact = NoteListWidgetRows.row(context, note, compact = true).apply(context, parent)
+
+        val regularExcerpt = regular.findViewById<TextView>(R.id.widget_note_excerpt)
+        val compactExcerpt = compact.findViewById<TextView>(R.id.widget_note_excerpt)
+        assertEquals("First line\nSecond line", compactExcerpt.text.toString())
+        assertEquals(View.VISIBLE, compactExcerpt.visibility)
+        assertEquals(2, regularExcerpt.maxLines)
+        assertEquals(1, compactExcerpt.maxLines)
+        assertTrue(compact.paddingTop < regular.paddingTop)
+        assertTrue(compact.paddingBottom < regular.paddingBottom)
+        assertEquals(regular.paddingStart, compact.paddingStart)
     }
 
     @Test

@@ -77,6 +77,18 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableHideCreateButtonOnScroll.value = enabled
     }
 
+    private val mutableCompactNoteList =
+        MutableStateFlow(preferences.getBoolean(COMPACT_NOTE_LIST, false))
+
+    /** Whether the note list and note-list widgets use reduced row spacing. */
+    val compactNoteList: StateFlow<Boolean> = mutableCompactNoteList.asStateFlow()
+
+    fun setCompactNoteList(enabled: Boolean) {
+        if (enabled == mutableCompactNoteList.value) return
+        preferences.edit().putBoolean(COMPACT_NOTE_LIST, enabled).apply()
+        mutableCompactNoteList.value = enabled
+    }
+
     private val mutableShowCategories = mutableMapOf<String, MutableStateFlow<Boolean>>()
     private val mutableBookmarksPaths = mutableMapOf<String, MutableStateFlow<String>>()
 
@@ -167,6 +179,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val SHOW_NOTE_PREVIEW = "showNotePreview"
         const val SWIPE_NOTE_ACTIONS = "swipeNoteActions"
         const val HIDE_CREATE_BUTTON_ON_SCROLL = "hideCreateButtonOnScroll"
+        const val COMPACT_NOTE_LIST = "compactNoteList"
 
         // Legacy global key migrated to existing accounts when the application starts.
         const val SHOW_CATEGORY = "showCategory"

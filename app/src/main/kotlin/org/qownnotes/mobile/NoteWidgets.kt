@@ -210,11 +210,13 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
     private val context = context.applicationContext
     private val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
     private var notes = emptyList<NoteListItem>()
+    private var compact = false
 
     override fun onCreate() = Unit
 
     override fun onDataSetChanged() {
         val accountId = WidgetPreferences.accountId(context, widgetId)
+        compact = application(context).component.settings.compactNoteList.value
         notes = if (accountId == null) {
             emptyList()
         } else {
@@ -229,7 +231,27 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
     override fun getCount(): Int = notes.size
 
     override fun getViewAt(position: Int): RemoteViews? = notes.getOrNull(position)?.let { note ->
-        RemoteViews(context.packageName, R.layout.widget_note_item).apply {
+        NoteListWidgetRows.row(context, note, compact)
+    }
+
+    override fun getLoadingView(): RemoteViews? = null
+
+    // Both row layouts are declared so a density change does not reuse a recycled row of the
+    // other layout while the collection refreshes.
+    override fun getViewTypeCount(): Int = 2
+
+    override fun getItemId(position: Int): Long =
+        notes.getOrNull(position)?.localId?.hashCode()?.toLong() ?: 0
+
+    override fun hasStableIds(): Boolean = true
+}
+
+internal object NoteListWidgetRows {
+    fun layout(compact: Boolean): Int =
+        if (compact) R.layout.widget_note_item_compact else R.layout.widget_note_item
+
+    fun row(context: Context, note: NoteListItem, compact: Boolean): RemoteViews =
+        RemoteViews(context.packageName, layout(compact)).apply {
             setTextViewText(R.id.widget_note_title, note.title)
             setTextViewText(R.id.widget_note_excerpt, note.excerpt)
             setViewVisibility(
@@ -239,16 +261,6 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
             val open = WidgetIntents.openNoteFillIn(note.localId)
             setOnClickFillInIntent(R.id.widget_note_item, open)
         }
-    }
-
-    override fun getLoadingView(): RemoteViews? = null
-
-    override fun getViewTypeCount(): Int = 1
-
-    override fun getItemId(position: Int): Long =
-        notes.getOrNull(position)?.localId?.hashCode()?.toLong() ?: 0
-
-    override fun hasStableIds(): Boolean = true
 }
 
 class SingleNoteWidgetProvider : AppWidgetProvider() {

@@ -79,6 +79,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         component.settings.setShowNotePreview(true)
         component.settings.setSwipeNoteActions(false)
         component.settings.setHideCreateButtonOnScroll(true)
+        component.settings.setCompactNoteList(false)
         fakeBackend.reset()
         fakeAccountImporter.reset()
         fakeSyncScheduler.reset()
