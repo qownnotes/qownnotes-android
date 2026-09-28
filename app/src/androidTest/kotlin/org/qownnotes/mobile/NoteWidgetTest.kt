@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ListView
+import android.widget.RemoteViews
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -16,6 +17,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteListItem
 import org.qownnotes.mobile.core.SyncState
 
@@ -71,6 +73,71 @@ class NoteWidgetTest {
         assertEquals("local-note", WidgetPreferences.noteId(context, 102))
         WidgetPreferences.remove(context, 101)
         WidgetPreferences.remove(context, 102)
+    }
+
+    @Test
+    fun noteListWidgetsStoreTheirOwnCategoryScope() {
+        val account = org.qownnotes.mobile.core.Account(
+            id = "account-id",
+            displayName = "Personal",
+            serverUrl = "https://cloud.example.com",
+            ssoAccountName = "test",
+            userId = "user"
+        )
+        try {
+            // A widget configured before filtering existed has no stored scope.
+            WidgetPreferences.saveAccount(context, 201, account)
+            WidgetPreferences.saveNoteList(
+                context,
+                202,
+                account,
+                NoteCategoryScope.Category("Work/Projects")
+            )
+            WidgetPreferences.saveNoteList(context, 203, account, NoteCategoryScope.Undefined)
+
+            assertEquals(NoteCategoryScope.All, WidgetPreferences.categoryScope(context, 201))
+            assertEquals(
+                NoteCategoryScope.Category("Work/Projects"),
+                WidgetPreferences.categoryScope(context, 202)
+            )
+            assertEquals(
+                NoteCategoryScope.Undefined,
+                WidgetPreferences.categoryScope(context, 203)
+            )
+            assertEquals("account-id", WidgetPreferences.accountId(context, 202))
+
+            WidgetPreferences.remove(context, 202)
+            assertEquals(NoteCategoryScope.All, WidgetPreferences.categoryScope(context, 202))
+            assertEquals(null, WidgetPreferences.accountId(context, 202))
+        } finally {
+            listOf(201, 202, 203).forEach { WidgetPreferences.remove(context, it) }
+        }
+    }
+
+    @Test
+    fun noteListHeaderShowsWhatIsListedAboveTheAccountName() {
+        val parent = FrameLayout(context)
+        fun header(scope: NoteCategoryScope, accountName: String?): View {
+            val views = RemoteViews(context.packageName, R.layout.widget_note_list)
+            NoteListWidgetHeader.apply(context, views, scope, accountName)
+            return views.apply(context, parent)
+        }
+
+        val all = header(NoteCategoryScope.All, "Personal")
+        assertEquals("Notes", all.findViewById<TextView>(R.id.widget_title).text.toString())
+        val subtitle = all.findViewById<TextView>(R.id.widget_subtitle)
+        assertEquals("Personal", subtitle.text.toString())
+        assertEquals(View.VISIBLE, subtitle.visibility)
+
+        val category = header(NoteCategoryScope.Category("Work"), "Personal")
+        assertEquals("Work", category.findViewById<TextView>(R.id.widget_title).text.toString())
+
+        val undefined = header(NoteCategoryScope.Undefined, null)
+        assertEquals(
+            "Uncategorized",
+            undefined.findViewById<TextView>(R.id.widget_title).text.toString()
+        )
+        assertEquals(View.GONE, undefined.findViewById<TextView>(R.id.widget_subtitle).visibility)
     }
 
     @Test

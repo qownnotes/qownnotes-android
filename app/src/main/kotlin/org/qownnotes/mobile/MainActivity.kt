@@ -329,7 +329,7 @@ fun QOwnNotesApp(onImportAccount: () -> Unit = {}, onReconnectAccount: (String) 
 }
 
 @Composable
-private fun QOwnNotesTheme(content: @Composable () -> Unit) {
+internal fun QOwnNotesTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme =
         if (androidx.compose.foundation.isSystemInDarkTheme()) {

@@ -12,6 +12,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A "Compact note list" setting reduces row spacing and limits previews to one line in the note
   list and the note-list widgets (for
   [#15](https://github.com/qownnotes/qownnotes-android/issues/15)).
+- Note-list widgets can show all notes, uncategorized notes, or a single category. Their header now
+  shows what is listed in bold with the account name below it (for
+  [#15](https://github.com/qownnotes/qownnotes-android/issues/15)).
 
 ### Changed
 
