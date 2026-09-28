@@ -6,12 +6,15 @@ import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.widget.TextView
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -582,6 +585,61 @@ class AppLaunchTest {
         composeRule.waitForText("Spacious note")
         assertEquals(compactHeight, rowHeight())
     }
+
+    @Test
+    fun appearanceColorsTheListHeaderRowsAndCategoriesAndPersists() {
+        val account = importAccount("alice", "Colored note", "etag-a", 10)
+        val localId = runBlocking {
+            application.component.noteRepository.observeNotes(account.localAccountId())
+                .first().single().localId
+        }
+        val displayName = runBlocking {
+            application.component.accountRepository.observeAccounts().first().single().displayName
+        }
+        composeRule.onNodeWithTag("note-list-header").assertDoesNotExist()
+
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-category").performClick()
+        composeRule.onNodeWithTag("open-appearance").performScrollTo().performClick()
+        composeRule.onNodeWithTag("appearance-dialog").assertIsDisplayed()
+        composeRule.onNodeWithTag("toggle-list-header").performClick()
+        composeRule.onNodeWithTag("app-header-blue").performScrollTo().performClick()
+        composeRule.onNodeWithTag("app-note-background-black").performScrollTo().performClick()
+        composeRule.onNodeWithTag("app-category-highlight-default").assertDoesNotExist()
+        composeRule.onNodeWithTag("toggle-highlight-categories").performScrollTo().performClick()
+        composeRule.onNodeWithTag("app-category-highlight-amber").performScrollTo().performClick()
+        composeRule.onNodeWithTag("close-appearance").performClick()
+        composeRule.waitForIdle()
+
+        fun assertAppearance() {
+            composeRule.onNodeWithTag("note-list-header-title")
+                .assertTextEquals("Uncategorized")
+            composeRule.onNodeWithTag("note-list-header-account").assertTextEquals(displayName)
+            assertEquals(0xFF1565C0.toInt(), pixel("note-list-header"))
+            assertEquals(0xFF000000.toInt(), pixel("note-$localId"))
+            assertEquals(
+                0xFFFFB300.toInt(),
+                pixel("note-category-$localId", useUnmergedTree = true)
+            )
+        }
+        assertAppearance()
+
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForText("Colored note")
+        assertAppearance()
+
+        listAction("settings")
+        composeRule.onNodeWithTag("open-appearance").performScrollTo().performClick()
+        composeRule.onNodeWithTag("reset-appearance").performClick()
+        composeRule.onNodeWithTag("close-appearance").performClick()
+        composeRule.onNodeWithTag("note-list-header").assertDoesNotExist()
+        assertEquals(AppAppearance(), application.component.settings.appearance.value)
+    }
+
+    /** Color near the top-left corner of a node, clear of text glyphs. */
+    private fun pixel(tag: String, useUnmergedTree: Boolean = false): Int =
+        composeRule.onNodeWithTag(tag, useUnmergedTree).captureToImage().asAndroidBitmap()
+            .getPixel(1, 1)
 
     @Test
     fun switchingAmongThreeAccountsLetsTheUserChooseTheAccount() {

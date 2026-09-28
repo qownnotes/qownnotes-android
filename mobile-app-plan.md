@@ -140,6 +140,10 @@ The first usable Android release must provide:
 - Detect concurrent server changes using ETags.
 - Preserve local content when synchronization fails.
 - Support light and dark themes.
+- Let the reader customize the note list (#15): compact rows, an optional two-line header with the
+  listed category and account, and palette colors for the header, note rows, and highlighted
+  category labels. Custom colors are fixed across light and dark themes, while the default choice
+  follows the Material theme; text colors are derived from the chosen surface for contrast.
 - Let the reader adjust the note body text size and remember that choice.
 - Find text inside the note that is open.
 - Select and copy text out of the rendered note.

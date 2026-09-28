@@ -97,6 +97,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -106,11 +107,13 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -130,6 +133,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
@@ -854,6 +858,7 @@ private fun NoteListScreen(
     var searchFocused by remember { mutableStateOf(false) }
     var showAccountChooser by rememberSaveable(accountId) { mutableStateOf(false) }
     var showSettings by rememberSaveable(accountId) { mutableStateOf(false) }
+    var showAppearance by rememberSaveable(accountId) { mutableStateOf(false) }
     var showDiagnostics by rememberSaveable(accountId) { mutableStateOf(false) }
     var diagnosticReport by remember(accountId) { mutableStateOf<String?>(null) }
     var showAbout by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -916,6 +921,15 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val compactNoteList by component.settings.compactNoteList
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val appearance by component.settings.appearance
+        .collectAsStateWithLifecycle(context = UiDispatcher)
+    val headerContainer =
+        appearance.headerColor?.let(::Color) ?: MaterialTheme.colorScheme.surface
+    // Null keeps the theme's own content colors.
+    val headerContent = appearance.headerColor?.let { Color(AppearanceColors.contentColor(it)) }
+    val headerSecondary =
+        appearance.headerColor?.let { Color(AppearanceColors.secondaryContentColor(it)) }
+    StatusBarIconsFor(appearance.headerColor)
     val showCategoryFlow = remember(accountId) { component.settings.showCategory(accountId) }
     val showCategory by showCategoryFlow
         .collectAsStateWithLifecycle(context = UiDispatcher)
@@ -999,8 +1013,19 @@ private fun NoteListScreen(
             }
         },
         topBar = {
-            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+            Column(modifier = Modifier.background(headerContainer)) {
                 TopAppBar(
+                    colors = if (headerContent == null) {
+                        TopAppBarDefaults.topAppBarColors()
+                    } else {
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = headerContainer,
+                            scrolledContainerColor = headerContainer,
+                            navigationIconContentColor = headerContent,
+                            titleContentColor = headerContent,
+                            actionIconContentColor = headerContent
+                        )
+                    },
                     navigationIcon = {
                         if (selectionActive) {
                             IconButton(
@@ -1100,6 +1125,7 @@ private fun NoteListScreen(
                                 // to the field, which would undo the reader leaving search.
                                 onFocusChange = { focused -> if (!focused) searchFocused = false },
                                 onPress = { searchFocused = true },
+                                contentColor = headerContent,
                                 modifier = Modifier.fillMaxWidth().testTag("note-search")
                             )
                         }
@@ -1335,6 +1361,15 @@ private fun NoteListScreen(
                         }
                     }
                 )
+                if (appearance.showListHeader) {
+                    NoteListHeader(
+                        title = NoteListWidgetHeader.title(LocalContext.current, categoryScope),
+                        accountName = account.displayName,
+                        contentColor = headerContent ?: MaterialTheme.colorScheme.onSurface,
+                        secondaryColor =
+                        headerSecondary ?: MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     ) { padding ->
@@ -1386,6 +1421,7 @@ private fun NoteListScreen(
                                 showCategory = showCategory,
                                 showNotePreview = showNotePreview,
                                 compact = compactNoteList,
+                                appearance = appearance,
                                 swipeEnabled = swipeNoteActions,
                                 onClick = {
                                     if (selectionActive) {
@@ -1483,6 +1519,16 @@ private fun NoteListScreen(
                     Button(
                         onClick = {
                             showSettings = false
+                            showAppearance = true
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                            .testTag("open-appearance")
+                    ) {
+                        Text("Appearance")
+                    }
+                    Button(
+                        onClick = {
+                            showSettings = false
                             diagnosticReport = null
                             showDiagnostics = true
                         },
@@ -1500,6 +1546,33 @@ private fun NoteListScreen(
                 ) { Text("Close") }
             },
             modifier = Modifier.testTag("settings-dialog")
+        )
+    }
+    if (showAppearance) {
+        AlertDialog(
+            onDismissRequest = { showAppearance = false },
+            title = { Text("Appearance") },
+            text = {
+                AppAppearanceEditor(
+                    appearance = appearance,
+                    onChange = component.settings::setAppearance,
+                    modifier = Modifier.heightIn(max = 520.dp)
+                        .verticalScroll(rememberScrollState())
+                )
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { component.settings.setAppearance(AppAppearance()) },
+                    modifier = Modifier.testTag("reset-appearance")
+                ) { Text("Reset") }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showAppearance = false },
+                    modifier = Modifier.testTag("close-appearance")
+                ) { Text("Close") }
+            },
+            modifier = Modifier.testTag("appearance-dialog")
         )
     }
     if (showDiagnostics) {
@@ -1746,19 +1819,23 @@ private fun CompactSearchField(
     onSearchScopeChange: (NoteSearchScope) -> Unit,
     onFocusChange: (Boolean) -> Unit,
     onPress: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Content color on a custom header; `null` uses the theme's surface colors. */
+    contentColor: Color? = null
 ) {
     val shape = RoundedCornerShape(20.dp)
     val currentOnPress by rememberUpdatedState(onPress)
     var filterMenuOpen by rememberSaveable { mutableStateOf(false) }
+    val textColor = contentColor ?: MaterialTheme.colorScheme.onSurface
+    val secondaryColor = contentColor?.copy(alpha = 0.75f)
+        ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val accentColor = contentColor ?: MaterialTheme.colorScheme.primary
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
-        textStyle = MaterialTheme.typography.bodyMedium.copy(
-            color = MaterialTheme.colorScheme.onSurface
-        ),
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        textStyle = MaterialTheme.typography.bodyMedium.copy(color = textColor),
+        cursorBrush = SolidColor(accentColor),
         modifier = modifier.onFocusChanged { onFocusChange(it.isFocused) }
             // Reaching for the field opens search even when it already holds the focus that the
             // previous search left behind. The touch is only observed, never taken, so the field
@@ -1770,7 +1847,11 @@ private fun CompactSearchField(
                 }
             }
             .height(40.dp)
-            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+            .border(
+                1.dp,
+                contentColor?.copy(alpha = 0.6f) ?: MaterialTheme.colorScheme.outline,
+                shape
+            )
             .padding(horizontal = 10.dp),
         decorationBox = { innerTextField ->
             Row(
@@ -1781,7 +1862,7 @@ private fun CompactSearchField(
                     Icons.Filled.Search,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = secondaryColor
                 )
                 Box(
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
@@ -1791,7 +1872,7 @@ private fun CompactSearchField(
                         Text(
                             "Search notes",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = secondaryColor
                         )
                     }
                     innerTextField()
@@ -1805,9 +1886,9 @@ private fun CompactSearchField(
                             Icons.Filled.FilterList,
                             contentDescription = "Search filter",
                             tint = if (searchScope == NoteSearchScope.TITLE) {
-                                MaterialTheme.colorScheme.primary
+                                accentColor
                             } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                secondaryColor
                             }
                         )
                     }
@@ -1865,6 +1946,7 @@ private fun NoteListItem(
     showCategory: Boolean,
     showNotePreview: Boolean,
     compact: Boolean,
+    appearance: AppAppearance,
     swipeEnabled: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -1878,22 +1960,42 @@ private fun NoteListItem(
     val previewMaxLines = if (compact) 1 else 2
     val favoriteDescription =
         if (note.favorite) "Remove from favorites" else "Add to favorites"
-    val favoriteTint =
-        if (note.favorite) {
-            MaterialTheme.colorScheme.primary
+    // A selected row keeps the theme's selection color over any custom row color.
+    val customBackground = appearance.noteBackground?.takeUnless { selected }
+    val rowBackground = when {
+        selected -> MaterialTheme.colorScheme.secondaryContainer
+        customBackground != null -> Color(customBackground)
+        else -> MaterialTheme.colorScheme.surface
+    }
+    val rowContent = customBackground?.let { Color(AppearanceColors.contentColor(it)) }
+        ?: if (selected) {
+            MaterialTheme.colorScheme.onSecondaryContainer
         } else {
-            MaterialTheme.colorScheme.outlineVariant
+            MaterialTheme.colorScheme.onSurface
         }
+    val rowSecondary = customBackground?.let {
+        Color(AppearanceColors.secondaryContentColor(it))
+    } ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val favoriteTint = when {
+        customBackground != null ->
+            if (note.favorite) rowContent else rowContent.copy(alpha = 0.35f)
+        note.favorite -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
     val content: @Composable () -> Unit = {
         Row(
-            modifier = Modifier.fillMaxWidth().testTag("note-${note.localId}")
-                .background(
-                    if (selected) {
-                        MaterialTheme.colorScheme.secondaryContainer
+            modifier = Modifier.fillMaxWidth()
+                // Custom-colored rows are separated by a hairline of the list surface.
+                .then(
+                    if (appearance.noteBackground != null) {
+                        Modifier.background(MaterialTheme.colorScheme.surface)
+                            .padding(bottom = 1.dp)
                     } else {
-                        MaterialTheme.colorScheme.surface
+                        Modifier
                     }
                 )
+                .testTag("note-${note.localId}")
+                .background(rowBackground)
                 .semantics { this.selected = selected }
                 .padding(
                     start = 20.dp,
@@ -1903,43 +2005,47 @@ private fun NoteListItem(
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-                    .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                    .padding(vertical = textVerticalPadding)
-            ) {
-                Text(note.title, style = MaterialTheme.typography.titleMedium)
-                if (showCategory) {
-                    Text(
-                        note.category.ifBlank { "Uncategorized" },
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                if (showNotePreview) {
-                    val excerpt = remember(note.excerpt, note.title) {
-                        NoteExcerpt.of(note.excerpt, note.title)
-                    }
-                    if (excerpt.isNotBlank()) {
-                        Text(
-                            excerpt,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = previewMaxLines,
-                            overflow = TextOverflow.Ellipsis
+            CompositionLocalProvider(LocalContentColor provides rowContent) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                        .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                        .padding(vertical = textVerticalPadding)
+                ) {
+                    Text(note.title, style = MaterialTheme.typography.titleMedium)
+                    if (showCategory) {
+                        NoteCategoryLabel(
+                            category = note.category.ifBlank { "Uncategorized" },
+                            highlight = appearance.highlightCategories,
+                            highlightColor = appearance.categoryHighlight,
+                            testTag = "note-category-${note.localId}"
                         )
                     }
+                    if (showNotePreview) {
+                        val excerpt = remember(note.excerpt, note.title) {
+                            NoteExcerpt.of(note.excerpt, note.title)
+                        }
+                        if (excerpt.isNotBlank()) {
+                            Text(
+                                excerpt,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = rowSecondary,
+                                maxLines = previewMaxLines,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
-            }
-            IconButton(
-                onClick = onToggleFavorite,
-                enabled = !selectionActive,
-                modifier = Modifier.testTag("favorite-${note.localId}")
-            ) {
-                Icon(
-                    Icons.Filled.Star,
-                    contentDescription = favoriteDescription,
-                    tint = favoriteTint
-                )
+                IconButton(
+                    onClick = onToggleFavorite,
+                    enabled = !selectionActive,
+                    modifier = Modifier.testTag("favorite-${note.localId}")
+                ) {
+                    Icon(
+                        Icons.Filled.Star,
+                        contentDescription = favoriteDescription,
+                        tint = favoriteTint
+                    )
+                }
             }
         }
     }

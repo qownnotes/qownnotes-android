@@ -19,6 +19,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   color, note-row color, and an optional frame. It applies to the note-list and single-note
   widgets, and text color adapts to the chosen colors for readability (for
   [#15](https://github.com/qownnotes/qownnotes-android/issues/15)).
+- Settings now include an Appearance section for the note list: an optional two-line header with
+  the listed category and account name, header color, note background color, and highlighted
+  category labels with a configurable color (for
+  [#15](https://github.com/qownnotes/qownnotes-android/issues/15)).
 
 ### Changed
 

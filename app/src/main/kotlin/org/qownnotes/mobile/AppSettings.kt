@@ -89,6 +89,42 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableCompactNoteList.value = enabled
     }
 
+    private val mutableAppearance = MutableStateFlow(readAppearance())
+
+    /** Note-list colors and header; custom colors are fixed across light and dark themes. */
+    val appearance: StateFlow<AppAppearance> = mutableAppearance.asStateFlow()
+
+    fun setAppearance(appearance: AppAppearance) {
+        if (appearance == mutableAppearance.value) return
+        preferences.edit().apply {
+            putColor(HEADER_COLOR, appearance.headerColor)
+            putColor(NOTE_BACKGROUND_COLOR, appearance.noteBackground)
+            putBoolean(HIGHLIGHT_CATEGORIES, appearance.highlightCategories)
+            putColor(CATEGORY_HIGHLIGHT_COLOR, appearance.categoryHighlight)
+            putBoolean(SHOW_LIST_HEADER, appearance.showListHeader)
+        }.apply()
+        mutableAppearance.value = appearance
+    }
+
+    private fun readAppearance(): AppAppearance {
+        fun color(key: String): Int? = if (preferences.contains(key)) {
+            AppearanceColors.opaque(preferences.getInt(key, 0))
+        } else {
+            null
+        }
+        return AppAppearance(
+            headerColor = color(HEADER_COLOR),
+            noteBackground = color(NOTE_BACKGROUND_COLOR),
+            highlightCategories = preferences.getBoolean(HIGHLIGHT_CATEGORIES, false),
+            categoryHighlight = color(CATEGORY_HIGHLIGHT_COLOR),
+            showListHeader = preferences.getBoolean(SHOW_LIST_HEADER, false)
+        )
+    }
+
+    private fun android.content.SharedPreferences.Editor.putColor(key: String, color: Int?) {
+        if (color == null) remove(key) else putInt(key, AppearanceColors.opaque(color))
+    }
+
     private val mutableShowCategories = mutableMapOf<String, MutableStateFlow<Boolean>>()
     private val mutableBookmarksPaths = mutableMapOf<String, MutableStateFlow<String>>()
 
@@ -178,6 +214,11 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val SWIPE_NOTE_ACTIONS = "swipeNoteActions"
         const val HIDE_CREATE_BUTTON_ON_SCROLL = "hideCreateButtonOnScroll"
         const val COMPACT_NOTE_LIST = "compactNoteList"
+        const val HEADER_COLOR = "headerColor"
+        const val NOTE_BACKGROUND_COLOR = "noteBackgroundColor"
+        const val HIGHLIGHT_CATEGORIES = "highlightCategories"
+        const val CATEGORY_HIGHLIGHT_COLOR = "categoryHighlightColor"
+        const val SHOW_LIST_HEADER = "showListHeader"
 
         // Legacy global key migrated to existing accounts when the application starts.
         const val SHOW_CATEGORY = "showCategory"
@@ -186,6 +227,21 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val BOOKMARKS_PATH_PREFIX = "bookmarksPath."
     }
 }
+
+/**
+ * Note-list presentation choices. A `null` color follows the Material theme, including dark mode.
+ */
+data class AppAppearance(
+    /** Top bar and optional list header. */
+    val headerColor: Int? = null,
+    /** Unselected note rows. */
+    val noteBackground: Int? = null,
+    /** Draw shown categories as tinted labels instead of plain text. */
+    val highlightCategories: Boolean = false,
+    val categoryHighlight: Int? = null,
+    /** Two-line header below the search bar: listed category, then account name. */
+    val showListHeader: Boolean = false
+)
 
 /** Stable preference encoding of a category scope, shared by app and widget preferences. */
 internal object NoteCategoryScopeCodec {
