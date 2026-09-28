@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
 }
 
@@ -13,7 +12,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    sourceSets { getByName("androidTest").assets.srcDir("$projectDir/schemas") }
+    sourceSets { getByName("androidTest").assets.directories.add("$projectDir/schemas") }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

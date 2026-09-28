@@ -117,7 +117,7 @@ class QOwnNotesDatabaseMigrationTest {
                     id, displayName, serverUrl, ssoAccountName, userId,
                     lastModifiedEpochSeconds
                 ) VALUES (?, ?, ?, ?, ?, ?)""",
-                arrayOf("account", "Account", "https://cloud.example", "sso", "user", 0)
+                arrayOf<Any>("account", "Account", "https://cloud.example", "sso", "user", 0)
             )
             database.execSQL(
                 """INSERT INTO notes (
@@ -152,7 +152,7 @@ class QOwnNotesDatabaseMigrationTest {
                     id, displayName, serverUrl, ssoAccountName, userId,
                     lastModifiedEpochSeconds
                 ) VALUES (?, ?, ?, ?, ?, ?)""",
-                arrayOf("account", "Account", "https://cloud.example", "sso", "user", 0)
+                arrayOf<Any>("account", "Account", "https://cloud.example", "sso", "user", 0)
             )
         }
 
