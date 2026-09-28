@@ -1,0 +1,5 @@
+• Show notes as bordered cards, or switch back to flat rows
+• New Appearance settings for the note list header, colors, and category labels
+• Optional compact note list for the app and widgets
+• Note-list widgets can show all notes, uncategorized notes, or one category
+• Customize widget background, opacity, header and row colors, and frame

@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-28
+
 ### Added
 
 - A "Compact note list" setting reduces row spacing and limits previews to one line in the note
@@ -363,7 +365,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.6.0...v0.7.0
