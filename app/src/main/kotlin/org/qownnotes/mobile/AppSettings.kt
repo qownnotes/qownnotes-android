@@ -102,6 +102,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
             putBoolean(HIGHLIGHT_CATEGORIES, appearance.highlightCategories)
             putColor(CATEGORY_HIGHLIGHT_COLOR, appearance.categoryHighlight)
             putBoolean(SHOW_LIST_HEADER, appearance.showListHeader)
+            putBoolean(NOTE_CARDS, appearance.noteCards)
         }.apply()
         mutableAppearance.value = appearance
     }
@@ -117,7 +118,8 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
             noteBackground = color(NOTE_BACKGROUND_COLOR),
             highlightCategories = preferences.getBoolean(HIGHLIGHT_CATEGORIES, false),
             categoryHighlight = color(CATEGORY_HIGHLIGHT_COLOR),
-            showListHeader = preferences.getBoolean(SHOW_LIST_HEADER, false)
+            showListHeader = preferences.getBoolean(SHOW_LIST_HEADER, false),
+            noteCards = preferences.getBoolean(NOTE_CARDS, true)
         )
     }
 
@@ -219,6 +221,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val HIGHLIGHT_CATEGORIES = "highlightCategories"
         const val CATEGORY_HIGHLIGHT_COLOR = "categoryHighlightColor"
         const val SHOW_LIST_HEADER = "showListHeader"
+        const val NOTE_CARDS = "noteCards"
 
         // Legacy global key migrated to existing accounts when the application starts.
         const val SHOW_CATEGORY = "showCategory"
@@ -240,7 +243,9 @@ data class AppAppearance(
     val highlightCategories: Boolean = false,
     val categoryHighlight: Int? = null,
     /** Two-line header below the search bar: listed category, then account name. */
-    val showListHeader: Boolean = false
+    val showListHeader: Boolean = false,
+    /** Draw each note as a separate rounded card with an outline border. */
+    val noteCards: Boolean = true
 )
 
 /** Stable preference encoding of a category scope, shared by app and widget preferences. */

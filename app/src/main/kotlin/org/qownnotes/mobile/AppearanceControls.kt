@@ -173,6 +173,17 @@ internal fun AppAppearanceEditor(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        SwitchRow(
+            label = "Show notes as cards",
+            checked = appearance.noteCards,
+            onCheckedChange = { onChange(appearance.copy(noteCards = it)) },
+            testTag = "toggle-note-cards"
+        )
+        Text(
+            "Draws a border around each note with a small gap between notes.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         ColorChoice(
             label = "Header color",
             selected = appearance.headerColor,

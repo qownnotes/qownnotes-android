@@ -23,6 +23,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the listed category and account name, header color, note background color, and highlighted
   category labels with a configurable color (for
   [#15](https://github.com/qownnotes/qownnotes-android/issues/15)).
+- The note list now shows each note as a bordered card with a small gap between notes, similar to
+  Nextcloud Notes, and the whole card is the tap target. Turn off "Show notes as cards" in
+  Settings → Appearance to return to flat rows (for
+  [#15](https://github.com/qownnotes/qownnotes-android/issues/15)).
 
 ### Changed
 

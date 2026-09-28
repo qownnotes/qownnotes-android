@@ -1982,12 +1982,23 @@ private fun NoteListItem(
         note.favorite -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outlineVariant
     }
+    // Cards wrap the whole item, including the swipe action background, so swiping reveals the
+    // action inside the card outline.
+    val cardShape = RoundedCornerShape(12.dp)
+    val itemModifier = if (appearance.noteCards) {
+        Modifier.padding(horizontal = 12.dp, vertical = if (compact) 2.dp else 4.dp)
+            .clip(cardShape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, cardShape)
+    } else {
+        Modifier
+    }
     val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier.fillMaxWidth()
-                // Custom-colored rows are separated by a hairline of the list surface.
+                // Custom-colored flat rows are separated by a hairline of the list surface;
+                // cards are separated by their gap instead.
                 .then(
-                    if (appearance.noteBackground != null) {
+                    if (appearance.noteBackground != null && !appearance.noteCards) {
                         Modifier.background(MaterialTheme.colorScheme.surface)
                             .padding(bottom = 1.dp)
                     } else {
@@ -1997,6 +2008,15 @@ private fun NoteListItem(
                 .testTag("note-${note.localId}")
                 .background(rowBackground)
                 .semantics { this.selected = selected }
+                // A card is tappable as a whole so its press ripple follows the card outline; the
+                // favorite button keeps its own click handling.
+                .then(
+                    if (appearance.noteCards) {
+                        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                    } else {
+                        Modifier
+                    }
+                )
                 .padding(
                     start = 20.dp,
                     end = 8.dp,
@@ -2008,7 +2028,16 @@ private fun NoteListItem(
             CompositionLocalProvider(LocalContentColor provides rowContent) {
                 Column(
                     modifier = Modifier.weight(1f)
-                        .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                        .then(
+                            if (appearance.noteCards) {
+                                Modifier
+                            } else {
+                                Modifier.combinedClickable(
+                                    onClick = onClick,
+                                    onLongClick = onLongClick
+                                )
+                            }
+                        )
                         .padding(vertical = textVerticalPadding)
                 ) {
                     Text(note.title, style = MaterialTheme.typography.titleMedium)
@@ -2051,7 +2080,7 @@ private fun NoteListItem(
     }
 
     if (!swipeEnabled || selectionActive) {
-        Box(modifier = Modifier.testTag("swipe-note-${note.localId}")) { content() }
+        Box(modifier = itemModifier.testTag("swipe-note-${note.localId}")) { content() }
         return
     }
 
@@ -2101,7 +2130,7 @@ private fun NoteListItem(
                 Text(actionLabel, modifier = Modifier.padding(start = 8.dp))
             }
         },
-        modifier = Modifier.testTag("swipe-note-${note.localId}"),
+        modifier = itemModifier.testTag("swipe-note-${note.localId}"),
         content = { content() }
     )
 }

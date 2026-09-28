@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.click as touchClick
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -616,7 +617,9 @@ class AppLaunchTest {
                 .assertTextEquals("Uncategorized")
             composeRule.onNodeWithTag("note-list-header-account").assertTextEquals(displayName)
             assertEquals(0xFF1565C0.toInt(), pixel("note-list-header"))
-            assertEquals(0xFF000000.toInt(), pixel("note-$localId"))
+            // Sample the row's start padding: card corners are clipped and outlined.
+            val row = composeRule.onNodeWithTag("note-$localId").captureToImage().asAndroidBitmap()
+            assertEquals(0xFF000000.toInt(), row.getPixel(row.width / 50, row.height / 2))
             assertEquals(
                 0xFFFFB300.toInt(),
                 pixel("note-category-$localId", useUnmergedTree = true)
@@ -634,6 +637,54 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("close-appearance").performClick()
         composeRule.onNodeWithTag("note-list-header").assertDoesNotExist()
         assertEquals(AppAppearance(), application.component.settings.appearance.value)
+    }
+
+    @Test
+    fun notesAreInsetCardsByDefaultAndFlatRowsPersist() {
+        val account = importAccount("alice", "Card note", "etag-a", 10)
+        val localId = runBlocking {
+            application.component.noteRepository.observeNotes(account.localAccountId())
+                .first().single().localId
+        }
+        fun itemBounds() = composeRule.onNodeWithTag("swipe-note-$localId")
+            .fetchSemanticsNode().boundsInRoot
+        fun rowBounds() = composeRule.onNodeWithTag("note-$localId")
+            .fetchSemanticsNode().boundsInRoot
+        val card = itemBounds()
+        assertEquals(card, rowBounds())
+
+        listAction("settings")
+        composeRule.onNodeWithTag("open-appearance").performScrollTo().performClick()
+        composeRule.onNodeWithTag("toggle-note-cards").performClick()
+        composeRule.onNodeWithTag("close-appearance").performClick()
+        composeRule.waitForIdle()
+
+        fun assertFlat() {
+            val flat = itemBounds()
+            assertTrue("flat=$flat, card=$card", card.left > flat.left)
+            assertTrue("flat=$flat, card=$card", card.right < flat.right)
+            assertTrue("flat=$flat, card=$card", card.top > flat.top)
+            assertEquals(flat, rowBounds())
+        }
+        assertFlat()
+
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForText("Card note")
+        assertFlat()
+        assertFalse(application.component.settings.appearance.value.noteCards)
+
+        listAction("settings")
+        composeRule.onNodeWithTag("open-appearance").performScrollTo().performClick()
+        composeRule.onNodeWithTag("reset-appearance").performClick()
+        composeRule.onNodeWithTag("close-appearance").performClick()
+        composeRule.waitForIdle()
+        assertEquals(card, itemBounds())
+
+        // The whole card is the tap target, including its start padding beside the text.
+        composeRule.onNodeWithTag("note-$localId").performTouchInput {
+            touchClick(androidx.compose.ui.geometry.Offset(4f, centerY))
+        }
+        composeRule.onNodeWithTag("markdown-view").assertIsDisplayed()
     }
 
     /** Color near the top-left corner of a node, clear of text glyphs. */
