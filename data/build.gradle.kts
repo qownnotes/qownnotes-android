@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "org.qownnotes.mobile.data"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 28

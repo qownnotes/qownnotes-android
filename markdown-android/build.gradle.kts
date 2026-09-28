@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "org.qownnotes.mobile.markdown"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         minSdk = 28
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

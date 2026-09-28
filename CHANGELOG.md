@@ -11,6 +11,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The app is now built with Gradle 9.8, Android Gradle Plugin 9.4, Kotlin 2.4, and KSP 2.3, using
   the Android Gradle Plugin's built-in Kotlin support.
+- The app is now compiled against Android API 37 so current AndroidX, Compose, and OkHttp releases
+  can be used. The target SDK remains API 36.
 
 ## [0.9.0] - 2026-09-27
 

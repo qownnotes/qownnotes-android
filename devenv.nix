@@ -7,7 +7,9 @@
 
   android = {
     enable = true;
-    platforms.version = [ "36" ];
+    # 37.0 is the compile SDK. 36 provides the emulator system image that
+    # matches targetSdk and the CI device-test job.
+    platforms.version = [ "36" "37.0" ];
     # The first version provides the aapt2 override. AGP 9 release packaging
     # silently omits the manifest and resources with build-tools 35 aapt2.
     buildTools.version = [ "36.0.0" "35.0.0" ];
