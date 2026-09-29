@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
+import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
@@ -31,6 +32,7 @@ import org.qownnotes.mobile.data.MIGRATION_3_4
 import org.qownnotes.mobile.data.MIGRATION_4_5
 import org.qownnotes.mobile.data.MIGRATION_5_6
 import org.qownnotes.mobile.data.MIGRATION_6_7
+import org.qownnotes.mobile.data.MIGRATION_7_8
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 
 class TestQOwnNotesApplication : QOwnNotesApplication() {
@@ -47,8 +49,10 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
                     MIGRATION_3_4,
                     MIGRATION_4_5,
                     MIGRATION_5_6,
-                    MIGRATION_6_7
+                    MIGRATION_6_7,
+                    MIGRATION_7_8
                 )
+                .addCallback(QOwnNotesDatabase.CALLBACK)
                 .allowMainThreadQueries()
                 .build()
         // A dedicated preference file keeps device tests from reading or writing real user
@@ -172,7 +176,8 @@ class FakeAccountImportGateway : AccountImportGateway {
 class FakePullBackend :
     NoteBackend,
     NoteArchiveBackend,
-    NoteSettingsBackend {
+    NoteSettingsBackend,
+    org.qownnotes.mobile.core.NoteTagFileBackend {
     override val capabilities =
         BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
     private val pulls = mutableMapOf<String, ArrayDeque<Result<PullResult>>>()
@@ -192,6 +197,37 @@ class FakePullBackend :
     var updateFailure: Throwable? = null
     var nextCanonicalTitle: String? = null
     val remoteNotes = mutableMapOf<Long, RemoteNote>()
+
+    /** The note folder's `notes.sqlite`; null means the folder has none. */
+    var tagFile: ByteArray? = null
+        set(value) {
+            field = value
+            tagFileVersion++
+        }
+    var tagFileVersion = 0
+        private set
+    val tagFileUploads = mutableListOf<ByteArray>()
+
+    override suspend fun downloadTagFile(
+        account: Account,
+        etag: String?
+    ): org.qownnotes.mobile.core.NoteTagFileDownload {
+        val content = tagFile ?: return org.qownnotes.mobile.core.NoteTagFileDownload.Missing
+        val current = "\"tags-$tagFileVersion\""
+        return if (etag == current) {
+            org.qownnotes.mobile.core.NoteTagFileDownload.NotModified
+        } else {
+            org.qownnotes.mobile.core.NoteTagFileDownload.Downloaded(content.copyOf(), current)
+        }
+    }
+
+    override suspend fun uploadTagFile(account: Account, content: ByteArray, etag: String): String {
+        if (tagFile == null) throw BackendException.RemoteMissing()
+        if (etag != "\"tags-$tagFileVersion\"") throw BackendException.Conflict()
+        tagFileUploads += content.copyOf()
+        tagFile = content.copyOf()
+        return "\"tags-$tagFileVersion\""
+    }
 
     override suspend fun validateAccount(account: Account): String {
         validatedAccountIds += account.id
@@ -310,6 +346,8 @@ class FakePullBackend :
         updateFailure = null
         nextCanonicalTitle = null
         remoteNotes.clear()
+        tagFile = null
+        tagFileUploads.clear()
     }
 
     private fun queue(account: SingleSignOnAccount) =

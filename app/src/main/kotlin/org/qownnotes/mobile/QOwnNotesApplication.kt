@@ -43,6 +43,9 @@ import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
+import org.qownnotes.mobile.core.NoteTagFileBackend
+import org.qownnotes.mobile.core.NoteTagState
+import org.qownnotes.mobile.core.NoteTags
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.SharedText
@@ -60,9 +63,11 @@ import org.qownnotes.mobile.data.MIGRATION_3_4
 import org.qownnotes.mobile.data.MIGRATION_4_5
 import org.qownnotes.mobile.data.MIGRATION_5_6
 import org.qownnotes.mobile.data.MIGRATION_6_7
+import org.qownnotes.mobile.data.MIGRATION_7_8
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 import org.qownnotes.mobile.data.RoomAccountRepository
 import org.qownnotes.mobile.data.RoomNoteRepository
+import org.qownnotes.mobile.data.RoomNoteTagRepository
 import org.qownnotes.mobile.data.RoomPullStore
 import org.qownnotes.mobile.data.RoomPushStore
 import org.qownnotes.mobile.data.RoomSyncDiagnosticRepository
@@ -101,13 +106,16 @@ class ApplicationComponent(
                 MIGRATION_3_4,
                 MIGRATION_4_5,
                 MIGRATION_5_6,
-                MIGRATION_6_7
+                MIGRATION_6_7,
+                MIGRATION_7_8
             )
+            .addCallback(QOwnNotesDatabase.CALLBACK)
             .build(),
     private val backend: NoteBackend = NextcloudBackend(application),
     private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
     private val mediaBackend: NoteMediaBackend? = backend as? NoteMediaBackend,
     private val noteSettingsBackend: NoteSettingsBackend? = backend as? NoteSettingsBackend,
+    private val tagFileBackend: NoteTagFileBackend? = backend as? NoteTagFileBackend,
     val settings: AppSettings = AppSettings(application),
     private val syncScheduler: SyncScheduler = WorkManagerSyncScheduler(application),
     internal val draftCheckpointIntervalMillis: Long = 5_000,
@@ -131,6 +139,10 @@ class ApplicationComponent(
     private val attachmentOpener = AttachmentOpener(application, attachmentHttpClient::fetch)
     private val pullStore = RoomPullStore(database)
     private val pushStore = RoomPushStore(database)
+    private val noteTagRepository = RoomNoteTagRepository(database)
+    private val tagSynchronizer = tagFileBackend?.let {
+        NoteTagSynchronizer(noteTagRepository, it, java.io.File(application.filesDir, "note-tags"))
+    }
     private val syncDiagnosticRepository =
         RoomSyncDiagnosticRepository(database.syncDiagnosticDao())
     private val clock = Clock.systemDefaultZone()
@@ -151,7 +163,8 @@ class ApplicationComponent(
             pushStore,
             backend,
             onNoteFailure = ::recordNoteSyncDiagnostic,
-            onNoteSuccess = ::clearNoteSyncDiagnostic
+            onNoteSuccess = ::clearNoteSyncDiagnostic,
+            synchronizeTags = { account -> tagSynchronizer?.synchronize(account) }
         )
 
     /**
@@ -280,6 +293,7 @@ class ApplicationComponent(
             settings.removeShowCategory(accountId)
             settings.removeNoteCategoryScope(accountId)
             settings.removeBookmarksPath(accountId)
+            tagSynchronizer?.forget(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
             accountAvatars.remove(accountId)
@@ -355,6 +369,9 @@ class ApplicationComponent(
         suspend fun resetCachedCollection() {
             noteRepository.observeNotes(accountId).first().map { it.localId }.also {
                 pullStore.resetCollection(accountId)
+                // Another folder has its own notes.sqlite; tag changes for this one are void.
+                noteTagRepository.reset(accountId)
+                tagSynchronizer?.forget(accountId)
                 editorDrafts.remove(it)
                 it.forEach(editReservations::remove)
                 mutableNoteSyncDiagnostics.update { diagnostics -> diagnostics - it }
@@ -392,6 +409,35 @@ class ApplicationComponent(
     }
 
     suspend fun accountAvatar(account: Account) = accountAvatars.load(account)
+
+    fun observeNoteTags(accountId: String): kotlinx.coroutines.flow.Flow<NoteTagState> =
+        if (tagSynchronizer ==
+            null
+        ) {
+            flowOf(NoteTagState())
+        } else {
+            noteTagRepository.observe(accountId)
+        }
+
+    /**
+     * Adds or removes the tag at [tagPath] on a note. The change is durable immediately and written
+     * to `notes.sqlite` by the next synchronization.
+     */
+    suspend fun setNoteTag(localId: String, tagPath: List<String>, linked: Boolean): Boolean {
+        val note = noteRepository.get(localId) ?: return false
+        // Names of existing tags are passed through unchanged so that they still match.
+        val path = tagPath.takeIf { names ->
+            names.isNotEmpty() && names.all { it.isNotEmpty() && it.none(Char::isISOControl) }
+        } ?: return false
+        val key = NoteTags.keyOf(note)
+        val changed = if (linked) {
+            noteTagRepository.link(note.accountId, key, path)
+        } else {
+            noteTagRepository.unlink(note.accountId, key, path)
+        }
+        if (changed) scheduleSync(note.accountId)
+        return changed
+    }
 
     internal suspend fun openAttachment(
         remoteId: Long,

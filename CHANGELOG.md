@@ -7,6 +7,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Note tags shared with QOwnNotes desktop through the `notes.sqlite` file in the Nextcloud notes
+  folder. The note list shows each note's tags and can filter by one or more tags. A note's
+  "Tags" menu adds and removes existing or new tags, including offline. Changes are merged into
+  the newest server version of the file and never overwrite concurrent desktop changes. Tagging
+  stays off, with an explanation, when the notes folder has no `notes.sqlite`.
+
 ## [0.10.0] - 2026-09-28
 
 ### Added

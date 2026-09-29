@@ -17,5 +17,8 @@ data class NoteListItem(
     override val modifiedAtEpochSeconds: Long,
     val favorite: Boolean,
     val syncState: SyncState,
-    val excerpt: String
+    val excerpt: String,
+    /** The name the server last confirmed, which is what `notes.sqlite` links tags to. */
+    val syncedTitle: String? = null,
+    val syncedCategory: String? = null
 ) : NoteListEntry

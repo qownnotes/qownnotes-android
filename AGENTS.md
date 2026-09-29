@@ -34,6 +34,7 @@ The Gradle modules are declared in [`settings.gradle.kts`](settings.gradle.kts):
 | `data` | Room entities, DAOs, repositories, migrations, pull application, and push result application | `QOwnNotesDatabase.kt`, `Entities.kt`, `RoomNoteRepository.kt`, `RoomAccountRepository.kt`, `RoomPushStore.kt` |
 | `backend-nextcloud` | Nextcloud SSO integration, capability negotiation, Notes API transport, DTOs, and HTTP error classification | `NextcloudBackend.kt` |
 | `markdown-android` | Markwon rendering/editing, Android text widgets, safe images and links, syntax highlighting, selection, search highlights, and edit history | `MarkdownRenderer.kt`, `MarkdownEditor.kt`, `SelectableLinkMovementMethod.kt`, `TextEditHistory.kt` |
+| `notefolder-sqlite` | Validated reading and conservative writing of the QOwnNotes desktop `notes.sqlite` tag tables | `NoteFolderTagDatabase.kt` |
 
 Keep these boundaries intact:
 
@@ -41,7 +42,8 @@ Keep these boundaries intact:
   Retrofit APIs, SSO APIs, or document providers directly.
 - `core` must not depend on Android or backend-specific types. Put reusable policy there.
 - Keep Room details in `data`, Nextcloud protocol details in `backend-nextcloud`, and Android text
-  behavior in `markdown-android`.
+  behavior in `markdown-android`. Only `notefolder-sqlite` opens desktop `notes.sqlite` files, and
+  only as private copies.
 - Prefer constructor injection and the existing `ApplicationComponent`; do not add a DI framework
   without a concrete need.
 
@@ -202,6 +204,7 @@ Test changes at the boundary they affect:
 - `data/src/androidTest`: Room repositories, transactions, and migrations.
 - `markdown-android/src/test`: pure Markdown/editor helpers.
 - `markdown-android/src/androidTest`: Android rendering and editor widgets.
+- `notefolder-sqlite/src/androidTest`: `notes.sqlite` validation and desktop-compatible writes.
 - `app/src/androidTest`: Compose navigation and end-to-end user flows using
   `TestQOwnNotesApplication` and `FakePullBackend`.
 

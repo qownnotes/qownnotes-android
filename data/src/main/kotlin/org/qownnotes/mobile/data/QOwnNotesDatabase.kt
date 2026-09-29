@@ -18,7 +18,8 @@ import org.qownnotes.mobile.core.SyncState
 interface NoteDao {
     @Query(
         "SELECT localId, accountId, remoteId, title, category, modifiedAtEpochSeconds, " +
-            "favorite, syncState, substr(content, 1, 500) AS excerpt " +
+            "favorite, syncState, substr(content, 1, 500) AS excerpt, " +
+            "lastSyncedTitle, lastSyncedCategory " +
             "FROM notes WHERE accountId = :accountId " +
             "AND syncState != 'PENDING_DELETION' " +
             "ORDER BY favorite DESC, modifiedAtEpochSeconds DESC, localId ASC"
@@ -27,7 +28,8 @@ interface NoteDao {
 
     @Query(
         """SELECT localId, accountId, remoteId, title, category, modifiedAtEpochSeconds,
-           favorite, syncState, substr(content, 1, 500) AS excerpt
+           favorite, syncState, substr(content, 1, 500) AS excerpt,
+           lastSyncedTitle, lastSyncedCategory
            FROM notes WHERE accountId = :accountId
            AND syncState != 'PENDING_DELETION' AND
            (:query = '' OR title LIKE '%' || :query || '%' COLLATE NOCASE OR
@@ -274,6 +276,60 @@ interface NoteConflictDao {
     suspend fun delete(localId: String)
 }
 
+@Dao
+interface NoteTagDao {
+    @Query("SELECT * FROM tag_files WHERE accountId = :accountId")
+    fun observeFile(accountId: String): Flow<TagFileEntity?>
+
+    @Query("SELECT * FROM tag_files WHERE accountId = :accountId")
+    suspend fun file(accountId: String): TagFileEntity?
+
+    @Upsert
+    suspend fun upsertFile(file: TagFileEntity)
+
+    @Query("SELECT * FROM note_tags WHERE accountId = :accountId")
+    fun observeTags(accountId: String): Flow<List<NoteTagEntity>>
+
+    @Query("SELECT * FROM note_tags WHERE accountId = :accountId")
+    suspend fun tags(accountId: String): List<NoteTagEntity>
+
+    @Query("SELECT * FROM note_tag_links WHERE accountId = :accountId")
+    fun observeLinks(accountId: String): Flow<List<NoteTagLinkEntity>>
+
+    @Query("SELECT * FROM note_tag_links WHERE accountId = :accountId")
+    suspend fun links(accountId: String): List<NoteTagLinkEntity>
+
+    @Insert(onConflict = androidx.room.OnConflictStrategy.IGNORE)
+    suspend fun insertTags(tags: List<NoteTagEntity>)
+
+    @Insert(onConflict = androidx.room.OnConflictStrategy.IGNORE)
+    suspend fun insertLinks(links: List<NoteTagLinkEntity>)
+
+    @androidx.room.Delete
+    suspend fun deleteLinks(links: List<NoteTagLinkEntity>)
+
+    @Query("DELETE FROM note_tags WHERE accountId = :accountId")
+    suspend fun deleteTags(accountId: String)
+
+    @Query("DELETE FROM note_tag_links WHERE accountId = :accountId")
+    suspend fun deleteLinks(accountId: String)
+
+    @Query("SELECT * FROM pending_tag_operations WHERE accountId = :accountId ORDER BY id")
+    suspend fun pendingOperations(accountId: String): List<PendingTagOperationEntity>
+
+    @Insert
+    suspend fun insertOperation(operation: PendingTagOperationEntity): Long
+
+    @Query("DELETE FROM pending_tag_operations WHERE id IN (:ids)")
+    suspend fun deleteOperations(ids: List<Long>)
+
+    @Query("DELETE FROM pending_tag_operations WHERE accountId = :accountId")
+    suspend fun deleteOperations(accountId: String)
+
+    @Query("DELETE FROM tag_files WHERE accountId = :accountId")
+    suspend fun deleteFile(accountId: String)
+}
+
 class DatabaseConverters {
     @TypeConverter fun syncStateToString(value: SyncState): String = value.name
 
@@ -292,9 +348,13 @@ class DatabaseConverters {
         AccountEntity::class,
         NoteEntity::class,
         SyncDiagnosticEntity::class,
-        NoteConflictEntity::class
+        NoteConflictEntity::class,
+        NoteTagEntity::class,
+        NoteTagLinkEntity::class,
+        PendingTagOperationEntity::class,
+        TagFileEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
@@ -306,6 +366,64 @@ abstract class QOwnNotesDatabase : RoomDatabase() {
     abstract fun syncDiagnosticDao(): SyncDiagnosticDao
 
     abstract fun noteConflictDao(): NoteConflictDao
+
+    abstract fun noteTagDao(): NoteTagDao
+
+    companion object {
+        /**
+         * Keeps tag links attached to a note whose server name changes, whichever code path changes
+         * it. The key is the name the server last confirmed, or the local name before the first
+         * upload. Only notes that have links in the mirror record an operation for `notes.sqlite`.
+         *
+         * Statements in the body avoid conflict clauses because Room updates notes with
+         * `UPDATE OR ABORT`, whose clause would override them.
+         */
+        internal val NOTE_TAG_RELINK_TRIGGER =
+            """CREATE TRIGGER IF NOT EXISTS `note_tag_relink`
+               AFTER UPDATE OF `title`, `category`, `lastSyncedTitle`, `lastSyncedCategory`
+               ON `notes`
+               WHEN (COALESCE(OLD.lastSyncedTitle, OLD.title) IS NOT
+                       COALESCE(NEW.lastSyncedTitle, NEW.title)
+                     OR TRIM(COALESCE(OLD.lastSyncedCategory, OLD.category), '/') IS NOT
+                       TRIM(COALESCE(NEW.lastSyncedCategory, NEW.category), '/'))
+                 AND EXISTS (SELECT 1 FROM `note_tag_links`
+                   WHERE `accountId` = OLD.accountId
+                     AND `fileName` = COALESCE(OLD.lastSyncedTitle, OLD.title)
+                     AND `subFolderPath` = TRIM(COALESCE(OLD.lastSyncedCategory, OLD.category), '/'))
+               BEGIN
+                 INSERT INTO `pending_tag_operations` (`accountId`, `type`, `fileName`,
+                   `subFolderPath`, `targetFileName`, `targetSubFolderPath`, `tagPath`)
+                 VALUES (OLD.accountId, 'RELINK', COALESCE(OLD.lastSyncedTitle, OLD.title),
+                   TRIM(COALESCE(OLD.lastSyncedCategory, OLD.category), '/'),
+                   COALESCE(NEW.lastSyncedTitle, NEW.title),
+                   TRIM(COALESCE(NEW.lastSyncedCategory, NEW.category), '/'), NULL);
+                 INSERT INTO `note_tag_links` (`accountId`, `tagId`, `fileName`,
+                   `subFolderPath`)
+                 SELECT source.accountId, source.tagId, COALESCE(NEW.lastSyncedTitle, NEW.title),
+                   TRIM(COALESCE(NEW.lastSyncedCategory, NEW.category), '/')
+                 FROM `note_tag_links` AS source
+                 WHERE source.accountId = OLD.accountId
+                   AND source.fileName = COALESCE(OLD.lastSyncedTitle, OLD.title)
+                   AND source.subFolderPath =
+                     TRIM(COALESCE(OLD.lastSyncedCategory, OLD.category), '/')
+                   AND NOT EXISTS (SELECT 1 FROM `note_tag_links` AS target
+                     WHERE target.accountId = source.accountId AND target.tagId = source.tagId
+                       AND target.fileName = COALESCE(NEW.lastSyncedTitle, NEW.title)
+                       AND target.subFolderPath =
+                         TRIM(COALESCE(NEW.lastSyncedCategory, NEW.category), '/'));
+                 DELETE FROM `note_tag_links`
+                 WHERE `accountId` = OLD.accountId
+                   AND `fileName` = COALESCE(OLD.lastSyncedTitle, OLD.title)
+                   AND `subFolderPath` = TRIM(COALESCE(OLD.lastSyncedCategory, OLD.category), '/');
+               END"""
+
+        /** Must be added to every builder so that new databases get [NOTE_TAG_RELINK_TRIGGER]. */
+        val CALLBACK = object : Callback() {
+            override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(NOTE_TAG_RELINK_TRIGGER)
+            }
+        }
+    }
 }
 
 val MIGRATION_1_2 =
@@ -410,5 +528,67 @@ val MIGRATION_6_7 =
             )
             db.execSQL("DROP TABLE `note_conflicts`")
             db.execSQL("ALTER TABLE `note_conflicts_new` RENAME TO `note_conflicts`")
+        }
+    }
+
+val MIGRATION_7_8 =
+    object : Migration(7, 8) {
+        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS `note_tags` (
+                    `accountId` TEXT NOT NULL,
+                    `tagId` INTEGER NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `parentId` INTEGER NOT NULL,
+                    `color` TEXT,
+                    `priority` INTEGER NOT NULL,
+                    PRIMARY KEY(`accountId`, `tagId`),
+                    FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )"""
+            )
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS `note_tag_links` (
+                    `accountId` TEXT NOT NULL,
+                    `tagId` INTEGER NOT NULL,
+                    `fileName` TEXT NOT NULL,
+                    `subFolderPath` TEXT NOT NULL,
+                    PRIMARY KEY(`accountId`, `tagId`, `fileName`, `subFolderPath`),
+                    FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )"""
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS " +
+                    "`index_note_tag_links_accountId_fileName_subFolderPath` " +
+                    "ON `note_tag_links` (`accountId`, `fileName`, `subFolderPath`)"
+            )
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS `pending_tag_operations` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `accountId` TEXT NOT NULL,
+                    `type` TEXT NOT NULL,
+                    `fileName` TEXT NOT NULL,
+                    `subFolderPath` TEXT NOT NULL,
+                    `targetFileName` TEXT,
+                    `targetSubFolderPath` TEXT,
+                    `tagPath` TEXT,
+                    FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )"""
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_pending_tag_operations_accountId` " +
+                    "ON `pending_tag_operations` (`accountId`)"
+            )
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS `tag_files` (
+                    `accountId` TEXT NOT NULL,
+                    `availability` TEXT NOT NULL,
+                    `etag` TEXT,
+                    `writable` INTEGER NOT NULL,
+                    `message` TEXT,
+                    PRIMARY KEY(`accountId`),
+                    FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )"""
+            )
+            db.execSQL(QOwnNotesDatabase.NOTE_TAG_RELINK_TRIGGER)
         }
     }

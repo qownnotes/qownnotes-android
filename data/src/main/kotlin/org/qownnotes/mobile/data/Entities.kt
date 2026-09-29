@@ -116,7 +116,9 @@ data class NoteListItemEntity(
     val modifiedAtEpochSeconds: Long,
     val favorite: Boolean,
     val syncState: SyncState,
-    val excerpt: String
+    val excerpt: String,
+    val lastSyncedTitle: String? = null,
+    val lastSyncedCategory: String? = null
 )
 
 data class RemoteNoteReference(
@@ -124,6 +126,91 @@ data class RemoteNoteReference(
     val remoteId: Long,
     val category: String,
     val syncState: SyncState
+)
+
+/** Mirror of a tag in the account's `notes.sqlite`, or a pending local tag with a negative id. */
+@Entity(
+    tableName = "note_tags",
+    primaryKeys = ["accountId", "tagId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class NoteTagEntity(
+    val accountId: String,
+    val tagId: Long,
+    val name: String,
+    val parentId: Long,
+    val color: String?,
+    val priority: Int
+)
+
+@Entity(
+    tableName = "note_tag_links",
+    primaryKeys = ["accountId", "tagId", "fileName", "subFolderPath"],
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["accountId", "fileName", "subFolderPath"])]
+)
+data class NoteTagLinkEntity(
+    val accountId: String,
+    val tagId: Long,
+    val fileName: String,
+    val subFolderPath: String
+)
+
+/** A tag change that still has to be written to `notes.sqlite`, in replay order. */
+@Entity(
+    tableName = "pending_tag_operations",
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("accountId")]
+)
+data class PendingTagOperationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val accountId: String,
+    val type: String,
+    val fileName: String,
+    val subFolderPath: String,
+    val targetFileName: String? = null,
+    val targetSubFolderPath: String? = null,
+    val tagPath: String? = null
+)
+
+@Entity(
+    tableName = "tag_files",
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class TagFileEntity(
+    @PrimaryKey val accountId: String,
+    val availability: String,
+    val etag: String?,
+    val writable: Boolean,
+    val message: String?
 )
 
 fun NoteEntity.toDomain() = Note(
@@ -175,7 +262,9 @@ fun NoteListItemEntity.toDomain() = NoteListItem(
     modifiedAtEpochSeconds = modifiedAtEpochSeconds,
     favorite = favorite,
     syncState = syncState,
-    excerpt = excerpt
+    excerpt = excerpt,
+    syncedTitle = lastSyncedTitle,
+    syncedCategory = lastSyncedCategory
 )
 
 fun SyncDiagnosticEntity.toDomain() = SyncDiagnostic(

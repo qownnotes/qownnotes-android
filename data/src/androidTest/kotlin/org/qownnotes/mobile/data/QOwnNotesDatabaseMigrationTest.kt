@@ -281,6 +281,32 @@ class QOwnNotesDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationSevenToEightAddsTagTablesAndRelinkTrigger() {
+        helper.createDatabase(DATABASE_NAME, 7).use { database ->
+            insertVersionSixConflict(database)
+        }
+
+        helper.runMigrationsAndValidate(DATABASE_NAME, 8, true, MIGRATION_7_8).use { database ->
+            assertConflictSnapshotPreserved(database)
+            database.execSQL(
+                "INSERT INTO note_tag_links (accountId, tagId, fileName, subFolderPath) " +
+                    "VALUES ('account', 1, 'Base', '')"
+            )
+            database.execSQL("UPDATE notes SET lastSyncedTitle = 'Renamed' WHERE localId = 'local'")
+            database.query("SELECT fileName FROM note_tag_links").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("Renamed", cursor.string("fileName"))
+            }
+            database.query("SELECT * FROM pending_tag_operations").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("RELINK", cursor.string("type"))
+                assertEquals("Base", cursor.string("fileName"))
+                assertEquals("Renamed", cursor.string("targetFileName"))
+            }
+        }
+    }
+
     private fun insertVersionSixConflict(database: androidx.sqlite.db.SupportSQLiteDatabase) {
         insertAccountAndNote(database)
         insertConflict(database, includeBase = false)

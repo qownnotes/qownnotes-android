@@ -95,6 +95,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":backend-nextcloud"))
     implementation(project(":markdown-android"))
+    implementation(project(":notefolder-sqlite"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)

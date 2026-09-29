@@ -35,6 +35,8 @@ import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
+import org.qownnotes.mobile.core.NoteTagFileBackend
+import org.qownnotes.mobile.core.NoteTagFileDownload
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
@@ -56,7 +58,8 @@ class NextcloudBackend(context: Context) :
     NoteBackend,
     NoteArchiveBackend,
     NoteMediaBackend,
-    NoteSettingsBackend {
+    NoteSettingsBackend,
+    NoteTagFileBackend {
     private val applicationContext = context.applicationContext
     private val gson = GsonBuilder().create()
 
@@ -132,6 +135,31 @@ class NextcloudBackend(context: Context) :
         try {
             withMediaClient(account, notesPath) { client, endpoint ->
                 uploadImageWithClient(client, endpoint, fileName, mimeType, content)
+            }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun downloadTagFile(account: Account, etag: String?): NoteTagFileDownload =
+        withContext(Dispatchers.IO) {
+            try {
+                withWebDav(account) { client, endpoint ->
+                    downloadTagFileWithClient(client, endpoint, etag)
+                }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun uploadTagFile(
+        account: Account,
+        content: ByteArray,
+        etag: String
+    ): String? = withContext(Dispatchers.IO) {
+        try {
+            withWebDav(account) { client, endpoint ->
+                uploadTagFileWithClient(client, endpoint, content, etag)
             }
         } catch (error: Throwable) {
             throw error.asBackendException()
@@ -233,7 +261,20 @@ class NextcloudBackend(context: Context) :
         account: Account,
         notesPath: String,
         block: (MediaRequestClient, String) -> T
-    ): T {
+    ): T = withNextcloudApi(account) { api ->
+        block(NextcloudMediaRequestClient(api), webDavEndpoint(account, notesPath))
+    }
+
+    /** Resolves the Notes folder and runs [block] with WebDAV access to it in one SSO session. */
+    private fun <T> withWebDav(account: Account, block: (WebDavRequestClient, String) -> T): T =
+        withNextcloudApi(account) { api ->
+            val notesApi =
+                NextcloudRetrofitApiBuilder(api, NOTES_ENDPOINT).create(NotesApi::class.java)
+            val settings = loadSettingsFromApi(notesApi)
+            block(NextcloudWebDavRequestClient(api), webDavEndpoint(account, settings.notesPath))
+        }
+
+    private fun <T> withNextcloudApi(account: Account, block: (NextcloudAPI) -> T): T {
         if (AccountImporter.getAccountForName(applicationContext, account.ssoAccountName) == null) {
             throw BackendException.AccountRemoved()
         }
@@ -244,18 +285,19 @@ class NextcloudBackend(context: Context) :
         }
         val api = NextcloudAPI(applicationContext, ssoAccount, gson)
         return try {
-            val endpoint = buildString {
-                append("/remote.php/dav/files/")
-                append(Uri.encode(account.userId))
-                append('/')
-                notesPath.trim('/').split('/').filter(String::isNotBlank).forEach { segment ->
-                    append(Uri.encode(segment))
-                    append('/')
-                }
-            }
-            block(NextcloudMediaRequestClient(api), endpoint)
+            block(api)
         } finally {
             api.close()
+        }
+    }
+
+    private fun webDavEndpoint(account: Account, notesPath: String): String = buildString {
+        append("/remote.php/dav/files/")
+        append(Uri.encode(account.userId))
+        append('/')
+        notesPath.trim('/').split('/').filter(String::isNotBlank).forEach { segment ->
+            append(Uri.encode(segment))
+            append('/')
         }
     }
 
@@ -787,6 +829,122 @@ internal fun uploadImageWithClient(
         throw backendExceptionForHttpStatus(uploadStatus, NotesHttpException(uploadStatus))
     }
     return fileName
+}
+
+internal class WebDavResponse(val etag: String?, val body: ByteArray?)
+
+/** Thrown by a [WebDavRequestClient] for any non-success HTTP status. */
+internal class WebDavStatusException(val statusCode: Int) :
+    Exception("Nextcloud returned HTTP $statusCode")
+
+internal fun interface WebDavRequestClient {
+    /**
+     * Returns the response of a successful request or throws [WebDavStatusException]. The body is
+     * read up to [maxBodyBytes] and discarded when that is zero.
+     */
+    fun execute(request: NextcloudRequest, maxBodyBytes: Int): WebDavResponse
+}
+
+private class NextcloudWebDavRequestClient(private val api: NextcloudAPI) : WebDavRequestClient {
+    override fun execute(request: NextcloudRequest, maxBodyBytes: Int): WebDavResponse = try {
+        val response = api.performNetworkRequestV2(request)
+        val etag = response.plainHeaders.orEmpty()
+            .firstOrNull { it.name.equals("ETag", ignoreCase = true) }?.value
+            ?: response.plainHeaders.orEmpty()
+                .firstOrNull { it.name.equals("OC-ETag", ignoreCase = true) }?.value
+        val body = response.body?.use { stream ->
+            if (maxBodyBytes > 0) stream.readBounded(maxBodyBytes) else null
+        }
+        WebDavResponse(etag, body)
+    } catch (error: NextcloudHttpRequestFailedException) {
+        throw WebDavStatusException(error.statusCode)
+    }
+}
+
+private fun java.io.InputStream.readBounded(maxBytes: Int): ByteArray {
+    val output = java.io.ByteArrayOutputStream()
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    while (true) {
+        val read = read(buffer)
+        if (read < 0) break
+        output.write(buffer, 0, read)
+        if (output.size() > maxBytes) {
+            throw BackendException.Protocol("notes.sqlite is larger than supported")
+        }
+    }
+    return output.toByteArray()
+}
+
+internal const val TAG_FILE_NAME = "notes.sqlite"
+internal const val MAX_TAG_FILE_BYTES = 32 * 1024 * 1024
+
+internal fun downloadTagFileWithClient(
+    client: WebDavRequestClient,
+    endpoint: String,
+    etag: String?
+): NoteTagFileDownload {
+    val headers = etag?.let { mapOf("If-None-Match" to listOf(it.validatedEtag())) }.orEmpty()
+    val response = try {
+        client.execute(
+            NextcloudRequest.Builder()
+                .setMethod("GET")
+                .setUrl("${endpoint.trimEnd('/')}/$TAG_FILE_NAME")
+                .setHeader(headers)
+                .build(),
+            MAX_TAG_FILE_BYTES
+        )
+    } catch (error: WebDavStatusException) {
+        return when (error.statusCode) {
+            HttpURLConnection.HTTP_NOT_MODIFIED ->
+                if (etag != null) {
+                    NoteTagFileDownload.NotModified
+                } else {
+                    throw BackendException.Protocol("Unexpected HTTP 304 for notes.sqlite")
+                }
+            HttpURLConnection.HTTP_NOT_FOUND -> NoteTagFileDownload.Missing
+            else -> throw backendExceptionForHttpStatus(error.statusCode, error)
+        }
+    }
+    val body = response.body ?: throw BackendException.Protocol("notes.sqlite download was empty")
+    return NoteTagFileDownload.Downloaded(body, response.etag?.takeIf(String::isNotBlank))
+}
+
+internal fun uploadTagFileWithClient(
+    client: WebDavRequestClient,
+    endpoint: String,
+    content: ByteArray,
+    etag: String
+): String? {
+    val response = try {
+        client.execute(
+            NextcloudRequest.Builder()
+                .setMethod("PUT")
+                .setUrl("${endpoint.trimEnd('/')}/$TAG_FILE_NAME")
+                .setHeader(
+                    mapOf(
+                        "Content-Type" to listOf("application/vnd.sqlite3"),
+                        "If-Match" to listOf(etag.validatedEtag())
+                    )
+                )
+                .setRequestBodyAsStream(content.inputStream())
+                .build(),
+            0
+        )
+    } catch (error: WebDavStatusException) {
+        throw when (error.statusCode) {
+            HttpURLConnection.HTTP_PRECON_FAILED -> BackendException.Conflict(error)
+            HttpURLConnection.HTTP_NOT_FOUND -> BackendException.RemoteMissing(error)
+            else -> backendExceptionForHttpStatus(error.statusCode, error)
+        }
+    }
+    return response.etag?.takeIf(String::isNotBlank)
+}
+
+private fun String.validatedEtag(): String {
+    if (isBlank() || any { it == '\r' || it == '\n' }) {
+        throw BackendException.Protocol("Invalid notes.sqlite ETag")
+    }
+    return this
 }
 
 internal interface QOwnNotesApi {

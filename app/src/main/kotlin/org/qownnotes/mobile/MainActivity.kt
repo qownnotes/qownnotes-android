@@ -189,6 +189,10 @@ import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSortOrder
+import org.qownnotes.mobile.core.NoteTag
+import org.qownnotes.mobile.core.NoteTagAvailability
+import org.qownnotes.mobile.core.NoteTagState
+import org.qownnotes.mobile.core.NoteTags
 import org.qownnotes.mobile.core.NoteVersionSnapshot
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.ResolvedNoteLink
@@ -936,8 +940,31 @@ private fun NoteListScreen(
     val bookmarksPathFlow = remember(accountId) { component.settings.bookmarksPath(accountId) }
     val bookmarksPath by bookmarksPathFlow.collectAsStateWithLifecycle(context = UiDispatcher)
     val categories = remember(allNotes) { NoteCategories.selectable(allNotes.orEmpty()) }
-    val visibleNotes = remember(notes, categoryScope) {
-        notes?.filter { NoteCategories.matches(it.category, categoryScope) }
+    val tagStateFlow = remember(accountId) { component.observeNoteTags(accountId) }
+    val tagState by tagStateFlow.collectAsStateWithLifecycle(
+        initialValue = NoteTagState(),
+        context = UiDispatcher
+    )
+    var tagFilter by rememberSaveable(accountId) { mutableStateOf(emptyList<String>()) }
+    var tagFilterOpen by rememberSaveable(accountId) { mutableStateOf(false) }
+    val selectedTagIds = remember(tagState, tagFilter) {
+        NoteTags.withPaths(tagState.tags)
+            .filter { (_, path) -> NoteTags.pathKey(path) in tagFilter }
+            .mapTo(mutableSetOf()) { (tag, _) -> tag.id }
+    }
+    val tagFilterActive = tagFilter.isNotEmpty() &&
+        tagState.availability == NoteTagAvailability.AVAILABLE
+    val visibleNotes = remember(notes, categoryScope, tagState, selectedTagIds, tagFilterActive) {
+        notes?.filter { note ->
+            NoteCategories.matches(note.category, categoryScope) &&
+                (
+                    !tagFilterActive ||
+                        NoteTags.matches(
+                            tagState.tagIdsByNote[NoteTags.keyOf(note)].orEmpty(),
+                            selectedTagIds
+                        )
+                    )
+        }
     }
     val noteListState = key(accountId) { rememberLazyListState() }
     var createButtonVisible by remember(accountId) { mutableStateOf(true) }
@@ -977,6 +1004,13 @@ private fun NoteListScreen(
             categoryScope = NoteCategoryScope.Undefined
             component.settings.setNoteCategoryScope(accountId, categoryScope)
         }
+    }
+    LaunchedEffect(tagState) {
+        // Forget selected tags that no longer exist, so the list cannot stay filtered to nothing.
+        if (tagState.availability != NoteTagAvailability.AVAILABLE) return@LaunchedEffect
+        val existing = NoteTags.withPaths(tagState.tags)
+            .mapTo(mutableSetOf()) { (_, path) -> NoteTags.pathKey(path) }
+        tagFilter = tagFilter.filter { it in existing }
     }
     LaunchedEffect(visibleNotes) {
         val visibleIds = visibleNotes?.mapTo(mutableSetOf()) { it.localId }
@@ -1221,6 +1255,22 @@ private fun NoteListScreen(
                                         },
                                         modifier = Modifier.testTag("category-selector")
                                     )
+                                    if (tagState.availability == NoteTagAvailability.AVAILABLE) {
+                                        DropdownMenuItem(
+                                            text = { Text(tagFilterLabel(tagState, tagFilter)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.FilterList,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                noteListMenuOpen = false
+                                                tagFilterOpen = true
+                                            },
+                                            modifier = Modifier.testTag("tag-filter-selector")
+                                        )
+                                    }
                                     DropdownMenuItem(
                                         text = { Text("Bookmarks") },
                                         leadingIcon = {
@@ -1402,10 +1452,10 @@ private fun NoteListScreen(
                     } else if (visibleNotes.isEmpty()) {
                         item {
                             Text(
-                                if (query.isBlank()) {
-                                    "No notes in this category"
-                                } else {
-                                    "No matching notes"
+                                when {
+                                    query.isNotBlank() -> "No matching notes"
+                                    tagFilterActive -> "No notes with the selected tags"
+                                    else -> "No notes in this category"
                                 },
                                 modifier = Modifier.padding(24.dp),
                                 style = MaterialTheme.typography.titleMedium
@@ -1420,6 +1470,7 @@ private fun NoteListScreen(
                                 selectionActive = selectionActive,
                                 showCategory = showCategory,
                                 showNotePreview = showNotePreview,
+                                tags = tagState.tagsOf(NoteTags.keyOf(note)),
                                 compact = compactNoteList,
                                 appearance = appearance,
                                 swipeEnabled = swipeNoteActions,
@@ -1457,6 +1508,14 @@ private fun NoteListScreen(
                 }
             }
         }
+    }
+    if (tagFilterOpen) {
+        NoteTagFilterDialog(
+            state = tagState,
+            selected = tagFilter,
+            onChange = { tagFilter = it },
+            onDismiss = { tagFilterOpen = false }
+        )
     }
     if (showSettings) {
         AlertDialog(
@@ -1945,6 +2004,7 @@ private fun NoteListItem(
     selectionActive: Boolean,
     showCategory: Boolean,
     showNotePreview: Boolean,
+    tags: List<NoteTag>,
     compact: Boolean,
     appearance: AppAppearance,
     swipeEnabled: Boolean,
@@ -2049,6 +2109,11 @@ private fun NoteListItem(
                             testTag = "note-category-${note.localId}"
                         )
                     }
+                    NoteTagLine(
+                        tags = tags,
+                        testTag = "note-tags-${note.localId}",
+                        color = if (customBackground != null) rowSecondary else null
+                    )
                     if (showNotePreview) {
                         val excerpt = remember(note.excerpt, note.title) {
                             NoteExcerpt.of(note.excerpt, note.title)
@@ -2440,6 +2505,16 @@ private fun NoteDetailScreen(
     }
     var renaming by rememberSaveable(localId) { mutableStateOf(false) }
     var changingCategory by rememberSaveable(localId) { mutableStateOf(false) }
+    var editingTags by rememberSaveable(localId) { mutableStateOf(false) }
+    val noteTagStateFlow = remember(note?.accountId) {
+        note?.accountId?.let(component::observeNoteTags) ?: flowOf(NoteTagState())
+    }
+    val noteTagState by noteTagStateFlow
+        .collectAsStateWithLifecycle(initialValue = NoteTagState(), context = UiDispatcher)
+    val noteTagKey = note?.let(NoteTags::keyOf)
+    val noteTags = remember(noteTagState, noteTagKey) {
+        noteTagKey?.let(noteTagState::tagsOf).orEmpty()
+    }
     var showingInformation by rememberSaveable(localId) { mutableStateOf(false) }
     var noteMenuOpen by rememberSaveable(localId) { mutableStateOf(false) }
     var noteName by rememberSaveable(localId) { mutableStateOf("") }
@@ -2867,6 +2942,19 @@ private fun NoteDetailScreen(
                                             modifier = Modifier.testTag("note-versions")
                                         )
                                     }
+                                    if (
+                                        current != null &&
+                                        noteTagState.availability != NoteTagAvailability.UNKNOWN
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Tags") },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                editingTags = true
+                                            },
+                                            modifier = Modifier.testTag("edit-note-tags")
+                                        )
+                                    }
                                     if (current != null) {
                                         DropdownMenuItem(
                                             text = { Text("Information") },
@@ -3279,6 +3367,11 @@ private fun NoteDetailScreen(
                             closeFind()
                         }
                     )
+                }
+                if (noteTags.isNotEmpty()) {
+                    Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        NoteTagLine(tags = noteTags, testTag = "note-tags")
+                    }
                 }
                 note?.lastSyncError?.let { message ->
                     ExpandableSyncError(
@@ -3708,6 +3801,16 @@ private fun NoteDetailScreen(
                 }
             )
         }
+    }
+    if (editingTags) {
+        NoteTagsDialog(
+            state = noteTagState,
+            noteTagIds = noteTags.mapTo(mutableSetOf(), NoteTag::id),
+            onToggle = { path, linked ->
+                scope.launch { component.setNoteTag(localId, path, linked) }
+            },
+            onDismiss = { editingTags = false }
+        )
     }
     if (showingInformation) {
         note?.let { current ->

@@ -10,7 +10,7 @@ Minimum Android version: Android 9 / API 28
 
 Implemented in the initial Phase 1 foundation:
 
-- Gradle multi-module project with `app`, `core`, `data`, `backend-nextcloud`, and `markdown-android` boundaries.
+- Gradle multi-module project with `app`, `core`, `data`, `backend-nextcloud`, and `markdown-android` boundaries. `notefolder-sqlite` was added later for QOwnNotes note-folder databases.
 - Kotlin/JVM domain models and explicit repository, backend, synchronization, naming, and link-resolver contracts.
 - QOwnNotes-compatible default note naming and creation, including stable local identities and deterministic unit tests.
 - Room account/note schema, exported schema history, DAO, and Room-backed repository.
@@ -52,6 +52,13 @@ responses and remains available offline.
 An offline bookmark browser parses QOwnNotes Desktop-compatible list bookmarks from an
 account-scoped relative Markdown path, `Bookmarks.md` by default. It searches bookmark names, URLs,
 and descriptions, supports AND-style tag filtering, and opens only safe HTTP or HTTPS destinations.
+
+Note tags are read from and written to the QOwnNotes desktop `notes.sqlite` in the Nextcloud notes
+folder (ADR 0006). The note list shows each note's tags and filters by one or more tags with AND
+semantics. The note screen adds and removes existing or new top-level tags offline. Changes are
+replayed on the newest server file and uploaded with `If-Match`. Renaming, deleting, and
+reparenting tags, and editing tag colors and priority, are still open. See "Implemented Note
+Tags" below.
 
 Conflict handling now persists the exact remote version while the note row retains the local and
 common-base versions. The resolution dialog compares all three, supports conservative three-way
@@ -1095,6 +1102,30 @@ The mobile browser sorts by name, searches names, URLs, and descriptions with ca
 tokens, and combines selected tags with AND semantics. Parsing remains Desktop-compatible, while
 opening follows the mobile Markdown safety policy and permits only HTTP and HTTPS URLs with a host.
 The source lookup and displayed content come from Room rather than a direct network request.
+
+### Implemented Note Tags
+
+Tags use the desktop note-folder database rather than a mobile-specific store, so desktop and
+mobile share one set of tags. The decision and its safety rules are in
+[ADR 0006](docs/architecture/0006-note-tags.md).
+
+- `notes.sqlite` is fetched through WebDAV from the Notes API's `notesPath` after every note push,
+  with `If-None-Match`, so an unchanged file costs one small request.
+- The `notefolder-sqlite` module validates the file before using it: SQLite header, rollback
+  journal rather than WAL, `quick_check`, required columns, and a database version of at least 15.
+  Only versions 15 and 16 are writable; newer files are shown read-only.
+- Tags and links are mirrored into Room with pending operations applied. Link, unlink, and relink
+  operations are replayed on the newest file and uploaded with `If-Match`, and a 412 response
+  leads to another download and replay.
+- A note's tag key is its last server-confirmed file name and category. A Room trigger relinks
+  tags whenever that key changes, whether through a local rename, a canonical server name, a
+  conflict resolution, or a rename pulled from another client.
+- A missing file disables tagging with an explanation. The app never creates `notes.sqlite`.
+- Deleting a note leaves its links for the desktop's 10-day stale-link cleanup, so a note restored
+  from the trash keeps its tags.
+- Open: tag management (rename, delete, reparent, colors, priority), selecting a hierarchical
+  parent when creating a tag, and a real-server check against a desktop-generated file while the
+  desktop is running.
 
 ### Phase 6: Local-Only Folder Backend
 

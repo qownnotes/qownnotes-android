@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Decision
 
-Keep portable models and policies in `core`. Keep Room in `data`, Nextcloud integration in `backend-nextcloud`, Android Markdown widgets in `markdown-android`, and composition/UI in `app`.
+Keep portable models and policies in `core`. Keep Room in `data`, Nextcloud integration in `backend-nextcloud`, Android Markdown widgets in `markdown-android`, QOwnNotes desktop `notes.sqlite` access in `notefolder-sqlite`, and composition/UI in `app`.
 
 The UI depends on `core` contracts and does not call Room, HTTP clients, SSO APIs, or document providers directly. Constructor injection through a small application component is preferred over an Android-specific dependency injection framework until the object graph requires one.
 

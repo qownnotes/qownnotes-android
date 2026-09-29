@@ -16,4 +16,11 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "QOwnNotesMobile"
-include(":app", ":core", ":data", ":backend-nextcloud", ":markdown-android")
+include(
+    ":app",
+    ":core",
+    ":data",
+    ":backend-nextcloud",
+    ":markdown-android",
+    ":notefolder-sqlite"
+)

@@ -21,7 +21,9 @@ internal class AccountSyncCoordinator(
     private val pushStore: PushStore,
     private val backend: NoteBackend,
     private val onNoteFailure: suspend (String, Throwable) -> Unit,
-    private val onNoteSuccess: suspend (String) -> Unit
+    private val onNoteSuccess: suspend (String) -> Unit,
+    /** Runs after notes were pushed, so tag operations refer to the names the server confirmed. */
+    private val synchronizeTags: suspend (Account) -> Unit = {}
 ) : SyncCoordinator {
     override suspend fun synchronize(accountId: String): SyncOutcome {
         var account = accountRepository.get(accountId) ?: return SyncOutcome.Success
@@ -36,7 +38,9 @@ internal class AccountSyncCoordinator(
                 )
             pullStore.applyPull(accountId, result)
             pushPendingDeletions(account)
-            pushPending(account)?.also { outcome ->
+            val issue = pushPending(account)
+            synchronizeTags(account)
+            issue?.also { outcome ->
                 accountRepository.updateSyncError(
                     accountId,
                     outcome.error.message ?: "Synchronization needs attention"
