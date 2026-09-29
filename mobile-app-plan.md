@@ -305,6 +305,7 @@ Notes grow long, and the note list search only says which note contains a word, 
 - Report the position in the matches, such as `2 of 7`, and say when there are none.
 - Move to the next and previous match and wrap around at both ends.
 - Leave the note untouched: finding text may only add and remove its own spans.
+- Carry an active note-list search into a note opened from the list: the find bar opens with the trimmed search text and scrolls to the first match, but does not take focus or raise the keyboard. Notes opened any other way, such as through links, history, widgets, or shares, open without a find query.
 
 ### Editing Mode
 

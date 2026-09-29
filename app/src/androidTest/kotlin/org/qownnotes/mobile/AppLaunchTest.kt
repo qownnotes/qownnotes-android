@@ -10,9 +10,11 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click as touchClick
@@ -2368,6 +2370,39 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("find-next").assertIsNotEnabled()
 
         composeRule.onNodeWithTag("close-find").performClick()
+        composeRule.onNodeWithTag("note-find-field").assertDoesNotExist()
+    }
+
+    @Test
+    fun noteOpenedFromAnActiveSearchFindsTheSearchTextWithoutTakingFocus() {
+        importAccount(
+            "alice",
+            "Recipe",
+            "etag-1",
+            10,
+            "# Recipe\n\nAdd salt, then more salt.\n"
+        )
+        composeRule.onNodeWithTag("note-search").performTextInput("  SALT ")
+        composeRule.waitForTag("clear-note-search")
+        composeRule.onNodeWithText("Recipe").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        composeRule.onNodeWithTag("note-find-field").assertTextContains("SALT")
+        composeRule.waitForText("1 of 2")
+        // The keyboard must not cover the note merely because it was opened from a search.
+        composeRule.onNodeWithTag("note-find-field").assertIsNotFocused()
+        composeRule.onNodeWithTag("find-next").performClick()
+        composeRule.onNodeWithText("2 of 2").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("close-find").performClick()
+        composeRule.onNodeWithTag("note-find-field").assertDoesNotExist()
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+
+        // Without a search, a note opens without finding anything.
+        composeRule.waitForTag("clear-note-search")
+        composeRule.onNodeWithTag("clear-note-search").performClick()
+        composeRule.onNodeWithText("Recipe").performClick()
+        composeRule.waitForTag("markdown-view")
         composeRule.onNodeWithTag("note-find-field").assertDoesNotExist()
     }
 

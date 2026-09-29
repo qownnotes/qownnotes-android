@@ -14,6 +14,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   "Tags" menu adds and removes existing or new tags, including offline. Changes are merged into
   the newest server version of the file and never overwrite concurrent desktop changes. Tagging
   stays off, with an explanation, when the notes folder has no `notes.sqlite`.
+- Opening a note while the note list search is active now opens "Find in note" with the same
+  text, highlighting the matches and scrolling to the first one without showing the keyboard.
 
 ## [0.10.0] - 2026-09-28
 

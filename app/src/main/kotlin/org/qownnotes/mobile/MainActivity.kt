@@ -378,6 +378,9 @@ private fun NotesNavigation(
     var selectedHeading by rememberSaveable { mutableStateOf<String?>(null) }
     var editOnOpenNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var navigationRequest by rememberSaveable { mutableStateOf(0) }
+    // The note-list search that was active when a note was opened from the list, so the opened
+    // note starts by finding the same text. Every other way of opening a note clears it.
+    var findOnOpen by rememberSaveable { mutableStateOf<String?>(null) }
     var noteHistory by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var managingAccounts by rememberSaveable { mutableStateOf(false) }
     var browsingBookmarks by rememberSaveable { mutableStateOf(false) }
@@ -400,6 +403,7 @@ private fun NotesNavigation(
         noteHistory = noteHistory.dropLast(1)
         selectedHeading = null
         editOnOpenNoteId = null
+        findOnOpen = null
         navigationRequest++
     }
     BackHandler(enabled = managingAccounts && selectedNoteId == null) {
@@ -431,6 +435,7 @@ private fun NotesNavigation(
             noteHistory = emptyList()
             selectedNoteId = note.localId
             selectedHeading = null
+            findOnOpen = null
             navigationRequest++
         }
     }
@@ -451,6 +456,7 @@ private fun NotesNavigation(
                     selectedNoteId = request.localId
                     selectedHeading = null
                     editOnOpenNoteId = null
+                    findOnOpen = null
                     navigationRequest++
                 }
                 is WidgetRequest.CreateNote -> {
@@ -464,6 +470,7 @@ private fun NotesNavigation(
                     selectedNoteId = note.localId
                     selectedHeading = null
                     editOnOpenNoteId = note.localId
+                    findOnOpen = null
                     navigationRequest++
                 }
             }
@@ -480,11 +487,13 @@ private fun NotesNavigation(
                 heading = selectedHeading,
                 startEditing = editOnOpenNoteId == noteId,
                 navigationRequest = navigationRequest,
+                initialFindQuery = findOnOpen,
                 onInitialEditStarted = { editOnOpenNoteId = null },
                 onBackToList = {
                     selectedNoteId = null
                     selectedHeading = null
                     editOnOpenNoteId = null
+                    findOnOpen = null
                     noteHistory = emptyList()
                 },
                 onOpen = { destination ->
@@ -492,6 +501,7 @@ private fun NotesNavigation(
                     selectedNoteId = destination.localId
                     selectedHeading = destination.heading
                     editOnOpenNoteId = null
+                    findOnOpen = null
                     navigationRequest++
                 }
             )
@@ -523,6 +533,7 @@ private fun NotesNavigation(
                         selectedNoteId = localId
                         selectedHeading = null
                         editOnOpenNoteId = null
+                        findOnOpen = null
                         navigationRequest++
                     }
                 )
@@ -551,14 +562,16 @@ private fun NotesNavigation(
                         selectedNoteId = note.localId
                         selectedHeading = null
                         editOnOpenNoteId = note.localId
+                        findOnOpen = null
                         navigationRequest++
                     }
                 },
-                onOpen = {
+                onOpen = { localId, searchText ->
                     noteHistory = emptyList()
-                    selectedNoteId = it
+                    selectedNoteId = localId
                     selectedHeading = null
                     editOnOpenNoteId = null
+                    findOnOpen = searchText
                     navigationRequest++
                 }
             )
@@ -854,7 +867,8 @@ private fun NoteListScreen(
     onManageAccounts: () -> Unit,
     onOpenBookmarks: () -> Unit,
     onCreate: (String, String, String?) -> Unit,
-    onOpen: (String) -> Unit
+    /** Opens a note with the active search text, if any, so the note can find it too. */
+    onOpen: (String, String?) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var searchScope by rememberSaveable { mutableStateOf(NoteSearchScope.TITLE_AND_CONTENT) }
@@ -1483,7 +1497,10 @@ private fun NoteListScreen(
                                                 selectedNoteIds + note.localId
                                             }
                                     } else {
-                                        onOpen(note.localId)
+                                        onOpen(
+                                            note.localId,
+                                            query.trim().takeIf(String::isNotEmpty)
+                                        )
                                     }
                                 },
                                 onLongClick = {
@@ -2465,6 +2482,7 @@ private fun NoteDetailScreen(
     heading: String?,
     startEditing: Boolean,
     navigationRequest: Int,
+    initialFindQuery: String?,
     onInitialEditStarted: () -> Unit,
     onBackToList: () -> Unit,
     onOpen: (ResolvedNoteLink) -> Unit
@@ -2569,14 +2587,21 @@ private fun NoteDetailScreen(
     var canRedo by remember(localId) { mutableStateOf(false) }
     var pendingHeading by remember(localId, heading, navigationRequest) { mutableStateOf(heading) }
     var loadImages by remember(localId) { mutableStateOf(true) }
-    var finding by rememberSaveable(localId) { mutableStateOf(false) }
+    // A note opened from an active note-list search starts by finding that text, so the matches
+    // that made the note appear in the list are highlighted and the first one is scrolled to.
+    var finding by rememberSaveable(localId) { mutableStateOf(initialFindQuery != null) }
     var togglingTask by remember(localId) { mutableStateOf(false) }
-    var findQuery by rememberSaveable(localId) { mutableStateOf("") }
+    var findQuery by rememberSaveable(localId) { mutableStateOf(initialFindQuery.orEmpty()) }
+    // Find opened for the list search was not a request to type, so it must not raise the keyboard.
+    var findFromListSearch by rememberSaveable(localId) {
+        mutableStateOf(initialFindQuery != null)
+    }
     var currentMatch by rememberSaveable(localId) { mutableStateOf(0) }
     var matches by remember(localId) { mutableStateOf(emptyList<IntRange>()) }
     val closeFind = {
         finding = false
         findQuery = ""
+        findFromListSearch = false
         currentMatch = 0
         if (editing) editor?.focusForInput()
         Unit
@@ -3136,7 +3161,8 @@ private fun NoteDetailScreen(
                                 currentMatch = (currentMatch + 1) % matches.size
                             }
                         },
-                        onClose = closeFind
+                        onClose = closeFind,
+                        focusOnOpen = !findFromListSearch
                     )
                 } else {
                     Row(
@@ -3365,7 +3391,8 @@ private fun NoteDetailScreen(
                         },
                         onClose = {
                             closeFind()
-                        }
+                        },
+                        focusOnOpen = !findFromListSearch
                     )
                 }
                 if (noteTags.isNotEmpty()) {
@@ -4281,11 +4308,12 @@ private fun FindInNoteBar(
     onQueryChange: (String) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    focusOnOpen: Boolean = true
 ) {
     val focusRequester = remember { FocusRequester() }
     // Opening the bar is a request to type, so take the focus instead of asking for a second tap.
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(Unit) { if (focusOnOpen) focusRequester.requestFocus() }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
