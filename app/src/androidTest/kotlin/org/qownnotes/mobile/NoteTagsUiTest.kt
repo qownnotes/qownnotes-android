@@ -46,7 +46,9 @@ class NoteTagsUiTest {
         application.fakeBackend.tagFile = desktopTagFile()
         importAccount()
 
-        composeRule.waitForTag("note-tags-$meetingLocalId")
+        // Card rows merge their content into one clickable node, so the tag line's own test tag
+        // only exists in the unmerged tree.
+        composeRule.waitForTag("note-tags-$meetingLocalId", useUnmergedTree = true)
         composeRule.waitForText("#Work")
         composeRule.onNodeWithText("Groceries").assertExists()
 
@@ -82,16 +84,31 @@ class NoteTagsUiTest {
         composeRule.waitForTag("note-tags")
         composeRule.waitForText("#Shopping  #Work")
 
-        composeRule.waitUntil(15_000) { application.fakeBackend.tagFileUploads.isNotEmpty() }
-        val uploaded = File(composeRule.activity.cacheDir, "uploaded-notes.sqlite")
-        uploaded.writeBytes(application.fakeBackend.tagFileUploads.last())
-        val snapshot = NoteFolderTagDatabase.read(uploaded).snapshot
-        val groceries = NoteTagKey("Groceries", "")
-        val linked = snapshot.links.filter { it.key == groceries }.map { link ->
-            snapshot.tags.single { it.id == link.tagId }.name
+        // Each change is synchronized on its own, so an upload with only the first link may
+        // arrive before the one that carries both.
+        val expected = listOf("Work", "Shopping")
+        composeRule.waitUntil(15_000) {
+            latestUploadedTags(NoteTagKey("Groceries", ""))?.containsAll(expected) == true
         }
-        assertTrue(linked.containsAll(listOf("Work", "Shopping")))
-        uploaded.delete()
+        assertTrue(latestUploadedTags(NoteTagKey("Groceries", ""))!!.containsAll(expected))
+    }
+
+    /** Tag names linked to [key] in the most recently uploaded `notes.sqlite`, if any. */
+    private fun latestUploadedTags(key: NoteTagKey): List<String>? {
+        // Synchronization records uploads on the main thread.
+        val content = composeRule.runOnUiThread {
+            application.fakeBackend.tagFileUploads.lastOrNull()
+        } ?: return null
+        val uploaded = File(composeRule.activity.cacheDir, "uploaded-notes.sqlite")
+        return try {
+            uploaded.writeBytes(content)
+            val snapshot = NoteFolderTagDatabase.read(uploaded).snapshot
+            snapshot.links.filter { it.key == key }.map { link ->
+                snapshot.tags.single { it.id == link.tagId }.name
+            }
+        } finally {
+            uploaded.delete()
+        }
     }
 
     @Test
@@ -141,9 +158,12 @@ class NoteTagsUiTest {
 
     private var meetingLocalId = ""
 
-    private fun AndroidComposeTestRule<*, *>.waitForTag(tag: String) {
+    private fun AndroidComposeTestRule<*, *>.waitForTag(
+        tag: String,
+        useUnmergedTree: Boolean = false
+    ) {
         waitUntil(timeoutMillis = 10_000) {
-            onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+            onAllNodesWithTag(tag, useUnmergedTree).fetchSemanticsNodes().isNotEmpty()
         }
     }
 

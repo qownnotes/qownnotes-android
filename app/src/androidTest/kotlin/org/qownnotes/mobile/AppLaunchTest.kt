@@ -648,8 +648,12 @@ class AppLaunchTest {
             application.component.noteRepository.observeNotes(account.localAccountId())
                 .first().single().localId
         }
-        fun itemBounds() = composeRule.onNodeWithTag("swipe-note-$localId")
-            .fetchSemanticsNode().boundsInRoot
+        fun itemBounds(): androidx.compose.ui.geometry.Rect {
+            // The taller "Refreshing" status of a running synchronization moves the list down.
+            composeRule.waitForText("Available offline")
+            return composeRule.onNodeWithTag("swipe-note-$localId")
+                .fetchSemanticsNode().boundsInRoot
+        }
         fun rowBounds() = composeRule.onNodeWithTag("note-$localId")
             .fetchSemanticsNode().boundsInRoot
         val card = itemBounds()
@@ -892,7 +896,11 @@ class AppLaunchTest {
                 it.notesPath == "Work/Notes" && it.fileSuffix == ".txt"
             } == true
         }
-        composeRule.onNodeWithTag("account-settings-dialog").assertDoesNotExist()
+        // The dialog closes only after the refresh that follows the settings update.
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("account-settings-dialog").fetchSemanticsNodes()
+                .isEmpty()
+        }
 
         composeRule.onNodeWithTag("remove-account-$aliceId").performClick()
         composeRule.onNodeWithText("server notes will not be deleted", substring = true)
