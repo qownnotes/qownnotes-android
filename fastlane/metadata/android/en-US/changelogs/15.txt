@@ -1,0 +1,5 @@
+• Tags shared with QOwnNotes desktop: view, filter by, add, and remove note tags
+• Create Nextcloud Deck cards from the editor and open card links in the Deck app
+• Optional setting to ask for the name of new notes
+• Opening a note from a search highlights the matches in the note
+• Switch accounts directly from the account menu
