@@ -64,10 +64,21 @@ class NoteFactory(
     fun create(accountId: String, category: String = ""): Note =
         create(accountId, namingPolicy.createName(), body = "", category)
 
+    /**
+     * The name [create] would give a note now, or the sanitized search text when that is usable,
+     * which is the name [createFromSearch] would give it. Offered when asking for a new note's name.
+     */
+    fun defaultName(query: String? = null): String =
+        query?.let(NoteNames::sanitize)?.takeIf(String::isNotEmpty) ?: namingPolicy.createName()
+
     /** Uses the search text as the new note's name in the currently selected category. */
-    fun createFromSearch(accountId: String, query: String, category: String = ""): Note {
-        val title = NoteNames.sanitize(query)
-        require(title.isNotEmpty()) { "Search text must contain a usable note name" }
+    fun createFromSearch(accountId: String, query: String, category: String = ""): Note =
+        createNamed(accountId, query, category)
+
+    /** Creates an empty note with the given name, sanitized so a file can carry it. */
+    fun createNamed(accountId: String, name: String, category: String = ""): Note {
+        val title = NoteNames.sanitize(name)
+        require(title.isNotEmpty()) { "Name must contain a usable note name" }
         return create(accountId, title, body = "", category)
     }
 

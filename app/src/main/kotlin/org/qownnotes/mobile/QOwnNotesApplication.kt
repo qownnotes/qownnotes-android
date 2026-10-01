@@ -448,8 +448,12 @@ class ApplicationComponent(
     suspend fun createNote(accountId: String, category: String = ""): Note =
         persistNewNote(noteFactory.create(accountId, category))
 
-    suspend fun createNoteFromSearch(accountId: String, query: String, category: String): Note =
-        persistNewNote(noteFactory.createFromSearch(accountId, query, category))
+    /** The name a new note would get now, from the search text when it holds a usable name. */
+    fun defaultNoteName(searchText: String? = null): String = noteFactory.defaultName(searchText)
+
+    /** Creates a note named by the search text or by the name the user was asked for. */
+    suspend fun createNamedNote(accountId: String, name: String, category: String): Note =
+        persistNewNote(noteFactory.createNamed(accountId, name, category))
 
     /** Creates the note that text shared by another application is put into. */
     suspend fun createSharedNote(accountId: String, shared: SharedText): Note =

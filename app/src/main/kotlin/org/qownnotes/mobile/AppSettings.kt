@@ -77,6 +77,21 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableHideCreateButtonOnScroll.value = enabled
     }
 
+    private val mutableAskForNewNoteName =
+        MutableStateFlow(preferences.getBoolean(ASK_FOR_NEW_NOTE_NAME, false))
+
+    /**
+     * Whether the note list's create button first asks for the new note's name, offering the
+     * name the note would otherwise have been given.
+     */
+    val askForNewNoteName: StateFlow<Boolean> = mutableAskForNewNoteName.asStateFlow()
+
+    fun setAskForNewNoteName(enabled: Boolean) {
+        if (enabled == mutableAskForNewNoteName.value) return
+        preferences.edit().putBoolean(ASK_FOR_NEW_NOTE_NAME, enabled).apply()
+        mutableAskForNewNoteName.value = enabled
+    }
+
     private val mutableCompactNoteList =
         MutableStateFlow(preferences.getBoolean(COMPACT_NOTE_LIST, false))
 
@@ -215,6 +230,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val SHOW_NOTE_PREVIEW = "showNotePreview"
         const val SWIPE_NOTE_ACTIONS = "swipeNoteActions"
         const val HIDE_CREATE_BUTTON_ON_SCROLL = "hideCreateButtonOnScroll"
+        const val ASK_FOR_NEW_NOTE_NAME = "askForNewNoteName"
         const val COMPACT_NOTE_LIST = "compactNoteList"
         const val HEADER_COLOR = "headerColor"
         const val NOTE_BACKGROUND_COLOR = "noteBackgroundColor"

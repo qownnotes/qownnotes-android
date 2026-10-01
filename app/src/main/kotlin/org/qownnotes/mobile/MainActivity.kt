@@ -51,6 +51,8 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -155,6 +157,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -551,12 +554,12 @@ private fun NotesNavigation(
                 onReconnectAccount = onReconnectAccount,
                 onManageAccounts = { managingAccounts = true },
                 onOpenBookmarks = { browsingBookmarks = true },
-                onCreate = { accountId, category, searchText ->
+                onCreate = { accountId, category, name ->
                     scope.launch {
-                        val note = if (searchText == null) {
+                        val note = if (name == null) {
                             component.createNote(accountId, category)
                         } else {
-                            component.createNoteFromSearch(accountId, searchText, category)
+                            component.createNamedNote(accountId, name, category)
                         }
                         noteHistory = emptyList()
                         selectedNoteId = note.localId
@@ -866,6 +869,7 @@ private fun NoteListScreen(
     onReconnectAccount: (String) -> Unit,
     onManageAccounts: () -> Unit,
     onOpenBookmarks: () -> Unit,
+    /** Creates a note in an account and category, with the given name or an automatic one. */
     onCreate: (String, String, String?) -> Unit,
     /** Opens a note with the active search text, if any, so the note can find it too. */
     onOpen: (String, String?) -> Unit
@@ -939,6 +943,12 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val compactNoteList by component.settings.compactNoteList
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val askForNewNoteName by component.settings.askForNewNoteName
+        .collectAsStateWithLifecycle(context = UiDispatcher)
+    // Visibility is kept apart from the name because the field may report a last value change
+    // while the dialog closes, which must not reopen it.
+    var namingNewNote by rememberSaveable(accountId) { mutableStateOf(false) }
+    var newNoteName by rememberSaveable(accountId) { mutableStateOf("") }
     val appearance by component.settings.appearance
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val headerContainer =
@@ -1005,9 +1015,19 @@ private fun NoteListScreen(
             previousOffset = offset
         }
     }
-    val createNote = {
+    val createNamedNote = { name: String? ->
         val category = (categoryScope as? NoteCategoryScope.Category)?.value.orEmpty()
-        onCreate(accountId, category, query.takeIf(NoteNames::isValid))
+        onCreate(accountId, category, name)
+    }
+    val createNote = {
+        val searchName = query.takeIf(NoteNames::isValid)
+        if (askForNewNoteName) {
+            // Offer the name the note would have been given without asking.
+            newNoteName = component.defaultNoteName(searchName)
+            namingNewNote = true
+        } else {
+            createNamedNote(searchName)
+        }
     }
 
     LaunchedEffect(accountId) { withContext(UiDispatcher) { component.refresh(accountId) } }
@@ -1534,6 +1554,17 @@ private fun NoteListScreen(
             onDismiss = { tagFilterOpen = false }
         )
     }
+    if (namingNewNote) {
+        NewNoteNameDialog(
+            name = newNoteName,
+            onNameChange = { newNoteName = it },
+            onDismiss = { namingNewNote = false },
+            onConfirm = {
+                namingNewNote = false
+                createNamedNote(newNoteName)
+            }
+        )
+    }
     if (showSettings) {
         AlertDialog(
             onDismissRequest = { showSettings = false },
@@ -1575,6 +1606,13 @@ private fun NoteListScreen(
                         checked = hideCreateButtonOnScroll,
                         onCheckedChange = component.settings::setHideCreateButtonOnScroll,
                         testTag = "toggle-hide-create-button-on-scroll"
+                    )
+                    SettingsCheckbox(
+                        label = "Ask for name of new notes",
+                        description = "Suggest the automatic name and let you change it.",
+                        checked = askForNewNoteName,
+                        onCheckedChange = component.settings::setAskForNewNoteName,
+                        testTag = "toggle-ask-for-new-note-name"
                     )
                     OutlinedTextField(
                         value = bookmarksPath,
@@ -4082,6 +4120,64 @@ private fun RenameNoteDialog(
             ) { Text("Rename") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
+/** Asks for a new note's name, starting from the name it would otherwise have been given. */
+@Composable
+private fun NewNoteNameDialog(
+    name: String,
+    onNameChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+    // The suggested name is selected, so typing replaces it and accepting keeps it.
+    var fieldValue by remember {
+        mutableStateOf(TextFieldValue(name, selection = TextRange(0, name.length)))
+    }
+    // Focus is taken once the field is placed in the dialog's window, as in RenameNoteDialog.
+    var fieldPlaced by remember { mutableStateOf(false) }
+    LaunchedEffect(fieldPlaced) {
+        if (fieldPlaced) focusRequester.requestFocus()
+    }
+    val valid = NoteNames.isValid(name)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("New note") },
+        text = {
+            OutlinedTextField(
+                value = fieldValue,
+                onValueChange = {
+                    fieldValue = it
+                    onNameChange(it.text)
+                },
+                label = { Text("Note name") },
+                singleLine = true,
+                supportingText = {
+                    Text("Characters a file name cannot hold are replaced by spaces.")
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { if (valid) onConfirm() }),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
+                    .onPlaced { fieldPlaced = true }
+                    .testTag("new-note-name-field")
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = valid,
+                modifier = Modifier.testTag("confirm-new-note")
+            ) { Text("Create") }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("cancel-new-note")
+            ) { Text("Cancel") }
+        },
+        modifier = Modifier.testTag("new-note-name-dialog")
     )
 }
 

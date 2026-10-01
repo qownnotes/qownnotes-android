@@ -1211,6 +1211,40 @@ class AppLaunchTest {
     }
 
     @Test
+    fun askingForANewNoteNameSuggestsTheAutomaticNameAndUsesTheChosenOne() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-ask-for-new-note-name").performScrollTo().assertIsOff()
+            .performClick()
+        composeRule.onNodeWithTag("toggle-ask-for-new-note-name").assertIsOn()
+        composeRule.onNodeWithTag("close-settings").performClick()
+
+        composeRule.onNodeWithTag("create-note").performClick()
+        composeRule.waitForTag("new-note-name-field")
+        composeRule.onNodeWithTag(
+            "new-note-name-field"
+        ).assertTextContains("Note ", substring = true)
+        composeRule.onNodeWithTag("cancel-new-note").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("new-note-name-dialog").fetchSemanticsNodes().isEmpty()
+        }
+        assertEquals(1, runBlocking { notesOf("alice").size })
+
+        composeRule.onNodeWithTag("create-note").performClick()
+        composeRule.waitForTag("new-note-name-field")
+        // The suggested name is selected, so typing replaces it.
+        composeRule.onNodeWithTag("new-note-name-field").performTextInput("Meeting: Monday")
+        composeRule.onNodeWithTag("confirm-new-note").performClick()
+
+        composeRule.waitForTag("markdown-editor")
+        onView(withId(R.id.markdown_editor)).check { view, _ ->
+            assertEquals("# Meeting Monday\n\n", (view as TextView).text.toString())
+        }
+        assertTrue(runBlocking { notesOf("alice").any { it.title == "Meeting Monday" } })
+    }
+
+    @Test
     fun creationAdoptsTheCanonicalServerTitle() {
         val account = importAccount("alice", "Existing note", "etag-1", 10)
         application.fakeBackend.nextCanonicalTitle = "Canonical server title"
@@ -1257,7 +1291,7 @@ class AppLaunchTest {
         assertEquals("# Existing note\n\nBase content", conflicted.lastSyncedContent)
 
         listAction("settings")
-        composeRule.onNodeWithTag("open-diagnostics").performClick()
+        composeRule.onNodeWithTag("open-diagnostics").performScrollTo().performClick()
         composeRule.waitForText("Category: Conflict", substring = true)
     }
 

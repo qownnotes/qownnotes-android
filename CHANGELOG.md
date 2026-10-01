@@ -16,6 +16,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   stays off, with an explanation, when the notes folder has no `notes.sqlite`.
 - Opening a note while the note list search is active now opens "Find in note" with the same
   text, highlighting the matches and scrolling to the first one without showing the keyboard.
+- An "Ask for name of new notes" setting, off by default, makes the note list's create button ask
+  for the new note's name first. The field starts with the name the note would otherwise get, the
+  dated default or the search text, so accepting it keeps the previous behavior.
 
 ## [0.10.0] - 2026-09-28
 

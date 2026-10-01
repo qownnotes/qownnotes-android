@@ -50,6 +50,31 @@ class NoteFactoryTest {
         }
     }
 
+    /** The name offered when asking is the name the note would get without asking. */
+    @Test
+    fun `default name matches the automatic name or the usable search text`() {
+        val factory = factory()
+
+        assertEquals(factory.create("account").title, factory.defaultName())
+        assertEquals("Note 2026-08-31 14h08s27", factory.defaultName(" / "))
+        assertEquals(
+            factory.createFromSearch("account", "  Report: 2026/08  ").title,
+            factory.defaultName("  Report: 2026/08  ")
+        )
+    }
+
+    @Test
+    fun `creates a note with a chosen name in the selected category`() {
+        val note = factory().createNamed("account", " Meeting: Monday ", "Work")
+
+        assertEquals("Meeting Monday", note.title)
+        assertEquals("# Meeting Monday\n\n", note.content)
+        assertEquals("Work", note.category)
+        assertThrows(IllegalArgumentException::class.java) {
+            factory().createNamed("account", "  ")
+        }
+    }
+
     @Test
     fun `shared text is named by the sharing application and kept under that heading`() {
         val note = factory().createFromSharedText(
