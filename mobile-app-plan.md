@@ -60,6 +60,9 @@ replayed on the newest server file and uploaded with `If-Match`. Renaming, delet
 reparenting tags, and editing tag colors and priority, are still open. See "Implemented Note
 Tags" below.
 
+Optional Nextcloud Deck support, enabled per account in Settings, adds a note-editor action that
+creates a Deck card and links it into the note (#16). See "Implemented Nextcloud Deck Links" below.
+
 Conflict handling now persists the exact remote version while the note row retains the local and
 common-base versions. The resolution dialog compares all three, supports conservative three-way
 merging of independent field and line changes, and rejects actions if the reviewed local or remote
@@ -1127,6 +1130,29 @@ mobile share one set of tags. The decision and its safety rules are in
 - Open: tag management (rename, delete, reparent, colors, priority), selecting a hierarchical
   parent when creating a tag, and a real-server check against a desktop-generated file while the
   desktop is running.
+
+### Implemented Nextcloud Deck Links
+
+Deck support follows the QOwnNotes desktop integration (`NextcloudDeckService` and
+`NextcloudDeckDialog`), limited to creating and linking cards (#16):
+
+- "Enable Nextcloud Deck support" is a device-local, per-account setting, off by default, as the
+  desktop stores it per cloud connection. It is offered only when the account backend implements
+  the optional `NoteDeckBackend` contract.
+- While editing, a toolbar action opens a dialog with the selected text as the card title, an
+  optional description, a combined "board / list" choice, and an optional due date that defaults
+  to one hour ahead on the minute, as on desktop.
+- Boards come from `GET /index.php/apps/deck/api/v1.1/boards?details=true` with
+  `OCS-APIRequest: true`; archived, deleted, and read-only boards and deleted lists are hidden.
+  Boards without embedded lists fall back to `GET boards/{boardId}/stacks`.
+- Cards are created with `POST boards/{boardId}/stacks/{stackId}/cards`, type `plain`, order 0,
+  and an ISO-8601 UTC `duedate` when one is set. The chosen list is remembered per account.
+- The inserted link is `[title](<server>/apps/deck/#/board/<board>/card/<card>)`, the desktop
+  format without `index.php`, and replaces the selection as one undoable edit.
+- Deck requests are on-demand and do not touch notes, so they do not take the account's
+  synchronization lock. Failures leave the dialog open with its input, and nothing is inserted.
+- Open: listing, editing, archiving, and deleting existing cards, and opening card links in the
+  Deck app instead of the browser.
 
 ### Phase 6: Local-Only Folder Backend
 

@@ -29,9 +29,14 @@ import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.BackendException
+import org.qownnotes.mobile.core.DeckBoard
+import org.qownnotes.mobile.core.DeckCard
+import org.qownnotes.mobile.core.DeckCardDraft
+import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
+import org.qownnotes.mobile.core.NoteDeckBackend
 import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
@@ -59,7 +64,8 @@ class NextcloudBackend(context: Context) :
     NoteArchiveBackend,
     NoteMediaBackend,
     NoteSettingsBackend,
-    NoteTagFileBackend {
+    NoteTagFileBackend,
+    NoteDeckBackend {
     private val applicationContext = context.applicationContext
     private val gson = GsonBuilder().create()
 
@@ -230,6 +236,32 @@ class NextcloudBackend(context: Context) :
             } catch (error: Throwable) {
                 throw error.asBackendException()
             }
+        }
+
+    override suspend fun deckBoards(account: Account): List<DeckBoard> =
+        withContext(Dispatchers.IO) {
+            try {
+                withDeckApi(account, ::loadDeckBoardsWithApi)
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun createDeckCard(
+        account: Account,
+        target: DeckStackTarget,
+        card: DeckCardDraft
+    ): DeckCard = withContext(Dispatchers.IO) {
+        try {
+            withDeckApi(account) { deckApi -> createDeckCardWithApi(deckApi, target, card) }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    private fun <T> withDeckApi(account: Account, block: (DeckApi) -> T): T =
+        withNextcloudApi(account) { api ->
+            block(NextcloudRetrofitApiBuilder(api, DECK_ENDPOINT).create(DeckApi::class.java))
         }
 
     private fun <T> withApis(

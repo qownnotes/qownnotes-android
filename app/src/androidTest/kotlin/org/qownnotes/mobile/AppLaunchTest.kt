@@ -64,6 +64,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.qownnotes.mobile.core.BackendException
+import org.qownnotes.mobile.core.DeckBoard
+import org.qownnotes.mobile.core.DeckCardDraft
+import org.qownnotes.mobile.core.DeckStack
+import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
@@ -1873,6 +1877,119 @@ class AppLaunchTest {
         // The date action scrolls the horizontal toolbar away from Undo.
         composeRule.onNodeWithTag("undo-edit").performScrollTo().assertIsEnabled().performClick()
         awaitEditorText("before after")
+    }
+
+    @Test
+    fun enabledDeckSupportCreatesACardFromTheSelectionAndLinksIt() {
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
+        application.fakeBackend.deckBoards = listOf(
+            DeckBoard(2, "Work", listOf(DeckStack(11, "To do"), DeckStack(12, "Done"))),
+            DeckBoard(3, "Home", listOf(DeckStack(31, "Inbox")))
+        )
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        composeRule.waitForTag("insert-datetime")
+        assertTrue(
+            composeRule.onAllNodesWithTag("create-deck-card-link").fetchSemanticsNodes().isEmpty()
+        )
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-nextcloud-deck").performScrollTo().assertIsOff()
+            .performClick()
+        composeRule.onNodeWithTag("toggle-nextcloud-deck").assertIsOn()
+        composeRule.onNodeWithTag("close-settings").performClick()
+
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor))
+            .perform(click(), replaceText("Call Alice about the report"))
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(0, 10)
+        }
+        composeRule.onNodeWithTag("create-deck-card-link").performScrollTo().performClick()
+
+        composeRule.waitForTag("deck-card-target")
+        composeRule.onNodeWithTag("deck-card-title").assertTextContains("Call Alice")
+        composeRule.onNodeWithTag("deck-card-target").assertTextContains("Work / To do")
+        composeRule.onNodeWithTag("deck-card-target").performClick()
+        composeRule.waitForTag("deck-target-3-31")
+        composeRule.onNodeWithTag("deck-target-3-31").performClick()
+        composeRule.onNodeWithTag("deck-card-target").assertTextContains("Home / Inbox")
+        composeRule.onNodeWithTag("deck-card-description").performTextInput("Ask about Q3")
+        // A due date is optional and offered only once it is asked for.
+        composeRule.onNodeWithTag("deck-card-due-toggle").assertIsOff().performClick()
+        composeRule.onNodeWithTag("deck-card-due-toggle").assertIsOn()
+        composeRule.waitForTag("deck-card-due-date")
+        composeRule.onNodeWithTag("deck-card-due-time").assertIsDisplayed()
+        composeRule.onNodeWithTag("deck-card-due-toggle").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("deck-card-due-date").fetchSemanticsNodes().isEmpty()
+        }
+        composeRule.onNodeWithTag("create-deck-card").performClick()
+
+        awaitEditorText(
+            "[Call Alice](https://cloud.example/apps/deck/#/board/3/card/500) about the report"
+        )
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("deck-card-dialog").fetchSemanticsNodes().isEmpty()
+        }
+        assertEquals(
+            listOf(DeckStackTarget(3, 31) to DeckCardDraft("Call Alice", "Ask about Q3", null)),
+            application.fakeBackend.createdDeckCards
+        )
+        assertEquals(
+            DeckStackTarget(3, 31),
+            application.component.settings.nextcloudDeckTarget(account.localAccountId())
+        )
+    }
+
+    @Test
+    fun failedDeckCardCreationKeepsTheDialogAndTheNoteUnchanged() {
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
+        val accountId = account.localAccountId()
+        application.component.settings.setNextcloudDeckEnabled(accountId, true)
+        application.component.settings.setNextcloudDeckTarget(accountId, DeckStackTarget(3, 31))
+        application.fakeBackend.deckBoards = listOf(
+            DeckBoard(2, "Work", listOf(DeckStack(11, "To do"))),
+            DeckBoard(3, "Home", listOf(DeckStack(31, "Inbox")))
+        )
+        application.fakeBackend.createDeckCardFailure = BackendException.Permission()
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText("Text"))
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(4)
+        }
+
+        val earliestDue = java.time.Instant.now().plusSeconds(3_540).epochSecond
+        composeRule.onNodeWithTag("create-deck-card-link").performScrollTo().performClick()
+        composeRule.waitForTag("deck-card-target")
+        // The list that received the previous card is offered again.
+        composeRule.onNodeWithTag("deck-card-target").assertTextContains("Home / Inbox")
+        composeRule.onNodeWithTag("create-deck-card").assertIsNotEnabled()
+        composeRule.onNodeWithTag("deck-card-title").performTextInput("Buy milk")
+        composeRule.onNodeWithTag("create-deck-card").performClick()
+
+        composeRule.waitForTag("deck-card-error")
+        composeRule.onNodeWithTag("deck-card-error").assertTextContains("Permission denied")
+        composeRule.onNodeWithTag("deck-card-title").assertTextContains("Buy milk")
+        awaitEditorText("deck", present = false)
+        assertTrue(application.fakeBackend.createdDeckCards.isEmpty())
+
+        // The default due date is one hour after the dialog opened, on the minute.
+        composeRule.onNodeWithTag("deck-card-due-toggle").performClick()
+        composeRule.waitForTag("deck-card-due-date")
+        composeRule.onNodeWithTag("create-deck-card").performClick()
+        awaitEditorText("Text[Buy milk](https://cloud.example/apps/deck/#/board/3/card/500)")
+        val dueAt = application.fakeBackend.createdDeckCards.single().second.dueAtEpochSeconds
+        assertTrue("due date $dueAt", dueAt != null && dueAt >= earliestDue && dueAt % 60 == 0L)
+        assertTrue(dueAt!! <= java.time.Instant.now().plusSeconds(3_600).epochSecond)
     }
 
     @Test

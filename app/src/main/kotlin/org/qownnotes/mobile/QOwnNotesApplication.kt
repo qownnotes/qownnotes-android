@@ -33,11 +33,16 @@ import kotlinx.coroutines.sync.withLock
 import org.qownnotes.mobile.backend.nextcloud.NextcloudBackend
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendException
+import org.qownnotes.mobile.core.DeckBoard
+import org.qownnotes.mobile.core.DeckCardDraft
+import org.qownnotes.mobile.core.DeckStackTarget
+import org.qownnotes.mobile.core.NextcloudDeck
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteConflict
+import org.qownnotes.mobile.core.NoteDeckBackend
 import org.qownnotes.mobile.core.NoteFactory
 import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteNames
@@ -116,6 +121,7 @@ class ApplicationComponent(
     private val mediaBackend: NoteMediaBackend? = backend as? NoteMediaBackend,
     private val noteSettingsBackend: NoteSettingsBackend? = backend as? NoteSettingsBackend,
     private val tagFileBackend: NoteTagFileBackend? = backend as? NoteTagFileBackend,
+    private val deckBackend: NoteDeckBackend? = backend as? NoteDeckBackend,
     val settings: AppSettings = AppSettings(application),
     private val syncScheduler: SyncScheduler = WorkManagerSyncScheduler(application),
     internal val draftCheckpointIntervalMillis: Long = 5_000,
@@ -293,6 +299,7 @@ class ApplicationComponent(
             settings.removeShowCategory(accountId)
             settings.removeNoteCategoryScope(accountId)
             settings.removeBookmarksPath(accountId)
+            settings.removeNextcloudDeck(accountId)
             tagSynchronizer?.forget(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
@@ -804,6 +811,35 @@ class ApplicationComponent(
         }
     }
 
+    /** Whether the account backend can create Nextcloud Deck cards at all. */
+    val supportsNextcloudDeck: Boolean
+        get() = deckBackend != null
+
+    // Deck requests do not read or write notes, so they do not wait for the account's
+    // synchronization lock; a long sync must not block the card dialog.
+    suspend fun deckBoards(accountId: String): List<DeckBoard> {
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        return requireDeckBackend().deckBoards(account)
+    }
+
+    /**
+     * Creates a card in [target], remembers that list for the account's next card, and returns
+     * the Markdown link to insert into the note.
+     */
+    suspend fun createDeckCard(
+        accountId: String,
+        target: DeckStackTarget,
+        card: DeckCardDraft
+    ): String {
+        require(NextcloudDeck.isValidCardTitle(card.title)) {
+            "Card titles must be 1 to ${NextcloudDeck.MAX_CARD_TITLE_LENGTH} characters"
+        }
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        val created = requireDeckBackend().createDeckCard(account, target, card)
+        settings.setNextcloudDeckTarget(accountId, target)
+        return NextcloudDeck.cardMarkdownLink(account.serverUrl, created)
+    }
+
     private fun scheduleSync(accountId: String, delayMillis: Long = 1_500) {
         syncScheduler.schedule(accountId, delayMillis)
     }
@@ -944,6 +980,11 @@ class ApplicationComponent(
     private fun requireNoteMediaBackend(): NoteMediaBackend = mediaBackend
         ?: throw BackendException.FeatureUnavailable(
             "This account backend does not support image uploads"
+        )
+
+    private fun requireDeckBackend(): NoteDeckBackend = deckBackend
+        ?: throw BackendException.FeatureUnavailable(
+            "This account backend does not support Nextcloud Deck"
         )
 }
 

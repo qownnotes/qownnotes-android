@@ -16,9 +16,14 @@ import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.BackendException
+import org.qownnotes.mobile.core.DeckBoard
+import org.qownnotes.mobile.core.DeckCard
+import org.qownnotes.mobile.core.DeckCardDraft
+import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
+import org.qownnotes.mobile.core.NoteDeckBackend
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
 import org.qownnotes.mobile.core.PullCheckpoint
@@ -178,7 +183,8 @@ class FakePullBackend :
     NoteBackend,
     NoteArchiveBackend,
     NoteSettingsBackend,
-    org.qownnotes.mobile.core.NoteTagFileBackend {
+    org.qownnotes.mobile.core.NoteTagFileBackend,
+    NoteDeckBackend {
     override val capabilities =
         BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
     private val pulls = mutableMapOf<String, ArrayDeque<Result<PullResult>>>()
@@ -208,6 +214,36 @@ class FakePullBackend :
     var tagFileVersion = 0
         private set
     val tagFileUploads = mutableListOf<ByteArray>()
+    var deckBoards = emptyList<DeckBoard>()
+    var deckBoardsFailure: Throwable? = null
+    var createDeckCardFailure: Throwable? = null
+    val createdDeckCards = mutableListOf<Pair<DeckStackTarget, DeckCardDraft>>()
+
+    override suspend fun deckBoards(account: Account): List<DeckBoard> {
+        deckBoardsFailure?.let {
+            deckBoardsFailure = null
+            throw it
+        }
+        return deckBoards
+    }
+
+    override suspend fun createDeckCard(
+        account: Account,
+        target: DeckStackTarget,
+        card: DeckCardDraft
+    ): DeckCard {
+        createDeckCardFailure?.let {
+            createDeckCardFailure = null
+            throw it
+        }
+        createdDeckCards += target to card
+        return DeckCard(
+            id = nextDeckCardId++,
+            boardId = target.boardId,
+            stackId = target.stackId,
+            title = card.title.trim()
+        )
+    }
 
     override suspend fun downloadTagFile(
         account: Account,
@@ -349,6 +385,11 @@ class FakePullBackend :
         remoteNotes.clear()
         tagFile = null
         tagFileUploads.clear()
+        deckBoards = emptyList()
+        deckBoardsFailure = null
+        createDeckCardFailure = null
+        createdDeckCards.clear()
+        nextDeckCardId = 500L
     }
 
     private fun queue(account: SingleSignOnAccount) =
@@ -370,4 +411,5 @@ class FakePullBackend :
     }
 
     private var nextRemoteId = 1_000L
+    private var nextDeckCardId = 500L
 }

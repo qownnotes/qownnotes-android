@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.qownnotes.mobile.core.DEFAULT_BOOKMARKS_PATH
+import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.markdown.NoteTextSize
 
@@ -209,6 +210,49 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableBookmarksPaths.remove(accountId)
     }
 
+    private val mutableNextcloudDeckEnabled = mutableMapOf<String, MutableStateFlow<Boolean>>()
+
+    /** Whether the note editor offers creating and linking Nextcloud Deck cards for this account. */
+    fun nextcloudDeckEnabled(accountId: String): StateFlow<Boolean> =
+        mutableNextcloudDeckEnabled(accountId).asStateFlow()
+
+    fun setNextcloudDeckEnabled(accountId: String, enabled: Boolean) {
+        val state = mutableNextcloudDeckEnabled(accountId)
+        if (enabled == state.value) return
+        preferences.edit().putBoolean("$NEXTCLOUD_DECK_ENABLED_PREFIX$accountId", enabled).apply()
+        state.value = enabled
+    }
+
+    /** The Deck list that most recently received a card from this account, if any. */
+    fun nextcloudDeckTarget(accountId: String): DeckStackTarget? {
+        val boardId = preferences.getLong("$NEXTCLOUD_DECK_BOARD_PREFIX$accountId", 0)
+        val stackId = preferences.getLong("$NEXTCLOUD_DECK_STACK_PREFIX$accountId", 0)
+        return if (boardId > 0 && stackId > 0) DeckStackTarget(boardId, stackId) else null
+    }
+
+    fun setNextcloudDeckTarget(accountId: String, target: DeckStackTarget) {
+        preferences.edit()
+            .putLong("$NEXTCLOUD_DECK_BOARD_PREFIX$accountId", target.boardId)
+            .putLong("$NEXTCLOUD_DECK_STACK_PREFIX$accountId", target.stackId)
+            .apply()
+    }
+
+    fun removeNextcloudDeck(accountId: String) {
+        preferences.edit()
+            .remove("$NEXTCLOUD_DECK_ENABLED_PREFIX$accountId")
+            .remove("$NEXTCLOUD_DECK_BOARD_PREFIX$accountId")
+            .remove("$NEXTCLOUD_DECK_STACK_PREFIX$accountId")
+            .apply()
+        mutableNextcloudDeckEnabled.remove(accountId)?.value = false
+    }
+
+    private fun mutableNextcloudDeckEnabled(accountId: String): MutableStateFlow<Boolean> =
+        mutableNextcloudDeckEnabled.getOrPut(accountId) {
+            MutableStateFlow(
+                preferences.getBoolean("$NEXTCLOUD_DECK_ENABLED_PREFIX$accountId", false)
+            )
+        }
+
     private fun mutableShowCategory(accountId: String): MutableStateFlow<Boolean> =
         mutableShowCategories.getOrPut(accountId) {
             MutableStateFlow(
@@ -244,6 +288,9 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val SHOW_CATEGORY_PREFIX = "showCategory."
         const val NOTE_CATEGORY_SCOPE_PREFIX = "noteCategoryScope."
         const val BOOKMARKS_PATH_PREFIX = "bookmarksPath."
+        const val NEXTCLOUD_DECK_ENABLED_PREFIX = "nextcloudDeckEnabled."
+        const val NEXTCLOUD_DECK_BOARD_PREFIX = "nextcloudDeckBoardId."
+        const val NEXTCLOUD_DECK_STACK_PREFIX = "nextcloudDeckStackId."
     }
 }
 

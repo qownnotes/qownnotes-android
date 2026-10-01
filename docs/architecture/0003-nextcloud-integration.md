@@ -18,6 +18,11 @@ collection. A full pull follows a successful change. The canonical settings retu
 are authoritative. An extension change affects only files created afterward and does not invalidate
 the collection checkpoint.
 
+Nextcloud Deck is a second optional companion, exposed through the `NoteDeckBackend` contract.
+The adapter lists boards and creates cards through the Deck REST API v1.1 on demand. Deck data is
+not cached in Room and Deck requests never read or write notes; only the card link inserted into
+the note's Markdown enters the normal note-write path.
+
 ## Consequences
 
 - Initial account setup requires Nextcloud Files for Android.

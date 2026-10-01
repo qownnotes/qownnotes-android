@@ -89,6 +89,7 @@ import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.ViewKanban
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -965,6 +966,11 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val bookmarksPathFlow = remember(accountId) { component.settings.bookmarksPath(accountId) }
     val bookmarksPath by bookmarksPathFlow.collectAsStateWithLifecycle(context = UiDispatcher)
+    val nextcloudDeckEnabledFlow = remember(accountId) {
+        component.settings.nextcloudDeckEnabled(accountId)
+    }
+    val nextcloudDeckEnabled by nextcloudDeckEnabledFlow
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     val categories = remember(allNotes) { NoteCategories.selectable(allNotes.orEmpty()) }
     val tagStateFlow = remember(accountId) { component.observeNoteTags(accountId) }
     val tagState by tagStateFlow.collectAsStateWithLifecycle(
@@ -1644,6 +1650,18 @@ private fun NoteListScreen(
                         onCheckedChange = component.settings::setAskForNewNoteName,
                         testTag = "toggle-ask-for-new-note-name"
                     )
+                    if (component.supportsNextcloudDeck) {
+                        SettingsCheckbox(
+                            label = "Enable Nextcloud Deck support",
+                            description = "Create Deck cards from the note editor and link " +
+                                "them in the note. Requires the Deck app on Nextcloud.",
+                            checked = nextcloudDeckEnabled,
+                            onCheckedChange = {
+                                component.settings.setNextcloudDeckEnabled(accountId, it)
+                            },
+                            testTag = "toggle-nextcloud-deck"
+                        )
+                    }
                     OutlinedTextField(
                         value = bookmarksPath,
                         onValueChange = { component.settings.setBookmarksPath(accountId, it) },
@@ -2573,6 +2591,15 @@ private fun NoteDetailScreen(
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
     var importingImage by remember(localId) { mutableStateOf(false) }
+    val nextcloudDeckEnabledFlow = remember(note?.accountId) {
+        note?.accountId?.takeIf { component.supportsNextcloudDeck }
+            ?.let(component.settings::nextcloudDeckEnabled)
+            ?: flowOf(false)
+    }
+    val nextcloudDeckEnabled by nextcloudDeckEnabledFlow
+        .collectAsStateWithLifecycle(initialValue = false, context = UiDispatcher)
+    // The selected text when the dialog opened, offered as the card title. Null hides the dialog.
+    var deckCardTitle by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     val imagePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
@@ -3300,6 +3327,21 @@ private fun NoteDetailScreen(
                                 editor?.focusForInput()
                             }
                         )
+                        if (nextcloudDeckEnabled) {
+                            ActionIconButton(
+                                icon = Icons.Filled.ViewKanban,
+                                description = "Create Nextcloud Deck card",
+                                testTag = "create-deck-card-link",
+                                onClick = {
+                                    val current = editor
+                                    deckCardTitle = deckCardTitleFromSelection(
+                                        current?.text,
+                                        current?.selectionStart ?: 0,
+                                        current?.selectionEnd ?: 0
+                                    )
+                                }
+                            )
+                        }
                         FormatButton(
                             Icons.Filled.Title,
                             MarkdownFormatAction.HEADING,
@@ -3828,6 +3870,26 @@ private fun NoteDetailScreen(
                         enabled = !resolvingRemoteMissing
                     ) { Text("Cancel") }
                 }
+            }
+        )
+    }
+    val deckAccountId = account?.id
+    val pendingDeckCardTitle = deckCardTitle
+    if (pendingDeckCardTitle != null && editing && nextcloudDeckEnabled && deckAccountId != null) {
+        NextcloudDeckCardDialog(
+            component = component,
+            accountId = deckAccountId,
+            initialTitle = pendingDeckCardTitle,
+            onDismiss = {
+                deckCardTitle = null
+                editor?.focusForInput()
+            },
+            onCreated = { link ->
+                deckCardTitle = null
+                // The modal dialog kept the editor's selection, so the link replaces the text that
+                // became the card title, as in the desktop application.
+                editor?.insertText(link)
+                editor?.focusForInput()
             }
         )
     }
