@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -515,11 +516,11 @@ class AppLaunchTest {
         composeRule.waitForText("Bob note")
         composeRule.onNodeWithText("Alice note").assertDoesNotExist()
 
-        accountAction("switch-account")
+        accountAction("account-choice-${alice.localAccountId()}")
         composeRule.waitForText("Alice note")
         composeRule.onNodeWithText("Bob note").assertDoesNotExist()
 
-        accountAction("switch-account")
+        accountAction("account-choice-${bob.localAccountId()}")
         composeRule.waitForText("Bob note")
         composeRule.onNodeWithText("Alice note").assertDoesNotExist()
 
@@ -540,7 +541,7 @@ class AppLaunchTest {
 
     @Test
     fun showCategorySettingIsStoredPerAccount() {
-        importAccount("alice", "Alice note", "etag-a", 10)
+        val alice = importAccount("alice", "Alice note", "etag-a", 10)
         listAction("settings")
         composeRule.onNodeWithTag("toggle-category").performClick()
         composeRule.onNodeWithTag("close-settings").performClick()
@@ -552,7 +553,7 @@ class AppLaunchTest {
         composeRule.activityRule.scenario.recreate()
         composeRule.waitForText("Bob note")
         composeRule.onNodeWithText("Uncategorized").assertDoesNotExist()
-        accountAction("switch-account")
+        accountAction("account-choice-${alice.localAccountId()}")
         composeRule.waitForText("Alice note")
         composeRule.onNodeWithText("Uncategorized").assertIsDisplayed()
     }
@@ -699,19 +700,31 @@ class AppLaunchTest {
             .getPixel(1, 1)
 
     @Test
-    fun switchingAmongThreeAccountsLetsTheUserChooseTheAccount() {
+    fun theAccountMenuListsAccountsAboveTheAccountActions() {
         val alice = importAccount("alice", "Alice note", "etag-a", 10)
-        importAccount("bob", "Bob note", "etag-b", 20)
-        importAccount("charlie", "Charlie note", "etag-c", 30)
+        val bob = importAccount("bob", "Bob note", "etag-b", 20)
+        val charlie = importAccount("charlie", "Charlie note", "etag-c", 30)
 
-        accountAction("switch-account")
+        composeRule.onNodeWithTag("account-menu").performClick()
+        composeRule.waitForTag("add-account")
+        composeRule.onNodeWithText("Switch account").assertDoesNotExist()
+        val choices = listOf(alice, bob, charlie).map {
+            composeRule.onNodeWithTag("account-choice-${it.localAccountId()}")
+                .fetchSemanticsNode().boundsInRoot
+        }
+        composeRule.onNodeWithTag("account-choice-${charlie.localAccountId()}").assertIsSelected()
+        composeRule.onNodeWithTag("account-choice-${alice.localAccountId()}").assertIsNotSelected()
+        val divider = composeRule.onNodeWithTag("account-menu-divider")
+            .fetchSemanticsNode().boundsInRoot
+        val add = composeRule.onNodeWithTag("add-account").fetchSemanticsNode().boundsInRoot
+        assertTrue(choices.all { it.bottom <= divider.top })
+        assertTrue(divider.bottom <= add.top)
 
-        composeRule.onNodeWithTag("account-chooser").assertIsDisplayed()
         composeRule.onNodeWithTag("account-choice-${alice.localAccountId()}").performClick()
         composeRule.waitForText("Alice note")
         composeRule.onNodeWithText("Bob note").assertDoesNotExist()
         composeRule.onNodeWithText("Charlie note").assertDoesNotExist()
-        composeRule.onNodeWithTag("account-chooser").assertDoesNotExist()
+        composeRule.onNodeWithTag("add-account").assertDoesNotExist()
     }
 
     /** The account avatar contains account actions and excludes general application actions. */

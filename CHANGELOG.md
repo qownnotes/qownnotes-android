@@ -20,6 +20,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   for the new note's name first. The field starts with the name the note would otherwise get, the
   dated default or the search text, so accepting it keeps the previous behavior.
 
+### Changed
+
+- The account menu lists all accounts at the top, with the current one checked, so another account
+  is one tap away. A divider separates them from "Add account" and "Manage accounts", replacing the
+  "Switch account" item and its account chooser dialog.
+
 ## [0.10.0] - 2026-09-28
 
 ### Added

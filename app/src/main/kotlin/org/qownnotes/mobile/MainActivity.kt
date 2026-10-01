@@ -64,6 +64,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
@@ -97,6 +98,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -157,6 +159,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
@@ -878,7 +881,6 @@ private fun NoteListScreen(
     var searchScope by rememberSaveable { mutableStateOf(NoteSearchScope.TITLE_AND_CONTENT) }
     var sortOrder by rememberSaveable { mutableStateOf(NoteSortOrder.LATEST_FIRST) }
     var searchFocused by remember { mutableStateOf(false) }
-    var showAccountChooser by rememberSaveable(accountId) { mutableStateOf(false) }
     var showSettings by rememberSaveable(accountId) { mutableStateOf(false) }
     var showAppearance by rememberSaveable(accountId) { mutableStateOf(false) }
     var showDiagnostics by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -1127,23 +1129,51 @@ private fun NoteListScreen(
                                     expanded = accountMenuOpen,
                                     onDismissRequest = { accountMenuOpen = false }
                                 ) {
-                                    if (accounts.size > 1) {
+                                    accounts.forEach { choice ->
+                                        val current = choice.id == accountId
                                         DropdownMenuItem(
-                                            text = { Text("Switch account") },
+                                            text = {
+                                                Text(
+                                                    choice.displayName,
+                                                    fontWeight = if (current) {
+                                                        FontWeight.Bold
+                                                    } else {
+                                                        null
+                                                    },
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                AccountAvatar(
+                                                    component,
+                                                    choice,
+                                                    Modifier.size(32.dp)
+                                                )
+                                            },
+                                            trailingIcon = if (current) {
+                                                {
+                                                    Icon(
+                                                        Icons.Filled.Check,
+                                                        contentDescription = "Current account"
+                                                    )
+                                                }
+                                            } else {
+                                                null
+                                            },
                                             onClick = {
                                                 accountMenuOpen = false
-                                                if (accounts.size > 2) {
-                                                    showAccountChooser = true
-                                                } else {
-                                                    val next =
-                                                        (accounts.indexOf(account) + 1) %
-                                                            accounts.size
-                                                    onSelectAccount(accounts[next].id)
-                                                }
+                                                if (!current) onSelectAccount(choice.id)
                                             },
-                                            modifier = Modifier.testTag("switch-account")
+                                            modifier = Modifier
+                                                .semantics { selected = current }
+                                                .testTag("account-choice-${choice.id}")
                                         )
                                     }
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(vertical = 4.dp)
+                                            .testTag("account-menu-divider")
+                                    )
                                     DropdownMenuItem(
                                         text = { Text("Add account") },
                                         leadingIcon = {
@@ -1772,42 +1802,6 @@ private fun NoteListScreen(
                 }
             },
             modifier = Modifier.testTag("diagnostics-dialog")
-        )
-    }
-    if (showAccountChooser) {
-        AlertDialog(
-            onDismissRequest = { showAccountChooser = false },
-            title = { Text("Switch account") },
-            text = {
-                Column {
-                    accounts.forEach { choice ->
-                        Row(
-                            modifier =
-                            Modifier.fillMaxWidth()
-                                .clickable {
-                                    showAccountChooser = false
-                                    onSelectAccount(choice.id)
-                                }
-                                .padding(vertical = 4.dp)
-                                .testTag("account-choice-${choice.id}"),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(selected = choice.id == accountId, onClick = null)
-                            AccountAvatar(
-                                component,
-                                choice,
-                                Modifier.padding(start = 8.dp, end = 12.dp)
-                            )
-                            Text(choice.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showAccountChooser = false }) { Text("Cancel") }
-            },
-            modifier = Modifier.testTag("account-chooser")
         )
     }
     if (showAbout) {
