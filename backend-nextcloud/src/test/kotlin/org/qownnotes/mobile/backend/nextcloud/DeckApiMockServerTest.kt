@@ -7,6 +7,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -75,7 +76,7 @@ class DeckApiMockServerTest {
         assertEquals("GET", request.method)
         assertEquals("/index.php/apps/deck/api/v1.1/boards", request.requestUrl!!.encodedPath)
         assertEquals("true", request.requestUrl!!.queryParameter("details"))
-        assertEquals("true", request.getHeader("OCS-APIRequest"))
+        assertNull(request.getHeader("OCS-APIRequest"))
     }
 
     @Test
@@ -92,7 +93,7 @@ class DeckApiMockServerTest {
             "/index.php/apps/deck/api/v1.1/boards/7/stacks",
             stacksRequest.requestUrl!!.encodedPath
         )
-        assertEquals("true", stacksRequest.getHeader("OCS-APIRequest"))
+        assertNull(stacksRequest.getHeader("OCS-APIRequest"))
     }
 
     @Test
@@ -138,7 +139,7 @@ class DeckApiMockServerTest {
             "/index.php/apps/deck/api/v1.1/boards/2/stacks/11/cards",
             request.requestUrl!!.encodedPath
         )
-        assertEquals("true", request.getHeader("OCS-APIRequest"))
+        assertNull(request.getHeader("OCS-APIRequest"))
         assertTrue(request.getHeader("Content-Type")!!.startsWith("application/json"))
         val body = JsonParser.parseString(request.body.readUtf8()).asJsonObject
         assertEquals("Call Alice", body["title"].asString)

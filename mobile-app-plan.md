@@ -1142,8 +1142,10 @@ Deck support follows the QOwnNotes desktop integration (`NextcloudDeckService` a
 - While editing, a toolbar action opens a dialog with the selected text as the card title, an
   optional description, a combined "board / list" choice, and an optional due date that defaults
   to one hour ahead on the minute, as on desktop.
-- Boards come from `GET /index.php/apps/deck/api/v1.1/boards?details=true` with
-  `OCS-APIRequest: true`; archived, deleted, and read-only boards and deleted lists are hidden.
+- Boards come from `GET /index.php/apps/deck/api/v1.1/boards?details=true`; archived, deleted,
+  and read-only boards and deleted lists are hidden. Nextcloud Files adds the required
+  `OCS-APIRequest: true` header to every SSO request and rejects requests that already carry it,
+  so the app must not send it itself.
   Boards without embedded lists fall back to `GET boards/{boardId}/stacks`.
 - Cards are created with `POST boards/{boardId}/stacks/{stackId}/cards`, type `plain`, order 0,
   and an ISO-8601 UTC `duedate` when one is set. The chosen list is remembered per account.

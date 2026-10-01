@@ -20,21 +20,21 @@ import retrofit2.http.Path
 
 internal const val DECK_ENDPOINT = "/index.php/apps/deck/api/v1.1/"
 
-/** The Deck REST API requires this header and JSON bodies for every request. */
+/**
+ * The Deck REST API requires `OCS-APIRequest: true` and JSON bodies. Nextcloud Files adds that
+ * header to every Single Sign-On request itself and rejects a request that already carries it, so
+ * it must not be declared here.
+ */
 internal interface DeckApi {
-    @Headers("OCS-APIRequest: true", "Accept: application/json")
+    @Headers("Accept: application/json")
     @GET("boards?details=true")
     fun getBoards(): Call<List<DeckBoardDto>>
 
-    @Headers("OCS-APIRequest: true", "Accept: application/json")
+    @Headers("Accept: application/json")
     @GET("boards/{boardId}/stacks")
     fun getStacks(@Path("boardId") boardId: Long): Call<List<DeckStackDto>>
 
-    @Headers(
-        "OCS-APIRequest: true",
-        "Accept: application/json",
-        "Content-Type: application/json"
-    )
+    @Headers("Accept: application/json", "Content-Type: application/json")
     @POST("boards/{boardId}/stacks/{stackId}/cards")
     fun createCard(
         @Path("boardId") boardId: Long,
