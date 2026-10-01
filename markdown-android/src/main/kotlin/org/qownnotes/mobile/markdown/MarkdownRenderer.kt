@@ -84,6 +84,7 @@ class MarkdownRenderer private constructor(
         resolveInternalLink: (InternalNoteLink) -> ResolvedNoteLink? = { null },
         onInternalLink: (ResolvedNoteLink) -> Unit = {},
         onAttachmentLink: (String) -> Unit = {},
+        onExternalLink: (String) -> Boolean = { false },
         onTaskToggle: ((Int) -> Unit)? = null,
         heading: String? = null,
         onHeadingPositioned: (Int?) -> Unit = {},
@@ -93,7 +94,12 @@ class MarkdownRenderer private constructor(
     ) {
         attachmentDestinationProcessor.setNoteContext(remoteId)
         attachmentSchemeHandler?.accountName = accountName
-        linkHandlers[view] = LinkHandlers(resolveInternalLink, onInternalLink, onAttachmentLink)
+        linkHandlers[view] = LinkHandlers(
+            resolveInternalLink,
+            onInternalLink,
+            onAttachmentLink,
+            onExternalLink
+        )
         // Reading a note includes taking text out of it, and copying needs a selection. This is
         // applied before the Markdown because `setTextIsSelectable` re-sets both the text and the
         // movement method, which would otherwise discard what the renderer just installed.
@@ -155,7 +161,9 @@ class MarkdownRenderer private constructor(
                                 parseRelativeAttachmentLink(destination) != null -> {
                                     dispatchAttachmentLink(view, destination)
                                 }
-                                isSafeExternalUrl(destination) -> openExternal(destination)
+                                isSafeExternalUrl(
+                                    destination
+                                ) -> dispatchExternalLink(view, destination)
                             }
                         }
                     }
@@ -193,6 +201,11 @@ class MarkdownRenderer private constructor(
         val textView = view as? AppCompatTextView ?: return
         val handler = linkHandlers[textView] ?: return
         parseRelativeAttachmentLink(destination)?.let(handler.openAttachment)
+    }
+
+    private fun dispatchExternalLink(view: android.view.View, destination: String) {
+        val handler = (view as? AppCompatTextView)?.let { linkHandlers[it] }
+        if (handler?.openExternal?.invoke(destination) != true) openExternal(destination)
     }
 
     private fun openExternal(destination: String) {
@@ -273,7 +286,8 @@ private const val BLOCKED_IMAGE_DESTINATION = "qon-blocked-image:blocked"
 private data class LinkHandlers(
     val resolveInternal: (InternalNoteLink) -> ResolvedNoteLink?,
     val openInternal: (ResolvedNoteLink) -> Unit,
-    val openAttachment: (String) -> Unit
+    val openAttachment: (String) -> Unit,
+    val openExternal: (String) -> Boolean
 )
 
 /**

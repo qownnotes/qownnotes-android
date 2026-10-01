@@ -22,8 +22,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Nextcloud Deck support, as in QOwnNotes desktop. With the new per-account "Enable Nextcloud Deck
   support" setting, the editor toolbar can create a Deck card, using the selected text as its
   title, with an optional description and due date, in a chosen board and list. A link to the card
-  is inserted into the note. Requires the Deck app on Nextcloud (for
-  [#16](https://github.com/qownnotes/qownnotes-android/issues/16)).
+  is inserted into the note. In the note view, tapping a card link of the note's account opens
+  the card in the Nextcloud Deck Android app when it is installed. Requires the Deck app on
+  Nextcloud (for [#16](https://github.com/qownnotes/qownnotes-android/issues/16)).
 
 ### Changed
 

@@ -3581,6 +3581,9 @@ private fun NoteDetailScreen(
                                             }
                                         }
                                     },
+                                    onExternalLink = { url ->
+                                        component.deckCardOpener.open(url, account)
+                                    },
                                     onTaskToggle = if (
                                         source != null &&
                                         !source.readOnly &&

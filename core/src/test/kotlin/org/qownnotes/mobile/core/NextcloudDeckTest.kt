@@ -53,4 +53,42 @@ class NextcloudDeckTest {
         assertFalse(NextcloudDeck.isValidCardTitle("a".repeat(256)))
         assertFalse(NextcloudDeck.isValidCardTitle("   "))
     }
+
+    @Test
+    fun cardLinksOnTheAccountServerAreRecognized() {
+        val server = "https://cloud.example.com/nextcloud/"
+        val expected = DeckCardLink(boardId = 4, cardId = 17)
+        assertEquals(
+            expected,
+            NextcloudDeck.parseCardLink(NextcloudDeck.cardUrl(server, 4, 17), server)
+        )
+        assertEquals(
+            expected,
+            NextcloudDeck.parseCardLink(
+                "https://cloud.example.com/nextcloud/index.php/apps/deck/#/board/4/card/17",
+                server
+            )
+        )
+        assertEquals(
+            expected,
+            NextcloudDeck.parseCardLink(
+                "https://cloud.example.com/nextcloud/apps/deck/board/4/card/17/details",
+                server
+            )
+        )
+    }
+
+    @Test
+    fun otherLinksAreNotDeckCardLinks() {
+        val server = "https://cloud.example.com"
+        listOf(
+            "https://other.example.com/apps/deck/#/board/4/card/17",
+            "https://cloud.example.com.evil.test/apps/deck/#/board/4/card/17",
+            "https://cloud.example.com/apps/deck/#/board/4",
+            "https://cloud.example.com/apps/deck/#/board/0/card/17",
+            "https://cloud.example.com/apps/notes/#/board/4/card/17",
+            "https://cloud.example.com/apps/deck/#/board/4/card/x"
+        ).forEach { assertNull(it, NextcloudDeck.parseCardLink(it, server)) }
+        assertNull(NextcloudDeck.parseCardLink("https://cloud.example.com/apps/deck/", ""))
+    }
 }

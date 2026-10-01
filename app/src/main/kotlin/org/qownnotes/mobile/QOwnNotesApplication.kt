@@ -143,6 +143,7 @@ class ApplicationComponent(
         attachmentHttpClient
     )
     private val attachmentOpener = AttachmentOpener(application, attachmentHttpClient::fetch)
+    internal val deckCardOpener = DeckCardOpener(application)
     private val pullStore = RoomPullStore(database)
     private val pushStore = RoomPushStore(database)
     private val noteTagRepository = RoomNoteTagRepository(database)

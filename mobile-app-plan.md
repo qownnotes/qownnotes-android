@@ -1153,8 +1153,14 @@ Deck support follows the QOwnNotes desktop integration (`NextcloudDeckService` a
   format without `index.php`, and replaces the selection as one undoable edit.
 - Deck requests are on-demand and do not touch notes, so they do not take the account's
   synchronization lock. Failures leave the dialog open with its input, and nothing is inserted.
-- Open: listing, editing, archiving, and deleting existing cards, and opening card links in the
-  Deck app instead of the browser.
+- In the note view, a card link on the note account's server opens in the Nextcloud Deck Android
+  app (`it.niedermann.nextcloud.deck` or its `.play` build, declared in the manifest queries).
+  Deck handles no web links, so the app starts its exported `PushNotificationActivity`, which
+  Nextcloud Files uses for push notifications, with the extras `account` (SSO account name),
+  `objectId` (remote card ID), and `link`. Deck syncs the card if needed and falls back to the
+  link in the browser when the account is not set up in Deck. Other links, or no installed Deck
+  app, open in the browser as before.
+- Open: listing, editing, archiving, and deleting existing cards.
 
 ### Phase 6: Local-Only Folder Backend
 

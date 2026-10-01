@@ -3,6 +3,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Deck card links in notes open in the Nextcloud Deck app when it is installed. -->
+    <queries>
+        <package android:name="it.niedermann.nextcloud.deck" />
+        <package android:name="it.niedermann.nextcloud.deck.play" />
+    </queries>
+
     <application
         android:name=".QOwnNotesApplication"
         android:allowBackup="true"

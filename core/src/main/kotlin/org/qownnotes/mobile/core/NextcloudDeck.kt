@@ -62,5 +62,26 @@ object NextcloudDeck {
         return "[$label](${cardUrl(serverUrl, card.boardId, card.id)})"
     }
 
+    /**
+     * The card that [url] links to on [serverUrl], or `null` when it is not a Deck card link on
+     * that server. Both the web route and its `index.php` variant are recognized.
+     */
+    fun parseCardLink(url: String, serverUrl: String): DeckCardLink? {
+        val base = serverUrl.trim().trimEnd('/')
+        if (base.isEmpty()) return null
+        val candidate = url.trim()
+        if (!candidate.startsWith(base, ignoreCase = true)) return null
+        val match = CARD_ROUTE.matchEntire(candidate.substring(base.length)) ?: return null
+        val boardId = match.groupValues[1].toLongOrNull() ?: return null
+        val cardId = match.groupValues[2].toLongOrNull() ?: return null
+        if (boardId < 1 || cardId < 1) return null
+        return DeckCardLink(boardId, cardId)
+    }
+
     private val LINE_BREAKS = Regex("[\\r\\n]+")
+    private val CARD_ROUTE =
+        Regex("(?:/index\\.php)?/apps/deck/(?:#/)?board/(\\d{1,18})/card/(\\d{1,18})(?:[/?#].*)?")
 }
+
+/** A Deck card addressed by a link in a note. */
+data class DeckCardLink(val boardId: Long, val cardId: Long)
