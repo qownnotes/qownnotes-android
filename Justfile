@@ -89,6 +89,20 @@ start-emulator: create-avd
       unset LD_LIBRARY_PATH; \
       emulator -avd qownnotes-api36 -no-snapshot -no-boot-anim
 
+alias kill-emulator := stop-emulator
+
+# Stop the API 36 emulator. Other emulators and physical devices are left running.
+stop-emulator:
+    @stopped=0; \
+      for serial in $(adb devices | awk '$1 ~ /^emulator-/ { print $1 }'); do \
+        name="$(adb -s "$serial" emu avd name 2>/dev/null | head -n 1 | tr -d '\r')"; \
+        if [ "$name" = "qownnotes-api36" ]; then \
+          adb -s "$serial" emu kill; \
+          stopped=1; \
+        fi; \
+      done; \
+      if [ "$stopped" = 0 ]; then echo "The qownnotes-api36 emulator is not running."; fi
+
 # Install and launch the development app on a connected device.
 run: deploy-dev
 

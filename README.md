@@ -143,6 +143,14 @@ just deploy-dev
 
 `just run` is an alias for `just deploy-dev`.
 
+Stop the emulator when you are done. Other emulators and connected devices keep running:
+
+```sh
+just stop-emulator
+```
+
+`just kill-emulator` is an alias for `just stop-emulator`.
+
 ### Run On A Physical Android Device
 
 Enable ADB access in the NixOS configuration and rebuild the system:
