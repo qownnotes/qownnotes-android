@@ -268,6 +268,7 @@ just release
 Use the shared-key development recipes only when installing over a development APK signed by CI or
 another machine with that key. Switching an existing installation between the shared key and the
 standard local debug key requires uninstalling it first, which clears that development app's data.
+`just deploy-dev` and `just deploy-dev-signed` detect this before installing and name both options.
 
 When the vault is locked, a signing recipe runs `bw unlock --raw` and prompts for the master
 password itself. The resulting `BW_SESSION` exists only inside the wrapper, so it does not need to

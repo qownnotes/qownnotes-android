@@ -108,7 +108,9 @@ run: deploy-dev
 
 # Install and launch the development app on a connected device.
 deploy-dev: _wait-for-android
-    ./gradlew assembleDebug installDebug
+    ./gradlew assembleDebug
+    @{{ just_executable() }} _check-dev-signer deploy-dev-signed
+    adb install -r app/build/outputs/apk/debug/app-debug.apk
     adb shell am start -n org.qownnotes.mobile.dev/org.qownnotes.mobile.MainActivity
 
 # Uninstall the development app and its local data from a connected device.
@@ -117,8 +119,38 @@ uninstall-dev: _wait-for-android
 
 # Install and launch the shared-key-signed development app on a connected device.
 deploy-dev-signed: _wait-for-android
-    ./scripts/with-android-signing development ./gradlew assembleDebug installDebug
+    ./scripts/with-android-signing development ./gradlew assembleDebug
+    @{{ just_executable() }} _check-dev-signer deploy-dev
+    adb install -r app/build/outputs/apk/debug/app-debug.apk
     adb shell am start -n org.qownnotes.mobile.dev/org.qownnotes.mobile.MainActivity
+
+# Android refuses to update an app signed with another key and Gradle reports that as a stack trace,
+# so compare the built and installed signers first and explain the ways forward instead.
+[private]
+_check-dev-signer other-recipe:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    apk=app/build/outputs/apk/debug/app-debug.apk
+    installed="$(adb shell pm path org.qownnotes.mobile.dev 2>/dev/null | tr -d '\r' \
+      | sed -n 's/^package:\(.*\/base\.apk\)$/\1/p' | head -n 1 || true)"
+    [ -n "$installed" ] || exit 0
+    build_tools="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)"
+    temporary="$(mktemp -d)"
+    trap 'rm -rf "$temporary"' EXIT
+    # Some devices do not allow reading installed packages. Gradle then reports any mismatch.
+    adb pull "$installed" "$temporary/installed.apk" >/dev/null 2>&1 || exit 0
+    signer() { "$build_tools/apksigner" verify --print-certs "$1" | grep 'SHA-256 digest' | sort; }
+    [ "$(signer "$temporary/installed.apk")" != "$(signer "$apk")" ] || exit 0
+    printf '%s\n' \
+      "The installed QOwnNotes Dev app is signed with a different key than this build," \
+      "and Android only updates an app with the key it was installed with. Either:" \
+      "" \
+      "  just {{other-recipe}}" \
+      "      Install with the other development key and keep the app's data." \
+      "" \
+      "  just uninstall-dev" \
+      "      Remove the app first. This deletes its local data, including unsynced changes." >&2
+    exit 1
 
 # Install and launch the signed release app on a connected device.
 deploy-release: _wait-for-android
