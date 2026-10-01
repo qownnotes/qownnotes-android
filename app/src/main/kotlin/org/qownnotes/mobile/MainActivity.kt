@@ -966,11 +966,6 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val bookmarksPathFlow = remember(accountId) { component.settings.bookmarksPath(accountId) }
     val bookmarksPath by bookmarksPathFlow.collectAsStateWithLifecycle(context = UiDispatcher)
-    val nextcloudDeckEnabledFlow = remember(accountId) {
-        component.settings.nextcloudDeckEnabled(accountId)
-    }
-    val nextcloudDeckEnabled by nextcloudDeckEnabledFlow
-        .collectAsStateWithLifecycle(context = UiDispatcher)
     val categories = remember(allNotes) { NoteCategories.selectable(allNotes.orEmpty()) }
     val tagStateFlow = remember(accountId) { component.observeNoteTags(accountId) }
     val tagState by tagStateFlow.collectAsStateWithLifecycle(
@@ -1650,18 +1645,6 @@ private fun NoteListScreen(
                         onCheckedChange = component.settings::setAskForNewNoteName,
                         testTag = "toggle-ask-for-new-note-name"
                     )
-                    if (component.supportsNextcloudDeck) {
-                        SettingsCheckbox(
-                            label = "Enable Nextcloud Deck support",
-                            description = "Create Deck cards from the note editor and link " +
-                                "them in the note. Requires the Deck app on Nextcloud.",
-                            checked = nextcloudDeckEnabled,
-                            onCheckedChange = {
-                                component.settings.setNextcloudDeckEnabled(accountId, it)
-                            },
-                            testTag = "toggle-nextcloud-deck"
-                        )
-                    }
                     OutlinedTextField(
                         value = bookmarksPath,
                         onValueChange = { component.settings.setBookmarksPath(accountId, it) },
@@ -2591,13 +2574,16 @@ private fun NoteDetailScreen(
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
     var importingImage by remember(localId) { mutableStateOf(false) }
-    val nextcloudDeckEnabledFlow = remember(note?.accountId) {
+    val nextcloudDeckFlow = remember(note?.accountId) {
         note?.accountId?.takeIf { component.supportsNextcloudDeck }
-            ?.let(component.settings::nextcloudDeckEnabled)
+            ?.let(component::nextcloudDeckAvailable)
             ?: flowOf(false)
     }
-    val nextcloudDeckEnabled by nextcloudDeckEnabledFlow
+    val nextcloudDeckAvailable by nextcloudDeckFlow
         .collectAsStateWithLifecycle(initialValue = false, context = UiDispatcher)
+    LaunchedEffect(note?.accountId) {
+        note?.accountId?.let { component.refreshDeckAvailability(it) }
+    }
     // The selected text when the dialog opened, offered as the card title. Null hides the dialog.
     var deckCardTitle by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     val imagePicker =
@@ -3327,7 +3313,7 @@ private fun NoteDetailScreen(
                                 editor?.focusForInput()
                             }
                         )
-                        if (nextcloudDeckEnabled) {
+                        if (nextcloudDeckAvailable) {
                             ActionIconButton(
                                 icon = Icons.Filled.ViewKanban,
                                 description = "Create Nextcloud Deck card",
@@ -3878,7 +3864,9 @@ private fun NoteDetailScreen(
     }
     val deckAccountId = account?.id
     val pendingDeckCardTitle = deckCardTitle
-    if (pendingDeckCardTitle != null && editing && nextcloudDeckEnabled && deckAccountId != null) {
+    if (pendingDeckCardTitle != null && editing && nextcloudDeckAvailable &&
+        deckAccountId != null
+    ) {
         NextcloudDeckCardDialog(
             component = component,
             accountId = deckAccountId,

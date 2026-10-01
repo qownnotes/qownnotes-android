@@ -238,6 +238,16 @@ class NextcloudBackend(context: Context) :
             }
         }
 
+    override suspend fun supportsDeck(account: Account): Boolean = withContext(Dispatchers.IO) {
+        try {
+            withApis(account) { capabilitiesApi, _, _ ->
+                supportsDeckApi(capabilitiesApi.getCapabilities())
+            }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
     override suspend fun deckBoards(account: Account): List<DeckBoard> =
         withContext(Dispatchers.IO) {
             try {

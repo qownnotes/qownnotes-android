@@ -144,6 +144,9 @@ class ApplicationComponent(
     )
     private val attachmentOpener = AttachmentOpener(application, attachmentHttpClient::fetch)
     internal val deckCardOpener = DeckCardOpener(application)
+
+    // Accounts whose Deck support was checked in this application run.
+    private val deckChecks = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     private val pullStore = RoomPullStore(database)
     private val pushStore = RoomPushStore(database)
     private val noteTagRepository = RoomNoteTagRepository(database)
@@ -301,6 +304,7 @@ class ApplicationComponent(
             settings.removeNoteCategoryScope(accountId)
             settings.removeBookmarksPath(accountId)
             settings.removeNextcloudDeck(accountId)
+            deckChecks.remove(accountId)
             tagSynchronizer?.forget(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
@@ -815,6 +819,35 @@ class ApplicationComponent(
     /** Whether the account backend can create Nextcloud Deck cards at all. */
     val supportsNextcloudDeck: Boolean
         get() = deckBackend != null
+
+    /**
+     * Whether the account's server supports Nextcloud Deck, as last detected. Starts from the
+     * stored result so the editor can offer Deck offline; see [refreshDeckAvailability].
+     */
+    fun nextcloudDeckAvailable(accountId: String): StateFlow<Boolean> =
+        settings.nextcloudDeckAvailable(accountId)
+
+    /**
+     * Asks the server once per application run whether it supports Deck and stores the answer.
+     * A failed check, for example while offline, keeps the stored answer and is retried later.
+     */
+    suspend fun refreshDeckAvailability(accountId: String) {
+        val backend = deckBackend ?: return
+        if (!deckChecks.add(accountId)) return
+        try {
+            val account = accountRepository.get(accountId)
+            if (account == null) {
+                deckChecks.remove(accountId)
+                return
+            }
+            settings.setNextcloudDeckAvailable(accountId, backend.supportsDeck(account))
+        } catch (cancelled: CancellationException) {
+            deckChecks.remove(accountId)
+            throw cancelled
+        } catch (_: Exception) {
+            deckChecks.remove(accountId)
+        }
+    }
 
     // Deck requests do not read or write notes, so they do not wait for the account's
     // synchronization lock; a long sync must not block the card dialog.

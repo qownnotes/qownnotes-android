@@ -1880,27 +1880,12 @@ class AppLaunchTest {
     }
 
     @Test
-    fun enabledDeckSupportCreatesACardFromTheSelectionAndLinksIt() {
+    fun detectedDeckSupportCreatesACardFromTheSelectionAndLinksIt() {
         val account = importAccount("alice", "Existing note", "etag-1", 10)
         application.fakeBackend.deckBoards = listOf(
             DeckBoard(2, "Work", listOf(DeckStack(11, "To do"), DeckStack(12, "Done"))),
             DeckBoard(3, "Home", listOf(DeckStack(31, "Inbox")))
         )
-        composeRule.onNodeWithText("Existing note").performClick()
-        composeRule.enterEditMode()
-        composeRule.waitForTag("insert-datetime")
-        assertTrue(
-            composeRule.onAllNodesWithTag("create-deck-card-link").fetchSemanticsNodes().isEmpty()
-        )
-        composeRule.onNodeWithTag("finish-editing").performClick()
-        composeRule.onNodeWithTag("back-to-note-list").performClick()
-
-        listAction("settings")
-        composeRule.onNodeWithTag("toggle-nextcloud-deck").performScrollTo().assertIsOff()
-            .performClick()
-        composeRule.onNodeWithTag("toggle-nextcloud-deck").assertIsOn()
-        composeRule.onNodeWithTag("close-settings").performClick()
-
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.enterEditMode()
         onView(withId(R.id.markdown_editor))
@@ -1910,6 +1895,8 @@ class AppLaunchTest {
                 R.id.markdown_editor
             ).setSelection(0, 10)
         }
+        // The server reports Deck support, so the editor offers the action without any setting.
+        composeRule.waitForTag("create-deck-card-link")
         composeRule.onNodeWithTag("create-deck-card-link").performScrollTo().performClick()
 
         composeRule.waitForTag("deck-card-target")
@@ -1948,10 +1935,48 @@ class AppLaunchTest {
     }
 
     @Test
+    fun deckActionFollowsTheDetectedServerSupport() {
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
+        val accountId = account.localAccountId()
+        // Offline, the last detected support still applies.
+        application.component.settings.setNextcloudDeckAvailable(accountId, true)
+        application.fakeBackend.deckSupportFailure =
+            BackendException.Retryable(Exception("offline"))
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        composeRule.waitForTag("create-deck-card-link")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.deckSupportChecks.size == 1
+        }
+        composeRule.onNodeWithTag("create-deck-card-link").assertExists()
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+
+        // A failed check is repeated, and a server without Deck hides the action.
+        application.fakeBackend.deckSupported = false
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        composeRule.waitForTag("insert-datetime")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("create-deck-card-link").fetchSemanticsNodes().isEmpty()
+        }
+        assertEquals(listOf(accountId, accountId), application.fakeBackend.deckSupportChecks)
+        assertFalse(application.component.settings.nextcloudDeckAvailable(accountId).value)
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+
+        // A completed check is not repeated in the same run.
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        composeRule.waitForTag("insert-datetime")
+        assertEquals(2, application.fakeBackend.deckSupportChecks.size)
+    }
+
+    @Test
     fun failedDeckCardCreationKeepsTheDialogAndTheNoteUnchanged() {
         val account = importAccount("alice", "Existing note", "etag-1", 10)
         val accountId = account.localAccountId()
-        application.component.settings.setNextcloudDeckEnabled(accountId, true)
+        application.component.settings.setNextcloudDeckAvailable(accountId, true)
         application.component.settings.setNextcloudDeckTarget(accountId, DeckStackTarget(3, 31))
         application.fakeBackend.deckBoards = listOf(
             DeckBoard(2, "Work", listOf(DeckStack(11, "To do"))),

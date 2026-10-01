@@ -1136,9 +1136,12 @@ mobile share one set of tags. The decision and its safety rules are in
 Deck support follows the QOwnNotes desktop integration (`NextcloudDeckService` and
 `NextcloudDeckDialog`), limited to creating and linking cards (#16):
 
-- "Enable Nextcloud Deck support" is a device-local, per-account setting, off by default, as the
-  desktop stores it per cloud connection. It is offered only when the account backend implements
-  the optional `NoteDeckBackend` contract.
+- Unlike the desktop opt-in setting, Deck support is detected per account: the server's
+  capabilities must list `deck` with `apiVersions` containing `1.1`, which Nextcloud omits when
+  Deck is not installed or not enabled for the user. The note screen checks once per application
+  run and account, and the result is stored per account so the action is also offered offline. A
+  failed check keeps the stored result and is retried when a note of the account opens again.
+  Detection requires the account backend to implement the optional `NoteDeckBackend` contract.
 - While editing, a toolbar action opens a dialog with the selected text as the card title, an
   optional description, a combined "board / list" choice, and an optional due date that defaults
   to one hour ahead on the minute, as on desktop.

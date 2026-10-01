@@ -19,12 +19,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - An "Ask for name of new notes" setting, off by default, makes the note list's create button ask
   for the new note's name first. The field starts with the name the note would otherwise get, the
   dated default or the search text, so accepting it keeps the previous behavior.
-- Nextcloud Deck support, as in QOwnNotes desktop. With the new per-account "Enable Nextcloud Deck
-  support" setting, the editor toolbar can create a Deck card, using the selected text as its
-  title, with an optional description and due date, in a chosen board and list. A link to the card
-  is inserted into the note. In the note view, tapping a card link of the note's account opens
-  the card in the Nextcloud Deck Android app when it is installed. Requires the Deck app on
-  Nextcloud (for [#16](https://github.com/qownnotes/qownnotes-android/issues/16)).
+- Nextcloud Deck support, as in QOwnNotes desktop. When the account's server has the Deck app,
+  which is detected automatically, the editor toolbar can create a Deck card, using the selected
+  text as its title, with an optional description and due date, in a chosen board and list. A
+  link to the card is inserted into the note. In the note view, tapping a card link of the note's
+  account opens the card in the Nextcloud Deck Android app when it is installed (for
+  [#16](https://github.com/qownnotes/qownnotes-android/issues/16)).
 
 ### Changed
 

@@ -1,6 +1,8 @@
 package org.qownnotes.mobile.backend.nextcloud
 
 import com.google.gson.annotations.SerializedName
+import com.nextcloud.android.sso.api.ParsedResponse
+import io.reactivex.Observable
 import java.net.HttpURLConnection
 import java.time.Instant
 import org.qownnotes.mobile.core.BackendException
@@ -166,3 +168,21 @@ internal data class DeckCardDto(
     val stackId: Long? = null,
     val title: String? = null
 )
+
+internal const val DECK_API_VERSION = "1.1"
+
+/**
+ * Whether the capabilities list the Deck app with [DECK_API_VERSION]. Nextcloud omits the Deck
+ * capability when the app is not installed, disabled, or not enabled for the user.
+ */
+internal fun supportsDeckApi(observable: Observable<ParsedResponse<OcsResponse>>): Boolean {
+    val response = observable.blockingSingle().response
+        ?: throw BackendException.Protocol("Nextcloud returned an empty capabilities response")
+    val capabilities = response.ocs?.data?.capabilities
+        ?: throw BackendException.Protocol("Nextcloud returned a malformed capabilities response")
+    val deck = capabilities.get("deck")?.takeIf { it.isJsonObject }?.asJsonObject ?: return false
+    val versions = deck.get("apiVersions")?.takeIf { it.isJsonArray }?.asJsonArray ?: return false
+    return versions.any {
+        it.isJsonPrimitive && it.asJsonPrimitive.isString && it.asString == DECK_API_VERSION
+    }
+}

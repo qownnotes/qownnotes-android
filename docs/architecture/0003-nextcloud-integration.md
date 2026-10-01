@@ -19,6 +19,7 @@ are authoritative. An extension change affects only files created afterward and 
 the collection checkpoint.
 
 Nextcloud Deck is a second optional companion, exposed through the `NoteDeckBackend` contract.
+The app detects Deck from the server capabilities instead of an opt-in setting.
 The adapter lists boards and creates cards through the Deck REST API v1.1 on demand. Deck data is
 not cached in Room and Deck requests never read or write notes; only the card link inserted into
 the note's Markdown enters the normal note-write path.

@@ -214,10 +214,22 @@ class FakePullBackend :
     var tagFileVersion = 0
         private set
     val tagFileUploads = mutableListOf<ByteArray>()
+    var deckSupported = true
+    var deckSupportFailure: Throwable? = null
+    val deckSupportChecks = mutableListOf<String>()
     var deckBoards = emptyList<DeckBoard>()
     var deckBoardsFailure: Throwable? = null
     var createDeckCardFailure: Throwable? = null
     val createdDeckCards = mutableListOf<Pair<DeckStackTarget, DeckCardDraft>>()
+
+    override suspend fun supportsDeck(account: Account): Boolean {
+        deckSupportChecks += account.id
+        deckSupportFailure?.let {
+            deckSupportFailure = null
+            throw it
+        }
+        return deckSupported
+    }
 
     override suspend fun deckBoards(account: Account): List<DeckBoard> {
         deckBoardsFailure?.let {
@@ -385,6 +397,9 @@ class FakePullBackend :
         remoteNotes.clear()
         tagFile = null
         tagFileUploads.clear()
+        deckSupported = true
+        deckSupportFailure = null
+        deckSupportChecks.clear()
         deckBoards = emptyList()
         deckBoardsFailure = null
         createDeckCardFailure = null

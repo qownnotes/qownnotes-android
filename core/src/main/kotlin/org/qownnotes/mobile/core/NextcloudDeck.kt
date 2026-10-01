@@ -21,6 +21,12 @@ data class DeckCard(val id: Long, val boardId: Long, val stackId: Long, val titl
 
 /** Optional Nextcloud Deck access for linking notes to cards. */
 interface NoteDeckBackend {
+    /**
+     * Whether the account's server has the Deck app with the REST API version used here. Deck
+     * support is detected rather than configured, so the editor offers it only where it works.
+     */
+    suspend fun supportsDeck(account: Account): Boolean
+
     /** Boards that are neither archived nor deleted, each with its lists that are not deleted. */
     suspend fun deckBoards(account: Account): List<DeckBoard>
 
