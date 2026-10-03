@@ -47,7 +47,9 @@ enum class MarkdownFormatAction {
     BULLET,
     NUMBERED,
     TASK,
-    QUOTE
+    QUOTE,
+    INDENT,
+    OUTDENT
 }
 
 data class MarkdownTextEdit(val text: String, val selectionStart: Int, val selectionEnd: Int)
@@ -103,7 +105,43 @@ fun applyMarkdownFormat(
         MarkdownFormatAction.NUMBERED -> source.prefixLines(start, end, "1. ")
         MarkdownFormatAction.TASK -> source.prefixLines(start, end, "- [ ] ")
         MarkdownFormatAction.QUOTE -> source.prefixLines(start, end, "> ")
+        MarkdownFormatAction.INDENT -> source.indentLines(start, end, outdent = false)
+        MarkdownFormatAction.OUTDENT -> source.indentLines(start, end, outdent = true)
     }
+}
+
+private fun String.indentLines(start: Int, end: Int, outdent: Boolean): MarkdownTextEdit {
+    val lineStart = if (start == 0) 0 else lastIndexOf('\n', start - 1) + 1
+    // A selection ending at the next line's start does not include that line.
+    val lastSelectedOffset = if (end > start) end - 1 else end
+    val lineStarts = buildList {
+        add(lineStart)
+        for (index in lineStart until lastSelectedOffset) {
+            if (this@indentLines[index] == '\n') add(index + 1)
+        }
+    }
+    val changes = lineStarts.map { offset ->
+        val removed = if (outdent) {
+            (offset until minOf(offset + 4, length)).takeWhile { this[it] == ' ' }.size
+        } else {
+            0
+        }
+        offset to removed
+    }
+    val result = StringBuilder(this)
+    changes.asReversed().forEach { (offset, removed) ->
+        if (outdent) result.delete(offset, offset + removed) else result.insert(offset, "    ")
+    }
+    fun adjustedSelection(position: Int): Int = position + changes.sumOf { (offset, removed) ->
+        if (outdent) {
+            -(position - offset).coerceIn(0, removed)
+        } else if (offset <= position) {
+            4
+        } else {
+            0
+        }
+    }
+    return MarkdownTextEdit(result.toString(), adjustedSelection(start), adjustedSelection(end))
 }
 
 private fun String.wrap(start: Int, end: Int, before: String, after: String): MarkdownTextEdit {

@@ -57,6 +57,8 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FormatIndentDecrease
+import androidx.compose.material.icons.automirrored.filled.FormatIndentIncrease
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -3257,6 +3259,20 @@ private fun NoteDetailScreen(
                             editor,
                             "Create checkbox list item",
                             "format-checkbox-list"
+                        )
+                        FormatButton(
+                            Icons.AutoMirrored.Filled.FormatIndentIncrease,
+                            MarkdownFormatAction.INDENT,
+                            editor,
+                            "Indent by 4 spaces",
+                            "format-indent"
+                        )
+                        FormatButton(
+                            Icons.AutoMirrored.Filled.FormatIndentDecrease,
+                            MarkdownFormatAction.OUTDENT,
+                            editor,
+                            "Outdent by 4 spaces",
+                            "format-outdent"
                         )
                         FormatButton(
                             Icons.Filled.FormatBold,

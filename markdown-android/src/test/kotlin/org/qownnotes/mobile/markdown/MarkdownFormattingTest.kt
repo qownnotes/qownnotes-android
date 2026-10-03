@@ -93,6 +93,59 @@ class MarkdownFormattingTest {
     }
 
     @Test
+    fun indentMovesTheCaretWithTheCurrentLine() {
+        assertEquals(
+            MarkdownTextEdit("one\n    two", 10, 10),
+            applyMarkdownFormat("one\ntwo", 6, 6, MarkdownFormatAction.INDENT)
+        )
+        assertEquals(
+            MarkdownTextEdit("    ", 4, 4),
+            applyMarkdownFormat("", 0, 0, MarkdownFormatAction.INDENT)
+        )
+        assertEquals(
+            MarkdownTextEdit("    \nnext", 4, 4),
+            applyMarkdownFormat("\nnext", 0, 0, MarkdownFormatAction.INDENT)
+        )
+    }
+
+    @Test
+    fun indentExcludesTheLineAtTheSelectionEndAndPreservesLineEndings() {
+        assertEquals(
+            MarkdownTextEdit("    one\r\n    two\r\nthree", 5, 18),
+            applyMarkdownFormat("one\r\ntwo\r\nthree", 1, 10, MarkdownFormatAction.INDENT)
+        )
+    }
+
+    @Test
+    fun outdentRemovesOnlyUpToFourLeadingSpacesOnEachSelectedLine() {
+        val source = "      one\n  two\nthree\n\tfour"
+        assertEquals(
+            MarkdownTextEdit("  one\ntwo\nthree\n\tfour", 0, source.length - 6),
+            applyMarkdownFormat(source, 0, source.length, MarkdownFormatAction.OUTDENT)
+        )
+        assertEquals(
+            MarkdownTextEdit("text", 0, 0),
+            applyMarkdownFormat("  text", 1, 1, MarkdownFormatAction.OUTDENT)
+        )
+    }
+
+    @Test
+    fun indentAndOutdentRestoreAMultilineSelection() {
+        val source = "one\ntwo\nthree"
+        val indented = applyMarkdownFormat(source, 2, 6, MarkdownFormatAction.INDENT)
+        assertEquals("    one\n    two\nthree", indented.text)
+        assertEquals(
+            MarkdownTextEdit(source, 2, 6),
+            applyMarkdownFormat(
+                indented.text,
+                indented.selectionStart,
+                indented.selectionEnd,
+                MarkdownFormatAction.OUTDENT
+            )
+        )
+    }
+
+    @Test
     fun returnOnAnEmptyItemEndsTheList() {
         assertContinuation("- \n", "\n")
         assertContinuation("- [ ] \n", "\n")

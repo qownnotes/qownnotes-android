@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Editor toolbar buttons to indent the current line or selected lines by four spaces and remove
+  up to four leading spaces, with undo and redo support.
+
 ### Changed
 
 - Pressing Enter in the note editor removes a single trailing space from the previous line,

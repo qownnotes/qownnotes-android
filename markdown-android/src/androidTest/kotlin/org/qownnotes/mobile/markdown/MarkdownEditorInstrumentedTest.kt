@@ -354,6 +354,35 @@ class MarkdownEditorInstrumentedTest {
         }
     }
 
+    @Test
+    fun multilineIndentAndOutdentAreSeparateUndoSteps() {
+        instrumentation.runOnMainSync {
+            val view = editor()
+            view.setText("- one\n- two\nuntouched")
+            val binding = MarkdownEditorBinding(view.context, view) {}
+            view.setSelection(0, 12)
+
+            view.applyFormat(MarkdownFormatAction.INDENT)
+            assertEquals("    - one\n    - two\nuntouched", view.text.toString())
+            assertEquals(4, view.selectionStart)
+            assertEquals(20, view.selectionEnd)
+
+            view.applyFormat(MarkdownFormatAction.OUTDENT)
+            assertEquals("- one\n- two\nuntouched", view.text.toString())
+            assertEquals(0, view.selectionStart)
+            assertEquals(12, view.selectionEnd)
+
+            assertTrue(binding.undo())
+            assertEquals("    - one\n    - two\nuntouched", view.text.toString())
+            assertTrue(binding.undo())
+            assertEquals("- one\n- two\nuntouched", view.text.toString())
+            assertFalse(binding.canUndo)
+            assertTrue(binding.redo())
+            assertEquals("    - one\n    - two\nuntouched", view.text.toString())
+            binding.close()
+        }
+    }
+
     /** A binding builds Markwon, which resolves its styles from AppCompat theme attributes. */
     private fun editor() = MarkdownEditText(
         ContextThemeWrapper(
