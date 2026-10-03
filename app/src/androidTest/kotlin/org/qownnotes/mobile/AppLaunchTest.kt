@@ -2045,14 +2045,36 @@ class AppLaunchTest {
 
     @Test
     fun enterRemovesSingleTrailingSpaceAndPreservesMarkdownHardBreaks() {
-        importAccount("alice", "Existing note", "etag-1", 10, "")
+        importAccount("alice", "Existing note", "etag-1", 10, "text ")
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.enterEditMode()
-        onView(withId(R.id.markdown_editor)).perform(click(), typeText("text \nnext"))
-        onView(withId(R.id.markdown_editor)).check(matches(withText("text\nnext")))
+        onView(withId(R.id.markdown_editor)).perform(click())
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(5)
+        }
 
-        onView(withId(R.id.markdown_editor)).perform(typeText("  \nlast"))
-        onView(withId(R.id.markdown_editor)).check(matches(withText("text\nnext  \nlast")))
+        // Let newline cleanup and the posted caret restoration finish before the next key.
+        // Digits keep IME capitalization and word autocorrection out of this whitespace test.
+        fun pressAndCheck(keyCode: Int, expected: String) {
+            onView(withId(R.id.markdown_editor)).perform(pressKey(keyCode))
+            composeRule.waitForIdle()
+            onView(withId(R.id.markdown_editor)).check(matches(withText(expected)))
+            assertEquals(expected.length, editorSelectionStart())
+        }
+
+        pressAndCheck(KeyEvent.KEYCODE_ENTER, "text\n")
+        var expected = "text\n"
+        for (character in "1234  \n5678") {
+            val keyCode = when (character) {
+                ' ' -> KeyEvent.KEYCODE_SPACE
+                '\n' -> KeyEvent.KEYCODE_ENTER
+                else -> KeyEvent.keyCodeFromString("KEYCODE_${character.uppercaseChar()}")
+            }
+            expected += character
+            pressAndCheck(keyCode, expected)
+        }
     }
 
     @Test
