@@ -2086,6 +2086,40 @@ class AppLaunchTest {
         onView(withId(R.id.markdown_editor)).check(matches(withText("\n")))
     }
 
+    @Test
+    fun enterBeforeExistingListItemsCreatesItemsReadyForTyping() {
+        val items = listOf(
+            "- bullet" to "- ",
+            "  - [x] done" to "  - [ ] ",
+            "3. numbered" to "3. "
+        )
+        var expected = items.joinToString("\n") { it.first }
+        importAccount("alice", "Lists", "etag-1", 10, expected)
+        composeRule.onNodeWithText("Lists").performClick()
+        composeRule.enterEditMode()
+
+        for ((item, prefix) in items) {
+            onView(withId(R.id.markdown_editor)).perform(click())
+            val caret = expected.indexOf(item)
+            composeRule.runOnUiThread {
+                composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                    R.id.markdown_editor
+                ).setSelection(caret)
+            }
+            onView(withId(R.id.markdown_editor)).perform(pressKey(KeyEvent.KEYCODE_ENTER))
+            expected = expected.replaceRange(caret, caret, "$prefix\n")
+            composeRule.waitForIdle()
+            onView(withId(R.id.markdown_editor)).check(matches(withText(expected)))
+            assertEquals(caret + prefix.length, editorSelectionStart())
+
+            onView(withId(R.id.markdown_editor)).perform(pressKey(KeyEvent.KEYCODE_X))
+            expected = expected.replaceRange(caret + prefix.length, caret + prefix.length, "x")
+            composeRule.waitForIdle()
+            onView(withId(R.id.markdown_editor)).check(matches(withText(expected)))
+            assertEquals(caret + prefix.length + 1, editorSelectionStart())
+        }
+    }
+
     /**
      * The framework editor has an undo buffer of its own, but only a hardware keyboard can reach
      * it, so the toolbar controls are what makes undo usable on a phone at all.

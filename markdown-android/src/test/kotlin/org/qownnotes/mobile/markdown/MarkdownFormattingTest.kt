@@ -93,6 +93,36 @@ class MarkdownFormattingTest {
     }
 
     @Test
+    fun enterBeforeAnExistingListItemInsertsAnEmptyItemAboveIt() {
+        for ((item, prefix) in listOf(
+            "- item" to "- ",
+            "  * nested" to "  * ",
+            "+ item" to "+ ",
+            "3. item" to "3. ",
+            "12) item" to "12) ",
+            "- [x] done" to "- [ ] ",
+            "  - [ ] task" to "  - [ ] "
+        )) {
+            for (before in listOf("", "- previous\n", "paragraph\n")) {
+                val source = "$before\n$item\nfollowing"
+                val expected = "$before$prefix\n$item\nfollowing"
+                val caret = before.length + prefix.length
+                assertEquals(
+                    MarkdownTextEdit(expected, caret, caret),
+                    applyMarkdownNewline(source, before.length)
+                )
+            }
+        }
+    }
+
+    @Test
+    fun enterBeforePlainTextOrFencedListsDoesNotInsertAnItem() {
+        assertNull(applyMarkdownNewline("\nplain", 0))
+        assertNull(applyMarkdownNewline("```\n\n- code\n```", 4))
+        assertNull(applyMarkdownNewline("~~~\n\n1. code\n~~~", 4))
+    }
+
+    @Test
     fun indentMovesTheCaretWithTheCurrentLine() {
         assertEquals(
             MarkdownTextEdit("one\n    two", 10, 10),

@@ -193,6 +193,23 @@ fun continueMarkdownList(source: String, newlineOffset: Int): MarkdownTextEdit? 
     val lineStart = source.lastIndexOf('\n', newlineOffset - 1).let { if (it < 0) 0 else it + 1 }
     if (source.isInsideFence(lineStart)) return null
     val line = source.substring(lineStart, newlineOffset).removeSuffix("\r")
+    if (line.isEmpty()) {
+        val nextLineStart = newlineOffset + 1
+        val nextLineEnd = source.indexOf('\n', nextLineStart).let {
+            if (it < 0) source.length else it
+        }
+        val nextLine = source.substring(nextLineStart, nextLineEnd).removeSuffix("\r")
+        val nextUnordered = UNORDERED_LIST.matchEntire(nextLine)
+        val nextOrdered = ORDERED_LIST.matchEntire(nextLine)
+        val prefix = nextUnordered?.let { it.unorderedListPrefix() }
+            ?: nextOrdered?.let {
+                it.groupValues[1] + it.groupValues[2] + it.groupValues[3] + it.groupValues[4]
+            }
+            ?: return null
+        val text = source.substring(0, newlineOffset) + prefix + source.substring(newlineOffset)
+        val caret = newlineOffset + prefix.length
+        return MarkdownTextEdit(text, caret, caret)
+    }
     val unordered = UNORDERED_LIST.matchEntire(line)
     val ordered = ORDERED_LIST.matchEntire(line)
     val content = unordered?.groupValues?.get(6) ?: ordered?.groupValues?.get(5) ?: return null
@@ -201,9 +218,7 @@ fun continueMarkdownList(source: String, newlineOffset: Int): MarkdownTextEdit? 
         return MarkdownTextEdit(text, lineStart + 1, lineStart + 1)
     }
     val prefix = if (unordered != null) {
-        val task = unordered.groupValues[4]
-        unordered.groupValues[1] + unordered.groupValues[2] + unordered.groupValues[3] +
-            if (task.isEmpty()) "" else "[ ]${unordered.groupValues[5]}"
+        unordered.unorderedListPrefix()
     } else {
         val match = requireNotNull(ordered)
         val nextNumber = match.groupValues[2].toLongOrNull()?.plus(1) ?: return null
@@ -214,6 +229,10 @@ fun continueMarkdownList(source: String, newlineOffset: Int): MarkdownTextEdit? 
     val caret = insertionPoint + prefix.length
     return MarkdownTextEdit(text, caret, caret)
 }
+
+private fun MatchResult.unorderedListPrefix(): String =
+    groupValues[1] + groupValues[2] + groupValues[3] +
+        if (groupValues[4].isEmpty()) "" else "[ ]${groupValues[5]}"
 
 private fun String.isInsideFence(beforeOffset: Int): Boolean {
     var fence: Char? = null

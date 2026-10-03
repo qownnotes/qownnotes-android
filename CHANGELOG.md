@@ -11,6 +11,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Editor toolbar buttons to indent the current line or selected lines by four spaces and remove
   up to four leading spaces, with undo and redo support.
+- Pressing Enter before an existing bullet, numbered, or checklist item creates an empty item
+  above it and places the cursor after the new marker, ready to type.
 
 ### Changed
 
