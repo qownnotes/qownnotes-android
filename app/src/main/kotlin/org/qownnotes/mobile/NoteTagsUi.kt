@@ -118,7 +118,13 @@ internal fun NoteTagsDialog(
     onDismiss: () -> Unit
 ) {
     var newTag by rememberSaveable { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     val tags = remember(state.tags) { NoteTags.withPaths(state.tags) }
+    val matchingTags = remember(tags, searchQuery) {
+        tags.filter { (_, path) ->
+            NoteTags.displayPath(path).contains(searchQuery.trim(), ignoreCase = true)
+        }
+    }
     val normalizedNewTag = NoteTags.normalizeName(newTag)
     val addNewTag = {
         normalizedNewTag?.let { onToggle(listOf(it), true) }
@@ -129,60 +135,79 @@ internal fun NoteTagsDialog(
         title = { Text("Tags") },
         text = {
             Column(
-                modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+                modifier = Modifier.heightIn(max = 480.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                when {
-                    state.availability == NoteTagAvailability.UNKNOWN -> Text(
-                        "Tags appear after the next synchronization.",
-                        modifier = Modifier.testTag("note-tags-unavailable")
+                if (state.availability == NoteTagAvailability.AVAILABLE) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = { Text("Search tags") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("search-note-tags")
                     )
-                    state.availability != NoteTagAvailability.AVAILABLE -> Text(
-                        state.message ?: "Tags are not available for this account.",
-                        modifier = Modifier.testTag("note-tags-unavailable")
-                    )
-                    else -> {
-                        if (!state.writable) {
-                            Text(
-                                "notes.sqlite was written by a newer QOwnNotes version, so " +
-                                    "tags are read-only.",
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.testTag("note-tags-read-only")
-                            )
-                        }
-                        state.message?.let {
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                        if (tags.isEmpty()) Text("No tags yet.")
-                        tags.forEach { (tag, path) ->
-                            TagCheckboxRow(
-                                label = NoteTags.displayPath(path),
-                                checked = tag.id in noteTagIds,
-                                enabled = state.editable,
-                                onCheckedChange = { onToggle(path, it) },
-                                testTag = "note-tag-option-${tag.name}"
-                            )
-                        }
-                        if (state.editable) {
-                            OutlinedTextField(
-                                value = newTag,
-                                onValueChange = { newTag = it },
-                                label = { Text("New tag") },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                                keyboardActions = KeyboardActions(onDone = { addNewTag() }),
-                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                                    .testTag("new-note-tag")
-                            )
-                            TextButton(
-                                onClick = addNewTag,
-                                enabled = normalizedNewTag != null,
-                                modifier = Modifier.testTag("add-note-tag")
-                            ) { Text("Add tag") }
+                }
+                Column(
+                    modifier = Modifier.weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    when {
+                        state.availability == NoteTagAvailability.UNKNOWN -> Text(
+                            "Tags appear after the next synchronization.",
+                            modifier = Modifier.testTag("note-tags-unavailable")
+                        )
+                        state.availability != NoteTagAvailability.AVAILABLE -> Text(
+                            state.message ?: "Tags are not available for this account.",
+                            modifier = Modifier.testTag("note-tags-unavailable")
+                        )
+                        else -> {
+                            if (!state.writable) {
+                                Text(
+                                    "notes.sqlite was written by a newer QOwnNotes version, so " +
+                                        "tags are read-only.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.testTag("note-tags-read-only")
+                                )
+                            }
+                            state.message?.let {
+                                Text(
+                                    it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            if (tags.isEmpty()) {
+                                Text("No tags yet.")
+                            } else if (matchingTags.isEmpty()) {
+                                Text("No matching tags.")
+                            }
+                            matchingTags.forEach { (tag, path) ->
+                                TagCheckboxRow(
+                                    label = NoteTags.displayPath(path),
+                                    checked = tag.id in noteTagIds,
+                                    enabled = state.editable,
+                                    onCheckedChange = { onToggle(path, it) },
+                                    testTag = "note-tag-option-${tag.name}"
+                                )
+                            }
+                            if (state.editable) {
+                                OutlinedTextField(
+                                    value = newTag,
+                                    onValueChange = { newTag = it },
+                                    label = { Text("New tag") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    keyboardActions = KeyboardActions(onDone = { addNewTag() }),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                                        .testTag("new-note-tag")
+                                )
+                                TextButton(
+                                    onClick = addNewTag,
+                                    enabled = normalizedNewTag != null,
+                                    modifier = Modifier.testTag("add-note-tag")
+                                ) { Text("Add tag") }
+                            }
                         }
                     }
                 }

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.nextcloud.android.sso.model.SingleSignOnAccount
@@ -72,11 +73,22 @@ class NoteTagsUiTest {
         composeRule.waitForTag("edit-note-tags")
         composeRule.onNodeWithTag("edit-note-tags").performClick()
         composeRule.waitForTag("note-tag-option-Work")
+        composeRule.onNodeWithTag("search-note-tags").performTextInput(" wOrK ")
+        composeRule.onNodeWithTag("note-tag-option-Personal").assertDoesNotExist()
+        // A matching parent path also finds its child tags.
+        composeRule.onNodeWithTag("note-tag-option-Planning").assertExists()
         composeRule.onNodeWithTag("note-tag-option-Work").assertIsOff()
         composeRule.onNodeWithTag("note-tag-option-Work").performClick()
         composeRule.waitUntil(10_000) {
             runCatching { composeRule.onNodeWithTag("note-tag-option-Work").assertIsOn() }.isSuccess
         }
+        composeRule.onNodeWithTag("search-note-tags").performTextClearance()
+        composeRule.onNodeWithTag("search-note-tags").performTextInput("no-such-tag")
+        composeRule.onNodeWithText("No matching tags.").assertExists()
+        composeRule.onNodeWithTag("note-tag-option-Work").assertDoesNotExist()
+        composeRule.onNodeWithTag("search-note-tags").performTextClearance()
+        composeRule.onNodeWithTag("note-tag-option-Personal").assertExists()
+        composeRule.onNodeWithTag("note-tag-option-Work").assertIsOn()
         composeRule.onNodeWithTag("new-note-tag").performTextInput("Shopping")
         composeRule.onNodeWithTag("add-note-tag").performClick()
         composeRule.waitForTag("note-tag-option-Shopping")
@@ -209,6 +221,8 @@ class NoteTagsUiTest {
                    ON noteTagLink (tag_id, note_file_name, note_sub_folder_path)""",
                 "INSERT INTO appData (name, value) VALUES ('database_version', '16')",
                 "INSERT INTO tag (id, name) VALUES (1, 'Work')",
+                "INSERT INTO tag (id, name) VALUES (2, 'Personal')",
+                "INSERT INTO tag (id, name, parent_id) VALUES (3, 'Planning', 1)",
                 "INSERT INTO noteTagLink (tag_id, note_file_name) VALUES (1, 'Meeting')"
             ).forEach(database::execSQL)
         }
