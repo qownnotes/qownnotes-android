@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Pressing Enter in the note editor removes a single trailing space from the previous line,
+  while preserving two or more spaces used for Markdown hard line breaks.
+
 ### Fixed
 
 - Typing with "Find in note" still open after switching from View to Edit no longer jumps the

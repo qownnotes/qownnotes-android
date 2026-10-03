@@ -2044,6 +2044,18 @@ class AppLaunchTest {
     }
 
     @Test
+    fun enterRemovesSingleTrailingSpaceAndPreservesMarkdownHardBreaks() {
+        importAccount("alice", "Existing note", "etag-1", 10, "")
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), typeText("text \nnext"))
+        onView(withId(R.id.markdown_editor)).check(matches(withText("text\nnext")))
+
+        onView(withId(R.id.markdown_editor)).perform(typeText("  \nlast"))
+        onView(withId(R.id.markdown_editor)).check(matches(withText("text\nnext  \nlast")))
+    }
+
+    @Test
     fun toolbarCreatesListAndCheckboxListItems() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()

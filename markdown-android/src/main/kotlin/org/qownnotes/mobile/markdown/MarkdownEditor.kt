@@ -133,6 +133,23 @@ private fun String.prefixLines(start: Int, end: Int, prefix: String): MarkdownTe
     )
 }
 
+internal fun applyMarkdownNewline(source: String, newlineOffset: Int): MarkdownTextEdit? {
+    if (newlineOffset !in source.indices || source[newlineOffset] != '\n') return null
+    val listEdit = continueMarkdownList(source, newlineOffset)
+    // An empty list item has already been removed, including its marker's trailing space.
+    if (listEdit != null && listEdit.selectionStart <= newlineOffset) return listEdit
+    if (source.getOrNull(newlineOffset - 1) != ' ' ||
+        source.getOrNull(newlineOffset - 2) == ' '
+    ) {
+        return listEdit
+    }
+
+    // Two or more spaces are an intentional Markdown hard break. Only remove a lone space.
+    val text = (listEdit?.text ?: source).removeRange(newlineOffset - 1, newlineOffset)
+    val caret = (listEdit?.selectionStart ?: (newlineOffset + 1)) - 1
+    return MarkdownTextEdit(text, caret, caret)
+}
+
 fun continueMarkdownList(source: String, newlineOffset: Int): MarkdownTextEdit? {
     if (newlineOffset !in source.indices || source[newlineOffset] != '\n') return null
     val lineStart = source.lastIndexOf('\n', newlineOffset - 1).let { if (it < 0) 0 else it + 1 }
@@ -682,7 +699,7 @@ private class ListContinuationWatcher(private val editText: MarkdownEditText) : 
         source ?: return
         val offset = newlineOffset ?: return
         newlineOffset = null
-        val edit = continueMarkdownList(source.toString(), offset) ?: return
+        val edit = applyMarkdownNewline(source.toString(), offset) ?: return
         applying = true
         try {
             replaceChangedRange(source, source.toString(), edit.text)

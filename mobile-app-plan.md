@@ -344,6 +344,8 @@ Editor requirements:
 - Provide a mobile formatting toolbar for common Markdown operations.
 - Continue unordered, ordered, and task-list markers when Return starts a new item, and leave the
   list when Return is pressed on an empty item.
+- Remove a single trailing space before an inserted Return, preserving two or more spaces for
+  Markdown hard line breaks.
 - Keep editor draft persistence separate from remote synchronization.
 
 ### Undo and Redo

@@ -106,6 +106,37 @@ class MarkdownFormattingTest {
         assertEquals(null, continueMarkdownList("```\n- code\n", 10))
     }
 
+    @Test
+    fun newlineRemovesOnlyASingleTrailingSpaceAndKeepsTheCaretOnTheNewLine() {
+        assertEquals(MarkdownTextEdit("text\n", 5, 5), applyMarkdownNewline("text \n", 5))
+        assertEquals(
+            MarkdownTextEdit("first \ntext\nrest", 12, 12),
+            applyMarkdownNewline("first \ntext \nrest", 12)
+        )
+        assertEquals(MarkdownTextEdit("\n", 1, 1), applyMarkdownNewline(" \n", 1))
+        for (source in listOf("text\n", "text  \n", "text   \n", "text\t\n")) {
+            assertNull(applyMarkdownNewline(source, source.lastIndex))
+        }
+        assertNull(applyMarkdownNewline("text ", 5))
+    }
+
+    @Test
+    fun trailingSpaceCleanupWorksWithListContinuationAndEmptyItems() {
+        for ((source, expected) in listOf(
+            "- item \n" to "- item\n- ",
+            "3. item \n" to "3. item\n4. ",
+            "- [x] done \n" to "- [x] done\n- [ ] ",
+            "- item  \n" to "- item  \n- ",
+            "- \n" to "\n",
+            "- [ ] \n" to "\n"
+        )) {
+            assertEquals(
+                MarkdownTextEdit(expected, expected.length, expected.length),
+                applyMarkdownNewline(source, source.lastIndex)
+            )
+        }
+    }
+
     private fun assertContinuation(source: String, expected: String) {
         val edit = requireNotNull(continueMarkdownList(source, source.lastIndex))
         assertEquals(expected, edit.text)
