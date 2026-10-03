@@ -206,6 +206,7 @@ import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
+import org.qownnotes.mobile.core.findTextMatches
 import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.core.parseBookmarksSource
 import org.qownnotes.mobile.core.resolveInternalNoteLink
@@ -2642,6 +2643,7 @@ private fun NoteDetailScreen(
         mutableStateOf(initialFindQuery != null)
     }
     var currentMatch by rememberSaveable(localId) { mutableStateOf(0) }
+    var findNavigationRequest by remember(localId) { mutableIntStateOf(0) }
     var matches by remember(localId) { mutableStateOf(emptyList<IntRange>()) }
     val closeFind = {
         finding = false
@@ -2795,9 +2797,16 @@ private fun NoteDetailScreen(
         if (found != matches) matches = found
         if (found.isNotEmpty() && currentMatch !in found.indices) {
             currentMatch = found.lastIndex
-            return@LaunchedEffect
         }
-        val match = found.getOrNull(currentMatch) ?: return@LaunchedEffect
+    }
+    // Refreshing highlights after an edit must not reselect a search result underneath the
+    // writer's caret or IME composition. Only an explicit find action moves the selection.
+    LaunchedEffect(editing, finding, findQuery, findNavigationRequest, editor) {
+        val view = editor ?: return@LaunchedEffect
+        if (!editing || !finding) return@LaunchedEffect
+        val match = findTextMatches(view.text ?: return@LaunchedEffect, findQuery)
+            .getOrNull(currentMatch)
+            ?: return@LaunchedEffect
         view.setSelection(match.first, match.last + 1)
     }
     val showVersions = {
@@ -3199,11 +3208,13 @@ private fun NoteDetailScreen(
                         onPrevious = {
                             if (matches.isNotEmpty()) {
                                 currentMatch = (currentMatch + matches.size - 1) % matches.size
+                                findNavigationRequest++
                             }
                         },
                         onNext = {
                             if (matches.isNotEmpty()) {
                                 currentMatch = (currentMatch + 1) % matches.size
+                                findNavigationRequest++
                             }
                         },
                         onClose = closeFind,

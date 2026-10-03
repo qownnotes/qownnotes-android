@@ -2129,6 +2129,48 @@ class AppLaunchTest {
     }
 
     @Test
+    fun typingAfterFindingInViewModeKeepsTheChosenCaret() {
+        val source = "# Recipe\n\nAdd **salt**, then more salt.\n\nWrite here."
+        importAccount("alice", "Recipe", "etag-1", 10, source)
+        composeRule.onNodeWithText("Recipe").performClick()
+        composeRule.onNodeWithTag("find-in-note").performClick()
+        composeRule.onNodeWithTag("note-find-field").performTextInput("salt")
+        composeRule.waitForText("1 of 2")
+        composeRule.enterEditMode()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            editorSelectionStart() == source.indexOf("salt")
+        }
+
+        // Tap for real input focus, then choose a caret away from either search result. Inject
+        // one key at a time so each draft/highlight update can run before the next character.
+        onView(withId(R.id.markdown_editor)).perform(click())
+        val caret = source.indexOf("here")
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(caret)
+        }
+        val inserted = "xyz"
+        inserted.forEachIndexed { index, character ->
+            onView(withId(R.id.markdown_editor)).perform(
+                pressKey(KeyEvent.KEYCODE_X + (character - 'x'))
+            )
+            awaitEditorText("Write ${inserted.take(index + 1)}here.")
+            composeRule.waitForIdle()
+            assertEquals(caret + index + 1, editorSelectionStart())
+            onView(withId(R.id.markdown_editor)).check(
+                matches(withText(source.replaceRange(caret, caret, inserted.take(index + 1))))
+            )
+        }
+        composeRule.onNodeWithTag("note-find-field").assertExists()
+        composeRule.onNodeWithText("1 of 2").assertIsDisplayed()
+        composeRule.onNodeWithTag("find-next").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            editorSelectionStart() == source.lastIndexOf("salt")
+        }
+    }
+
+    @Test
     fun noteTextSizeCanBeIncreasedAndSurvivesRecreation() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()

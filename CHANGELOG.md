@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Typing with "Find in note" still open after switching from View to Edit no longer jumps the
+  cursor back to a search match or inserts characters in the wrong place.
+
 ## [1.0.0] - 2026-10-01
 
 ### Added
