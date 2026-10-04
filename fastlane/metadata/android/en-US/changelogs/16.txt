@@ -1,0 +1,7 @@
+• Search tags by name or parent path in the tag-assignment dialog
+• Indent and outdent lines with editor toolbar buttons
+• Press Enter before a list item to insert an empty item above it
+• Fix cursor jumps when editing with Find in note open
+• Remove a single trailing space on Enter while preserving Markdown hard line breaks
+• Exclude Nextcloud SSO tokens from Android backups and device transfers
+• Clarify automatic remote-image loading and SSO token storage
