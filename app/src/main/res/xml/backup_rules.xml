@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Nextcloud SSO account records contain access tokens tied to Nextcloud Files. -->
+    <exclude domain="sharedpref" path="single-sign-on.xml" />
+</full-backup-content>

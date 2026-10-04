@@ -17,11 +17,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The store description and privacy policy now explicitly describe automatic remote-image loading
+  and the SSO account access token stored by the Nextcloud library in private preferences.
 - Pressing Enter in the note editor removes a single trailing space from the previous line,
   while preserving two or more spaces used for Markdown hard line breaks.
 
 ### Fixed
 
+- Nextcloud SSO account preferences are excluded from Android cloud backups and device transfers.
 - Typing with "Find in note" still open after switching from View to Edit no longer jumps the
   cursor back to a search match or inserts characters in the wrong place.
 

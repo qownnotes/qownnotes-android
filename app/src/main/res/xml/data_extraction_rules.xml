@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <!-- Nextcloud SSO account records contain access tokens tied to Nextcloud Files. -->
+    <cloud-backup>
+        <exclude domain="sharedpref" path="single-sign-on.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="single-sign-on.xml" />
+    </device-transfer>
+</data-extraction-rules>

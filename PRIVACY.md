@@ -7,8 +7,10 @@ usage data from the app.
 ## Nextcloud Data
 
 QOwnNotes Mobile connects only to the Nextcloud server selected through the Nextcloud Files Android
-app. Nextcloud Files and the Nextcloud Single Sign-On integration retain the account credentials;
-QOwnNotes Mobile does not copy those credentials into its database.
+app. Nextcloud Files manages the login credentials. The Nextcloud Single Sign-On library stores
+account records, including an SSO access token, in QOwnNotes Mobile's private SharedPreferences.
+The token is used through Nextcloud Files; QOwnNotes Mobile does not copy it or the user's password
+into its notes database.
 
 The app stores downloaded notes, account metadata, synchronization state, and pending changes in
 local application storage. It sends note data and synchronization requests to the selected
@@ -20,10 +22,18 @@ QOwnNotesAPI app is installed.
 
 ## External Images
 
-When remote images are enabled for a note, viewing that note can send a request to each HTTPS host
-referenced by its Markdown images. Those hosts can observe the request metadata, including the
-device's IP address. Image loading can be disabled from the note menu. Local Nextcloud note
-attachments are requested from the selected Nextcloud server using Single Sign-On.
+Images are enabled by default whenever a note is opened. Viewing that note can send a request to
+each HTTPS host referenced by its Markdown images. Those hosts can observe the request metadata,
+including the device's IP address. The note menu's **Load images** toggle disables image loading for
+the current view; it resets to enabled when the note is reopened. Local Nextcloud note attachments
+are requested from the selected Nextcloud server using Single Sign-On.
+
+## Android Backups
+
+Android may back up local notes, account metadata, and settings according to the device's backup
+configuration. The Single Sign-On preferences containing account access tokens are excluded from
+Android cloud backups and device-to-device transfers. After restoring app data, account access
+must be granted again through Nextcloud Files.
 
 ## Android Sharing
 
