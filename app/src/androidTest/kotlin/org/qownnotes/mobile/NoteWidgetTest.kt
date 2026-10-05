@@ -191,7 +191,7 @@ class NoteWidgetTest {
             view.findViewById<TextView>(R.id.widget_title).currentTextColor
         )
 
-        val row = NoteListWidgetRows.row(context, sampleNote(), compact = false, custom)
+        val row = NoteListWidgetRows.row(context, sampleNote(), appearance = custom)
             .apply(context, FrameLayout(context))
         assertEquals(
             AppearanceColors.contentColor(lightGreen),
@@ -310,8 +310,9 @@ class NoteWidgetTest {
         )
         val parent = FrameLayout(context)
 
-        val regular = NoteListWidgetRows.row(context, note, compact = false).apply(context, parent)
-        val compact = NoteListWidgetRows.row(context, note, compact = true).apply(context, parent)
+        val regular = NoteListWidgetRows.row(context, note).apply(context, parent)
+        val compact = NoteListWidgetRows.row(context, note, NoteListWidgetDisplay(compact = true))
+            .apply(context, parent)
 
         val regularExcerpt = regular.findViewById<TextView>(R.id.widget_note_excerpt)
         val compactExcerpt = compact.findViewById<TextView>(R.id.widget_note_excerpt)
@@ -325,6 +326,107 @@ class NoteWidgetTest {
         assertTrue(compactContent.paddingTop < regularContent.paddingTop)
         assertTrue(compactContent.paddingBottom < regularContent.paddingBottom)
         assertEquals(regularContent.paddingStart, compactContent.paddingStart)
+    }
+
+    @Test
+    fun noteListRowsFollowThePreviewSettingAndShowPlainTextPreviews() {
+        val note = sampleNote().copy(
+            title = "Groceries",
+            excerpt = "# Groceries\n\n- Milk and [bread](https://example.com)"
+        )
+        val parent = FrameLayout(context)
+
+        val shown = NoteListWidgetRows.row(context, note).apply(context, parent)
+        val excerpt = shown.findViewById<TextView>(R.id.widget_note_excerpt)
+        assertEquals("Milk and bread", excerpt.text.toString())
+        assertEquals(View.VISIBLE, excerpt.visibility)
+        assertEquals(
+            View.GONE,
+            shown.findViewById<View>(R.id.widget_note_category_container).visibility
+        )
+
+        // Launchers reapply onto recycled rows, so hiding must undo a shown preview.
+        NoteListWidgetRows.row(context, note, NoteListWidgetDisplay(showPreview = false))
+            .reapply(context, shown)
+        assertEquals(View.GONE, excerpt.visibility)
+    }
+
+    @Test
+    fun noteListRowsShowCategoriesAsTextOrHighlightedLabels() {
+        val purple = 0xFF4A148C.toInt()
+        val note = sampleNote().copy(category = "Work/Projects")
+        val parent = FrameLayout(context)
+        val highlighted = NoteListWidgetDisplay(
+            showCategory = true,
+            highlightCategories = true,
+            categoryHighlight = purple
+        )
+
+        val row = NoteListWidgetRows.row(context, note, highlighted).apply(context, parent)
+        val container = row.findViewById<View>(R.id.widget_note_category_container)
+        val label = row.findViewById<TextView>(R.id.widget_note_category)
+        val background = row.findViewById<View>(R.id.widget_note_category_background)
+        assertEquals(View.VISIBLE, container.visibility)
+        assertEquals("Work/Projects", label.text.toString())
+        assertEquals(View.VISIBLE, background.visibility)
+        assertEquals(AppearanceColors.contentColor(purple), label.currentTextColor)
+        assertTrue(label.paddingStart > 0)
+
+        NoteListWidgetRows.row(
+            context,
+            note,
+            highlighted.copy(categoryHighlight = null)
+        ).reapply(context, row)
+        assertEquals(View.VISIBLE, background.visibility)
+        assertEquals(context.getColor(R.color.widget_category_text), label.currentTextColor)
+
+        NoteListWidgetRows.row(
+            context,
+            note.copy(category = ""),
+            NoteListWidgetDisplay(showCategory = true)
+        ).reapply(context, row)
+        assertEquals("Uncategorized", label.text.toString())
+        assertEquals(View.GONE, background.visibility)
+        assertEquals(0, label.paddingStart)
+        assertEquals(context.getColor(R.color.widget_text), label.currentTextColor)
+
+        NoteListWidgetRows.row(context, note).reapply(context, row)
+        assertEquals(View.GONE, container.visibility)
+    }
+
+    @Test
+    fun noteListWidgetDisplayFollowsTheAppListSettings() {
+        val name = "widget-display-test"
+        context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().commit()
+        try {
+            val settings = AppSettings(context, name)
+            assertEquals(
+                NoteListWidgetDisplay.DEFAULT,
+                NoteListWidgetDisplay.of(settings, "account-id")
+            )
+
+            settings.setCompactNoteList(true)
+            settings.setShowNotePreview(false)
+            settings.setShowCategory("account-id", true)
+            settings.setAppearance(
+                AppAppearance(highlightCategories = true, categoryHighlight = 0xFF4A148C.toInt())
+            )
+
+            assertEquals(
+                NoteListWidgetDisplay(
+                    compact = true,
+                    showPreview = false,
+                    showCategory = true,
+                    highlightCategories = true,
+                    categoryHighlight = 0xFF4A148C.toInt()
+                ),
+                NoteListWidgetDisplay.of(settings, "account-id")
+            )
+            // Showing categories is an account setting.
+            assertEquals(false, NoteListWidgetDisplay.of(settings, "other-account").showCategory)
+        } finally {
+            context.deleteSharedPreferences(name)
+        }
     }
 
     @Test

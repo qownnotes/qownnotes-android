@@ -17,15 +17,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -211,8 +214,22 @@ class ApplicationComponent(
                 .collect { NoteWidgetUpdater.updateAll(application) }
         }
         applicationScope.launch {
-            // The initial value is already rendered; only later changes need widget rows rebuilt.
-            settings.compactNoteList.drop(1).collect { NoteWidgetUpdater.updateAll(application) }
+            // Note-list widgets follow the app's list settings. The initial values are already
+            // rendered; only later changes need widget rows rebuilt.
+            accountRepository.observeAccounts()
+                .flatMapLatest { accounts ->
+                    val shared = listOf<Flow<Any?>>(
+                        settings.compactNoteList,
+                        settings.showNotePreview,
+                        settings.appearance.map { it.highlightCategories to it.categoryHighlight }
+                    )
+                    combine(shared + accounts.map { settings.showCategory(it.id) }) {
+                        it.toList()
+                    }
+                }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { NoteWidgetUpdater.updateAll(application) }
         }
     }
 

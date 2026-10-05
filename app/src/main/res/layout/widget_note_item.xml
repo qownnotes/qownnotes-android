@@ -28,6 +28,8 @@
             android:textSize="15sp"
             android:textStyle="bold" />
 
+        <include layout="@layout/widget_note_category" />
+
         <TextView
             android:id="@+id/widget_note_excerpt"
             android:layout_width="match_parent"

@@ -54,6 +54,7 @@ import kotlinx.coroutines.runBlocking
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteCategoryScope
+import org.qownnotes.mobile.core.NoteExcerpt
 import org.qownnotes.mobile.core.NoteListItem
 
 sealed interface WidgetRequest {
@@ -311,7 +312,7 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
     private val context = context.applicationContext
     private val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
     private var notes = emptyList<NoteListItem>()
-    private var compact = false
+    private var display = NoteListWidgetDisplay.DEFAULT
     private var appearance = WidgetAppearance.DEFAULT
 
     override fun onCreate() = Unit
@@ -320,7 +321,9 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
         val accountId = WidgetPreferences.accountId(context, widgetId)
         val scope = WidgetPreferences.categoryScope(context, widgetId)
         appearance = WidgetPreferences.appearance(context, widgetId)
-        compact = application(context).component.settings.compactNoteList.value
+        display = accountId?.let {
+            NoteListWidgetDisplay.of(application(context).component.settings, it)
+        } ?: NoteListWidgetDisplay.DEFAULT
         notes = if (accountId == null) {
             emptyList()
         } else {
@@ -335,7 +338,7 @@ private class NoteListWidgetFactory(context: Context, intent: Intent) :
     override fun getCount(): Int = notes.size
 
     override fun getViewAt(position: Int): RemoteViews? = notes.getOrNull(position)?.let { note ->
-        NoteListWidgetRows.row(context, note, compact, appearance)
+        NoteListWidgetRows.row(context, note, display, appearance)
     }
 
     override fun getLoadingView(): RemoteViews? = null
@@ -409,7 +412,7 @@ internal object WidgetAppearanceViews {
         )
     }
 
-    private fun setTextColor(
+    fun setTextColor(
         context: Context,
         views: RemoteViews,
         viewId: Int,
@@ -455,17 +458,47 @@ internal object NoteListWidgetHeader {
     }
 }
 
+/**
+ * The app's note-list settings that also shape note-list widget rows, so a widget lists notes
+ * the way the app does.
+ */
+internal data class NoteListWidgetDisplay(
+    val compact: Boolean = false,
+    val showPreview: Boolean = true,
+    val showCategory: Boolean = false,
+    val highlightCategories: Boolean = false,
+    val categoryHighlight: Int? = null
+) {
+    companion object {
+        val DEFAULT = NoteListWidgetDisplay()
+
+        fun of(settings: AppSettings, accountId: String): NoteListWidgetDisplay {
+            val appearance = settings.appearance.value
+            return NoteListWidgetDisplay(
+                compact = settings.compactNoteList.value,
+                showPreview = settings.showNotePreview.value,
+                showCategory = settings.showCategory(accountId).value,
+                highlightCategories = appearance.highlightCategories,
+                categoryHighlight = appearance.categoryHighlight
+            )
+        }
+    }
+}
+
 internal object NoteListWidgetRows {
+    private const val NO_TINT = 0
+
     fun layout(compact: Boolean): Int =
         if (compact) R.layout.widget_note_item_compact else R.layout.widget_note_item
 
+    /** Every row view is set explicitly, because launchers may reapply onto a recycled row. */
     fun row(
         context: Context,
         note: NoteListItem,
-        compact: Boolean,
+        display: NoteListWidgetDisplay = NoteListWidgetDisplay.DEFAULT,
         appearance: WidgetAppearance = WidgetAppearance.DEFAULT
-    ): RemoteViews = RemoteViews(context.packageName, layout(compact)).apply {
-        setInt(R.id.widget_note_item_background, "setColorFilter", appearance.row ?: 0)
+    ): RemoteViews = RemoteViews(context.packageName, layout(display.compact)).apply {
+        setInt(R.id.widget_note_item_background, "setColorFilter", appearance.row ?: NO_TINT)
         WidgetAppearanceViews.setPrimaryText(context, this, R.id.widget_note_title, appearance.row)
         WidgetAppearanceViews.setSecondaryText(
             context,
@@ -474,12 +507,62 @@ internal object NoteListWidgetRows {
             appearance.row
         )
         setTextViewText(R.id.widget_note_title, note.title)
-        setTextViewText(R.id.widget_note_excerpt, note.excerpt)
+        category(context, this, note, display, appearance)
+        val excerpt = if (display.showPreview) NoteExcerpt.of(note.excerpt, note.title) else ""
+        setTextViewText(R.id.widget_note_excerpt, excerpt)
         setViewVisibility(
             R.id.widget_note_excerpt,
-            if (note.excerpt.isBlank()) View.GONE else View.VISIBLE
+            if (excerpt.isBlank()) View.GONE else View.VISIBLE
         )
         setOnClickFillInIntent(R.id.widget_note_item, WidgetIntents.openNoteFillIn(note.localId))
+    }
+
+    private fun category(
+        context: Context,
+        views: RemoteViews,
+        note: NoteListItem,
+        display: NoteListWidgetDisplay,
+        appearance: WidgetAppearance
+    ) {
+        views.setViewVisibility(
+            R.id.widget_note_category_container,
+            if (display.showCategory) View.VISIBLE else View.GONE
+        )
+        if (!display.showCategory) return
+        views.setTextViewText(
+            R.id.widget_note_category,
+            note.category.ifBlank { context.getString(R.string.widget_uncategorized) }
+        )
+        val highlight = display.highlightCategories
+        views.setViewVisibility(
+            R.id.widget_note_category_background,
+            if (highlight) View.VISIBLE else View.GONE
+        )
+        views.setInt(
+            R.id.widget_note_category_background,
+            "setColorFilter",
+            display.categoryHighlight?.takeIf { highlight } ?: NO_TINT
+        )
+        val density = context.resources.displayMetrics.density
+        val horizontal = if (highlight) (6 * density).toInt() else 0
+        val vertical = if (highlight) (1 * density).toInt() else 0
+        views.setViewPadding(R.id.widget_note_category, horizontal, vertical, horizontal, vertical)
+        if (highlight) {
+            WidgetAppearanceViews.setTextColor(
+                context,
+                views,
+                R.id.widget_note_category,
+                display.categoryHighlight?.let(AppearanceColors::contentColor),
+                R.color.widget_category_text
+            )
+        } else {
+            WidgetAppearanceViews.setPrimaryText(
+                context,
+                views,
+                R.id.widget_note_category,
+                appearance.row
+            )
+        }
     }
 }
 

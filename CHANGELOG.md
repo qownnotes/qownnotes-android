@@ -7,6 +7,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Note-list widgets follow the app's note-list settings: "Show note preview", "Show category"
+  for the widget's account, and "Highlight categories" with its color, in addition to "Compact
+  note list". Changing these settings updates placed widgets
+  ([#24](https://github.com/qownnotes/qownnotes-android/issues/24)).
+
+### Fixed
+
+- Note-list widget previews now show plain text like the app list, without Markdown syntax and
+  without repeating the note title.
+
 ## [1.1.0] - 2026-10-04
 
 ### Added

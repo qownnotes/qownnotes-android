@@ -44,7 +44,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
     private val mutableShowNotePreview =
         MutableStateFlow(preferences.getBoolean(SHOW_NOTE_PREVIEW, true))
 
-    /** Whether the note list shows a plain-text preview of each note's content. */
+    /** Whether the note list and note-list widgets show a plain-text preview of each note. */
     val showNotePreview: StateFlow<Boolean> = mutableShowNotePreview.asStateFlow()
 
     fun setShowNotePreview(enabled: Boolean) {
@@ -146,7 +146,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
     private val mutableShowCategories = mutableMapOf<String, MutableStateFlow<Boolean>>()
     private val mutableBookmarksPaths = mutableMapOf<String, MutableStateFlow<String>>()
 
-    /** Whether the note list shows each note's category for this account. */
+    /** Whether the note list and this account's note-list widgets show each note's category. */
     fun showCategory(accountId: String): StateFlow<Boolean> =
         mutableShowCategory(accountId).asStateFlow()
 
