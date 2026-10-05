@@ -2055,13 +2055,12 @@ class AppLaunchTest {
             ).setSelection(5)
         }
 
-        // Let newline cleanup and the posted caret restoration finish before the next key.
-        // Digits keep IME capitalization and word autocorrection out of this whitespace test.
+        // Let the input method commit, newline cleanup, and the posted caret restoration finish
+        // before the next key. Digits keep IME capitalization and word autocorrection out of this
+        // whitespace test.
         fun pressAndCheck(keyCode: Int, expected: String) {
             onView(withId(R.id.markdown_editor)).perform(pressKey(keyCode))
-            composeRule.waitForIdle()
-            onView(withId(R.id.markdown_editor)).check(matches(withText(expected)))
-            assertEquals(expected.length, editorSelectionStart())
+            awaitEditorState(expected, expected.length)
         }
 
         pressAndCheck(KeyEvent.KEYCODE_ENTER, "text\n")
@@ -2130,15 +2129,11 @@ class AppLaunchTest {
             }
             onView(withId(R.id.markdown_editor)).perform(pressKey(KeyEvent.KEYCODE_ENTER))
             expected = expected.replaceRange(caret, caret, "$prefix\n")
-            composeRule.waitForIdle()
-            onView(withId(R.id.markdown_editor)).check(matches(withText(expected)))
-            assertEquals(caret + prefix.length, editorSelectionStart())
+            awaitEditorState(expected, caret + prefix.length)
 
             onView(withId(R.id.markdown_editor)).perform(pressKey(KeyEvent.KEYCODE_X))
             expected = expected.replaceRange(caret + prefix.length, caret + prefix.length, "x")
-            composeRule.waitForIdle()
-            onView(withId(R.id.markdown_editor)).check(matches(withText(expected)))
-            assertEquals(caret + prefix.length + 1, editorSelectionStart())
+            awaitEditorState(expected, caret + prefix.length + 1)
         }
     }
 
@@ -2999,6 +2994,34 @@ class AppLaunchTest {
             }
         }
     }
+
+    /**
+     * Waits until the editor holds exactly [text] with the caret at [caret]. The input method
+     * receives injected key events first and commits their text asynchronously, which neither
+     * Espresso nor Compose idleness covers, so an immediate assertion can observe the editor
+     * before the key arrives.
+     */
+    private fun awaitEditorState(text: String, caret: Int) {
+        var actual: Pair<String, Int>? = null
+        try {
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                actual = composeRule.runOnIdle {
+                    composeRule.activity.findViewById<TextView>(R.id.markdown_editor)?.let {
+                        it.text.toString() to it.selectionStart
+                    }
+                }
+                actual == (text to caret)
+            }
+        } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+            throw AssertionError(
+                "Expected editor text ${text.quoted()} with caret $caret, but was " +
+                    "${actual?.first?.quoted()} with caret ${actual?.second}",
+                timeout
+            )
+        }
+    }
+
+    private fun String.quoted() = "\"" + replace("\n", "\\n") + "\""
 
     private fun editorSelectionStart(): Int = composeRule.runOnIdle {
         composeRule.activity.findViewById<TextView>(R.id.markdown_editor)?.selectionStart ?: -1
