@@ -193,7 +193,10 @@ class ApplicationComponent(
     private val editorDrafts = EditorDraftCache()
     private val editReservations = ConcurrentHashMap<String, EditReservation>()
     private val accountAvatars = AccountAvatarStore(application, avatarFetcher)
-    private val selectedImageReader = SelectedImageReader(application.contentResolver)
+    private val selectedImageReader = SelectedImageReader(
+        application.contentResolver,
+        application.resources
+    )
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     init {
@@ -253,7 +256,7 @@ class ApplicationComponent(
         mutableImportState.value = SyncUiState.Refreshing
         val id = ssoAccount.localAccountId()
         require(expectedAccountId == null || expectedAccountId == id) {
-            "Select the same Nextcloud account to reconnect"
+            application.getString(R.string.account_reconnect_different_account)
         }
         return accountMutex(id).withLock {
             importAccountLocked(id, ssoAccount, expectedAccountId != null)
@@ -269,13 +272,13 @@ class ApplicationComponent(
         if (existing != null) {
             require(existing.matches(ssoAccount)) {
                 if (reconnecting) {
-                    "Select the same Nextcloud account to reconnect"
+                    application.getString(R.string.account_reconnect_different_account)
                 } else {
-                    "A different Nextcloud account already uses this local identity"
+                    application.getString(R.string.account_identity_in_use)
                 }
             }
         } else if (reconnecting) {
-            error("The Nextcloud account is no longer configured in QOwnNotes Mobile")
+            error(application.getString(R.string.account_no_longer_configured))
         }
         val candidate =
             existing?.copy(
@@ -339,7 +342,7 @@ class ApplicationComponent(
         val selected = selectedImageReader.read(uri)
         val fileName = uniqueMediaImageFileName(selected.mimeType)
         val note = noteRepository.get(localId) ?: error("The note no longer exists")
-        require(!note.readOnly) { "This note is read only" }
+        require(!note.readOnly) { application.getString(R.string.note_read_only_error) }
         return accountMutex(note.accountId).withLock {
             val account = accountRepository.get(note.accountId)
                 ?: error("The account no longer exists")
@@ -365,14 +368,16 @@ class ApplicationComponent(
         val settingsBackend = requireNoteSettingsBackend()
         val current = settingsBackend.settings(account)
         val normalizedPath = notesPath.trim().trim('/')
-        require(normalizedPath.isNotEmpty()) { "Note folder cannot be empty" }
+        require(normalizedPath.isNotEmpty()) {
+            application.getString(R.string.note_settings_folder_empty)
+        }
         val normalizedSuffix = fileExtension.trim().let { extension ->
             if (extension.startsWith('.')) extension else ".$extension"
         }
         require(
             normalizedSuffix.length > 1 &&
                 normalizedSuffix.none { it == '/' || it == '\\' || it.isWhitespace() }
-        ) { "Enter a valid file extension" }
+        ) { application.getString(R.string.note_settings_invalid_extension) }
 
         val requestedPath = normalizedPath.takeIf { it != expected.notesPath }
         val requestedSuffix = normalizedSuffix.takeIf { it != expected.fileSuffix }
@@ -390,7 +395,7 @@ class ApplicationComponent(
                     noteRepository.pendingDeletions(accountId).isNotEmpty()
             if (unsynchronized) {
                 throw BackendException.FeatureUnavailable(
-                    "Resolve notes that have not synchronized before changing the note folder"
+                    application.getString(R.string.note_settings_unsynchronized_notes)
                 )
             }
         }
@@ -883,7 +888,10 @@ class ApplicationComponent(
         card: DeckCardDraft
     ): String {
         require(NextcloudDeck.isValidCardTitle(card.title)) {
-            "Card titles must be 1 to ${NextcloudDeck.MAX_CARD_TITLE_LENGTH} characters"
+            application.getString(
+                R.string.deck_card_title_invalid,
+                NextcloudDeck.MAX_CARD_TITLE_LENGTH
+            )
         }
         val account = accountRepository.get(accountId) ?: error("The account no longer exists")
         val created = requireDeckBackend().createDeckCard(account, target, card)
@@ -919,7 +927,7 @@ class ApplicationComponent(
     }
 
     private suspend fun reportSyncFailure(accountId: String, error: Throwable) {
-        val message = error.message ?: "Synchronization failed"
+        val message = error.message ?: application.getString(R.string.sync_failed)
         recordSyncDiagnosticSafely(accountId, SyncDiagnosticSource.ACCOUNT, error)
         updateSyncState(
             accountId,
@@ -999,7 +1007,9 @@ class ApplicationComponent(
     }
 
     fun reportImportError(error: Throwable) {
-        mutableImportState.value = SyncUiState.Failed(error.message ?: "Account import failed")
+        mutableImportState.value = SyncUiState.Failed(
+            error.message ?: application.getString(R.string.account_import_failed)
+        )
     }
 
     fun cancelAccountImport() {
@@ -1020,22 +1030,22 @@ class ApplicationComponent(
 
     private fun requireArchiveBackend(): NoteArchiveBackend = archiveBackend
         ?: throw BackendException.FeatureUnavailable(
-            "This account backend does not provide note versions or remote trash"
+            application.getString(R.string.backend_no_archive)
         )
 
     private fun requireNoteSettingsBackend(): NoteSettingsBackend = noteSettingsBackend
         ?: throw BackendException.FeatureUnavailable(
-            "This account backend does not provide note folder settings"
+            application.getString(R.string.backend_no_note_settings)
         )
 
     private fun requireNoteMediaBackend(): NoteMediaBackend = mediaBackend
         ?: throw BackendException.FeatureUnavailable(
-            "This account backend does not support image uploads"
+            application.getString(R.string.backend_no_image_uploads)
         )
 
     private fun requireDeckBackend(): NoteDeckBackend = deckBackend
         ?: throw BackendException.FeatureUnavailable(
-            "This account backend does not support Nextcloud Deck"
+            application.getString(R.string.backend_no_deck)
         )
 }
 

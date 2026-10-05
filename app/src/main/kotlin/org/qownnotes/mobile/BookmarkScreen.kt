@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -107,10 +108,13 @@ fun BookmarkScreen(
         modifier = Modifier.fillMaxSize().testTag("bookmarks-page"),
         topBar = {
             TopAppBar(
-                title = { Text("Bookmarks") },
+                title = { Text(stringResource(R.string.bookmarks_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("bookmarks-back")) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.ui_back)
+                        )
                     }
                 },
                 actions = {
@@ -121,7 +125,7 @@ fun BookmarkScreen(
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.Article,
-                                contentDescription = "Open bookmarks note"
+                                contentDescription = stringResource(R.string.bookmarks_open_source)
                             )
                         }
                     }
@@ -135,12 +139,15 @@ fun BookmarkScreen(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
                     .testTag("bookmarks-search"),
-                placeholder = { Text("Search bookmarks") },
+                placeholder = { Text(stringResource(R.string.bookmarks_search)) },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { query = "" }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = stringResource(R.string.ui_clear_search)
+                            )
                         }
                     }
                 },
@@ -188,16 +195,20 @@ private fun BookmarkContent(
     hasFilters: Boolean
 ) {
     when {
-        sourceState is BookmarkSourceState.Loading -> BookmarkMessage("Loading bookmarks...")
+        sourceState is BookmarkSourceState.Loading -> BookmarkMessage(
+            stringResource(R.string.bookmarks_loading)
+        )
         sourceState is BookmarkSourceState.InvalidPath -> BookmarkMessage(
-            "The bookmarks path is invalid. Choose a relative Markdown path in Settings."
+            stringResource(R.string.bookmarks_invalid_path)
         )
         sourceState is BookmarkSourceState.Missing -> BookmarkMessage(
-            "The bookmarks source note was not found."
+            stringResource(R.string.bookmarks_source_missing)
         )
-        encrypted -> BookmarkMessage("Encrypted bookmark notes cannot be displayed.")
-        bookmarks.isEmpty() -> BookmarkMessage("No bookmarks were found in this note.")
-        visibleBookmarks.isEmpty() && hasFilters -> BookmarkMessage("No matching bookmarks.")
+        encrypted -> BookmarkMessage(stringResource(R.string.bookmarks_encrypted))
+        bookmarks.isEmpty() -> BookmarkMessage(stringResource(R.string.bookmarks_none))
+        visibleBookmarks.isEmpty() && hasFilters -> BookmarkMessage(
+            stringResource(R.string.bookmarks_no_matches)
+        )
         else -> {
             val context = LocalContext.current
             LazyColumn(

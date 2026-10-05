@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,11 +51,16 @@ internal fun NoteTagLine(tags: List<NoteTag>, testTag: String, color: Color? = n
     )
 }
 
+@Composable
 internal fun tagFilterLabel(state: NoteTagState, selected: List<String>): String {
     val names = NoteTags.withPaths(state.tags)
         .filter { (_, path) -> NoteTags.pathKey(path) in selected }
         .map { (tag, _) -> tag.name }
-    return if (names.isEmpty()) "Tags: All" else "Tags: ${names.joinToString(", ")}"
+    return if (names.isEmpty()) {
+        stringResource(R.string.tags_filter_all)
+    } else {
+        stringResource(R.string.tags_filter_selected, names.joinToString(", "))
+    }
 }
 
 /** Chooses tags that a listed note must all carry. Selections are tag path keys. */
@@ -68,13 +74,13 @@ internal fun NoteTagFilterDialog(
     val tags = remember(state.tags) { NoteTags.withPaths(state.tags) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Filter by tags") },
+        title = { Text(stringResource(R.string.tags_filter_title)) },
         text = {
             Column(
                 modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())
             ) {
                 if (tags.isEmpty()) {
-                    Text("notes.sqlite has no tags yet.")
+                    Text(stringResource(R.string.tags_filter_no_tags))
                 }
                 tags.forEach { (tag, path) ->
                     val key = NoteTags.pathKey(path)
@@ -92,7 +98,7 @@ internal fun NoteTagFilterDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss, modifier = Modifier.testTag("close-tag-filter")) {
-                Text("Done")
+                Text(stringResource(R.string.ui_done))
             }
         },
         dismissButton = {
@@ -100,7 +106,7 @@ internal fun NoteTagFilterDialog(
                 onClick = { onChange(emptyList()) },
                 enabled = selected.isNotEmpty(),
                 modifier = Modifier.testTag("clear-tag-filter")
-            ) { Text("Clear") }
+            ) { Text(stringResource(R.string.ui_clear)) }
         },
         modifier = Modifier.testTag("tag-filter-dialog")
     )
@@ -132,7 +138,7 @@ internal fun NoteTagsDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tags") },
+        title = { Text(stringResource(R.string.tags_title)) },
         text = {
             Column(
                 modifier = Modifier.heightIn(max = 480.dp),
@@ -142,7 +148,7 @@ internal fun NoteTagsDialog(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        label = { Text("Search tags") },
+                        label = { Text(stringResource(R.string.tags_search)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("search-note-tags")
                     )
@@ -154,18 +160,17 @@ internal fun NoteTagsDialog(
                 ) {
                     when {
                         state.availability == NoteTagAvailability.UNKNOWN -> Text(
-                            "Tags appear after the next synchronization.",
+                            stringResource(R.string.tags_after_next_sync),
                             modifier = Modifier.testTag("note-tags-unavailable")
                         )
                         state.availability != NoteTagAvailability.AVAILABLE -> Text(
-                            state.message ?: "Tags are not available for this account.",
+                            state.message ?: stringResource(R.string.tags_unavailable),
                             modifier = Modifier.testTag("note-tags-unavailable")
                         )
                         else -> {
                             if (!state.writable) {
                                 Text(
-                                    "notes.sqlite was written by a newer QOwnNotes version, so " +
-                                        "tags are read-only.",
+                                    stringResource(R.string.tags_read_only),
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.testTag("note-tags-read-only")
                                 )
@@ -178,9 +183,9 @@ internal fun NoteTagsDialog(
                                 )
                             }
                             if (tags.isEmpty()) {
-                                Text("No tags yet.")
+                                Text(stringResource(R.string.tags_none))
                             } else if (matchingTags.isEmpty()) {
-                                Text("No matching tags.")
+                                Text(stringResource(R.string.tags_no_matches))
                             }
                             matchingTags.forEach { (tag, path) ->
                                 TagCheckboxRow(
@@ -195,7 +200,7 @@ internal fun NoteTagsDialog(
                                 OutlinedTextField(
                                     value = newTag,
                                     onValueChange = { newTag = it },
-                                    label = { Text("New tag") },
+                                    label = { Text(stringResource(R.string.tags_new_tag)) },
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                                     keyboardActions = KeyboardActions(onDone = { addNewTag() }),
@@ -206,7 +211,7 @@ internal fun NoteTagsDialog(
                                     onClick = addNewTag,
                                     enabled = normalizedNewTag != null,
                                     modifier = Modifier.testTag("add-note-tag")
-                                ) { Text("Add tag") }
+                                ) { Text(stringResource(R.string.tags_add_tag)) }
                             }
                         }
                     }
@@ -215,7 +220,7 @@ internal fun NoteTagsDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss, modifier = Modifier.testTag("close-note-tags")) {
-                Text("Done")
+                Text(stringResource(R.string.ui_done))
             }
         },
         modifier = Modifier.testTag("note-tags-dialog")

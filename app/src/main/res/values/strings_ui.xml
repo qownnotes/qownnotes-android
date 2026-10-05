@@ -1,0 +1,130 @@
+<resources>
+    <!-- Palette colors -->
+    <string name="color_white">White</string>
+    <string name="color_light_gray">Light gray</string>
+    <string name="color_gray">Gray</string>
+    <string name="color_dark_gray">Dark gray</string>
+    <string name="color_black">Black</string>
+    <string name="color_light_yellow">Light yellow</string>
+    <string name="color_light_green">Light green</string>
+    <string name="color_light_blue">Light blue</string>
+    <string name="color_light_purple">Light purple</string>
+    <string name="color_light_pink">Light pink</string>
+    <string name="color_red">Red</string>
+    <string name="color_orange">Orange</string>
+    <string name="color_amber">Amber</string>
+    <string name="color_green">Green</string>
+    <string name="color_teal">Teal</string>
+    <string name="color_blue">Blue</string>
+    <string name="color_indigo">Indigo</string>
+    <string name="color_purple">Purple</string>
+    <string name="color_pink">Pink</string>
+
+    <!-- App appearance -->
+    <string name="appearance_show_list_header">Show list header</string>
+    <string name="appearance_show_list_header_summary">Shows the listed category and the account name below the search bar.</string>
+    <string name="appearance_note_cards">Show notes as cards</string>
+    <string name="appearance_note_cards_summary">Draws a border around each note with a small gap between notes.</string>
+    <string name="appearance_header_color">Header color</string>
+    <string name="appearance_default_header">Default header</string>
+    <string name="appearance_note_background">Note background</string>
+    <string name="appearance_default_note_background">Default note background</string>
+    <string name="appearance_highlight_categories">Highlight categories</string>
+    <string name="appearance_highlight_categories_summary">Applies when \"Show category\" is on.</string>
+    <string name="appearance_category_highlight_color">Category highlight color</string>
+    <string name="appearance_default_category_highlight">Default category highlight</string>
+    <string name="appearance_custom_colors_hint">Custom colors stay the same in light and dark mode. Text color adjusts automatically for readability.</string>
+
+    <!-- Widget appearance -->
+    <string name="widget_appearance_background">Background</string>
+    <string name="widget_appearance_default_background">Default background</string>
+    <string name="widget_appearance_background_opacity">Background opacity: %1$d%%</string>
+    <string name="widget_appearance_header">Header</string>
+    <string name="widget_appearance_no_header_color">No header color</string>
+    <string name="widget_appearance_note_rows">Note rows</string>
+    <string name="widget_appearance_default_note_rows">Default note rows</string>
+    <string name="widget_appearance_frame">Frame</string>
+    <string name="widget_appearance_frame_color">Frame color</string>
+    <string name="widget_appearance_default_frame">Default frame</string>
+    <string name="widget_preview_shopping_list">Shopping list</string>
+    <string name="widget_preview_notes">Notes</string>
+    <string name="widget_preview_personal">Personal</string>
+    <string name="widget_preview_milk">- Milk</string>
+    <string name="widget_preview_bread">- Bread</string>
+    <string name="widget_preview_meeting_notes">Meeting notes</string>
+    <string name="widget_preview_meeting_notes_excerpt">Agenda and decisions</string>
+    <string name="widget_preview_ideas">Ideas</string>
+    <string name="widget_preview_ideas_excerpt">Weekend project</string>
+
+    <!-- Generic -->
+    <string name="ui_cancel">Cancel</string>
+    <string name="ui_ok">OK</string>
+    <string name="ui_retry">Retry</string>
+    <string name="ui_done">Done</string>
+    <string name="ui_clear">Clear</string>
+    <string name="ui_back">Back</string>
+    <string name="ui_clear_search">Clear search</string>
+
+    <!-- Nextcloud Deck -->
+    <string name="deck_load_boards_failed">Could not load Deck boards</string>
+    <string name="deck_new_card_title">New Deck card</string>
+    <string name="deck_card_title_label">Title</string>
+    <string name="deck_card_title_too_long">Use at most %1$d characters</string>
+    <string name="deck_card_description_label">Description</string>
+    <string name="deck_no_lists">Create a board with a list in Nextcloud Deck first.</string>
+    <string name="deck_board_and_list">Board and list</string>
+    <string name="deck_choose_list">Choose a list</string>
+    <string name="deck_due_date">Due date</string>
+    <string name="deck_create_card_failed">Could not create the Deck card</string>
+    <string name="deck_creating">Creating</string>
+    <string name="deck_create_and_link">Create and link</string>
+
+    <!-- Note tags -->
+    <string name="tags_filter_all">Tags: All</string>
+    <string name="tags_filter_selected">Tags: %1$s</string>
+    <string name="tags_filter_title">Filter by tags</string>
+    <string name="tags_filter_no_tags">notes.sqlite has no tags yet.</string>
+    <string name="tags_title">Tags</string>
+    <string name="tags_search">Search tags</string>
+    <string name="tags_after_next_sync">Tags appear after the next synchronization.</string>
+    <string name="tags_unavailable">Tags are not available for this account.</string>
+    <string name="tags_read_only">notes.sqlite was written by a newer QOwnNotes version, so tags are read-only.</string>
+    <string name="tags_none">No tags yet.</string>
+    <string name="tags_no_matches">No matching tags.</string>
+    <string name="tags_new_tag">New tag</string>
+    <string name="tags_add_tag">Add tag</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">Bookmarks</string>
+    <string name="bookmarks_open_source">Open bookmarks note</string>
+    <string name="bookmarks_search">Search bookmarks</string>
+    <string name="bookmarks_loading">Loading bookmarks...</string>
+    <string name="bookmarks_invalid_path">The bookmarks path is invalid. Choose a relative Markdown path in Settings.</string>
+    <string name="bookmarks_source_missing">The bookmarks source note was not found.</string>
+    <string name="bookmarks_encrypted">Encrypted bookmark notes cannot be displayed.</string>
+    <string name="bookmarks_none">No bookmarks were found in this note.</string>
+    <string name="bookmarks_no_matches">No matching bookmarks.</string>
+
+    <!-- Images -->
+    <string name="image_unsupported_type">Choose a JPEG, PNG, or WebP image</string>
+    <string name="image_too_large">Images must be 5 MB or smaller</string>
+    <string name="image_open_failed">The selected image could not be opened</string>
+    <string name="image_empty">The selected image is empty</string>
+    <string name="capture_image_add_failed">The captured image could not be added to the note</string>
+
+    <!-- Account, note settings, and backend errors -->
+    <string name="account_reconnect_different_account">Select the same Nextcloud account to reconnect</string>
+    <string name="account_identity_in_use">A different Nextcloud account already uses this local identity</string>
+    <string name="account_no_longer_configured">The Nextcloud account is no longer configured in QOwnNotes Mobile</string>
+    <string name="account_import_failed">Account import failed</string>
+    <string name="sync_failed">Synchronization failed</string>
+    <string name="note_read_only_error">This note is read only</string>
+    <string name="note_settings_folder_empty">Note folder cannot be empty</string>
+    <string name="note_settings_invalid_extension">Enter a valid file extension</string>
+    <string name="note_settings_unsynchronized_notes">Resolve notes that have not synchronized before changing the note folder</string>
+    <string name="deck_card_title_invalid">Card titles must be 1 to %1$d characters</string>
+    <string name="backend_no_archive">This account backend does not provide note versions or remote trash</string>
+    <string name="backend_no_note_settings">This account backend does not provide note folder settings</string>
+    <string name="backend_no_image_uploads">This account backend does not support image uploads</string>
+    <string name="backend_no_deck">This account backend does not support Nextcloud Deck</string>
+</resources>

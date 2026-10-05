@@ -39,7 +39,7 @@ class CaptureNoteActivity : ComponentActivity() {
                             note.localId,
                             "${note.content}![${image.description}](${image.markdownPath})\n"
                         )
-                    ) { "The captured image could not be added to the note" }
+                    ) { getString(R.string.capture_image_add_failed) }
                     note.localId
                 }
                 capturedFile()?.delete()

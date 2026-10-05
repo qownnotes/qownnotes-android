@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common actions -->
+    <string name="action_add_nextcloud_account">Add Nextcloud account</string>
+    <string name="action_back">Back</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_save">Save</string>
+    <string name="action_saving">Saving</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Your Nextcloud notes, offline</string>
+    <string name="onboarding_description">Choose an account from the Nextcloud Files app to download and cache your notes.</string>
+    <string name="onboarding_shared_text_waiting">The shared text is kept and becomes a note once an account has been added.</string>
+
+    <!-- Account management -->
+    <string name="manage_accounts">Manage accounts</string>
+    <string name="note_settings_title">Note settings</string>
+    <string name="note_settings_load_failed">Could not load note settings</string>
+    <string name="note_settings_save_failed">Could not save note settings</string>
+    <string name="note_settings_note_folder">Note folder</string>
+    <string name="note_settings_file_extension">File extension</string>
+    <string name="note_settings_file_extension_hint">Used for newly created note files.</string>
+    <string name="note_settings_folder_warning">Changing the folder also changes it for Nextcloud Notes and other clients. Files are not moved.</string>
+    <string name="remove_account_title">Remove local data?</string>
+    <string name="remove_account_message">Downloaded notes and synchronization history for %1$s will be removed from this device. The Nextcloud account and server notes will not be deleted.</string>
+    <string name="action_close">Close</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_restore">Restore</string>
+    <string name="action_add_account">Add account</string>
+    <string name="action_create_from_search">Create from search</string>
+    <string name="action_new_note">New note</string>
+    <string name="action_clear_selection">Clear selection</string>
+    <string name="action_close_search">Close search</string>
+    <string name="action_move_to_trash">Move to trash</string>
+
+    <!-- Note list -->
+    <string name="account_current">Current account</string>
+    <plurals name="notes_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <string name="selected_note_actions">Selected note actions</string>
+    <string name="note_actions">Note actions</string>
+    <string name="sort_latest_first">Sort: Latest first</string>
+    <string name="sort_title_ascending">Sort: Title A-Z</string>
+    <string name="sort_title_descending">Sort: Title Z-A</string>
+    <string name="sort_option_latest_first">Latest first</string>
+    <string name="sort_option_title_ascending">Title A-Z</string>
+    <string name="sort_option_title_descending">Title Z-A</string>
+    <string name="category_undefined">Category: Undefined</string>
+    <string name="category_all">Category: All</string>
+    <string name="category_named">Category: %1$s</string>
+    <string name="category_option_undefined">Undefined</string>
+    <string name="category_option_all">All categories</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="trash">Trash</string>
+    <string name="about">About</string>
+    <string name="notes_empty_search">No matching notes</string>
+    <string name="notes_empty_tags">No notes with the selected tags</string>
+    <string name="notes_empty_category">No notes in this category</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_show_note_preview">Show note preview</string>
+    <string name="settings_show_category">Show category</string>
+    <string name="settings_compact_note_list">Compact note list</string>
+    <string name="settings_compact_note_list_description">Reduce spacing in the note list and list widgets.</string>
+    <string name="settings_swipe_note_actions">Swipe note actions</string>
+    <string name="settings_swipe_note_actions_description">Swipe right to toggle favorite and left to move to trash.</string>
+    <string name="settings_hide_create_button">Hide create button while scrolling</string>
+    <string name="settings_hide_create_button_description">Hide when scrolling down and show when scrolling up.</string>
+    <string name="settings_ask_for_new_note_name">Ask for name of new notes</string>
+    <string name="settings_ask_for_new_note_name_description">Suggest the automatic name and let you change it.</string>
+    <string name="settings_bookmarks_file">Bookmarks file</string>
+    <string name="settings_bookmarks_file_invalid">Use a relative path ending in .md</string>
+    <string name="settings_bookmarks_file_examples">Examples: Bookmarks.md or Work/Bookmarks.md</string>
+    <string name="appearance">Appearance</string>
+
+    <!-- Diagnostics -->
+    <string name="debug_diagnostics">Debug diagnostics</string>
+    <string name="diagnostics_load_failed">Could not load synchronization diagnostics.</string>
+    <string name="diagnostics_clear_failed">Could not clear synchronization diagnostics.</string>
+    <string name="diagnostics_clip_label">QOwnNotes diagnostic report</string>
+    <string name="diagnostics_privacy_notice">This report is stored only on this device and is never sent automatically. Exception messages are not retained, so account, server, and note identifiers are excluded. Review it before sharing.</string>
+    <string name="diagnostics_copy_report">Copy report</string>
+
+    <!-- About -->
+    <string name="about_title">About QOwnNotes</string>
+    <string name="about_version">Version: %1$s</string>
+    <string name="about_commit">Commit: %1$s</string>
+    <string name="about_copyright">Copyright (C) 2026 Patrizio Bekerle</string>
+    <string name="about_license">Free software licensed under GNU GPL v3. No warranty.</string>
+    <string name="about_view_source">View source and license</string>
+
+    <!-- Remote trash -->
+    <string name="remote_trash">Remote trash</string>
+    <string name="trash_load_failed">Could not load remote trash</string>
+    <string name="trash_restore_failed">Could not restore the trashed note</string>
+    <string name="trash_restore_title">Restore %1$s?</string>
+    <string name="trash_restore_message">The note and its server versions will be restored in Nextcloud.</string>
+    <string name="action_clear_search">Clear search</string>
+    <string name="action_favorite">Favorite</string>
+    <string name="action_unfavorite">Unfavorite</string>
+    <string name="action_reconnect">Reconnect</string>
+
+    <!-- Search -->
+    <string name="search_notes">Search notes</string>
+    <string name="search_filter">Search filter</string>
+    <string name="search_filter_title_and_content">Title and content</string>
+    <string name="search_filter_title_only">Title only</string>
+
+    <!-- Note list items -->
+    <string name="favorite_remove">Remove from favorites</string>
+    <string name="favorite_add">Add to favorites</string>
+    <string name="note_uncategorized">Uncategorized</string>
+    <string name="account_avatar_description">Account: %1$s</string>
+    <string name="sync_available_offline">Available offline</string>
+    <string name="sync_refreshing">Refreshing</string>
+
+    <!-- Versions and trash dialogs -->
+    <string name="note_versions">Note versions</string>
+    <string name="note_versions_empty">No versions were found for this note.</string>
+    <string name="trash_empty">No trashed notes were found on the server.</string>
+    <string name="trash_search_note_name">Search note name</string>
+    <string name="trash_search_empty">No trashed notes match your search.</string>
+
+    <!-- Note detail -->
+    <string name="insert_image_failed">Could not insert image</string>
+    <string name="note_versions_load_failed">Could not load note versions</string>
+    <string name="conflict_changed">The note conflict changed. Close and try again.</string>
+    <string name="conflict_server_version_load_failed">Could not load the server version</string>
+    <string name="remote_missing_changed">The note changed. Close this dialog and try again.</string>
+    <string name="remote_missing_resolve_failed">Could not resolve the missing note</string>
+    <string name="note_title_fallback">Note</string>
+    <string name="action_back_to_notes">Back to notes</string>
+    <string name="find_in_note">Find in note</string>
+    <string name="action_edit_note">Edit note</string>
+    <string name="more_note_actions">More note actions</string>
+    <string name="text_size_decrease">Decrease text size</string>
+    <string name="text_size_increase">Increase text size</string>
+    <string name="load_images">Load images</string>
+    <string name="note_menu_versions">Versions</string>
+    <string name="note_menu_tags">Tags</string>
+    <string name="note_menu_information">Information</string>
+    <string name="change_category">Change category</string>
+    <string name="action_rename">Rename</string>
+    <string name="retry_sync">Retry sync</string>
+    <string name="note_text_size_decrease">Decrease note text size</string>
+    <string name="note_text_size_increase">Increase note text size</string>
+    <string name="action_cancel_editing">Cancel editing</string>
+    <string name="action_finish_editing">Finish editing</string>
+    <string name="read_only">Read only</string>
+    <string name="local_changes_safe_finish_editing">Your local changes are safe on this device. Finish editing to choose how to resolve the server change.</string>
+
+    <!-- Editor toolbar -->
+    <string name="format_undo">Undo</string>
+    <string name="format_redo">Redo</string>
+    <string name="format_list">Create list item</string>
+    <string name="format_checkbox_list">Create checkbox list item</string>
+    <string name="format_indent">Indent by 4 spaces</string>
+    <string name="format_outdent">Outdent by 4 spaces</string>
+    <string name="format_bold">Bold</string>
+    <string name="format_italic">Italic</string>
+    <string name="format_strikethrough">Strikethrough</string>
+    <string name="format_code">Inline code</string>
+    <string name="format_link">Insert link</string>
+    <string name="format_heading">Heading</string>
+    <string name="format_numbered_list">Create numbered list item</string>
+    <string name="format_quote">Create block quote</string>
+    <string name="insert_image">Insert image</string>
+    <string name="insert_date">Insert date</string>
+    <string name="insert_date_time">Insert date and time</string>
+    <string name="create_deck_card">Create Nextcloud Deck card</string>
+    <string name="large_note_highlighting_disabled">Syntax highlighting is off for this large note to keep editing responsive.</string>
+    <string name="local_changes_safe">Your local changes are safe on this device.</string>
+    <string name="resolve_conflict">Resolve conflict</string>
+    <string name="resolve_missing_note">Resolve missing note</string>
+    <string name="attachment_download_failed">Unable to download attachment</string>
+    <string name="attachment_no_viewer">No app can open this attachment</string>
+
+    <!-- Note detail dialogs -->
+    <string name="action_discard">Discard</string>
+    <string name="action_keep_editing">Keep editing</string>
+    <string name="discard_changes_title">Discard changes?</string>
+    <string name="discard_changes_message">This note was modified. Discarding restores it to the text it had when editing started.</string>
+    <string name="delete_note_title">Move note to trash?</string>
+    <string name="delete_note_message">The note will disappear from this device now and move to the Nextcloud trash bin when synchronization is available.</string>
+    <string name="resolve_note_conflict">Resolve note conflict</string>
+    <string name="conflict_read_only_message">The note became read-only while your local changes were pending. Load the server version, or first preserve your local version as a new writable note.</string>
+    <string name="conflict_message">The note changed on the server after your local edit. Load the server version, or first preserve your local version as a new note.</string>
+    <string name="conflict_local_version">Local version</string>
+    <string name="conflict_server_version">Server version</string>
+    <string name="conflict_common_base">Common base</string>
+    <!-- %1$s is a comma-separated list of merge_field_* values -->
+    <string name="conflict_merge_unavailable">Automatic merge is unavailable because both versions changed %1$s.</string>
+    <string name="merge_field_title">title</string>
+    <string name="merge_field_content">content</string>
+    <string name="merge_field_category">category</string>
+    <string name="merge_field_favorite">favorite</string>
+    <string name="conflict_use_merged">Use merged version</string>
+    <string name="conflict_keep_local_copy">Keep local as copy</string>
+    <string name="conflict_use_server">Use server</string>
+    <string name="remote_missing_message">This note was deleted on the server while local changes were pending. Recreate it as a new server note, or discard the local version.</string>
+    <string name="remote_missing_recreate">Recreate note</string>
+    <string name="remote_missing_discard_local">Discard local</string>
+    <string name="restore_version_title">Restore this version?</string>
+    <string name="restore_version_message">The current note content will be replaced and synchronized as a new edit.</string>
+    <string name="restore_version_failed">Could not restore the note version</string>
+    <string name="restore_version_update_failed">The note could not be updated</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="action_create">Create</string>
+    <string name="action_move">Move</string>
+
+    <!-- Note information -->
+    <string name="note_information_title">Note information</string>
+    <string name="note_info_modified">Modified</string>
+    <string name="note_info_markdown_size">Markdown size</string>
+    <string name="note_info_words">Words</string>
+    <string name="note_info_characters">Characters</string>
+    <string name="note_info_lines">Lines</string>
+    <string name="note_info_category">Category</string>
+    <string name="note_info_category_root">Root</string>
+    <string name="note_info_account">Account</string>
+    <string name="note_info_synchronization">Synchronization</string>
+    <string name="note_info_access">Access</string>
+    <string name="note_info_writable">Writable</string>
+    <string name="note_info_favorite">Favorite</string>
+    <string name="note_info_note_id">Note ID</string>
+    <string name="sync_state_synchronized">Synchronized</string>
+    <string name="sync_state_locally_created">Not yet synchronized</string>
+    <string name="sync_state_locally_modified">Local changes pending</string>
+    <string name="sync_state_pending_deletion">Pending deletion</string>
+    <string name="sync_state_synchronizing">Synchronizing</string>
+    <string name="sync_state_conflict">Conflict</string>
+    <string name="sync_state_remote_missing">Missing on server</string>
+    <string name="sync_state_read_only_conflict">Read-only conflict</string>
+    <string name="sync_state_failed">Synchronization failed</string>
+    <string name="conflict_version_summary">Title: %1$s\nCategory: %2$s\nFavorite: %3$s</string>
+
+    <!-- Rename, new note, and category dialogs -->
+    <string name="rename_note_title">Rename note</string>
+    <string name="rename_note_file_name">File name</string>
+    <string name="note_name_invalid_characters_hint">Characters a file name cannot hold are replaced by spaces.</string>
+    <string name="rename_note_update_heading">Update heading 1</string>
+    <string name="new_note_name">Note name</string>
+    <string name="category_undefined_root">Undefined (root)</string>
+    <string name="category_new">New category</string>
+    <string name="category_new_path">New category path</string>
+    <string name="category_new_path_hint">Use / to create nested categories.</string>
+
+    <!-- Fast scroll and find -->
+    <string name="note_fast_scroll">Note fast scroll</string>
+    <string name="editor_fast_scroll">Editor fast scroll</string>
+    <string name="find_previous_match">Previous match</string>
+    <string name="find_next_match">Next match</string>
+    <string name="find_close">Close find</string>
+    <string name="find_no_matches">No matches</string>
+    <string name="find_match_position">%1$d of %2$d</string>
+
+    <!-- Synchronization errors -->
+    <string name="sync_error_details">Details</string>
+    <string name="sync_error_details_title">Synchronization details</string>
+    <string name="sync_error_exception_text">Exception text</string>
+    <string name="sync_error_exception_privacy">Exception text can contain server or account information. Review it before sharing.</string>
+    <string name="sync_error_clip_label">Synchronization exception</string>
+    <string name="sync_error_copy_exception">Copy exception</string>
+    <string name="sync_error_server_unreachable_explanation">Synchronization stopped before the server responded. Local edits remain saved on this device. For a local server, check the phone\'s Wi-Fi or VPN and confirm that Nextcloud Files can reach the account. Verify the server address and port in a browser and ensure its HTTPS certificate is trusted by Android. Plain HTTP connections can be blocked by Android. Then retry synchronization.</string>
+</resources>

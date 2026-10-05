@@ -15,6 +15,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -153,8 +154,11 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -194,6 +198,7 @@ import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteConflict
 import org.qownnotes.mobile.core.NoteExcerpt
 import org.qownnotes.mobile.core.NoteListItem
+import org.qownnotes.mobile.core.NoteMergeField
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.NoteSettings
@@ -609,16 +614,19 @@ private fun AccountOnboarding(
         modifier = Modifier.fillMaxSize().padding(32.dp).testTag("onboarding"),
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Your Nextcloud notes, offline", style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Choose an account from the Nextcloud Files app to download and cache your notes.",
+            stringResource(R.string.onboarding_title),
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Text(
+            stringResource(R.string.onboarding_description),
             modifier = Modifier.padding(vertical = 20.dp)
         )
         // A note needs an account to belong to. Say why the shared text is not a note yet rather
         // than leaving the sharer in front of an unexplained onboarding screen.
         if (sharedTextWaiting) {
             Text(
-                "The shared text is kept and becomes a note once an account has been added.",
+                stringResource(R.string.onboarding_shared_text_waiting),
                 modifier = Modifier.padding(bottom = 20.dp).testTag("shared-text-waiting")
             )
         }
@@ -632,7 +640,7 @@ private fun AccountOnboarding(
             enabled = state !is SyncUiState.Refreshing,
             modifier = Modifier.testTag("add-account")
         ) {
-            Text("Add Nextcloud account")
+            Text(stringResource(R.string.action_add_nextcloud_account))
         }
     }
 }
@@ -652,13 +660,16 @@ private fun AccountManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Manage accounts") },
+                title = { Text(stringResource(R.string.manage_accounts)) },
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,
                         modifier = Modifier.testTag("close-manage-accounts")
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
                     }
                 }
             )
@@ -701,11 +712,11 @@ private fun AccountManagementScreen(
                         TextButton(
                             onClick = { settingsAccount = account },
                             modifier = Modifier.testTag("account-settings-${account.id}")
-                        ) { Text("Note settings") }
+                        ) { Text(stringResource(R.string.note_settings_title)) }
                         TextButton(
                             onClick = { removalAccount = account },
                             modifier = Modifier.testTag("remove-account-${account.id}")
-                        ) { Text("Remove") }
+                        ) { Text(stringResource(R.string.action_remove)) }
                     }
                 }
             }
@@ -713,7 +724,7 @@ private fun AccountManagementScreen(
                 Button(
                     onClick = onImportAccount,
                     modifier = Modifier.fillMaxWidth().testTag("add-managed-account")
-                ) { Text("Add Nextcloud account") }
+                ) { Text(stringResource(R.string.action_add_nextcloud_account)) }
             }
         }
     }
@@ -749,6 +760,8 @@ private fun AccountNoteSettingsDialog(
     var fileExtension by rememberSaveable(account.id) { mutableStateOf("") }
     var error by remember(account.id) { mutableStateOf<String?>(null) }
     var saving by remember(account.id) { mutableStateOf(false) }
+    val loadFailedMessage = stringResource(R.string.note_settings_load_failed)
+    val saveFailedMessage = stringResource(R.string.note_settings_save_failed)
 
     LaunchedEffect(account.id) {
         try {
@@ -759,13 +772,13 @@ private fun AccountNoteSettingsDialog(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Exception) {
-            error = failure.message ?: "Could not load note settings"
+            error = failure.message ?: loadFailedMessage
         }
     }
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Note settings") },
+        title = { Text(stringResource(R.string.note_settings_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(account.displayName, style = MaterialTheme.typography.labelLarge)
@@ -777,7 +790,7 @@ private fun AccountNoteSettingsDialog(
                     OutlinedTextField(
                         value = notesPath,
                         onValueChange = { notesPath = it },
-                        label = { Text("Note folder") },
+                        label = { Text(stringResource(R.string.note_settings_note_folder)) },
                         singleLine = true,
                         enabled = !saving,
                         modifier = Modifier.fillMaxWidth().testTag("notes-path")
@@ -785,18 +798,17 @@ private fun AccountNoteSettingsDialog(
                     OutlinedTextField(
                         value = fileExtension,
                         onValueChange = { fileExtension = it.removePrefix(".") },
-                        label = { Text("File extension") },
+                        label = { Text(stringResource(R.string.note_settings_file_extension)) },
                         prefix = { Text(".") },
                         singleLine = true,
                         enabled = !saving,
                         supportingText = {
-                            Text("Used for newly created note files.")
+                            Text(stringResource(R.string.note_settings_file_extension_hint))
                         },
                         modifier = Modifier.fillMaxWidth().testTag("file-extension")
                     )
                     Text(
-                        "Changing the folder also changes it for Nextcloud Notes and other " +
-                            "clients. Files are not moved.",
+                        stringResource(R.string.note_settings_folder_warning),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -827,7 +839,7 @@ private fun AccountNoteSettingsDialog(
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (failure: Exception) {
-                            error = failure.message ?: "Could not save note settings"
+                            error = failure.message ?: saveFailedMessage
                             saving = false
                         }
                     }
@@ -835,9 +847,17 @@ private fun AccountNoteSettingsDialog(
                 enabled = settings != null && notesPath.isNotBlank() &&
                     fileExtension.isNotBlank() && !saving,
                 modifier = Modifier.testTag("save-account-settings")
-            ) { Text(if (saving) "Saving" else "Save") }
+            ) {
+                Text(
+                    stringResource(if (saving) R.string.action_saving else R.string.action_save)
+                )
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !saving) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
         modifier = Modifier.testTag("account-settings-dialog")
     )
 }
@@ -846,21 +866,21 @@ private fun AccountNoteSettingsDialog(
 private fun RemoveAccountDialog(account: Account, onDismiss: () -> Unit, onRemove: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Remove local data?") },
+        title = { Text(stringResource(R.string.remove_account_title)) },
         text = {
             Text(
-                "Downloaded notes and synchronization history for ${account.displayName} " +
-                    "will be removed from this device. The Nextcloud account and server " +
-                    "notes will not be deleted."
+                stringResource(R.string.remove_account_message, account.displayName)
             )
         },
         confirmButton = {
             TextButton(
                 onClick = onRemove,
                 modifier = Modifier.testTag("confirm-remove-account")
-            ) { Text("Remove") }
+            ) { Text(stringResource(R.string.action_remove)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
     )
 }
 
@@ -928,6 +948,8 @@ private fun NoteListScreen(
     val scope = rememberCoroutineScope { UiDispatcher }
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val trashLoadFailedMessage = stringResource(R.string.trash_load_failed)
+    val trashRestoreFailedMessage = stringResource(R.string.trash_restore_failed)
     // Leaving search only gives the toolbar back. The typed query stays, so the filtered list and
     // the note actions above it remain usable, and the field's clear action is what empties it.
     //
@@ -1073,7 +1095,7 @@ private fun NoteListScreen(
                     ExtendedFloatingActionButton(
                         onClick = createNote,
                         icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                        text = { Text("Create from search") },
+                        text = { Text(stringResource(R.string.action_create_from_search)) },
                         modifier = Modifier.testTag("create-note-from-search")
                     )
                 } else {
@@ -1081,7 +1103,10 @@ private fun NoteListScreen(
                         onClick = createNote,
                         modifier = Modifier.testTag("create-note")
                     ) {
-                        Icon(Icons.Filled.Add, contentDescription = "New note")
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = stringResource(R.string.action_new_note)
+                        )
                     }
                 }
             }
@@ -1108,7 +1133,9 @@ private fun NoteListScreen(
                             ) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Clear selection"
+                                    contentDescription = stringResource(
+                                        R.string.action_clear_selection
+                                    )
                                 )
                             }
                         } else if (searchFocused) {
@@ -1118,7 +1145,9 @@ private fun NoteListScreen(
                             ) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Close search"
+                                    contentDescription = stringResource(
+                                        R.string.action_close_search
+                                    )
                                 )
                             }
                         } else {
@@ -1159,7 +1188,9 @@ private fun NoteListScreen(
                                                 {
                                                     Icon(
                                                         Icons.Filled.Check,
-                                                        contentDescription = "Current account"
+                                                        contentDescription = stringResource(
+                                                            R.string.account_current
+                                                        )
                                                     )
                                                 }
                                             } else {
@@ -1179,7 +1210,9 @@ private fun NoteListScreen(
                                             .testTag("account-menu-divider")
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Add account") },
+                                        text = {
+                                            Text(stringResource(R.string.action_add_account))
+                                        },
                                         leadingIcon = {
                                             Icon(
                                                 Icons.Filled.Add,
@@ -1194,7 +1227,7 @@ private fun NoteListScreen(
                                         modifier = Modifier.testTag("add-account")
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Manage accounts") },
+                                        text = { Text(stringResource(R.string.manage_accounts)) },
                                         leadingIcon = {
                                             Icon(
                                                 Icons.Filled.Settings,
@@ -1214,7 +1247,13 @@ private fun NoteListScreen(
                     },
                     title = {
                         if (selectionActive) {
-                            Text("${selectedNoteIds.size} selected")
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.notes_selected,
+                                    selectedNoteIds.size,
+                                    selectedNoteIds.size
+                                )
+                            )
                         } else {
                             CompactSearchField(
                                 value = query,
@@ -1241,7 +1280,9 @@ private fun NoteListScreen(
                                 ) {
                                     Icon(
                                         Icons.Filled.MoreVert,
-                                        contentDescription = "Selected note actions"
+                                        contentDescription = stringResource(
+                                            R.string.selected_note_actions
+                                        )
                                     )
                                 }
                                 DropdownMenu(
@@ -1249,7 +1290,9 @@ private fun NoteListScreen(
                                     onDismissRequest = { selectionMenuOpen = false }
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("Move to trash") },
+                                        text = {
+                                            Text(stringResource(R.string.action_move_to_trash))
+                                        },
                                         onClick = {
                                             val ids = selectedNoteIds
                                             selectionMenuOpen = false
@@ -1268,7 +1311,10 @@ private fun NoteListScreen(
                                     onClick = { noteListMenuOpen = true },
                                     modifier = Modifier.testTag("note-list-menu")
                                 ) {
-                                    Icon(Icons.Filled.MoreVert, contentDescription = "Note actions")
+                                    Icon(
+                                        Icons.Filled.MoreVert,
+                                        contentDescription = stringResource(R.string.note_actions)
+                                    )
                                 }
                                 DropdownMenu(
                                     expanded = noteListMenuOpen,
@@ -1279,11 +1325,15 @@ private fun NoteListScreen(
                                             Text(
                                                 when (sortOrder) {
                                                     NoteSortOrder.LATEST_FIRST ->
-                                                        "Sort: Latest first"
+                                                        stringResource(R.string.sort_latest_first)
                                                     NoteSortOrder.TITLE_ASCENDING ->
-                                                        "Sort: Title A-Z"
+                                                        stringResource(
+                                                            R.string.sort_title_ascending
+                                                        )
                                                     NoteSortOrder.TITLE_DESCENDING ->
-                                                        "Sort: Title Z-A"
+                                                        stringResource(
+                                                            R.string.sort_title_descending
+                                                        )
                                                 }
                                             )
                                         },
@@ -1304,10 +1354,14 @@ private fun NoteListScreen(
                                             Text(
                                                 when (val selected = categoryScope) {
                                                     NoteCategoryScope.Undefined ->
-                                                        "Category: Undefined"
-                                                    NoteCategoryScope.All -> "Category: All"
+                                                        stringResource(R.string.category_undefined)
+                                                    NoteCategoryScope.All ->
+                                                        stringResource(R.string.category_all)
                                                     is NoteCategoryScope.Category ->
-                                                        "Category: ${selected.value}"
+                                                        stringResource(
+                                                            R.string.category_named,
+                                                            selected.value
+                                                        )
                                                 }
                                             )
                                         },
@@ -1340,7 +1394,7 @@ private fun NoteListScreen(
                                         )
                                     }
                                     DropdownMenuItem(
-                                        text = { Text("Bookmarks") },
+                                        text = { Text(stringResource(R.string.bookmarks)) },
                                         leadingIcon = {
                                             Icon(Icons.Filled.Bookmarks, contentDescription = null)
                                         },
@@ -1351,7 +1405,7 @@ private fun NoteListScreen(
                                         modifier = Modifier.testTag("bookmarks-menu")
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Trash") },
+                                        text = { Text(stringResource(R.string.trash)) },
                                         leadingIcon = {
                                             Icon(Icons.Filled.Delete, contentDescription = null)
                                         },
@@ -1372,7 +1426,7 @@ private fun NoteListScreen(
                                                     onFailure = {
                                                         ArchiveLoadState.Failed(
                                                             it.message
-                                                                ?: "Could not load remote trash"
+                                                                ?: trashLoadFailedMessage
                                                         )
                                                     }
                                                 )
@@ -1383,7 +1437,7 @@ private fun NoteListScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     DropdownMenuItem(
-                                        text = { Text("Settings") },
+                                        text = { Text(stringResource(R.string.settings_title)) },
                                         leadingIcon = {
                                             Icon(Icons.Filled.Settings, contentDescription = null)
                                         },
@@ -1394,7 +1448,7 @@ private fun NoteListScreen(
                                         modifier = Modifier.testTag("settings")
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("About") },
+                                        text = { Text(stringResource(R.string.about)) },
                                         onClick = {
                                             noteListMenuOpen = false
                                             showAbout = true
@@ -1411,7 +1465,9 @@ private fun NoteListScreen(
                                         sortMenuOpen = false
                                     }
                                     DropdownMenuItem(
-                                        text = { Text("Latest first") },
+                                        text = {
+                                            Text(stringResource(R.string.sort_option_latest_first))
+                                        },
                                         leadingIcon = {
                                             RadioButton(
                                                 selected = sortOrder == NoteSortOrder.LATEST_FIRST,
@@ -1422,7 +1478,11 @@ private fun NoteListScreen(
                                         modifier = Modifier.testTag("sort-option-latest")
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Title A-Z") },
+                                        text = {
+                                            Text(
+                                                stringResource(R.string.sort_option_title_ascending)
+                                            )
+                                        },
                                         leadingIcon = {
                                             RadioButton(
                                                 selected =
@@ -1434,7 +1494,13 @@ private fun NoteListScreen(
                                         modifier = Modifier.testTag("sort-option-title-ascending")
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Title Z-A") },
+                                        text = {
+                                            Text(
+                                                stringResource(
+                                                    R.string.sort_option_title_descending
+                                                )
+                                            )
+                                        },
                                         leadingIcon = {
                                             RadioButton(
                                                 selected =
@@ -1456,12 +1522,16 @@ private fun NoteListScreen(
                                         categoryMenuOpen = false
                                     }
                                     DropdownMenuItem(
-                                        text = { Text("Undefined") },
+                                        text = {
+                                            Text(stringResource(R.string.category_option_undefined))
+                                        },
                                         onClick = { select(NoteCategoryScope.Undefined) },
                                         modifier = Modifier.testTag("category-option-undefined")
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("All categories") },
+                                        text = {
+                                            Text(stringResource(R.string.category_option_all))
+                                        },
                                         onClick = { select(NoteCategoryScope.All) },
                                         modifier = Modifier.testTag("category-option-all")
                                     )
@@ -1521,9 +1591,11 @@ private fun NoteListScreen(
                         item {
                             Text(
                                 when {
-                                    query.isNotBlank() -> "No matching notes"
-                                    tagFilterActive -> "No notes with the selected tags"
-                                    else -> "No notes in this category"
+                                    query.isNotBlank() -> stringResource(
+                                        R.string.notes_empty_search
+                                    )
+                                    tagFilterActive -> stringResource(R.string.notes_empty_tags)
+                                    else -> stringResource(R.string.notes_empty_category)
                                 },
                                 modifier = Modifier.padding(24.dp),
                                 style = MaterialTheme.typography.titleMedium
@@ -1602,48 +1674,56 @@ private fun NoteListScreen(
     if (showSettings) {
         AlertDialog(
             onDismissRequest = { showSettings = false },
-            title = { Text("Settings") },
+            title = { Text(stringResource(R.string.settings_title)) },
             text = {
                 Column(
                     modifier = Modifier.heightIn(max = 520.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     SettingsCheckbox(
-                        label = "Show note preview",
+                        label = stringResource(R.string.settings_show_note_preview),
                         checked = showNotePreview,
                         onCheckedChange = component.settings::setShowNotePreview,
                         testTag = "toggle-note-preview"
                     )
                     SettingsCheckbox(
-                        label = "Show category",
+                        label = stringResource(R.string.settings_show_category),
                         checked = showCategory,
                         onCheckedChange = { component.settings.setShowCategory(accountId, it) },
                         testTag = "toggle-category"
                     )
                     SettingsCheckbox(
-                        label = "Compact note list",
-                        description = "Reduce spacing in the note list and list widgets.",
+                        label = stringResource(R.string.settings_compact_note_list),
+                        description = stringResource(
+                            R.string.settings_compact_note_list_description
+                        ),
                         checked = compactNoteList,
                         onCheckedChange = component.settings::setCompactNoteList,
                         testTag = "toggle-compact-note-list"
                     )
                     SettingsCheckbox(
-                        label = "Swipe note actions",
-                        description = "Swipe right to toggle favorite and left to move to trash.",
+                        label = stringResource(R.string.settings_swipe_note_actions),
+                        description = stringResource(
+                            R.string.settings_swipe_note_actions_description
+                        ),
                         checked = swipeNoteActions,
                         onCheckedChange = component.settings::setSwipeNoteActions,
                         testTag = "toggle-swipe-note-actions"
                     )
                     SettingsCheckbox(
-                        label = "Hide create button while scrolling",
-                        description = "Hide when scrolling down and show when scrolling up.",
+                        label = stringResource(R.string.settings_hide_create_button),
+                        description = stringResource(
+                            R.string.settings_hide_create_button_description
+                        ),
                         checked = hideCreateButtonOnScroll,
                         onCheckedChange = component.settings::setHideCreateButtonOnScroll,
                         testTag = "toggle-hide-create-button-on-scroll"
                     )
                     SettingsCheckbox(
-                        label = "Ask for name of new notes",
-                        description = "Suggest the automatic name and let you change it.",
+                        label = stringResource(R.string.settings_ask_for_new_note_name),
+                        description = stringResource(
+                            R.string.settings_ask_for_new_note_name_description
+                        ),
                         checked = askForNewNoteName,
                         onCheckedChange = component.settings::setAskForNewNoteName,
                         testTag = "toggle-ask-for-new-note-name"
@@ -1651,14 +1731,14 @@ private fun NoteListScreen(
                     OutlinedTextField(
                         value = bookmarksPath,
                         onValueChange = { component.settings.setBookmarksPath(accountId, it) },
-                        label = { Text("Bookmarks file") },
+                        label = { Text(stringResource(R.string.settings_bookmarks_file)) },
                         singleLine = true,
                         isError = parseBookmarksSource(bookmarksPath) == null,
                         supportingText = {
                             if (parseBookmarksSource(bookmarksPath) == null) {
-                                Text("Use a relative path ending in .md")
+                                Text(stringResource(R.string.settings_bookmarks_file_invalid))
                             } else {
-                                Text("Examples: Bookmarks.md or Work/Bookmarks.md")
+                                Text(stringResource(R.string.settings_bookmarks_file_examples))
                             }
                         },
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
@@ -1672,7 +1752,7 @@ private fun NoteListScreen(
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
                             .testTag("open-appearance")
                     ) {
-                        Text("Appearance")
+                        Text(stringResource(R.string.appearance))
                     }
                     Button(
                         onClick = {
@@ -1683,7 +1763,7 @@ private fun NoteListScreen(
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
                             .testTag("open-diagnostics")
                     ) {
-                        Text("Debug diagnostics")
+                        Text(stringResource(R.string.debug_diagnostics))
                     }
                 }
             },
@@ -1691,7 +1771,7 @@ private fun NoteListScreen(
                 TextButton(
                     onClick = { showSettings = false },
                     modifier = Modifier.testTag("close-settings")
-                ) { Text("Close") }
+                ) { Text(stringResource(R.string.action_close)) }
             },
             modifier = Modifier.testTag("settings-dialog")
         )
@@ -1699,7 +1779,7 @@ private fun NoteListScreen(
     if (showAppearance) {
         AlertDialog(
             onDismissRequest = { showAppearance = false },
-            title = { Text("Appearance") },
+            title = { Text(stringResource(R.string.appearance)) },
             text = {
                 AppAppearanceEditor(
                     appearance = appearance,
@@ -1712,19 +1792,22 @@ private fun NoteListScreen(
                 TextButton(
                     onClick = { component.settings.setAppearance(AppAppearance()) },
                     modifier = Modifier.testTag("reset-appearance")
-                ) { Text("Reset") }
+                ) { Text(stringResource(R.string.action_reset)) }
             },
             confirmButton = {
                 TextButton(
                     onClick = { showAppearance = false },
                     modifier = Modifier.testTag("close-appearance")
-                ) { Text("Close") }
+                ) { Text(stringResource(R.string.action_close)) }
             },
             modifier = Modifier.testTag("appearance-dialog")
         )
     }
     if (showDiagnostics) {
         val context = LocalContext.current
+        val diagnosticsLoadFailedMessage = stringResource(R.string.diagnostics_load_failed)
+        val diagnosticsClearFailedMessage = stringResource(R.string.diagnostics_clear_failed)
+        val diagnosticClipLabel = stringResource(R.string.diagnostics_clip_label)
         LaunchedEffect(showDiagnostics) {
             diagnosticReport = withContext(UiDispatcher) {
                 try {
@@ -1732,22 +1815,20 @@ private fun NoteListScreen(
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: Exception) {
-                    "Could not load synchronization diagnostics."
+                    diagnosticsLoadFailedMessage
                 }
             }
         }
         AlertDialog(
             onDismissRequest = { showDiagnostics = false },
-            title = { Text("Debug diagnostics") },
+            title = { Text(stringResource(R.string.debug_diagnostics)) },
             text = {
                 Column(
                     modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())
                         .testTag("diagnostic-report")
                 ) {
                     Text(
-                        "This report is stored only on this device and is never sent " +
-                            "automatically. Exception messages are not retained, so account, " +
-                            "server, and note identifiers are excluded. Review it before sharing.",
+                        stringResource(R.string.diagnostics_privacy_notice),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
@@ -1773,13 +1854,13 @@ private fun NoteListScreen(
                     onClick = {
                         diagnosticReport?.let { report ->
                             context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
-                                ClipData.newPlainText("QOwnNotes diagnostic report", report)
+                                ClipData.newPlainText(diagnosticClipLabel, report)
                             )
                         }
                     },
                     enabled = diagnosticReport != null,
                     modifier = Modifier.testTag("copy-diagnostic-report")
-                ) { Text("Copy report") }
+                ) { Text(stringResource(R.string.diagnostics_copy_report)) }
             },
             dismissButton = {
                 Row {
@@ -1792,17 +1873,17 @@ private fun NoteListScreen(
                                 } catch (cancelled: CancellationException) {
                                     throw cancelled
                                 } catch (_: Exception) {
-                                    "Could not clear synchronization diagnostics."
+                                    diagnosticsClearFailedMessage
                                 }
                             }
                         },
                         enabled = diagnosticReport != null,
                         modifier = Modifier.testTag("clear-diagnostics")
-                    ) { Text("Clear") }
+                    ) { Text(stringResource(R.string.action_clear)) }
                     TextButton(
                         onClick = { showDiagnostics = false },
                         modifier = Modifier.testTag("close-diagnostics")
-                    ) { Text("Close") }
+                    ) { Text(stringResource(R.string.action_close)) }
                 }
             },
             modifier = Modifier.testTag("diagnostics-dialog")
@@ -1816,11 +1897,11 @@ private fun NoteListScreen(
         val repoUrl = "https://github.com/qownnotes/qownnotes-android"
         AlertDialog(
             onDismissRequest = { showAbout = false },
-            title = { Text("About QOwnNotes") },
+            title = { Text(stringResource(R.string.about_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Version: ${packageInfo.versionName}",
+                        stringResource(R.string.about_version, packageInfo.versionName.orEmpty()),
                         modifier = Modifier.clickable {
                             context.startActivity(
                                 Intent(
@@ -1831,7 +1912,7 @@ private fun NoteListScreen(
                         }
                     )
                     Text(
-                        "Commit: ${BuildConfig.GIT_COMMIT.take(7)}",
+                        stringResource(R.string.about_commit, BuildConfig.GIT_COMMIT.take(7)),
                         modifier = Modifier.clickable {
                             context.startActivity(
                                 Intent(
@@ -1841,10 +1922,10 @@ private fun NoteListScreen(
                             )
                         }
                     )
-                    Text("Copyright (C) 2026 Patrizio Bekerle")
-                    Text("Free software licensed under GNU GPL v3. No warranty.")
+                    Text(stringResource(R.string.about_copyright))
+                    Text(stringResource(R.string.about_license))
                     Text(
-                        "View source and license",
+                        stringResource(R.string.about_view_source),
                         modifier = Modifier.clickable {
                             context.startActivity(
                                 Intent(
@@ -1857,7 +1938,9 @@ private fun NoteListScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showAbout = false }) { Text("Close") }
+                TextButton(onClick = {
+                    showAbout = false
+                }) { Text(stringResource(R.string.action_close)) }
             }
         )
     }
@@ -1865,14 +1948,14 @@ private fun NoteListScreen(
         when (val state = trashState) {
             ArchiveLoadState.Idle -> Unit
             ArchiveLoadState.Loading -> ArchiveLoadingDialog(
-                title = "Remote trash",
+                title = stringResource(R.string.remote_trash),
                 onDismiss = {
                     trashRequestId++
                     trashState = ArchiveLoadState.Idle
                 }
             )
             is ArchiveLoadState.Failed -> ArchiveErrorDialog(
-                title = "Remote trash",
+                title = stringResource(R.string.remote_trash),
                 message = state.message,
                 onDismiss = { trashState = ArchiveLoadState.Idle }
             )
@@ -1886,8 +1969,8 @@ private fun NoteListScreen(
     trashToRestore?.let { trashed ->
         AlertDialog(
             onDismissRequest = { trashToRestore = null },
-            title = { Text("Restore ${trashed.name}?") },
-            text = { Text("The note and its server versions will be restored in Nextcloud.") },
+            title = { Text(stringResource(R.string.trash_restore_title, trashed.name)) },
+            text = { Text(stringResource(R.string.trash_restore_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -1905,7 +1988,7 @@ private fun NoteListScreen(
                                 onSuccess = { ArchiveLoadState.Loaded(it) },
                                 onFailure = {
                                     ArchiveLoadState.Failed(
-                                        it.message ?: "Could not restore the trashed note"
+                                        it.message ?: trashRestoreFailedMessage
                                     )
                                 }
                             )
@@ -1913,10 +1996,12 @@ private fun NoteListScreen(
                         }
                     },
                     modifier = Modifier.testTag("confirm-restore-trashed-note")
-                ) { Text("Restore") }
+                ) { Text(stringResource(R.string.action_restore)) }
             },
             dismissButton = {
-                TextButton(onClick = { trashToRestore = null }) { Text("Cancel") }
+                TextButton(onClick = {
+                    trashToRestore = null
+                }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -1982,7 +2067,7 @@ private fun CompactSearchField(
                 ) {
                     if (value.isEmpty()) {
                         Text(
-                            "Search notes",
+                            stringResource(R.string.search_notes),
                             style = MaterialTheme.typography.bodyMedium,
                             color = secondaryColor
                         )
@@ -1996,7 +2081,7 @@ private fun CompactSearchField(
                     ) {
                         Icon(
                             Icons.Filled.FilterList,
-                            contentDescription = "Search filter",
+                            contentDescription = stringResource(R.string.search_filter),
                             tint = if (searchScope == NoteSearchScope.TITLE) {
                                 accentColor
                             } else {
@@ -2013,7 +2098,9 @@ private fun CompactSearchField(
                             filterMenuOpen = false
                         }
                         DropdownMenuItem(
-                            text = { Text("Title and content") },
+                            text = {
+                                Text(stringResource(R.string.search_filter_title_and_content))
+                            },
                             leadingIcon = {
                                 RadioButton(
                                     selected = searchScope == NoteSearchScope.TITLE_AND_CONTENT,
@@ -2024,7 +2111,7 @@ private fun CompactSearchField(
                             modifier = Modifier.testTag("search-filter-title-content")
                         )
                         DropdownMenuItem(
-                            text = { Text("Title only") },
+                            text = { Text(stringResource(R.string.search_filter_title_only)) },
                             leadingIcon = {
                                 RadioButton(
                                     selected = searchScope == NoteSearchScope.TITLE,
@@ -2041,7 +2128,10 @@ private fun CompactSearchField(
                         onClick = onClear,
                         modifier = Modifier.size(32.dp).testTag("clear-note-search")
                     ) {
-                        Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = stringResource(R.string.action_clear_search)
+                        )
                     }
                 }
             }
@@ -2072,7 +2162,9 @@ private fun NoteListItem(
     val textVerticalPadding = if (compact) 4.dp else 8.dp
     val previewMaxLines = if (compact) 1 else 2
     val favoriteDescription =
-        if (note.favorite) "Remove from favorites" else "Add to favorites"
+        stringResource(
+            if (note.favorite) R.string.favorite_remove else R.string.favorite_add
+        )
     // A selected row keeps the theme's selection color over any custom row color.
     val customBackground = appearance.noteBackground?.takeUnless { selected }
     val rowBackground = when {
@@ -2156,7 +2248,9 @@ private fun NoteListItem(
                     Text(note.title, style = MaterialTheme.typography.titleMedium)
                     if (showCategory) {
                         NoteCategoryLabel(
-                            category = note.category.ifBlank { "Uncategorized" },
+                            category = note.category.ifBlank {
+                                stringResource(R.string.note_uncategorized)
+                            },
                             highlight = appearance.highlightCategories,
                             highlightColor = appearance.categoryHighlight,
                             testTag = "note-category-${note.localId}"
@@ -2225,9 +2319,11 @@ private fun NoteListItem(
             val actionIcon = if (favoriteAction) Icons.Filled.Star else Icons.Filled.Delete
             val actionLabel =
                 if (favoriteAction) {
-                    if (note.favorite) "Unfavorite" else "Favorite"
+                    stringResource(
+                        if (note.favorite) R.string.action_unfavorite else R.string.action_favorite
+                    )
                 } else {
-                    "Move to trash"
+                    stringResource(R.string.action_move_to_trash)
                 }
             Row(
                 modifier = Modifier.fillMaxSize()
@@ -2294,7 +2390,7 @@ private fun AccountAvatar(
 ) {
     var avatar by remember(account.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
     LaunchedEffect(account.id) { avatar = component.accountAvatar(account) }
-    val description = "Account: ${account.displayName}"
+    val description = stringResource(R.string.account_avatar_description, account.displayName)
     val avatarModifier = modifier.size(40.dp).clip(CircleShape)
         .testTag("account-avatar-${account.id}")
     val bitmap = avatar
@@ -2329,10 +2425,10 @@ private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
     ) {
         when (state) {
             SyncUiState.Idle -> Text(
-                "Available offline",
+                stringResource(R.string.sync_available_offline),
                 style = MaterialTheme.typography.labelMedium
             )
-            SyncUiState.Refreshing -> Text("Refreshing")
+            SyncUiState.Refreshing -> Text(stringResource(R.string.sync_refreshing))
             is SyncUiState.Failed -> ExpandableSyncError(
                 message = state.message,
                 technicalDetails = state.diagnostic,
@@ -2347,7 +2443,7 @@ private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
         val reconnectRequired = state is SyncUiState.AuthenticationRequired ||
             state is SyncUiState.AccountRemoved
         if (reconnectRequired) {
-            TextButton(onClick = reconnect) { Text("Reconnect") }
+            TextButton(onClick = reconnect) { Text(stringResource(R.string.action_reconnect)) }
         }
     }
 }
@@ -2358,7 +2454,9 @@ private fun ArchiveLoadingDialog(title: String, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { CircularProgressIndicator(modifier = Modifier.testTag("archive-loading")) },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
     )
 }
 
@@ -2368,7 +2466,9 @@ private fun ArchiveErrorDialog(title: String, message: String, onDismiss: () -> 
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(message, color = MaterialTheme.colorScheme.error) },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        }
     )
 }
 
@@ -2382,10 +2482,10 @@ private fun NoteVersionsDialog(
     var selected by remember(versions) { mutableStateOf(versions.firstOrNull()) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Note versions") },
+        title = { Text(stringResource(R.string.note_versions)) },
         text = {
             if (versions.isEmpty()) {
-                Text("No versions were found for this note.")
+                Text(stringResource(R.string.note_versions_empty))
             } else {
                 Column(modifier = Modifier.heightIn(max = 520.dp)) {
                     Column(
@@ -2413,9 +2513,11 @@ private fun NoteVersionsDialog(
                 onClick = { selected?.let(onRestore) },
                 enabled = restoreEnabled && selected != null,
                 modifier = Modifier.testTag("restore-note-version")
-            ) { Text("Restore") }
+            ) { Text(stringResource(R.string.action_restore)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        }
     )
 }
 
@@ -2439,23 +2541,30 @@ private fun TrashedNotesDialog(
     var selected by remember(filteredNotes) { mutableStateOf(filteredNotes.firstOrNull()) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Remote trash") },
+        title = { Text(stringResource(R.string.remote_trash)) },
         text = {
             if (notes.isEmpty()) {
-                Text("No trashed notes were found on the server.")
+                Text(stringResource(R.string.trash_empty))
             } else {
                 Column(modifier = Modifier.heightIn(max = 520.dp)) {
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it },
-                        label = { Text("Search note name") },
+                        label = { Text(stringResource(R.string.trash_search_note_name)) },
                         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                         trailingIcon = {
                             if (query.isNotEmpty()) {
                                 IconButton(
                                     onClick = { query = "" },
                                     modifier = Modifier.testTag("clear-trash-search")
-                                ) { Icon(Icons.Filled.Close, contentDescription = "Clear search") }
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = stringResource(
+                                            R.string.action_clear_search
+                                        )
+                                    )
+                                }
                             }
                         },
                         singleLine = true,
@@ -2463,7 +2572,7 @@ private fun TrashedNotesDialog(
                     )
                     if (filteredNotes.isEmpty()) {
                         Text(
-                            "No trashed notes match your search.",
+                            stringResource(R.string.trash_search_empty),
                             modifier = Modifier.padding(top = 12.dp)
                         )
                     } else {
@@ -2504,9 +2613,11 @@ private fun TrashedNotesDialog(
                 onClick = { selected?.let(onRestore) },
                 enabled = selected != null,
                 modifier = Modifier.testTag("restore-trashed-note")
-            ) { Text("Restore") }
+            ) { Text(stringResource(R.string.action_restore)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        }
     )
 }
 
@@ -2540,6 +2651,7 @@ private fun NoteDetailScreen(
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope { UiDispatcher }
     val context = LocalContext.current
+    val resources = LocalResources.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var editing by rememberSaveable(localId) { mutableStateOf(false) }
     var draft by remember(localId) { mutableStateOf<String?>(null) }
@@ -2602,7 +2714,7 @@ private fun NoteDetailScreen(
                         .onFailure { error ->
                             Toast.makeText(
                                 context,
-                                error.message ?: "Could not insert image",
+                                error.message ?: resources.getString(R.string.insert_image_failed),
                                 Toast.LENGTH_LONG
                             ).show()
                         }
@@ -2818,7 +2930,9 @@ private fun NoteDetailScreen(
             val result = runCatching { component.noteVersions(localId) }.fold(
                 onSuccess = { ArchiveLoadState.Loaded(it) },
                 onFailure = {
-                    ArchiveLoadState.Failed(it.message ?: "Could not load note versions")
+                    ArchiveLoadState.Failed(
+                        it.message ?: resources.getString(R.string.note_versions_load_failed)
+                    )
                 }
             )
             if (versionsRequestId == requestId) versionsState = result
@@ -2844,11 +2958,12 @@ private fun NoteDetailScreen(
                             showConflictResolution = false
                         } else {
                             conflictResolutionError =
-                                "The note conflict changed. Close and try again."
+                                resources.getString(R.string.conflict_changed)
                         }
                     }
                     .onFailure {
-                        conflictResolutionError = it.message ?: "Could not load the server version"
+                        conflictResolutionError = it.message
+                            ?: resources.getString(R.string.conflict_server_version_load_failed)
                     }
                 resolvingConflict = false
             }
@@ -2861,12 +2976,13 @@ private fun NoteDetailScreen(
         try {
             conflictSnapshot = withContext(UiDispatcher) { component.noteConflict(localId) }
             if (conflictSnapshot == null) {
-                conflictResolutionError = "The note conflict changed. Close and try again."
+                conflictResolutionError = resources.getString(R.string.conflict_changed)
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            conflictResolutionError = error.message ?: "Could not load the server version"
+            conflictResolutionError = error.message
+                ?: resources.getString(R.string.conflict_server_version_load_failed)
         } finally {
             resolvingConflict = false
         }
@@ -2882,12 +2998,12 @@ private fun NoteDetailScreen(
                         if (!recreate) onBackToList()
                     } else {
                         remoteMissingResolutionError =
-                            "The note changed. Close this dialog and try again."
+                            resources.getString(R.string.remote_missing_changed)
                     }
                 }
                 .onFailure {
                     remoteMissingResolutionError =
-                        it.message ?: "Could not resolve the missing note"
+                        it.message ?: resources.getString(R.string.remote_missing_resolve_failed)
                 }
             resolvingRemoteMissing = false
         }
@@ -2898,7 +3014,7 @@ private fun NoteDetailScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            note?.title ?: "Note",
+                            note?.title ?: stringResource(R.string.note_title_fallback),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -2919,7 +3035,7 @@ private fun NoteDetailScreen(
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back to notes"
+                                contentDescription = stringResource(R.string.action_back_to_notes)
                             )
                         }
                     },
@@ -2932,7 +3048,10 @@ private fun NoteDetailScreen(
                             },
                             modifier = Modifier.testTag("find-in-note")
                         ) {
-                            Icon(Icons.Filled.Search, contentDescription = "Find in note")
+                            Icon(
+                                Icons.Filled.Search,
+                                contentDescription = stringResource(R.string.find_in_note)
+                            )
                         }
                         if (!editing) {
                             if (
@@ -2965,7 +3084,12 @@ private fun NoteDetailScreen(
                                     },
                                     modifier = Modifier.testTag("edit-note")
                                 ) {
-                                    Icon(Icons.Filled.Edit, contentDescription = "Edit note")
+                                    Icon(
+                                        Icons.Filled.Edit,
+                                        contentDescription = stringResource(
+                                            R.string.action_edit_note
+                                        )
+                                    )
                                 }
                             }
                             Box {
@@ -2975,7 +3099,9 @@ private fun NoteDetailScreen(
                                 ) {
                                     Icon(
                                         Icons.Filled.MoreVert,
-                                        contentDescription = "More note actions"
+                                        contentDescription = stringResource(
+                                            R.string.more_note_actions
+                                        )
                                     )
                                 }
                                 DropdownMenu(
@@ -2983,7 +3109,9 @@ private fun NoteDetailScreen(
                                     onDismissRequest = { noteMenuOpen = false }
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("Decrease text size") },
+                                        text = {
+                                            Text(stringResource(R.string.text_size_decrease))
+                                        },
                                         onClick = {
                                             noteMenuOpen = false
                                             component.settings.decreaseNoteTextSize()
@@ -2992,7 +3120,9 @@ private fun NoteDetailScreen(
                                         modifier = Modifier.testTag("decrease-note-text-size")
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Increase text size") },
+                                        text = {
+                                            Text(stringResource(R.string.text_size_increase))
+                                        },
                                         onClick = {
                                             noteMenuOpen = false
                                             component.settings.increaseNoteTextSize()
@@ -3007,7 +3137,7 @@ private fun NoteDetailScreen(
                                                     checked = loadImages,
                                                     onCheckedChange = { loadImages = it }
                                                 )
-                                                Text("Load images")
+                                                Text(stringResource(R.string.load_images))
                                             }
                                         },
                                         onClick = { loadImages = !loadImages },
@@ -3015,7 +3145,9 @@ private fun NoteDetailScreen(
                                     )
                                     if (current?.remoteId != null) {
                                         DropdownMenuItem(
-                                            text = { Text("Versions") },
+                                            text = {
+                                                Text(stringResource(R.string.note_menu_versions))
+                                            },
                                             onClick = {
                                                 noteMenuOpen = false
                                                 showVersions()
@@ -3028,7 +3160,9 @@ private fun NoteDetailScreen(
                                         noteTagState.availability != NoteTagAvailability.UNKNOWN
                                     ) {
                                         DropdownMenuItem(
-                                            text = { Text("Tags") },
+                                            text = {
+                                                Text(stringResource(R.string.note_menu_tags))
+                                            },
                                             onClick = {
                                                 noteMenuOpen = false
                                                 editingTags = true
@@ -3038,7 +3172,9 @@ private fun NoteDetailScreen(
                                     }
                                     if (current != null) {
                                         DropdownMenuItem(
-                                            text = { Text("Information") },
+                                            text = {
+                                                Text(stringResource(R.string.note_menu_information))
+                                            },
                                             onClick = {
                                                 noteMenuOpen = false
                                                 showingInformation = true
@@ -3057,7 +3193,9 @@ private fun NoteDetailScreen(
                                         )
                                     ) {
                                         DropdownMenuItem(
-                                            text = { Text("Change category") },
+                                            text = {
+                                                Text(stringResource(R.string.change_category))
+                                            },
                                             onClick = {
                                                 noteMenuOpen = false
                                                 changingCategory = true
@@ -3076,7 +3214,7 @@ private fun NoteDetailScreen(
                                         )
                                     ) {
                                         DropdownMenuItem(
-                                            text = { Text("Rename") },
+                                            text = { Text(stringResource(R.string.action_rename)) },
                                             onClick = {
                                                 noteMenuOpen = false
                                                 noteName = current.title
@@ -3088,7 +3226,9 @@ private fun NoteDetailScreen(
                                     }
                                     if (current != null) {
                                         DropdownMenuItem(
-                                            text = { Text("Move to trash") },
+                                            text = {
+                                                Text(stringResource(R.string.action_move_to_trash))
+                                            },
                                             onClick = {
                                                 noteMenuOpen = false
                                                 showDeleteConfirmation = true
@@ -3103,7 +3243,7 @@ private fun NoteDetailScreen(
                                         current.syncState == SyncState.FAILED
                                     ) {
                                         DropdownMenuItem(
-                                            text = { Text("Retry sync") },
+                                            text = { Text(stringResource(R.string.retry_sync)) },
                                             onClick = {
                                                 noteMenuOpen = false
                                                 scope.launch { component.retryNote(localId) }
@@ -3124,21 +3264,21 @@ private fun NoteDetailScreen(
                     ) {
                         ActionIconButton(
                             icon = Icons.Filled.TextDecrease,
-                            description = "Decrease note text size",
+                            description = stringResource(R.string.note_text_size_decrease),
                             testTag = "decrease-note-text-size",
                             enabled = NoteTextSize.canDecrease(noteTextSizeSp),
                             onClick = component.settings::decreaseNoteTextSize
                         )
                         ActionIconButton(
                             icon = Icons.Filled.TextIncrease,
-                            description = "Increase note text size",
+                            description = stringResource(R.string.note_text_size_increase),
                             testTag = "increase-note-text-size",
                             enabled = NoteTextSize.canIncrease(noteTextSizeSp),
                             onClick = component.settings::increaseNoteTextSize
                         )
                         ActionIconButton(
                             icon = Icons.Filled.Close,
-                            description = "Cancel editing",
+                            description = stringResource(R.string.action_cancel_editing),
                             testTag = "cancel-editing",
                             onClick = {
                                 if (draft != contentBeforeEditing) {
@@ -3156,7 +3296,7 @@ private fun NoteDetailScreen(
                         )
                         ActionIconButton(
                             icon = Icons.Filled.Done,
-                            description = "Finish editing",
+                            description = stringResource(R.string.action_finish_editing),
                             testTag = "finish-editing",
                             onClick = {
                                 val source = draft
@@ -3169,7 +3309,10 @@ private fun NoteDetailScreen(
                         )
                     }
                 } else if (current?.readOnly == true) {
-                    Text("Read only", modifier = Modifier.padding(horizontal = 12.dp))
+                    Text(
+                        stringResource(R.string.read_only),
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
                 }
             }
         }
@@ -3192,8 +3335,7 @@ private fun NoteDetailScreen(
                         )
                     ) {
                         Text(
-                            "Your local changes are safe on this device. Finish editing to " +
-                                "choose how to resolve the server change.",
+                            stringResource(R.string.local_changes_safe_finish_editing),
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
@@ -3230,7 +3372,7 @@ private fun NoteDetailScreen(
                         // First in the row, so stepping back does not require scrolling the toolbar.
                         EditorHistoryButton(
                             Icons.AutoMirrored.Filled.Undo,
-                            "Undo",
+                            stringResource(R.string.format_undo),
                             "undo-edit",
                             canUndo,
                             editor
@@ -3239,7 +3381,7 @@ private fun NoteDetailScreen(
                         }
                         EditorHistoryButton(
                             Icons.AutoMirrored.Filled.Redo,
-                            "Redo",
+                            stringResource(R.string.format_redo),
                             "redo-edit",
                             canRedo,
                             editor
@@ -3250,75 +3392,75 @@ private fun NoteDetailScreen(
                             Icons.AutoMirrored.Filled.FormatListBulleted,
                             MarkdownFormatAction.BULLET,
                             editor,
-                            "Create list item",
+                            stringResource(R.string.format_list),
                             "format-list"
                         )
                         FormatButton(
                             Icons.Filled.Checklist,
                             MarkdownFormatAction.TASK,
                             editor,
-                            "Create checkbox list item",
+                            stringResource(R.string.format_checkbox_list),
                             "format-checkbox-list"
                         )
                         FormatButton(
                             Icons.AutoMirrored.Filled.FormatIndentIncrease,
                             MarkdownFormatAction.INDENT,
                             editor,
-                            "Indent by 4 spaces",
+                            stringResource(R.string.format_indent),
                             "format-indent"
                         )
                         FormatButton(
                             Icons.AutoMirrored.Filled.FormatIndentDecrease,
                             MarkdownFormatAction.OUTDENT,
                             editor,
-                            "Outdent by 4 spaces",
+                            stringResource(R.string.format_outdent),
                             "format-outdent"
                         )
                         FormatButton(
                             Icons.Filled.FormatBold,
                             MarkdownFormatAction.BOLD,
                             editor,
-                            "Bold",
+                            stringResource(R.string.format_bold),
                             "format-bold"
                         )
                         FormatButton(
                             Icons.Filled.FormatItalic,
                             MarkdownFormatAction.ITALIC,
                             editor,
-                            "Italic",
+                            stringResource(R.string.format_italic),
                             "format-italic"
                         )
                         FormatButton(
                             Icons.Filled.StrikethroughS,
                             MarkdownFormatAction.STRIKETHROUGH,
                             editor,
-                            "Strikethrough",
+                            stringResource(R.string.format_strikethrough),
                             "format-strikethrough"
                         )
                         FormatButton(
                             Icons.Filled.Code,
                             MarkdownFormatAction.CODE,
                             editor,
-                            "Inline code",
+                            stringResource(R.string.format_code),
                             "format-code"
                         )
                         FormatButton(
                             Icons.Filled.Link,
                             MarkdownFormatAction.LINK,
                             editor,
-                            "Insert link",
+                            stringResource(R.string.format_link),
                             "format-link"
                         )
                         ActionIconButton(
                             icon = Icons.Filled.AddPhotoAlternate,
-                            description = "Insert image",
+                            description = stringResource(R.string.insert_image),
                             testTag = "insert-image",
                             enabled = !importingImage,
                             onClick = { imagePicker.launch("image/*") }
                         )
                         ActionIconButton(
                             icon = Icons.Filled.Today,
-                            description = "Insert date",
+                            description = stringResource(R.string.insert_date),
                             testTag = "insert-date",
                             onClick = {
                                 editor?.insertText(
@@ -3329,7 +3471,7 @@ private fun NoteDetailScreen(
                         )
                         ActionIconButton(
                             icon = Icons.Filled.DateRange,
-                            description = "Insert date and time",
+                            description = stringResource(R.string.insert_date_time),
                             testTag = "insert-datetime",
                             onClick = {
                                 editor?.insertText(
@@ -3343,7 +3485,7 @@ private fun NoteDetailScreen(
                         if (nextcloudDeckAvailable) {
                             ActionIconButton(
                                 icon = Icons.Filled.ViewKanban,
-                                description = "Create Nextcloud Deck card",
+                                description = stringResource(R.string.create_deck_card),
                                 testTag = "create-deck-card-link",
                                 onClick = {
                                     val current = editor
@@ -3359,28 +3501,28 @@ private fun NoteDetailScreen(
                             Icons.Filled.Title,
                             MarkdownFormatAction.HEADING,
                             editor,
-                            "Heading",
+                            stringResource(R.string.format_heading),
                             "format-heading"
                         )
                         FormatButton(
                             Icons.Filled.FormatListNumbered,
                             MarkdownFormatAction.NUMBERED,
                             editor,
-                            "Create numbered list item",
+                            stringResource(R.string.format_numbered_list),
                             "format-numbered-list"
                         )
                         FormatButton(
                             Icons.Filled.FormatQuote,
                             MarkdownFormatAction.QUOTE,
                             editor,
-                            "Create block quote",
+                            stringResource(R.string.format_quote),
                             "format-quote"
                         )
                     }
                 }
                 if (!supportsMarkdownSourceHighlighting(draft.orEmpty().length)) {
                     Text(
-                        "Syntax highlighting is off for this large note to keep editing responsive.",
+                        stringResource(R.string.large_note_highlighting_disabled),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                             .testTag("large-note-highlighting-disabled")
                     )
@@ -3499,7 +3641,7 @@ private fun NoteDetailScreen(
                         setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
                     ) {
                         Text(
-                            "Your local changes are safe on this device.",
+                            stringResource(R.string.local_changes_safe),
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         TextButton(
@@ -3510,10 +3652,10 @@ private fun NoteDetailScreen(
                             },
                             modifier = Modifier.padding(horizontal = 4.dp)
                                 .testTag("resolve-note-conflict")
-                        ) { Text("Resolve conflict") }
+                        ) { Text(stringResource(R.string.resolve_conflict)) }
                     } else if (note?.syncState == SyncState.REMOTE_MISSING) {
                         Text(
-                            "Your local changes are safe on this device.",
+                            stringResource(R.string.local_changes_safe),
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         TextButton(
@@ -3523,7 +3665,7 @@ private fun NoteDetailScreen(
                             },
                             modifier = Modifier.padding(horizontal = 4.dp)
                                 .testTag("resolve-remote-missing")
-                        ) { Text("Resolve missing note") }
+                        ) { Text(stringResource(R.string.resolve_missing_note)) }
                     }
                 }
                 Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -3579,9 +3721,13 @@ private fun NoteDetailScreen(
                                                 val message = when (result) {
                                                     AttachmentOpenResult.OPENED -> null
                                                     AttachmentOpenResult.FETCH_FAILED ->
-                                                        "Unable to download attachment"
+                                                        view.context.getString(
+                                                            R.string.attachment_download_failed
+                                                        )
                                                     AttachmentOpenResult.NO_VIEWER ->
-                                                        "No app can open this attachment"
+                                                        view.context.getString(
+                                                            R.string.attachment_no_viewer
+                                                        )
                                                 }
                                                 message?.let {
                                                     Toast.makeText(
@@ -3668,11 +3814,10 @@ private fun NoteDetailScreen(
     if (showDiscardConfirmation) {
         AlertDialog(
             onDismissRequest = { showDiscardConfirmation = false },
-            title = { Text("Discard changes?") },
+            title = { Text(stringResource(R.string.discard_changes_title)) },
             text = {
                 Text(
-                    "This note was modified. Discarding restores it to the text it had when " +
-                        "editing started."
+                    stringResource(R.string.discard_changes_message)
                 )
             },
             confirmButton = {
@@ -3691,21 +3836,22 @@ private fun NoteDetailScreen(
                         }
                     },
                     modifier = Modifier.testTag("confirm-discard-changes")
-                ) { Text("Discard") }
+                ) { Text(stringResource(R.string.action_discard)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDiscardConfirmation = false }) { Text("Keep editing") }
+                TextButton(onClick = { showDiscardConfirmation = false }) {
+                    Text(stringResource(R.string.action_keep_editing))
+                }
             }
         )
     }
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Move note to trash?") },
+            title = { Text(stringResource(R.string.delete_note_title)) },
             text = {
                 Text(
-                    "The note will disappear from this device now and move to the Nextcloud " +
-                        "trash bin when synchronization is available."
+                    stringResource(R.string.delete_note_message)
                 )
             },
             confirmButton = {
@@ -3720,10 +3866,12 @@ private fun NoteDetailScreen(
                         }
                     },
                     modifier = Modifier.testTag("confirm-delete-note")
-                ) { Text("Move to trash") }
+                ) { Text(stringResource(R.string.action_move_to_trash)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
             }
         )
     }
@@ -3733,20 +3881,19 @@ private fun NoteDetailScreen(
             onDismissRequest = {
                 if (!resolvingConflict) showConflictResolution = false
             },
-            title = { Text("Resolve note conflict") },
+            title = { Text(stringResource(R.string.resolve_note_conflict)) },
             text = {
                 Column(
                     modifier = Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState())
                 ) {
                     Text(
-                        if (note?.syncState == SyncState.READ_ONLY_CONFLICT) {
-                            "The note became read-only while your local changes were pending. " +
-                                "Load the server version, or first preserve your local version " +
-                                "as a new writable note."
-                        } else {
-                            "The note changed on the server after your local edit. Load the " +
-                                "server version, or first preserve your local version as a new note."
-                        }
+                        stringResource(
+                            if (note?.syncState == SyncState.READ_ONLY_CONFLICT) {
+                                R.string.conflict_read_only_message
+                            } else {
+                                R.string.conflict_message
+                            }
+                        )
                     )
                     conflictResolutionError?.let {
                         Text(
@@ -3769,12 +3916,12 @@ private fun NoteDetailScreen(
                             if (maxWidth >= 480.dp) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     ConflictVersionCard(
-                                        "Local version",
+                                        stringResource(R.string.conflict_local_version),
                                         conflict.local,
                                         Modifier.weight(1f).testTag("conflict-local-version")
                                     )
                                     ConflictVersionCard(
-                                        "Server version",
+                                        stringResource(R.string.conflict_server_version),
                                         conflict.remote,
                                         Modifier.weight(1f).testTag("conflict-server-version")
                                     )
@@ -3782,12 +3929,12 @@ private fun NoteDetailScreen(
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     ConflictVersionCard(
-                                        "Local version",
+                                        stringResource(R.string.conflict_local_version),
                                         conflict.local,
                                         Modifier.testTag("conflict-local-version")
                                     )
                                     ConflictVersionCard(
-                                        "Server version",
+                                        stringResource(R.string.conflict_server_version),
                                         conflict.remote,
                                         Modifier.testTag("conflict-server-version")
                                     )
@@ -3795,16 +3942,27 @@ private fun NoteDetailScreen(
                             }
                         }
                         ConflictVersionCard(
-                            "Common base",
+                            stringResource(R.string.conflict_common_base),
                             conflict.base,
                             Modifier.padding(top = 12.dp).testTag("conflict-base-version")
                         )
                         if (mergeResult?.isClean == false) {
+                            val fieldNames = mapOf(
+                                NoteMergeField.TITLE to stringResource(R.string.merge_field_title),
+                                NoteMergeField.CONTENT to
+                                    stringResource(R.string.merge_field_content),
+                                NoteMergeField.CATEGORY to
+                                    stringResource(R.string.merge_field_category),
+                                NoteMergeField.FAVORITE to
+                                    stringResource(R.string.merge_field_favorite)
+                            )
                             Text(
-                                "Automatic merge is unavailable because both versions changed " +
+                                stringResource(
+                                    R.string.conflict_merge_unavailable,
                                     mergeResult.conflicts.joinToString {
-                                        it.name.lowercase()
-                                    } + ".",
+                                        fieldNames.getValue(it)
+                                    }
+                                ),
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(top = 12.dp)
@@ -3815,19 +3973,19 @@ private fun NoteDetailScreen(
                             onClick = { resolveConflict(false, true) },
                             enabled = !resolvingConflict && mergeResult?.isClean == true,
                             modifier = Modifier.fillMaxWidth().testTag("merge-conflict-versions")
-                        ) { Text("Use merged version") }
+                        ) { Text(stringResource(R.string.conflict_use_merged)) }
                         TextButton(
                             onClick = { resolveConflict(true, false) },
                             enabled = !resolvingConflict,
                             modifier = Modifier.fillMaxWidth().testTag("keep-local-conflict-copy")
-                        ) { Text("Keep local as copy") }
+                        ) { Text(stringResource(R.string.conflict_keep_local_copy)) }
                         TextButton(
                             onClick = { resolveConflict(false, false) },
                             enabled = !resolvingConflict,
                             modifier = Modifier.fillMaxWidth().testTag(
                                 "use-server-conflict-version"
                             )
-                        ) { Text("Use server") }
+                        ) { Text(stringResource(R.string.conflict_use_server)) }
                     }
                 }
             },
@@ -3835,7 +3993,7 @@ private fun NoteDetailScreen(
                 TextButton(
                     onClick = { showConflictResolution = false },
                     enabled = !resolvingConflict
-                ) { Text("Close") }
+                ) { Text(stringResource(R.string.action_close)) }
             }
         )
     }
@@ -3844,12 +4002,11 @@ private fun NoteDetailScreen(
             onDismissRequest = {
                 if (!resolvingRemoteMissing) showRemoteMissingResolution = false
             },
-            title = { Text("Resolve missing note") },
+            title = { Text(stringResource(R.string.resolve_missing_note)) },
             text = {
                 Column {
                     Text(
-                        "This note was deleted on the server while local changes were pending. " +
-                            "Recreate it as a new server note, or discard the local version."
+                        stringResource(R.string.remote_missing_message)
                     )
                     remoteMissingResolutionError?.let {
                         Text(
@@ -3872,7 +4029,7 @@ private fun NoteDetailScreen(
                     onClick = { resolveRemoteMissing(true) },
                     enabled = !resolvingRemoteMissing,
                     modifier = Modifier.testTag("recreate-remote-missing")
-                ) { Text("Recreate note") }
+                ) { Text(stringResource(R.string.remote_missing_recreate)) }
             },
             dismissButton = {
                 Row {
@@ -3880,11 +4037,11 @@ private fun NoteDetailScreen(
                         onClick = { resolveRemoteMissing(false) },
                         enabled = !resolvingRemoteMissing,
                         modifier = Modifier.testTag("discard-remote-missing")
-                    ) { Text("Discard local") }
+                    ) { Text(stringResource(R.string.remote_missing_discard_local)) }
                     TextButton(
                         onClick = { showRemoteMissingResolution = false },
                         enabled = !resolvingRemoteMissing
-                    ) { Text("Cancel") }
+                    ) { Text(stringResource(R.string.action_cancel)) }
                 }
             }
         )
@@ -3964,14 +4121,14 @@ private fun NoteDetailScreen(
         when (val state = versionsState) {
             ArchiveLoadState.Idle -> Unit
             ArchiveLoadState.Loading -> ArchiveLoadingDialog(
-                title = "Note versions",
+                title = stringResource(R.string.note_versions),
                 onDismiss = {
                     versionsRequestId++
                     versionsState = ArchiveLoadState.Idle
                 }
             )
             is ArchiveLoadState.Failed -> ArchiveErrorDialog(
-                title = "Note versions",
+                title = stringResource(R.string.note_versions),
                 message = state.message,
                 onDismiss = { versionsState = ArchiveLoadState.Idle }
             )
@@ -3986,10 +4143,10 @@ private fun NoteDetailScreen(
     versionToRestore?.let { version ->
         AlertDialog(
             onDismissRequest = { versionToRestore = null },
-            title = { Text("Restore this version?") },
+            title = { Text(stringResource(R.string.restore_version_title)) },
             text = {
                 Text(
-                    "The current note content will be replaced and synchronized as a new edit."
+                    stringResource(R.string.restore_version_message)
                 )
             },
             confirmButton = {
@@ -4001,14 +4158,15 @@ private fun NoteDetailScreen(
                         scope.launch {
                             val restored = runCatching {
                                 check(component.restoreNoteVersion(localId, version)) {
-                                    "The note could not be updated"
+                                    resources.getString(R.string.restore_version_update_failed)
                                 }
                             }
                             val result = restored.fold(
                                 onSuccess = { ArchiveLoadState.Idle },
                                 onFailure = {
                                     ArchiveLoadState.Failed(
-                                        it.message ?: "Could not restore the note version"
+                                        it.message
+                                            ?: resources.getString(R.string.restore_version_failed)
                                     )
                                 }
                             )
@@ -4016,10 +4174,12 @@ private fun NoteDetailScreen(
                         }
                     },
                     modifier = Modifier.testTag("confirm-restore-note-version")
-                ) { Text("Restore") }
+                ) { Text(stringResource(R.string.action_restore)) }
             },
             dismissButton = {
-                TextButton(onClick = { versionToRestore = null }) { Text("Cancel") }
+                TextButton(onClick = { versionToRestore = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
             }
         )
     }
@@ -4041,7 +4201,7 @@ private fun NoteInformationDialog(note: Note, account: Account?, onDismiss: () -
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Note information") },
+        title = { Text(stringResource(R.string.note_information_title)) },
         text = {
             SelectionContainer {
                 Column(
@@ -4049,17 +4209,53 @@ private fun NoteInformationDialog(note: Note, account: Account?, onDismiss: () -
                         .testTag("note-information-dialog"),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    NoteInformationRow("Modified", modified)
-                    NoteInformationRow("Markdown size", markdownSize)
-                    NoteInformationRow("Words", wordCount.toString())
-                    NoteInformationRow("Characters", note.content.length.toString())
-                    NoteInformationRow("Lines", lineCount.toString())
-                    NoteInformationRow("Category", note.category.ifBlank { "Root" })
-                    account?.let { NoteInformationRow("Account", it.displayName) }
-                    NoteInformationRow("Synchronization", note.syncState.displayName())
-                    NoteInformationRow("Access", if (note.readOnly) "Read only" else "Writable")
-                    NoteInformationRow("Favorite", if (note.favorite) "Yes" else "No")
-                    note.remoteId?.let { NoteInformationRow("Note ID", it.toString()) }
+                    NoteInformationRow(stringResource(R.string.note_info_modified), modified)
+                    NoteInformationRow(
+                        stringResource(R.string.note_info_markdown_size),
+                        markdownSize
+                    )
+                    NoteInformationRow(
+                        stringResource(R.string.note_info_words),
+                        wordCount.toString()
+                    )
+                    NoteInformationRow(
+                        stringResource(R.string.note_info_characters),
+                        note.content.length.toString()
+                    )
+                    NoteInformationRow(
+                        stringResource(R.string.note_info_lines),
+                        lineCount.toString()
+                    )
+                    NoteInformationRow(
+                        stringResource(R.string.note_info_category),
+                        note.category.ifBlank { stringResource(R.string.note_info_category_root) }
+                    )
+                    account?.let {
+                        NoteInformationRow(
+                            stringResource(R.string.note_info_account),
+                            it.displayName
+                        )
+                    }
+                    NoteInformationRow(
+                        stringResource(R.string.note_info_synchronization),
+                        stringResource(note.syncState.displayNameRes())
+                    )
+                    NoteInformationRow(
+                        stringResource(R.string.note_info_access),
+                        stringResource(
+                            if (note.readOnly) R.string.read_only else R.string.note_info_writable
+                        )
+                    )
+                    NoteInformationRow(
+                        stringResource(R.string.note_info_favorite),
+                        stringResource(if (note.favorite) R.string.yes else R.string.no)
+                    )
+                    note.remoteId?.let {
+                        NoteInformationRow(
+                            stringResource(R.string.note_info_note_id),
+                            it.toString()
+                        )
+                    }
                 }
             }
         },
@@ -4067,7 +4263,7 @@ private fun NoteInformationDialog(note: Note, account: Account?, onDismiss: () -
             TextButton(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("close-note-information")
-            ) { Text("Close") }
+            ) { Text(stringResource(R.string.action_close)) }
         }
     )
 }
@@ -4084,16 +4280,17 @@ private fun NoteInformationRow(label: String, value: String) {
     }
 }
 
-private fun SyncState.displayName(): String = when (this) {
-    SyncState.SYNCHRONIZED -> "Synchronized"
-    SyncState.LOCALLY_CREATED -> "Not yet synchronized"
-    SyncState.LOCALLY_MODIFIED -> "Local changes pending"
-    SyncState.PENDING_DELETION -> "Pending deletion"
-    SyncState.SYNCHRONIZING -> "Synchronizing"
-    SyncState.CONFLICT -> "Conflict"
-    SyncState.REMOTE_MISSING -> "Missing on server"
-    SyncState.READ_ONLY_CONFLICT -> "Read-only conflict"
-    SyncState.FAILED -> "Synchronization failed"
+@StringRes
+private fun SyncState.displayNameRes(): Int = when (this) {
+    SyncState.SYNCHRONIZED -> R.string.sync_state_synchronized
+    SyncState.LOCALLY_CREATED -> R.string.sync_state_locally_created
+    SyncState.LOCALLY_MODIFIED -> R.string.sync_state_locally_modified
+    SyncState.PENDING_DELETION -> R.string.sync_state_pending_deletion
+    SyncState.SYNCHRONIZING -> R.string.sync_state_synchronizing
+    SyncState.CONFLICT -> R.string.sync_state_conflict
+    SyncState.REMOTE_MISSING -> R.string.sync_state_remote_missing
+    SyncState.READ_ONLY_CONFLICT -> R.string.sync_state_read_only_conflict
+    SyncState.FAILED -> R.string.sync_state_failed
 }
 
 @Composable
@@ -4110,8 +4307,12 @@ private fun ConflictVersionCard(
     ) {
         Text(label, style = MaterialTheme.typography.titleSmall)
         Text(
-            "Title: ${version.title}\nCategory: ${version.category.ifBlank { "Undefined" }}\n" +
-                "Favorite: ${if (version.favorite) "Yes" else "No"}",
+            stringResource(
+                R.string.conflict_version_summary,
+                version.title,
+                version.category.ifBlank { stringResource(R.string.category_option_undefined) },
+                stringResource(if (version.favorite) R.string.yes else R.string.no)
+            ),
             style = MaterialTheme.typography.labelSmall
         )
         SelectionContainer {
@@ -4149,7 +4350,7 @@ private fun RenameNoteDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename note") },
+        title = { Text(stringResource(R.string.rename_note_title)) },
         text = {
             Column {
                 OutlinedTextField(
@@ -4158,10 +4359,10 @@ private fun RenameNoteDialog(
                         fieldValue = it
                         onNameChange(it.text)
                     },
-                    label = { Text("File name") },
+                    label = { Text(stringResource(R.string.rename_note_file_name)) },
                     singleLine = true,
                     supportingText = {
-                        Text("Characters a file name cannot hold are replaced by spaces.")
+                        Text(stringResource(R.string.note_name_invalid_characters_hint))
                     },
                     modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
                         .onPlaced { fieldPlaced = true }
@@ -4182,7 +4383,7 @@ private fun RenameNoteDialog(
                 ) {
                     Checkbox(checked = updateHeading, onCheckedChange = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Update heading 1")
+                    Text(stringResource(R.string.rename_note_update_heading))
                 }
             }
         },
@@ -4191,9 +4392,11 @@ private fun RenameNoteDialog(
                 onClick = onConfirm,
                 enabled = NoteNames.isValid(name),
                 modifier = Modifier.testTag("confirm-rename-note")
-            ) { Text("Rename") }
+            ) { Text(stringResource(R.string.action_rename)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
     )
 }
 
@@ -4218,7 +4421,7 @@ private fun NewNoteNameDialog(
     val valid = NoteNames.isValid(name)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New note") },
+        title = { Text(stringResource(R.string.action_new_note)) },
         text = {
             OutlinedTextField(
                 value = fieldValue,
@@ -4226,10 +4429,10 @@ private fun NewNoteNameDialog(
                     fieldValue = it
                     onNameChange(it.text)
                 },
-                label = { Text("Note name") },
+                label = { Text(stringResource(R.string.new_note_name)) },
                 singleLine = true,
                 supportingText = {
-                    Text("Characters a file name cannot hold are replaced by spaces.")
+                    Text(stringResource(R.string.note_name_invalid_characters_hint))
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { if (valid) onConfirm() }),
@@ -4243,13 +4446,13 @@ private fun NewNoteNameDialog(
                 onClick = onConfirm,
                 enabled = valid,
                 modifier = Modifier.testTag("confirm-new-note")
-            ) { Text("Create") }
+            ) { Text(stringResource(R.string.action_create)) }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("cancel-new-note")
-            ) { Text("Cancel") }
+            ) { Text(stringResource(R.string.action_cancel)) }
         },
         modifier = Modifier.testTag("new-note-name-dialog")
     )
@@ -4273,14 +4476,14 @@ private fun ChangeNoteCategoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Change category") },
+        title = { Text(stringResource(R.string.change_category)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 CategoryDestinationRow(
-                    label = "Undefined (root)",
+                    label = stringResource(R.string.category_undefined_root),
                     selected = !creatingCategory && selectedCategory.isEmpty(),
                     testTag = "note-category-root",
                     onClick = {
@@ -4300,7 +4503,7 @@ private fun ChangeNoteCategoryDialog(
                     )
                 }
                 CategoryDestinationRow(
-                    label = "New category",
+                    label = stringResource(R.string.category_new),
                     selected = creatingCategory,
                     testTag = "note-category-new",
                     onClick = { creatingCategory = true }
@@ -4311,8 +4514,8 @@ private fun ChangeNoteCategoryDialog(
                         newCategory = it
                         creatingCategory = true
                     },
-                    label = { Text("New category path") },
-                    supportingText = { Text("Use / to create nested categories.") },
+                    label = { Text(stringResource(R.string.category_new_path)) },
+                    supportingText = { Text(stringResource(R.string.category_new_path_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("new-note-category-field")
                 )
@@ -4323,9 +4526,11 @@ private fun ChangeNoteCategoryDialog(
                 onClick = { onConfirm(destination) },
                 enabled = validDestination,
                 modifier = Modifier.testTag("confirm-note-category")
-            ) { Text("Move") }
+            ) { Text(stringResource(R.string.action_move)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
     )
 }
 
@@ -4352,7 +4557,7 @@ private fun NoteFastScroller(scrollState: ScrollState, modifier: Modifier = Modi
         scrollValue = scrollState.value,
         scrollRange = scrollState.maxValue,
         onScrollTo = { value -> scope.launch { scrollState.scrollTo(value) } },
-        contentDescription = "Note fast scroll",
+        contentDescription = stringResource(R.string.note_fast_scroll),
         testTag = "note-fast-scroll",
         modifier = modifier
     )
@@ -4369,7 +4574,7 @@ internal fun EditorFastScroller(
         scrollValue = scrollValue,
         scrollRange = scrollRange,
         onScrollTo = onScrollTo,
-        contentDescription = "Editor fast scroll",
+        contentDescription = stringResource(R.string.editor_fast_scroll),
         testTag = "editor-fast-scroll",
         modifier = modifier
     )
@@ -4491,7 +4696,7 @@ private fun FindInNoteBar(
         OutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
-            label = { Text("Find in note") },
+            label = { Text(stringResource(R.string.find_in_note)) },
             singleLine = true,
             supportingText = {
                 Text(
@@ -4503,21 +4708,21 @@ private fun FindInNoteBar(
         )
         ActionIconButton(
             icon = Icons.Filled.KeyboardArrowUp,
-            description = "Previous match",
+            description = stringResource(R.string.find_previous_match),
             testTag = "find-previous",
             enabled = matchCount > 0,
             onClick = onPrevious
         )
         ActionIconButton(
             icon = Icons.Filled.KeyboardArrowDown,
-            description = "Next match",
+            description = stringResource(R.string.find_next_match),
             testTag = "find-next",
             enabled = matchCount > 0,
             onClick = onNext
         )
         ActionIconButton(
             icon = Icons.Filled.Close,
-            description = "Close find",
+            description = stringResource(R.string.find_close),
             testTag = "close-find",
             enabled = true,
             onClick = onClose
@@ -4529,10 +4734,15 @@ private fun FindInNoteBar(
  * The status is always present, even while it is empty, so that typing a query cannot make the
  * note jump by a text line.
  */
+@Composable
 private fun findMatchStatus(query: String, matchCount: Int, currentMatch: Int): String = when {
     query.isBlank() -> ""
-    matchCount == 0 -> "No matches"
-    else -> "${currentMatch.coerceIn(0, matchCount - 1) + 1} of $matchCount"
+    matchCount == 0 -> stringResource(R.string.find_no_matches)
+    else -> stringResource(
+        R.string.find_match_position,
+        currentMatch.coerceIn(0, matchCount - 1) + 1,
+        matchCount
+    )
 }
 
 @Composable
@@ -4542,7 +4752,7 @@ private fun ExpandableSyncError(
     testTag: String,
     modifier: Modifier = Modifier
 ) {
-    val explanation = syncErrorExplanation(message)
+    val explanation = syncErrorExplanation(message)?.let { stringResource(it) }
     val context = LocalContext.current
     var showDetails by rememberSaveable(message) { mutableStateOf(false) }
     Column(modifier = modifier.testTag(testTag)) {
@@ -4556,14 +4766,15 @@ private fun ExpandableSyncError(
                 onClick = { showDetails = true },
                 modifier = Modifier.testTag("$testTag-toggle")
             ) {
-                Text("Details")
+                Text(stringResource(R.string.sync_error_details))
             }
         }
     }
     if (showDetails) {
+        val exceptionClipLabel = stringResource(R.string.sync_error_clip_label)
         AlertDialog(
             onDismissRequest = { showDetails = false },
-            title = { Text("Synchronization details") },
+            title = { Text(stringResource(R.string.sync_error_details_title)) },
             text = {
                 Column(
                     modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())
@@ -4573,7 +4784,7 @@ private fun ExpandableSyncError(
                     technicalDetails?.let { diagnostic ->
                         val topPadding = if (explanation == null) 0.dp else 16.dp
                         Text(
-                            "Exception text",
+                            stringResource(R.string.sync_error_exception_text),
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(top = topPadding)
                         )
@@ -4586,8 +4797,7 @@ private fun ExpandableSyncError(
                             )
                         }
                         Text(
-                            "Exception text can contain server or account information. Review it " +
-                                "before sharing.",
+                            stringResource(R.string.sync_error_exception_privacy),
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(top = 12.dp)
                         )
@@ -4599,31 +4809,27 @@ private fun ExpandableSyncError(
                     TextButton(
                         onClick = {
                             context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
-                                ClipData.newPlainText("Synchronization exception", diagnostic)
+                                ClipData.newPlainText(exceptionClipLabel, diagnostic)
                             )
                         },
                         modifier = Modifier.testTag("$testTag-copy")
-                    ) { Text("Copy exception") }
+                    ) { Text(stringResource(R.string.sync_error_copy_exception)) }
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDetails = false },
                     modifier = Modifier.testTag("$testTag-close")
-                ) { Text("Close") }
+                ) { Text(stringResource(R.string.action_close)) }
             },
             modifier = Modifier.testTag("$testTag-dialog")
         )
     }
 }
 
-private fun syncErrorExplanation(message: String): String? = when (message) {
-    "The server could not be reached" ->
-        "Synchronization stopped before the server responded. Local edits remain saved on this " +
-            "device. For a local server, check the phone's Wi-Fi or VPN and confirm that " +
-            "Nextcloud Files can reach the account. Verify the server address and port in a " +
-            "browser and ensure its HTTPS certificate is trusted by Android. Plain HTTP " +
-            "connections can be blocked by Android. Then retry synchronization."
+@StringRes
+private fun syncErrorExplanation(message: String): Int? = when (message) {
+    "The server could not be reached" -> R.string.sync_error_server_unreachable_explanation
     else -> null
 }
 

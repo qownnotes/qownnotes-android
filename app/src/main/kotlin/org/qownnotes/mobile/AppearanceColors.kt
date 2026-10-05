@@ -1,9 +1,13 @@
 package org.qownnotes.mobile
 
+import androidx.annotation.StringRes
 import kotlin.math.pow
 
-/** A user-selectable color with a name for accessibility and tests. */
-data class NamedColor(val name: String, val argb: Int)
+/**
+ * A user-selectable color. [name] is a stable English identifier used for test tags; [label] is
+ * the localized name shown to users and accessibility services.
+ */
+data class NamedColor(val name: String, val argb: Int, @StringRes val label: Int)
 
 /**
  * The fixed palette for user appearance choices and the text colors drawn on top of them.
@@ -13,25 +17,25 @@ data class NamedColor(val name: String, val argb: Int)
  */
 object AppearanceColors {
     val palette: List<NamedColor> = listOf(
-        NamedColor("White", 0xFFFFFFFF.toInt()),
-        NamedColor("Light gray", 0xFFE0E0E0.toInt()),
-        NamedColor("Gray", 0xFF757575.toInt()),
-        NamedColor("Dark gray", 0xFF303030.toInt()),
-        NamedColor("Black", 0xFF000000.toInt()),
-        NamedColor("Light yellow", 0xFFFFF9C4.toInt()),
-        NamedColor("Light green", 0xFFDCEDC8.toInt()),
-        NamedColor("Light blue", 0xFFBBDEFB.toInt()),
-        NamedColor("Light purple", 0xFFE1BEE7.toInt()),
-        NamedColor("Light pink", 0xFFF8BBD0.toInt()),
-        NamedColor("Red", 0xFFC62828.toInt()),
-        NamedColor("Orange", 0xFFEF6C00.toInt()),
-        NamedColor("Amber", 0xFFFFB300.toInt()),
-        NamedColor("Green", 0xFF2E7D32.toInt()),
-        NamedColor("Teal", 0xFF00796B.toInt()),
-        NamedColor("Blue", 0xFF1565C0.toInt()),
-        NamedColor("Indigo", 0xFF3949AB.toInt()),
-        NamedColor("Purple", 0xFF6A1B9A.toInt()),
-        NamedColor("Pink", 0xFFAD1457.toInt())
+        NamedColor("White", 0xFFFFFFFF.toInt(), R.string.color_white),
+        NamedColor("Light gray", 0xFFE0E0E0.toInt(), R.string.color_light_gray),
+        NamedColor("Gray", 0xFF757575.toInt(), R.string.color_gray),
+        NamedColor("Dark gray", 0xFF303030.toInt(), R.string.color_dark_gray),
+        NamedColor("Black", 0xFF000000.toInt(), R.string.color_black),
+        NamedColor("Light yellow", 0xFFFFF9C4.toInt(), R.string.color_light_yellow),
+        NamedColor("Light green", 0xFFDCEDC8.toInt(), R.string.color_light_green),
+        NamedColor("Light blue", 0xFFBBDEFB.toInt(), R.string.color_light_blue),
+        NamedColor("Light purple", 0xFFE1BEE7.toInt(), R.string.color_light_purple),
+        NamedColor("Light pink", 0xFFF8BBD0.toInt(), R.string.color_light_pink),
+        NamedColor("Red", 0xFFC62828.toInt(), R.string.color_red),
+        NamedColor("Orange", 0xFFEF6C00.toInt(), R.string.color_orange),
+        NamedColor("Amber", 0xFFFFB300.toInt(), R.string.color_amber),
+        NamedColor("Green", 0xFF2E7D32.toInt(), R.string.color_green),
+        NamedColor("Teal", 0xFF00796B.toInt(), R.string.color_teal),
+        NamedColor("Blue", 0xFF1565C0.toInt(), R.string.color_blue),
+        NamedColor("Indigo", 0xFF3949AB.toInt(), R.string.color_indigo),
+        NamedColor("Purple", 0xFF6A1B9A.toInt(), R.string.color_purple),
+        NamedColor("Pink", 0xFFAD1457.toInt(), R.string.color_pink)
     )
 
     const val DARK_CONTENT: Int = 0xFF1C1B1F.toInt()

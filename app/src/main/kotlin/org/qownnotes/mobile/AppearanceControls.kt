@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -85,7 +86,7 @@ internal fun ColorChoice(
             AppearanceColors.palette.forEach { color ->
                 Swatch(
                     color = Color(color.argb),
-                    description = color.name,
+                    description = stringResource(color.label),
                     selected = selected == color.argb,
                     reset = false,
                     testTag = swatchTag(testTag, color),
@@ -163,67 +164,66 @@ internal fun AppAppearanceEditor(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         SwitchRow(
-            label = "Show list header",
+            label = stringResource(R.string.appearance_show_list_header),
             checked = appearance.showListHeader,
             onCheckedChange = { onChange(appearance.copy(showListHeader = it)) },
             testTag = "toggle-list-header"
         )
         Text(
-            "Shows the listed category and the account name below the search bar.",
+            stringResource(R.string.appearance_show_list_header_summary),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         SwitchRow(
-            label = "Show notes as cards",
+            label = stringResource(R.string.appearance_note_cards),
             checked = appearance.noteCards,
             onCheckedChange = { onChange(appearance.copy(noteCards = it)) },
             testTag = "toggle-note-cards"
         )
         Text(
-            "Draws a border around each note with a small gap between notes.",
+            stringResource(R.string.appearance_note_cards_summary),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         ColorChoice(
-            label = "Header color",
+            label = stringResource(R.string.appearance_header_color),
             selected = appearance.headerColor,
             onSelect = { onChange(appearance.copy(headerColor = it)) },
             testTag = "app-header",
-            defaultLabel = "Default header",
+            defaultLabel = stringResource(R.string.appearance_default_header),
             defaultColor = MaterialTheme.colorScheme.surface
         )
         ColorChoice(
-            label = "Note background",
+            label = stringResource(R.string.appearance_note_background),
             selected = appearance.noteBackground,
             onSelect = { onChange(appearance.copy(noteBackground = it)) },
             testTag = "app-note-background",
-            defaultLabel = "Default note background",
+            defaultLabel = stringResource(R.string.appearance_default_note_background),
             defaultColor = MaterialTheme.colorScheme.surface
         )
         SwitchRow(
-            label = "Highlight categories",
+            label = stringResource(R.string.appearance_highlight_categories),
             checked = appearance.highlightCategories,
             onCheckedChange = { onChange(appearance.copy(highlightCategories = it)) },
             testTag = "toggle-highlight-categories"
         )
         Text(
-            "Applies when \"Show category\" is on.",
+            stringResource(R.string.appearance_highlight_categories_summary),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (appearance.highlightCategories) {
             ColorChoice(
-                label = "Category highlight color",
+                label = stringResource(R.string.appearance_category_highlight_color),
                 selected = appearance.categoryHighlight,
                 onSelect = { onChange(appearance.copy(categoryHighlight = it)) },
                 testTag = "app-category-highlight",
-                defaultLabel = "Default category highlight",
+                defaultLabel = stringResource(R.string.appearance_default_category_highlight),
                 defaultColor = MaterialTheme.colorScheme.secondaryContainer
             )
         }
         Text(
-            "Custom colors stay the same in light and dark mode. Text color adjusts " +
-                "automatically for readability.",
+            stringResource(R.string.appearance_custom_colors_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp)
@@ -338,15 +338,18 @@ internal fun WidgetAppearanceEditor(
     Column(modifier = modifier.fillMaxWidth()) {
         WidgetAppearancePreview(appearance, singleNote)
         ColorChoice(
-            label = "Background",
+            label = stringResource(R.string.widget_appearance_background),
             selected = appearance.background,
             onSelect = { onChange(appearance.copy(background = it)) },
             testTag = "widget-background",
-            defaultLabel = "Default background",
+            defaultLabel = stringResource(R.string.widget_appearance_default_background),
             defaultColor = defaultBackground
         )
         Text(
-            "Background opacity: ${appearance.backgroundOpacityPercent}%",
+            stringResource(
+                R.string.widget_appearance_background_opacity,
+                appearance.backgroundOpacityPercent
+            ),
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(top = 8.dp)
         )
@@ -366,36 +369,36 @@ internal fun WidgetAppearanceEditor(
             modifier = Modifier.testTag("widget-opacity")
         )
         ColorChoice(
-            label = "Header",
+            label = stringResource(R.string.widget_appearance_header),
             selected = appearance.header,
             onSelect = { onChange(appearance.copy(header = it)) },
             testTag = "widget-header",
-            defaultLabel = "No header color",
+            defaultLabel = stringResource(R.string.widget_appearance_no_header_color),
             defaultColor = defaultBackground
         )
         if (!singleNote) {
             ColorChoice(
-                label = "Note rows",
+                label = stringResource(R.string.widget_appearance_note_rows),
                 selected = appearance.row,
                 onSelect = { onChange(appearance.copy(row = it)) },
                 testTag = "widget-row",
-                defaultLabel = "Default note rows",
+                defaultLabel = stringResource(R.string.widget_appearance_default_note_rows),
                 defaultColor = defaultRow
             )
         }
         SwitchRow(
-            label = "Frame",
+            label = stringResource(R.string.widget_appearance_frame),
             checked = appearance.frame,
             onCheckedChange = { onChange(appearance.copy(frame = it)) },
             testTag = "widget-frame"
         )
         if (appearance.frame) {
             ColorChoice(
-                label = "Frame color",
+                label = stringResource(R.string.widget_appearance_frame_color),
                 selected = appearance.frameColor,
                 onSelect = { onChange(appearance.copy(frameColor = it)) },
                 testTag = "widget-frame-color",
-                defaultLabel = "Default frame",
+                defaultLabel = stringResource(R.string.widget_appearance_default_frame),
                 defaultColor = defaultFrame
             )
         }
@@ -449,17 +452,28 @@ private fun WidgetAppearancePreview(appearance: WidgetAppearance, singleNote: Bo
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
-                    if (singleNote) "Shopping list" else "Notes",
+                    if (singleNote) {
+                        stringResource(R.string.widget_preview_shopping_list)
+                    } else {
+                        stringResource(R.string.widget_preview_notes)
+                    },
                     color = primary(headerSurface),
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
                 if (!singleNote) {
-                    Text("Personal", color = secondary(headerSurface), fontSize = 12.sp)
+                    Text(
+                        stringResource(R.string.widget_preview_personal),
+                        color = secondary(headerSurface),
+                        fontSize = 12.sp
+                    )
                 }
             }
             if (singleNote) {
-                listOf("- Milk", "- Bread").forEach {
+                listOf(
+                    stringResource(R.string.widget_preview_milk),
+                    stringResource(R.string.widget_preview_bread)
+                ).forEach {
                     Text(
                         it,
                         color = secondary(appearance.background),
@@ -470,26 +484,30 @@ private fun WidgetAppearancePreview(appearance: WidgetAppearance, singleNote: Bo
             } else {
                 val rowColor = appearance.row?.let(::Color)
                     ?: colorResource(R.color.widget_item_background)
-                listOf("Meeting notes" to "Agenda and decisions", "Ideas" to "Weekend project")
-                    .forEach { (title, excerpt) ->
-                        Column(
-                            modifier = Modifier.fillMaxWidth()
-                                .padding(top = 4.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(rowColor)
-                                .padding(10.dp)
-                        ) {
-                            Text(
-                                title,
-                                color = primary(appearance.row),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(excerpt, color = secondary(appearance.row), fontSize = 13.sp)
-                        }
+                listOf(
+                    stringResource(R.string.widget_preview_meeting_notes) to
+                        stringResource(R.string.widget_preview_meeting_notes_excerpt),
+                    stringResource(R.string.widget_preview_ideas) to
+                        stringResource(R.string.widget_preview_ideas_excerpt)
+                ).forEach { (title, excerpt) ->
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(top = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(rowColor)
+                            .padding(10.dp)
+                    ) {
+                        Text(
+                            title,
+                            color = primary(appearance.row),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(excerpt, color = secondary(appearance.row), fontSize = 13.sp)
                     }
+                }
             }
             Box(modifier = Modifier.height(4.dp))
         }

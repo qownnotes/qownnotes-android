@@ -1,6 +1,7 @@
 package org.qownnotes.mobile
 
 import android.content.ContentResolver
+import android.content.res.Resources
 import android.net.Uri
 import android.provider.OpenableColumns
 import java.io.ByteArrayOutputStream
@@ -15,10 +16,15 @@ internal data class SelectedImage(
 
 internal data class ImportedImage(val description: String, val markdownPath: String)
 
-internal class SelectedImageReader(private val contentResolver: ContentResolver) {
+internal class SelectedImageReader(
+    private val contentResolver: ContentResolver,
+    private val resources: Resources
+) {
     suspend fun read(uri: Uri): SelectedImage = withContext(Dispatchers.IO) {
         val mimeType = contentResolver.getType(uri).orEmpty().lowercase()
-        require(mimeType in SUPPORTED_IMAGE_TYPES) { "Choose a JPEG, PNG, or WebP image" }
+        require(mimeType in SUPPORTED_IMAGE_TYPES) {
+            resources.getString(R.string.image_unsupported_type)
+        }
         val metadata = contentResolver.query(
             uri,
             arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
@@ -34,7 +40,7 @@ internal class SelectedImageReader(private val contentResolver: ContentResolver)
             name to size
         }
         require(metadata?.second == null || metadata.second!! <= MAX_IMAGE_BYTES) {
-            "Images must be 5 MB or smaller"
+            resources.getString(R.string.image_too_large)
         }
         val bytes = contentResolver.openInputStream(uri)?.use { input ->
             val output = ByteArrayOutputStream()
@@ -44,12 +50,14 @@ internal class SelectedImageReader(private val contentResolver: ContentResolver)
                 val count = input.read(buffer)
                 if (count < 0) break
                 total += count
-                require(total <= MAX_IMAGE_BYTES) { "Images must be 5 MB or smaller" }
+                require(total <= MAX_IMAGE_BYTES) {
+                    resources.getString(R.string.image_too_large)
+                }
                 output.write(buffer, 0, count)
             }
             output.toByteArray()
-        } ?: error("The selected image could not be opened")
-        require(bytes.isNotEmpty()) { "The selected image is empty" }
+        } ?: error(resources.getString(R.string.image_open_failed))
+        require(bytes.isNotEmpty()) { resources.getString(R.string.image_empty) }
         SelectedImage(
             description = metadata?.first?.substringBeforeLast('.')?.takeIf(String::isNotBlank)
                 ?: "image",

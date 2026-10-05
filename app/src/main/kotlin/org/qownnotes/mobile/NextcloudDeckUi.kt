@@ -42,7 +42,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -88,6 +90,7 @@ internal fun NextcloudDeckCardDialog(
     onCreated: (markdownLink: String) -> Unit
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope { UiDispatcher }
     var boards by remember(accountId) { mutableStateOf<List<DeckBoard>?>(null) }
     var loadError by remember(accountId) { mutableStateOf<String?>(null) }
@@ -121,7 +124,7 @@ internal fun NextcloudDeckCardDialog(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Exception) {
-            loadError = failure.message ?: "Could not load Deck boards"
+            loadError = failure.message ?: resources.getString(R.string.deck_load_boards_failed)
         }
     }
 
@@ -135,7 +138,7 @@ internal fun NextcloudDeckCardDialog(
 
     AlertDialog(
         onDismissRequest = { if (!creating) onDismiss() },
-        title = { Text("New Deck card") },
+        title = { Text(stringResource(R.string.deck_new_card_title)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -144,12 +147,19 @@ internal fun NextcloudDeckCardDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = { Text(stringResource(R.string.deck_card_title_label)) },
                     singleLine = true,
                     enabled = !creating,
                     isError = title.isNotEmpty() && !titleValid,
                     supportingText = if (title.length > NextcloudDeck.MAX_CARD_TITLE_LENGTH) {
-                        { Text("Use at most ${NextcloudDeck.MAX_CARD_TITLE_LENGTH} characters") }
+                        {
+                            Text(
+                                stringResource(
+                                    R.string.deck_card_title_too_long,
+                                    NextcloudDeck.MAX_CARD_TITLE_LENGTH
+                                )
+                            )
+                        }
                     } else {
                         null
                     },
@@ -161,7 +171,7 @@ internal fun NextcloudDeckCardDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") },
+                    label = { Text(stringResource(R.string.deck_card_description_label)) },
                     minLines = 2,
                     maxLines = 6,
                     enabled = !creating,
@@ -180,17 +190,20 @@ internal fun NextcloudDeckCardDialog(
                         TextButton(
                             onClick = { loadRequest++ },
                             modifier = Modifier.testTag("retry-deck-boards")
-                        ) { Text("Retry") }
+                        ) { Text(stringResource(R.string.ui_retry)) }
                     }
                     boards == null -> CircularProgressIndicator(
                         modifier = Modifier.testTag("deck-boards-loading")
                     )
                     options.isEmpty() -> Text(
-                        "Create a board with a list in Nextcloud Deck first.",
+                        stringResource(R.string.deck_no_lists),
                         modifier = Modifier.testTag("deck-no-lists")
                     )
                     else -> Column {
-                        Text("Board and list", style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            stringResource(R.string.deck_board_and_list),
+                            style = MaterialTheme.typography.labelLarge
+                        )
                         Box {
                             OutlinedButton(
                                 onClick = { choosingTarget = true },
@@ -198,7 +211,7 @@ internal fun NextcloudDeckCardDialog(
                                 modifier = Modifier.fillMaxWidth().testTag("deck-card-target")
                             ) {
                                 Text(
-                                    selected?.label ?: "Choose a list",
+                                    selected?.label ?: stringResource(R.string.deck_choose_list),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f)
@@ -239,7 +252,7 @@ internal fun NextcloudDeckCardDialog(
                         .testTag("deck-card-due-toggle")
                 ) {
                     Checkbox(checked = hasDueDate, onCheckedChange = null, enabled = !creating)
-                    Text("Due date")
+                    Text(stringResource(R.string.deck_due_date))
                 }
                 if (hasDueDate) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -297,21 +310,28 @@ internal fun NextcloudDeckCardDialog(
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (failure: Exception) {
-                            createError = failure.message ?: "Could not create the Deck card"
+                            createError = failure.message
+                                ?: resources.getString(R.string.deck_create_card_failed)
                             creating = false
                         }
                     }
                 },
                 enabled = titleValid && selected != null && !creating,
                 modifier = Modifier.testTag("create-deck-card")
-            ) { Text(if (creating) "Creating" else "Create and link") }
+            ) {
+                Text(
+                    stringResource(
+                        if (creating) R.string.deck_creating else R.string.deck_create_and_link
+                    )
+                )
+            }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
                 enabled = !creating,
                 modifier = Modifier.testTag("cancel-deck-card")
-            ) { Text("Cancel") }
+            ) { Text(stringResource(R.string.ui_cancel)) }
         },
         modifier = Modifier.testTag("deck-card-dialog")
     )
@@ -335,10 +355,12 @@ internal fun NextcloudDeckCardDialog(
                         choosingDate = false
                     },
                     modifier = Modifier.testTag("confirm-deck-due-date")
-                ) { Text("OK") }
+                ) { Text(stringResource(R.string.ui_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { choosingDate = false }) { Text("Cancel") }
+                TextButton(onClick = { choosingDate = false }) {
+                    Text(stringResource(R.string.ui_cancel))
+                }
             }
         ) {
             DatePicker(state = pickerState)
@@ -364,10 +386,12 @@ internal fun NextcloudDeckCardDialog(
                         choosingTime = false
                     },
                     modifier = Modifier.testTag("confirm-deck-due-time")
-                ) { Text("OK") }
+                ) { Text(stringResource(R.string.ui_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { choosingTime = false }) { Text("Cancel") }
+                TextButton(onClick = { choosingTime = false }) {
+                    Text(stringResource(R.string.ui_cancel))
+                }
             }
         )
     }
