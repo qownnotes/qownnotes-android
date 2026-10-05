@@ -140,6 +140,22 @@ class NoteExcerptTest {
     }
 
     @Test
+    fun blockMarkersAreOnlyStrippedAtTheStartOfALine() {
+        assertEquals("Milk and bread", NoteExcerpt.of("**Milk** and bread"))
+        assertEquals("Milk and bread", NoteExcerpt.of("- **Milk** and bread"))
+        assertEquals("a - b + c", NoteExcerpt.of("a - b + c"))
+        assertEquals("C# rocks", NoteExcerpt.of("C# rocks"))
+        assertEquals("Version 2. ships", NoteExcerpt.of("Version 2. ships"))
+        assertEquals("see - [x] here", NoteExcerpt.of("see - [x] here"))
+        assertEquals("wait --- what", NoteExcerpt.of("wait --- what"))
+    }
+
+    @Test
+    fun indentedListMarkersStripped() {
+        assertEquals("Parent\nChild\nStep", NoteExcerpt.of("- Parent\n  - Child\n    1. Step"))
+    }
+
+    @Test
     fun mixedMarkdownStrippedCleanly() {
         val content = """
             # Meeting Notes

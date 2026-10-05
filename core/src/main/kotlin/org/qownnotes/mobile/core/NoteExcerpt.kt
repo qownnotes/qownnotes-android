@@ -3,10 +3,12 @@ package org.qownnotes.mobile.core
 object NoteExcerpt {
     private const val MAX_LENGTH = 100
 
-    private val HEADING = Regex("""#{1,6}\s+""")
-    private val TASK_LIST = Regex("""[-*+]\s+\[[ x]\]\s+""")
-    private val UNORDERED_LIST = Regex("""[-*+]\s+""")
-    private val ORDERED_LIST = Regex("""\d+\.\s+""")
+    // Block markers only count at the start of a line, optionally indented, so text such as
+    // "C# rocks" or "a - b" keeps its characters.
+    private val HEADING = Regex("""^[ \t]*#{1,6}[ \t]+""", RegexOption.MULTILINE)
+    private val TASK_LIST = Regex("""^[ \t]*[-*+][ \t]+\[[ xX]\][ \t]+""", RegexOption.MULTILINE)
+    private val UNORDERED_LIST = Regex("""^[ \t]*[-*+][ \t]+""", RegexOption.MULTILINE)
+    private val ORDERED_LIST = Regex("""^[ \t]*\d+\.[ \t]+""", RegexOption.MULTILINE)
     private val INLINE_CODE = Regex("""`([^`]+)`""")
     private val FENCED_CODE = Regex("""```[\s\S]*?```""")
     private val LINK = Regex("""\[([^\]]*)\]\([^)]*\)""")
@@ -14,7 +16,7 @@ object NoteExcerpt {
     private val BOLD_ITALIC = Regex("""\*{1,3}([^*]+)\*{1,3}""")
     private val STRIKETHROUGH = Regex("""~~([^~]+)~~""")
     private val BLOCKQUOTE = Regex("""^>{1,}\s+""", RegexOption.MULTILINE)
-    private val HORIZONTAL_RULE = Regex("""-{3,}""")
+    private val HORIZONTAL_RULE = Regex("""^[ \t]*-{3,}[ \t]*$""", RegexOption.MULTILINE)
     private val BLANK_LINES = Regex("""\n{2,}""")
     private val EXTRA_SPACES = Regex("""[^\S\n]+""")
     private val NEWLINES_AROUND_SPACES = Regex("""\n +\n""")

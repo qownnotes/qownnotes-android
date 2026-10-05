@@ -18,6 +18,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Note-list widget previews now show plain text like the app list, without Markdown syntax and
   without repeating the note title.
+- Note previews no longer drop characters that only look like Markdown markers in the middle of
+  a line, such as `**Milk** and bread` showing as "Milkand bread" or `C# rocks` as "Crocks".
 
 ## [1.1.0] - 2026-10-04
 
