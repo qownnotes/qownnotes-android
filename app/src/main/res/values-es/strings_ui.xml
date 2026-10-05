@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette colors -->
+    <string name="color_white">Blanco</string>
+    <string name="color_light_gray">Gris claro</string>
+    <string name="color_gray">Gris</string>
+    <string name="color_dark_gray">Gris oscuro</string>
+    <string name="color_black">Negro</string>
+    <string name="color_light_yellow">Amarillo claro</string>
+    <string name="color_light_green">Verde claro</string>
+    <string name="color_light_blue">Azul claro</string>
+    <string name="color_light_purple">Morado claro</string>
+    <string name="color_light_pink">Rosa claro</string>
+    <string name="color_red">Rojo</string>
+    <string name="color_orange">Naranja</string>
+    <string name="color_amber">Ámbar</string>
+    <string name="color_green">Verde</string>
+    <string name="color_teal">Verde azulado</string>
+    <string name="color_blue">Azul</string>
+    <string name="color_indigo">Índigo</string>
+    <string name="color_purple">Morado</string>
+    <string name="color_pink">Rosa</string>
+
+    <!-- App appearance -->
+    <string name="appearance_show_list_header">Mostrar cabecera de la lista</string>
+    <string name="appearance_show_list_header_summary">Muestra la categoría listada y el nombre de la cuenta debajo de la barra de búsqueda.</string>
+    <string name="appearance_note_cards">Mostrar notas como tarjetas</string>
+    <string name="appearance_note_cards_summary">Dibuja un borde alrededor de cada nota con un pequeño espacio entre notas.</string>
+    <string name="appearance_header_color">Color de la cabecera</string>
+    <string name="appearance_default_header">Cabecera predeterminada</string>
+    <string name="appearance_note_background">Fondo de las notas</string>
+    <string name="appearance_default_note_background">Fondo de notas predeterminado</string>
+    <string name="appearance_highlight_categories">Resaltar categorías</string>
+    <string name="appearance_highlight_categories_summary">Se aplica cuando «Mostrar categoría» está activado.</string>
+    <string name="appearance_category_highlight_color">Color de resaltado de categorías</string>
+    <string name="appearance_default_category_highlight">Resaltado de categorías predeterminado</string>
+    <string name="appearance_custom_colors_hint">Los colores personalizados no cambian entre el modo claro y el oscuro. El color del texto se ajusta automáticamente para facilitar la lectura.</string>
+
+    <!-- Widget appearance -->
+    <string name="widget_appearance_background">Fondo</string>
+    <string name="widget_appearance_default_background">Fondo predeterminado</string>
+    <string name="widget_appearance_background_opacity">Opacidad del fondo: %1$d%%</string>
+    <string name="widget_appearance_header">Cabecera</string>
+    <string name="widget_appearance_no_header_color">Sin color de cabecera</string>
+    <string name="widget_appearance_note_rows">Filas de notas</string>
+    <string name="widget_appearance_default_note_rows">Filas de notas predeterminadas</string>
+    <string name="widget_appearance_frame">Marco</string>
+    <string name="widget_appearance_frame_color">Color del marco</string>
+    <string name="widget_appearance_default_frame">Marco predeterminado</string>
+    <string name="widget_preview_shopping_list">Lista de la compra</string>
+    <string name="widget_preview_notes">Notas</string>
+    <string name="widget_preview_personal">Personal</string>
+    <string name="widget_preview_milk">- Leche</string>
+    <string name="widget_preview_bread">- Pan</string>
+    <string name="widget_preview_meeting_notes">Notas de la reunión</string>
+    <string name="widget_preview_meeting_notes_excerpt">Orden del día y decisiones</string>
+    <string name="widget_preview_ideas">Ideas</string>
+    <string name="widget_preview_ideas_excerpt">Proyecto de fin de semana</string>
+
+    <!-- Generic -->
+    <string name="ui_cancel">Cancelar</string>
+    <string name="ui_ok">Aceptar</string>
+    <string name="ui_retry">Reintentar</string>
+    <string name="ui_done">Hecho</string>
+    <string name="ui_clear">Borrar</string>
+    <string name="ui_back">Atrás</string>
+    <string name="ui_clear_search">Borrar búsqueda</string>
+
+    <!-- Nextcloud Deck -->
+    <string name="deck_load_boards_failed">No se han podido cargar los tableros de Deck</string>
+    <string name="deck_new_card_title">Nueva tarjeta de Deck</string>
+    <string name="deck_card_title_label">Título</string>
+    <string name="deck_card_title_too_long">Usa como máximo %1$d caracteres</string>
+    <string name="deck_card_description_label">Descripción</string>
+    <string name="deck_no_lists">Primero crea un tablero con una lista en Nextcloud Deck.</string>
+    <string name="deck_board_and_list">Tablero y lista</string>
+    <string name="deck_choose_list">Elige una lista</string>
+    <string name="deck_due_date">Fecha de vencimiento</string>
+    <string name="deck_create_card_failed">No se ha podido crear la tarjeta de Deck</string>
+    <string name="deck_creating">Creando</string>
+    <string name="deck_create_and_link">Crear y enlazar</string>
+
+    <!-- Note tags -->
+    <string name="tags_filter_all">Etiquetas: todas</string>
+    <string name="tags_filter_selected">Etiquetas: %1$s</string>
+    <string name="tags_filter_title">Filtrar por etiquetas</string>
+    <string name="tags_filter_no_tags">notes.sqlite aún no tiene etiquetas.</string>
+    <string name="tags_title">Etiquetas</string>
+    <string name="tags_search">Buscar etiquetas</string>
+    <string name="tags_after_next_sync">Las etiquetas aparecerán tras la próxima sincronización.</string>
+    <string name="tags_unavailable">Las etiquetas no están disponibles para esta cuenta.</string>
+    <string name="tags_read_only">notes.sqlite se escribió con una versión más reciente de QOwnNotes, por lo que las etiquetas son de solo lectura.</string>
+    <string name="tags_none">Aún no hay etiquetas.</string>
+    <string name="tags_no_matches">No hay etiquetas coincidentes.</string>
+    <string name="tags_new_tag">Nueva etiqueta</string>
+    <string name="tags_add_tag">Añadir etiqueta</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">Marcadores</string>
+    <string name="bookmarks_open_source">Abrir nota de marcadores</string>
+    <string name="bookmarks_search">Buscar marcadores</string>
+    <string name="bookmarks_loading">Cargando marcadores...</string>
+    <string name="bookmarks_invalid_path">La ruta de marcadores no es válida. Elige una ruta Markdown relativa en Ajustes.</string>
+    <string name="bookmarks_source_missing">No se ha encontrado la nota de origen de los marcadores.</string>
+    <string name="bookmarks_encrypted">Las notas de marcadores cifradas no se pueden mostrar.</string>
+    <string name="bookmarks_none">No se han encontrado marcadores en esta nota.</string>
+    <string name="bookmarks_no_matches">No hay marcadores coincidentes.</string>
+
+    <!-- Images -->
+    <string name="image_unsupported_type">Elige una imagen JPEG, PNG o WebP</string>
+    <string name="image_too_large">Las imágenes deben ocupar 5 MB o menos</string>
+    <string name="image_open_failed">No se ha podido abrir la imagen seleccionada</string>
+    <string name="image_empty">La imagen seleccionada está vacía</string>
+    <string name="capture_image_add_failed">No se ha podido añadir la imagen capturada a la nota</string>
+
+    <!-- Account, note settings, and backend errors -->
+    <string name="account_reconnect_different_account">Selecciona la misma cuenta de Nextcloud para volver a conectar</string>
+    <string name="account_identity_in_use">Otra cuenta de Nextcloud ya usa esta identidad local</string>
+    <string name="account_no_longer_configured">La cuenta de Nextcloud ya no está configurada en QOwnNotes Mobile</string>
+    <string name="account_import_failed">Error al importar la cuenta</string>
+    <string name="sync_failed">Error de sincronización</string>
+    <string name="note_read_only_error">Esta nota es de solo lectura</string>
+    <string name="note_settings_folder_empty">La carpeta de notas no puede estar vacía</string>
+    <string name="note_settings_invalid_extension">Introduce una extensión de archivo válida</string>
+    <string name="note_settings_unsynchronized_notes">Resuelve las notas no sincronizadas antes de cambiar la carpeta de notas</string>
+    <string name="deck_card_title_invalid">Los títulos de las tarjetas deben tener entre 1 y %1$d caracteres</string>
+    <string name="backend_no_archive">El backend de esta cuenta no ofrece versiones de notas ni papelera remota</string>
+    <string name="backend_no_note_settings">El backend de esta cuenta no ofrece ajustes de carpeta de notas</string>
+    <string name="backend_no_image_uploads">El backend de esta cuenta no admite la subida de imágenes</string>
+    <string name="backend_no_deck">El backend de esta cuenta no admite Nextcloud Deck</string>
+</resources>

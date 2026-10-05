@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette colors -->
+    <string name="color_white">Weiß</string>
+    <string name="color_light_gray">Hellgrau</string>
+    <string name="color_gray">Grau</string>
+    <string name="color_dark_gray">Dunkelgrau</string>
+    <string name="color_black">Schwarz</string>
+    <string name="color_light_yellow">Hellgelb</string>
+    <string name="color_light_green">Hellgrün</string>
+    <string name="color_light_blue">Hellblau</string>
+    <string name="color_light_purple">Helllila</string>
+    <string name="color_light_pink">Hellrosa</string>
+    <string name="color_red">Rot</string>
+    <string name="color_orange">Orange</string>
+    <string name="color_amber">Bernstein</string>
+    <string name="color_green">Grün</string>
+    <string name="color_teal">Blaugrün</string>
+    <string name="color_blue">Blau</string>
+    <string name="color_indigo">Indigo</string>
+    <string name="color_purple">Lila</string>
+    <string name="color_pink">Rosa</string>
+
+    <!-- App appearance -->
+    <string name="appearance_show_list_header">Listenkopf anzeigen</string>
+    <string name="appearance_show_list_header_summary">Zeigt die angezeigte Kategorie und den Kontonamen unter der Suchleiste.</string>
+    <string name="appearance_note_cards">Notizen als Karten anzeigen</string>
+    <string name="appearance_note_cards_summary">Zeichnet einen Rahmen um jede Notiz mit einem kleinen Abstand zwischen den Notizen.</string>
+    <string name="appearance_header_color">Kopfzeilenfarbe</string>
+    <string name="appearance_default_header">Standard-Kopfzeile</string>
+    <string name="appearance_note_background">Notizhintergrund</string>
+    <string name="appearance_default_note_background">Standard-Notizhintergrund</string>
+    <string name="appearance_highlight_categories">Kategorien hervorheben</string>
+    <string name="appearance_highlight_categories_summary">Gilt, wenn „Kategorie anzeigen“ aktiviert ist.</string>
+    <string name="appearance_category_highlight_color">Hervorhebungsfarbe für Kategorien</string>
+    <string name="appearance_default_category_highlight">Standard-Kategoriehervorhebung</string>
+    <string name="appearance_custom_colors_hint">Eigene Farben bleiben im hellen und dunklen Modus gleich. Die Textfarbe passt sich für bessere Lesbarkeit automatisch an.</string>
+
+    <!-- Widget appearance -->
+    <string name="widget_appearance_background">Hintergrund</string>
+    <string name="widget_appearance_default_background">Standardhintergrund</string>
+    <string name="widget_appearance_background_opacity">Hintergrunddeckkraft: %1$d %%</string>
+    <string name="widget_appearance_header">Kopfzeile</string>
+    <string name="widget_appearance_no_header_color">Keine Kopfzeilenfarbe</string>
+    <string name="widget_appearance_note_rows">Notizzeilen</string>
+    <string name="widget_appearance_default_note_rows">Standard-Notizzeilen</string>
+    <string name="widget_appearance_frame">Rahmen</string>
+    <string name="widget_appearance_frame_color">Rahmenfarbe</string>
+    <string name="widget_appearance_default_frame">Standardrahmen</string>
+    <string name="widget_preview_shopping_list">Einkaufsliste</string>
+    <string name="widget_preview_notes">Notizen</string>
+    <string name="widget_preview_personal">Privat</string>
+    <string name="widget_preview_milk">- Milch</string>
+    <string name="widget_preview_bread">- Brot</string>
+    <string name="widget_preview_meeting_notes">Besprechungsnotizen</string>
+    <string name="widget_preview_meeting_notes_excerpt">Tagesordnung und Beschlüsse</string>
+    <string name="widget_preview_ideas">Ideen</string>
+    <string name="widget_preview_ideas_excerpt">Wochenendprojekt</string>
+
+    <!-- Generic -->
+    <string name="ui_cancel">Abbrechen</string>
+    <string name="ui_ok">OK</string>
+    <string name="ui_retry">Wiederholen</string>
+    <string name="ui_done">Fertig</string>
+    <string name="ui_clear">Leeren</string>
+    <string name="ui_back">Zurück</string>
+    <string name="ui_clear_search">Suche leeren</string>
+
+    <!-- Nextcloud Deck -->
+    <string name="deck_load_boards_failed">Deck-Boards konnten nicht geladen werden</string>
+    <string name="deck_new_card_title">Neue Deck-Karte</string>
+    <string name="deck_card_title_label">Titel</string>
+    <string name="deck_card_title_too_long">Höchstens %1$d Zeichen verwenden</string>
+    <string name="deck_card_description_label">Beschreibung</string>
+    <string name="deck_no_lists">Erstelle zuerst ein Board mit einer Liste in Nextcloud Deck.</string>
+    <string name="deck_board_and_list">Board und Liste</string>
+    <string name="deck_choose_list">Liste auswählen</string>
+    <string name="deck_due_date">Fälligkeitsdatum</string>
+    <string name="deck_create_card_failed">Die Deck-Karte konnte nicht erstellt werden</string>
+    <string name="deck_creating">Wird erstellt</string>
+    <string name="deck_create_and_link">Erstellen und verlinken</string>
+
+    <!-- Note tags -->
+    <string name="tags_filter_all">Tags: Alle</string>
+    <string name="tags_filter_selected">Tags: %1$s</string>
+    <string name="tags_filter_title">Nach Tags filtern</string>
+    <string name="tags_filter_no_tags">notes.sqlite enthält noch keine Tags.</string>
+    <string name="tags_title">Tags</string>
+    <string name="tags_search">Tags durchsuchen</string>
+    <string name="tags_after_next_sync">Tags erscheinen nach der nächsten Synchronisierung.</string>
+    <string name="tags_unavailable">Für dieses Konto sind keine Tags verfügbar.</string>
+    <string name="tags_read_only">notes.sqlite wurde von einer neueren QOwnNotes-Version geschrieben, daher sind Tags schreibgeschützt.</string>
+    <string name="tags_none">Noch keine Tags.</string>
+    <string name="tags_no_matches">Keine passenden Tags.</string>
+    <string name="tags_new_tag">Neuer Tag</string>
+    <string name="tags_add_tag">Tag hinzufügen</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">Lesezeichen</string>
+    <string name="bookmarks_open_source">Lesezeichen-Notiz öffnen</string>
+    <string name="bookmarks_search">Lesezeichen durchsuchen</string>
+    <string name="bookmarks_loading">Lesezeichen werden geladen …</string>
+    <string name="bookmarks_invalid_path">Der Lesezeichen-Pfad ist ungültig. Wähle in den Einstellungen einen relativen Markdown-Pfad.</string>
+    <string name="bookmarks_source_missing">Die Lesezeichen-Notiz wurde nicht gefunden.</string>
+    <string name="bookmarks_encrypted">Verschlüsselte Lesezeichen-Notizen können nicht angezeigt werden.</string>
+    <string name="bookmarks_none">In dieser Notiz wurden keine Lesezeichen gefunden.</string>
+    <string name="bookmarks_no_matches">Keine passenden Lesezeichen.</string>
+
+    <!-- Images -->
+    <string name="image_unsupported_type">Wähle ein JPEG-, PNG- oder WebP-Bild</string>
+    <string name="image_too_large">Bilder dürfen höchstens 5 MB groß sein</string>
+    <string name="image_open_failed">Das ausgewählte Bild konnte nicht geöffnet werden</string>
+    <string name="image_empty">Das ausgewählte Bild ist leer</string>
+    <string name="capture_image_add_failed">Das aufgenommene Bild konnte nicht zur Notiz hinzugefügt werden</string>
+
+    <!-- Account, note settings, and backend errors -->
+    <string name="account_reconnect_different_account">Wähle dasselbe Nextcloud-Konto, um neu zu verbinden</string>
+    <string name="account_identity_in_use">Ein anderes Nextcloud-Konto verwendet bereits diese lokale Identität</string>
+    <string name="account_no_longer_configured">Das Nextcloud-Konto ist in QOwnNotes Mobile nicht mehr eingerichtet</string>
+    <string name="account_import_failed">Kontoimport fehlgeschlagen</string>
+    <string name="sync_failed">Synchronisierung fehlgeschlagen</string>
+    <string name="note_read_only_error">Diese Notiz ist schreibgeschützt</string>
+    <string name="note_settings_folder_empty">Der Notizordner darf nicht leer sein</string>
+    <string name="note_settings_invalid_extension">Gib eine gültige Dateiendung ein</string>
+    <string name="note_settings_unsynchronized_notes">Löse nicht synchronisierte Notizen auf, bevor du den Notizordner änderst</string>
+    <string name="deck_card_title_invalid">Kartentitel müssen 1 bis %1$d Zeichen lang sein</string>
+    <string name="backend_no_archive">Das Backend dieses Kontos bietet keine Notizversionen oder Server-Papierkorb</string>
+    <string name="backend_no_note_settings">Das Backend dieses Kontos bietet keine Notizordner-Einstellungen</string>
+    <string name="backend_no_image_uploads">Das Backend dieses Kontos unterstützt keine Bild-Uploads</string>
+    <string name="backend_no_deck">Das Backend dieses Kontos unterstützt Nextcloud Deck nicht</string>
+</resources>

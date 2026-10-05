@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="encrypted_content_locked">Verschlüsselter Inhalt ist auf diesem Gerät gesperrt.</string>
+    <string name="paste_as_markdown_link">Als Markdown-Link einfügen</string>
+    <string name="paste_markdown_link_failed">Der Seitentitel konnte nicht abgerufen werden</string>
+</resources>

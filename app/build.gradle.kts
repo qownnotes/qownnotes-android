@@ -75,6 +75,9 @@ android {
         buildConfig = true
         resValues = true
     }
+    androidResources {
+        generateLocaleConfig = true
+    }
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false

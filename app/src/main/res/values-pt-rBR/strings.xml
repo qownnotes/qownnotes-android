@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_note_list">Lista de notas</string>
+    <string name="widget_note_list_description">Veja as notas e crie uma nota rapidamente</string>
+    <string name="widget_single_note">Nota única</string>
+    <string name="widget_single_note_description">Exibe uma nota na tela inicial</string>
+    <string name="widget_choose_account">Escolha uma conta</string>
+    <string name="widget_choose_note">Escolha uma nota</string>
+    <string name="widget_no_accounts">Adicione uma conta no QOwnNotes antes de configurar um widget.</string>
+    <string name="widget_choose_category">Escolha quais notas mostrar</string>
+    <string name="widget_customize_appearance">Aparência</string>
+    <string name="widget_reset_appearance">Redefinir</string>
+    <string name="widget_save">Salvar</string>
+    <string name="widget_all_notes">Notas</string>
+    <string name="widget_all_categories">Todas as categorias</string>
+    <string name="widget_uncategorized">Sem categoria</string>
+    <string name="widget_no_notes">Nenhuma nota</string>
+    <string name="widget_note_unavailable">Nota indisponível</string>
+    <string name="widget_create_note">Criar nota</string>
+    <string name="widget_take_picture">Tirar foto como nota</string>
+    <string name="widget_picture_failed">Não foi possível criar uma nota a partir da foto</string>
+    <string name="widget_camera_unavailable">Nenhum aplicativo de câmera disponível</string>
+    <string name="note_label">Nota</string>
+    <string name="share_to_new_note">Nova nota</string>
+</resources>

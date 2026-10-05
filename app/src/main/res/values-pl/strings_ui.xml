@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette colors -->
+    <string name="color_white">Biały</string>
+    <string name="color_light_gray">Jasnoszary</string>
+    <string name="color_gray">Szary</string>
+    <string name="color_dark_gray">Ciemnoszary</string>
+    <string name="color_black">Czarny</string>
+    <string name="color_light_yellow">Jasnożółty</string>
+    <string name="color_light_green">Jasnozielony</string>
+    <string name="color_light_blue">Jasnoniebieski</string>
+    <string name="color_light_purple">Jasnofioletowy</string>
+    <string name="color_light_pink">Jasnoróżowy</string>
+    <string name="color_red">Czerwony</string>
+    <string name="color_orange">Pomarańczowy</string>
+    <string name="color_amber">Bursztynowy</string>
+    <string name="color_green">Zielony</string>
+    <string name="color_teal">Morski</string>
+    <string name="color_blue">Niebieski</string>
+    <string name="color_indigo">Indygo</string>
+    <string name="color_purple">Fioletowy</string>
+    <string name="color_pink">Różowy</string>
+
+    <!-- App appearance -->
+    <string name="appearance_show_list_header">Pokaż nagłówek listy</string>
+    <string name="appearance_show_list_header_summary">Pokazuje wyświetlaną kategorię i nazwę konta pod paskiem wyszukiwania.</string>
+    <string name="appearance_note_cards">Pokaż notatki jako karty</string>
+    <string name="appearance_note_cards_summary">Rysuje obramowanie wokół każdej notatki z niewielkim odstępem między notatkami.</string>
+    <string name="appearance_header_color">Kolor nagłówka</string>
+    <string name="appearance_default_header">Domyślny nagłówek</string>
+    <string name="appearance_note_background">Tło notatki</string>
+    <string name="appearance_default_note_background">Domyślne tło notatki</string>
+    <string name="appearance_highlight_categories">Wyróżniaj kategorie</string>
+    <string name="appearance_highlight_categories_summary">Działa, gdy włączona jest opcja „Pokaż kategorię”.</string>
+    <string name="appearance_category_highlight_color">Kolor wyróżnienia kategorii</string>
+    <string name="appearance_default_category_highlight">Domyślne wyróżnienie kategorii</string>
+    <string name="appearance_custom_colors_hint">Własne kolory są takie same w trybie jasnym i ciemnym. Kolor tekstu dopasowuje się automatycznie dla lepszej czytelności.</string>
+
+    <!-- Widget appearance -->
+    <string name="widget_appearance_background">Tło</string>
+    <string name="widget_appearance_default_background">Domyślne tło</string>
+    <string name="widget_appearance_background_opacity">Nieprzezroczystość tła: %1$d%%</string>
+    <string name="widget_appearance_header">Nagłówek</string>
+    <string name="widget_appearance_no_header_color">Bez koloru nagłówka</string>
+    <string name="widget_appearance_note_rows">Wiersze notatek</string>
+    <string name="widget_appearance_default_note_rows">Domyślne wiersze notatek</string>
+    <string name="widget_appearance_frame">Ramka</string>
+    <string name="widget_appearance_frame_color">Kolor ramki</string>
+    <string name="widget_appearance_default_frame">Domyślna ramka</string>
+    <string name="widget_preview_shopping_list">Lista zakupów</string>
+    <string name="widget_preview_notes">Notatki</string>
+    <string name="widget_preview_personal">Prywatne</string>
+    <string name="widget_preview_milk">- Mleko</string>
+    <string name="widget_preview_bread">- Chleb</string>
+    <string name="widget_preview_meeting_notes">Notatki ze spotkania</string>
+    <string name="widget_preview_meeting_notes_excerpt">Agenda i decyzje</string>
+    <string name="widget_preview_ideas">Pomysły</string>
+    <string name="widget_preview_ideas_excerpt">Projekt na weekend</string>
+
+    <!-- Generic -->
+    <string name="ui_cancel">Anuluj</string>
+    <string name="ui_ok">OK</string>
+    <string name="ui_retry">Ponów</string>
+    <string name="ui_done">Gotowe</string>
+    <string name="ui_clear">Wyczyść</string>
+    <string name="ui_back">Wstecz</string>
+    <string name="ui_clear_search">Wyczyść wyszukiwanie</string>
+
+    <!-- Nextcloud Deck -->
+    <string name="deck_load_boards_failed">Nie udało się wczytać tablic Deck</string>
+    <string name="deck_new_card_title">Nowa karta Deck</string>
+    <string name="deck_card_title_label">Tytuł</string>
+    <string name="deck_card_title_too_long">Użyj maksymalnie %1$d znaków</string>
+    <string name="deck_card_description_label">Opis</string>
+    <string name="deck_no_lists">Najpierw utwórz w Nextcloud Deck tablicę z listą.</string>
+    <string name="deck_board_and_list">Tablica i lista</string>
+    <string name="deck_choose_list">Wybierz listę</string>
+    <string name="deck_due_date">Termin</string>
+    <string name="deck_create_card_failed">Nie udało się utworzyć karty Deck</string>
+    <string name="deck_creating">Tworzenie</string>
+    <string name="deck_create_and_link">Utwórz i połącz</string>
+
+    <!-- Note tags -->
+    <string name="tags_filter_all">Tagi: wszystkie</string>
+    <string name="tags_filter_selected">Tagi: %1$s</string>
+    <string name="tags_filter_title">Filtruj według tagów</string>
+    <string name="tags_filter_no_tags">notes.sqlite nie zawiera jeszcze tagów.</string>
+    <string name="tags_title">Tagi</string>
+    <string name="tags_search">Szukaj tagów</string>
+    <string name="tags_after_next_sync">Tagi pojawią się po następnej synchronizacji.</string>
+    <string name="tags_unavailable">Tagi nie są dostępne dla tego konta.</string>
+    <string name="tags_read_only">Plik notes.sqlite został zapisany przez nowszą wersję QOwnNotes, więc tagi są tylko do odczytu.</string>
+    <string name="tags_none">Brak tagów.</string>
+    <string name="tags_no_matches">Brak pasujących tagów.</string>
+    <string name="tags_new_tag">Nowy tag</string>
+    <string name="tags_add_tag">Dodaj tag</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">Zakładki</string>
+    <string name="bookmarks_open_source">Otwórz notatkę z zakładkami</string>
+    <string name="bookmarks_search">Szukaj zakładek</string>
+    <string name="bookmarks_loading">Wczytywanie zakładek…</string>
+    <string name="bookmarks_invalid_path">Ścieżka zakładek jest nieprawidłowa. Wybierz względną ścieżkę Markdown w Ustawieniach.</string>
+    <string name="bookmarks_source_missing">Nie znaleziono notatki z zakładkami.</string>
+    <string name="bookmarks_encrypted">Nie można wyświetlić zaszyfrowanych notatek z zakładkami.</string>
+    <string name="bookmarks_none">W tej notatce nie znaleziono zakładek.</string>
+    <string name="bookmarks_no_matches">Brak pasujących zakładek.</string>
+
+    <!-- Images -->
+    <string name="image_unsupported_type">Wybierz obraz JPEG, PNG lub WebP</string>
+    <string name="image_too_large">Obrazy mogą mieć maksymalnie 5 MB</string>
+    <string name="image_open_failed">Nie można otworzyć wybranego obrazu</string>
+    <string name="image_empty">Wybrany obraz jest pusty</string>
+    <string name="capture_image_add_failed">Nie udało się dodać zrobionego zdjęcia do notatki</string>
+
+    <!-- Account, note settings, and backend errors -->
+    <string name="account_reconnect_different_account">Wybierz to samo konto Nextcloud, aby połączyć ponownie</string>
+    <string name="account_identity_in_use">Inne konto Nextcloud używa już tej lokalnej tożsamości</string>
+    <string name="account_no_longer_configured">Konto Nextcloud nie jest już skonfigurowane w QOwnNotes Mobile</string>
+    <string name="account_import_failed">Import konta nie powiódł się</string>
+    <string name="sync_failed">Synchronizacja nie powiodła się</string>
+    <string name="note_read_only_error">Ta notatka jest tylko do odczytu</string>
+    <string name="note_settings_folder_empty">Folder notatek nie może być pusty</string>
+    <string name="note_settings_invalid_extension">Wpisz prawidłowe rozszerzenie pliku</string>
+    <string name="note_settings_unsynchronized_notes">Przed zmianą folderu notatek rozwiąż problem z niezsynchronizowanymi notatkami</string>
+    <string name="deck_card_title_invalid">Tytuł karty musi mieć od 1 do %1$d znaków</string>
+    <string name="backend_no_archive">Backend tego konta nie udostępnia wersji notatek ani zdalnego kosza</string>
+    <string name="backend_no_note_settings">Backend tego konta nie udostępnia ustawień folderu notatek</string>
+    <string name="backend_no_image_uploads">Backend tego konta nie obsługuje przesyłania obrazów</string>
+    <string name="backend_no_deck">Backend tego konta nie obsługuje Nextcloud Deck</string>
+</resources>

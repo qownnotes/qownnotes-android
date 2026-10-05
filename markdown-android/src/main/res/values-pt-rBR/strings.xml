@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="encrypted_content_locked">O conteúdo criptografado está bloqueado neste dispositivo.</string>
+    <string name="paste_as_markdown_link">Colar como link Markdown</string>
+    <string name="paste_markdown_link_failed">Não foi possível obter o título da página</string>
+</resources>

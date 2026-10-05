@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common actions -->
+    <string name="action_add_nextcloud_account">添加 Nextcloud 账号</string>
+    <string name="action_back">返回</string>
+    <string name="action_remove">移除</string>
+    <string name="action_save">保存</string>
+    <string name="action_saving">正在保存</string>
+    <string name="action_cancel">取消</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">离线使用你的 Nextcloud 笔记</string>
+    <string name="onboarding_description">从 Nextcloud Files 应用中选择一个账号，以下载并缓存你的笔记。</string>
+    <string name="onboarding_shared_text_waiting">分享的文本已保留，添加账号后将成为一条笔记。</string>
+
+    <!-- Account management -->
+    <string name="manage_accounts">管理账号</string>
+    <string name="note_settings_title">笔记设置</string>
+    <string name="note_settings_load_failed">无法加载笔记设置</string>
+    <string name="note_settings_save_failed">无法保存笔记设置</string>
+    <string name="note_settings_note_folder">笔记文件夹</string>
+    <string name="note_settings_file_extension">文件扩展名</string>
+    <string name="note_settings_file_extension_hint">用于新建的笔记文件。</string>
+    <string name="note_settings_folder_warning">更改文件夹也会同时更改 Nextcloud Notes 和其他客户端使用的文件夹。文件不会被移动。</string>
+    <string name="remove_account_title">移除本地数据？</string>
+    <string name="remove_account_message">将从此设备移除 %1$s 已下载的笔记和同步历史。Nextcloud 账号和服务器上的笔记不会被删除。</string>
+    <string name="action_close">关闭</string>
+    <string name="action_reset">重置</string>
+    <string name="action_clear">清除</string>
+    <string name="action_restore">恢复</string>
+    <string name="action_add_account">添加账号</string>
+    <string name="action_create_from_search">根据搜索内容新建</string>
+    <string name="action_new_note">新建笔记</string>
+    <string name="action_clear_selection">取消选择</string>
+    <string name="action_close_search">关闭搜索</string>
+    <string name="action_move_to_trash">移到回收站</string>
+
+    <!-- Note list -->
+    <string name="account_current">当前账号</string>
+    <plurals name="notes_selected">
+        <item quantity="other">已选择 %1$d 项</item>
+    </plurals>
+    <string name="selected_note_actions">所选笔记操作</string>
+    <string name="note_actions">笔记操作</string>
+    <string name="sort_latest_first">排序：最新优先</string>
+    <string name="sort_title_ascending">排序：标题 A-Z</string>
+    <string name="sort_title_descending">排序：标题 Z-A</string>
+    <string name="sort_option_latest_first">最新优先</string>
+    <string name="sort_option_title_ascending">标题 A-Z</string>
+    <string name="sort_option_title_descending">标题 Z-A</string>
+    <string name="category_undefined">分类：未定义</string>
+    <string name="category_all">分类：全部</string>
+    <string name="category_named">分类：%1$s</string>
+    <string name="category_option_undefined">未定义</string>
+    <string name="category_option_all">所有分类</string>
+    <string name="bookmarks">书签</string>
+    <string name="trash">回收站</string>
+    <string name="about">关于</string>
+    <string name="notes_empty_search">没有匹配的笔记</string>
+    <string name="notes_empty_tags">没有带所选标签的笔记</string>
+    <string name="notes_empty_category">此分类中没有笔记</string>
+
+    <!-- Settings -->
+    <string name="settings_title">设置</string>
+    <string name="settings_show_note_preview">显示笔记预览</string>
+    <string name="settings_show_category">显示分类</string>
+    <string name="settings_compact_note_list">紧凑笔记列表</string>
+    <string name="settings_compact_note_list_description">减小笔记列表和列表小部件中的间距。</string>
+    <string name="settings_swipe_note_actions">滑动笔记操作</string>
+    <string name="settings_swipe_note_actions_description">向右滑动切换收藏，向左滑动移到回收站。</string>
+    <string name="settings_hide_create_button">滚动时隐藏新建按钮</string>
+    <string name="settings_hide_create_button_description">向下滚动时隐藏，向上滚动时显示。</string>
+    <string name="settings_ask_for_new_note_name">询问新笔记名称</string>
+    <string name="settings_ask_for_new_note_name_description">建议自动生成的名称，并允许你修改。</string>
+    <string name="settings_bookmarks_file">书签文件</string>
+    <string name="settings_bookmarks_file_invalid">请使用以 .md 结尾的相对路径</string>
+    <string name="settings_bookmarks_file_examples">示例：Bookmarks.md 或 Work/Bookmarks.md</string>
+    <string name="appearance">外观</string>
+
+    <!-- Diagnostics -->
+    <string name="debug_diagnostics">调试诊断</string>
+    <string name="diagnostics_load_failed">无法加载同步诊断信息。</string>
+    <string name="diagnostics_clear_failed">无法清除同步诊断信息。</string>
+    <string name="diagnostics_clip_label">QOwnNotes 诊断报告</string>
+    <string name="diagnostics_privacy_notice">此报告仅存储在本设备上，绝不会自动发送。报告不保留异常消息，因此不包含账号、服务器和笔记标识符。分享前请先检查。</string>
+    <string name="diagnostics_copy_report">复制报告</string>
+
+    <!-- About -->
+    <string name="about_title">关于 QOwnNotes</string>
+    <string name="about_version">版本：%1$s</string>
+    <string name="about_commit">提交：%1$s</string>
+    <string name="about_copyright">Copyright (C) 2026 Patrizio Bekerle</string>
+    <string name="about_license">基于 GNU GPL v3 许可的自由软件。不提供任何担保。</string>
+    <string name="about_view_source">查看源代码和许可证</string>
+
+    <!-- Remote trash -->
+    <string name="remote_trash">远程回收站</string>
+    <string name="trash_load_failed">无法加载远程回收站</string>
+    <string name="trash_restore_failed">无法恢复已删除的笔记</string>
+    <string name="trash_restore_title">恢复 %1$s？</string>
+    <string name="trash_restore_message">该笔记及其服务器版本将在 Nextcloud 中恢复。</string>
+    <string name="action_clear_search">清除搜索</string>
+    <string name="action_favorite">收藏</string>
+    <string name="action_unfavorite">取消收藏</string>
+    <string name="action_reconnect">重新连接</string>
+
+    <!-- Search -->
+    <string name="search_notes">搜索笔记</string>
+    <string name="search_filter">搜索范围</string>
+    <string name="search_filter_title_and_content">标题和内容</string>
+    <string name="search_filter_title_only">仅标题</string>
+
+    <!-- Note list items -->
+    <string name="favorite_remove">从收藏中移除</string>
+    <string name="favorite_add">添加到收藏</string>
+    <string name="note_uncategorized">未分类</string>
+    <string name="account_avatar_description">账号：%1$s</string>
+    <string name="sync_available_offline">可离线使用</string>
+    <string name="sync_refreshing">正在刷新</string>
+
+    <!-- Versions and trash dialogs -->
+    <string name="note_versions">笔记版本</string>
+    <string name="note_versions_empty">未找到此笔记的版本。</string>
+    <string name="trash_empty">服务器上未找到已删除的笔记。</string>
+    <string name="trash_search_note_name">搜索笔记名称</string>
+    <string name="trash_search_empty">没有与搜索匹配的已删除笔记。</string>
+
+    <!-- Note detail -->
+    <string name="insert_image_failed">无法插入图片</string>
+    <string name="note_versions_load_failed">无法加载笔记版本</string>
+    <string name="conflict_changed">笔记冲突已发生变化。请关闭后重试。</string>
+    <string name="conflict_server_version_load_failed">无法加载服务器版本</string>
+    <string name="remote_missing_changed">笔记已发生变化。请关闭此对话框后重试。</string>
+    <string name="remote_missing_resolve_failed">无法处理丢失的笔记</string>
+    <string name="note_title_fallback">笔记</string>
+    <string name="action_back_to_notes">返回笔记列表</string>
+    <string name="find_in_note">在笔记中查找</string>
+    <string name="action_edit_note">编辑笔记</string>
+    <string name="more_note_actions">更多笔记操作</string>
+    <string name="text_size_decrease">减小字号</string>
+    <string name="text_size_increase">增大字号</string>
+    <string name="load_images">加载图片</string>
+    <string name="note_menu_versions">版本</string>
+    <string name="note_menu_tags">标签</string>
+    <string name="note_menu_information">信息</string>
+    <string name="change_category">更改分类</string>
+    <string name="action_rename">重命名</string>
+    <string name="retry_sync">重试同步</string>
+    <string name="note_text_size_decrease">减小笔记字号</string>
+    <string name="note_text_size_increase">增大笔记字号</string>
+    <string name="action_cancel_editing">取消编辑</string>
+    <string name="action_finish_editing">完成编辑</string>
+    <string name="read_only">只读</string>
+    <string name="local_changes_safe_finish_editing">你的本地更改已安全保存在此设备上。完成编辑后可选择如何处理服务器上的更改。</string>
+
+    <!-- Editor toolbar -->
+    <string name="format_undo">撤销</string>
+    <string name="format_redo">重做</string>
+    <string name="format_list">创建列表项</string>
+    <string name="format_checkbox_list">创建复选框列表项</string>
+    <string name="format_indent">增加 4 个空格缩进</string>
+    <string name="format_outdent">减少 4 个空格缩进</string>
+    <string name="format_bold">粗体</string>
+    <string name="format_italic">斜体</string>
+    <string name="format_strikethrough">删除线</string>
+    <string name="format_code">行内代码</string>
+    <string name="format_link">插入链接</string>
+    <string name="format_heading">标题</string>
+    <string name="format_numbered_list">创建编号列表项</string>
+    <string name="format_quote">创建引用块</string>
+    <string name="insert_image">插入图片</string>
+    <string name="insert_date">插入日期</string>
+    <string name="insert_date_time">插入日期和时间</string>
+    <string name="create_deck_card">创建 Nextcloud Deck 卡片</string>
+    <string name="large_note_highlighting_disabled">为保证编辑流畅，已对此大型笔记关闭语法高亮。</string>
+    <string name="local_changes_safe">你的本地更改已安全保存在此设备上。</string>
+    <string name="resolve_conflict">解决冲突</string>
+    <string name="resolve_missing_note">处理丢失的笔记</string>
+    <string name="attachment_download_failed">无法下载附件</string>
+    <string name="attachment_no_viewer">没有可打开此附件的应用</string>
+
+    <!-- Note detail dialogs -->
+    <string name="action_discard">放弃</string>
+    <string name="action_keep_editing">继续编辑</string>
+    <string name="discard_changes_title">放弃更改？</string>
+    <string name="discard_changes_message">此笔记已被修改。放弃更改会将其恢复为开始编辑时的文本。</string>
+    <string name="delete_note_title">将笔记移到回收站？</string>
+    <string name="delete_note_message">该笔记将立即从此设备上消失，并在可以同步时移到 Nextcloud 回收站。</string>
+    <string name="resolve_note_conflict">解决笔记冲突</string>
+    <string name="conflict_read_only_message">在你的本地更改等待同步期间，该笔记变为只读。请加载服务器版本，或先将本地版本保存为一条新的可写笔记。</string>
+    <string name="conflict_message">在你进行本地编辑后，该笔记在服务器上被修改。请加载服务器版本，或先将本地版本保存为一条新笔记。</string>
+    <string name="conflict_local_version">本地版本</string>
+    <string name="conflict_server_version">服务器版本</string>
+    <string name="conflict_common_base">共同基础版本</string>
+    <!-- %1$s is a comma-separated list of merge_field_* values -->
+    <string name="conflict_merge_unavailable">无法自动合并，因为两个版本都修改了%1$s。</string>
+    <string name="list_separator">、</string>
+    <string name="merge_field_title">标题</string>
+    <string name="merge_field_content">内容</string>
+    <string name="merge_field_category">分类</string>
+    <string name="merge_field_favorite">收藏</string>
+    <string name="conflict_use_merged">使用合并版本</string>
+    <string name="conflict_keep_local_copy">将本地版本保留为副本</string>
+    <string name="conflict_use_server">使用服务器版本</string>
+    <string name="remote_missing_message">在本地更改等待同步期间，此笔记已在服务器上被删除。请将其重新创建为新的服务器笔记，或放弃本地版本。</string>
+    <string name="remote_missing_recreate">重新创建笔记</string>
+    <string name="remote_missing_discard_local">放弃本地版本</string>
+    <string name="restore_version_title">恢复此版本？</string>
+    <string name="restore_version_message">当前笔记内容将被替换，并作为一次新的编辑进行同步。</string>
+    <string name="restore_version_failed">无法恢复笔记版本</string>
+    <string name="restore_version_update_failed">无法更新笔记</string>
+    <string name="yes">是</string>
+    <string name="no">否</string>
+    <string name="action_create">创建</string>
+    <string name="action_move">移动</string>
+
+    <!-- Note information -->
+    <string name="note_information_title">笔记信息</string>
+    <string name="note_info_modified">修改时间</string>
+    <string name="note_info_markdown_size">Markdown 大小</string>
+    <string name="note_info_words">字数</string>
+    <string name="note_info_characters">字符数</string>
+    <string name="note_info_lines">行数</string>
+    <string name="note_info_category">分类</string>
+    <string name="note_info_category_root">根目录</string>
+    <string name="note_info_account">账号</string>
+    <string name="note_info_synchronization">同步</string>
+    <string name="note_info_access">访问权限</string>
+    <string name="note_info_writable">可写</string>
+    <string name="note_info_favorite">收藏</string>
+    <string name="note_info_note_id">笔记 ID</string>
+    <string name="sync_state_synchronized">已同步</string>
+    <string name="sync_state_locally_created">尚未同步</string>
+    <string name="sync_state_locally_modified">本地更改待同步</string>
+    <string name="sync_state_pending_deletion">等待删除</string>
+    <string name="sync_state_synchronizing">正在同步</string>
+    <string name="sync_state_conflict">冲突</string>
+    <string name="sync_state_remote_missing">服务器上缺失</string>
+    <string name="sync_state_read_only_conflict">只读冲突</string>
+    <string name="sync_state_failed">同步失败</string>
+    <string name="conflict_version_summary">标题：%1$s\n分类：%2$s\n收藏：%3$s</string>
+
+    <!-- Rename, new note, and category dialogs -->
+    <string name="rename_note_title">重命名笔记</string>
+    <string name="rename_note_file_name">文件名</string>
+    <string name="note_name_invalid_characters_hint">文件名中不允许的字符将被替换为空格。</string>
+    <string name="rename_note_update_heading">更新一级标题</string>
+    <string name="new_note_name">笔记名称</string>
+    <string name="category_undefined_root">未定义（根目录）</string>
+    <string name="category_new">新建分类</string>
+    <string name="category_new_path">新分类路径</string>
+    <string name="category_new_path_hint">使用 / 创建嵌套分类。</string>
+
+    <!-- Fast scroll and find -->
+    <string name="note_fast_scroll">笔记快速滚动</string>
+    <string name="editor_fast_scroll">编辑器快速滚动</string>
+    <string name="find_previous_match">上一个匹配项</string>
+    <string name="find_next_match">下一个匹配项</string>
+    <string name="find_close">关闭查找</string>
+    <string name="find_no_matches">无匹配项</string>
+    <string name="find_match_position">%1$d / %2$d</string>
+
+    <!-- Synchronization errors -->
+    <string name="sync_error_details">详情</string>
+    <string name="sync_error_details_title">同步详情</string>
+    <string name="sync_error_exception_text">异常文本</string>
+    <string name="sync_error_exception_privacy">异常文本可能包含服务器或账号信息。分享前请先检查。</string>
+    <string name="sync_error_clip_label">同步异常</string>
+    <string name="sync_error_copy_exception">复制异常</string>
+    <string name="sync_error_server_unreachable_explanation">同步在服务器响应前已中断。本地编辑仍保存在此设备上。如果使用本地服务器，请检查手机的 Wi-Fi 或 VPN，并确认 Nextcloud Files 可以访问该账号。请在浏览器中验证服务器地址和端口，并确保其 HTTPS 证书受 Android 信任。Android 可能会阻止明文 HTTP 连接。然后重试同步。</string>
+</resources>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette colors -->
+    <string name="color_white">Белый</string>
+    <string name="color_light_gray">Светло-серый</string>
+    <string name="color_gray">Серый</string>
+    <string name="color_dark_gray">Тёмно-серый</string>
+    <string name="color_black">Чёрный</string>
+    <string name="color_light_yellow">Светло-жёлтый</string>
+    <string name="color_light_green">Светло-зелёный</string>
+    <string name="color_light_blue">Светло-голубой</string>
+    <string name="color_light_purple">Светло-фиолетовый</string>
+    <string name="color_light_pink">Светло-розовый</string>
+    <string name="color_red">Красный</string>
+    <string name="color_orange">Оранжевый</string>
+    <string name="color_amber">Янтарный</string>
+    <string name="color_green">Зелёный</string>
+    <string name="color_teal">Бирюзовый</string>
+    <string name="color_blue">Синий</string>
+    <string name="color_indigo">Индиго</string>
+    <string name="color_purple">Фиолетовый</string>
+    <string name="color_pink">Розовый</string>
+
+    <!-- App appearance -->
+    <string name="appearance_show_list_header">Показывать заголовок списка</string>
+    <string name="appearance_show_list_header_summary">Показывает текущую категорию и имя аккаунта под строкой поиска.</string>
+    <string name="appearance_note_cards">Показывать заметки карточками</string>
+    <string name="appearance_note_cards_summary">Рисует рамку вокруг каждой заметки с небольшим промежутком между ними.</string>
+    <string name="appearance_header_color">Цвет заголовка</string>
+    <string name="appearance_default_header">Заголовок по умолчанию</string>
+    <string name="appearance_note_background">Фон заметки</string>
+    <string name="appearance_default_note_background">Фон заметки по умолчанию</string>
+    <string name="appearance_highlight_categories">Выделять категории</string>
+    <string name="appearance_highlight_categories_summary">Действует, когда включено «Показывать категорию».</string>
+    <string name="appearance_category_highlight_color">Цвет выделения категорий</string>
+    <string name="appearance_default_category_highlight">Выделение категорий по умолчанию</string>
+    <string name="appearance_custom_colors_hint">Пользовательские цвета одинаковы в светлой и тёмной темах. Цвет текста подбирается автоматически для удобства чтения.</string>
+
+    <!-- Widget appearance -->
+    <string name="widget_appearance_background">Фон</string>
+    <string name="widget_appearance_default_background">Фон по умолчанию</string>
+    <string name="widget_appearance_background_opacity">Непрозрачность фона: %1$d%%</string>
+    <string name="widget_appearance_header">Заголовок</string>
+    <string name="widget_appearance_no_header_color">Без цвета заголовка</string>
+    <string name="widget_appearance_note_rows">Строки заметок</string>
+    <string name="widget_appearance_default_note_rows">Строки заметок по умолчанию</string>
+    <string name="widget_appearance_frame">Рамка</string>
+    <string name="widget_appearance_frame_color">Цвет рамки</string>
+    <string name="widget_appearance_default_frame">Рамка по умолчанию</string>
+    <string name="widget_preview_shopping_list">Список покупок</string>
+    <string name="widget_preview_notes">Заметки</string>
+    <string name="widget_preview_personal">Личное</string>
+    <string name="widget_preview_milk">- Молоко</string>
+    <string name="widget_preview_bread">- Хлеб</string>
+    <string name="widget_preview_meeting_notes">Протокол встречи</string>
+    <string name="widget_preview_meeting_notes_excerpt">Повестка и решения</string>
+    <string name="widget_preview_ideas">Идеи</string>
+    <string name="widget_preview_ideas_excerpt">Проект на выходные</string>
+
+    <!-- Generic -->
+    <string name="ui_cancel">Отмена</string>
+    <string name="ui_ok">ОК</string>
+    <string name="ui_retry">Повторить</string>
+    <string name="ui_done">Готово</string>
+    <string name="ui_clear">Очистить</string>
+    <string name="ui_back">Назад</string>
+    <string name="ui_clear_search">Очистить поиск</string>
+
+    <!-- Nextcloud Deck -->
+    <string name="deck_load_boards_failed">Не удалось загрузить доски Deck</string>
+    <string name="deck_new_card_title">Новая карточка Deck</string>
+    <string name="deck_card_title_label">Название</string>
+    <string name="deck_card_title_too_long">Не более %1$d символов</string>
+    <string name="deck_card_description_label">Описание</string>
+    <string name="deck_no_lists">Сначала создайте доску со списком в Nextcloud Deck.</string>
+    <string name="deck_board_and_list">Доска и список</string>
+    <string name="deck_choose_list">Выберите список</string>
+    <string name="deck_due_date">Срок</string>
+    <string name="deck_create_card_failed">Не удалось создать карточку Deck</string>
+    <string name="deck_creating">Создание</string>
+    <string name="deck_create_and_link">Создать и связать</string>
+
+    <!-- Note tags -->
+    <string name="tags_filter_all">Теги: все</string>
+    <string name="tags_filter_selected">Теги: %1$s</string>
+    <string name="tags_filter_title">Фильтр по тегам</string>
+    <string name="tags_filter_no_tags">В notes.sqlite пока нет тегов.</string>
+    <string name="tags_title">Теги</string>
+    <string name="tags_search">Поиск тегов</string>
+    <string name="tags_after_next_sync">Теги появятся после следующей синхронизации.</string>
+    <string name="tags_unavailable">Теги недоступны для этого аккаунта.</string>
+    <string name="tags_read_only">Файл notes.sqlite записан более новой версией QOwnNotes, поэтому теги доступны только для чтения.</string>
+    <string name="tags_none">Тегов пока нет.</string>
+    <string name="tags_no_matches">Нет подходящих тегов.</string>
+    <string name="tags_new_tag">Новый тег</string>
+    <string name="tags_add_tag">Добавить тег</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">Закладки</string>
+    <string name="bookmarks_open_source">Открыть заметку с закладками</string>
+    <string name="bookmarks_search">Поиск закладок</string>
+    <string name="bookmarks_loading">Загрузка закладок…</string>
+    <string name="bookmarks_invalid_path">Недопустимый путь к закладкам. Укажите относительный путь к файлу Markdown в настройках.</string>
+    <string name="bookmarks_source_missing">Заметка с закладками не найдена.</string>
+    <string name="bookmarks_encrypted">Зашифрованные заметки с закладками не могут быть показаны.</string>
+    <string name="bookmarks_none">В этой заметке не найдено закладок.</string>
+    <string name="bookmarks_no_matches">Нет подходящих закладок.</string>
+
+    <!-- Images -->
+    <string name="image_unsupported_type">Выберите изображение JPEG, PNG или WebP</string>
+    <string name="image_too_large">Размер изображения не должен превышать 5 МБ</string>
+    <string name="image_open_failed">Не удалось открыть выбранное изображение</string>
+    <string name="image_empty">Выбранное изображение пустое</string>
+    <string name="capture_image_add_failed">Не удалось добавить снимок в заметку</string>
+
+    <!-- Account, note settings, and backend errors -->
+    <string name="account_reconnect_different_account">Для переподключения выберите тот же аккаунт Nextcloud</string>
+    <string name="account_identity_in_use">Этот локальный идентификатор уже используется другим аккаунтом Nextcloud</string>
+    <string name="account_no_longer_configured">Аккаунт Nextcloud больше не настроен в QOwnNotes Mobile</string>
+    <string name="account_import_failed">Не удалось импортировать аккаунт</string>
+    <string name="sync_failed">Ошибка синхронизации</string>
+    <string name="note_read_only_error">Эта заметка доступна только для чтения</string>
+    <string name="note_settings_folder_empty">Папка заметок не может быть пустой</string>
+    <string name="note_settings_invalid_extension">Введите допустимое расширение файла</string>
+    <string name="note_settings_unsynchronized_notes">Перед сменой папки заметок разберитесь с несинхронизированными заметками</string>
+    <string name="deck_card_title_invalid">Название карточки должно содержать от 1 до %1$d символов</string>
+    <string name="backend_no_archive">Бэкенд этого аккаунта не поддерживает версии заметок и корзину на сервере</string>
+    <string name="backend_no_note_settings">Бэкенд этого аккаунта не поддерживает настройки папки заметок</string>
+    <string name="backend_no_image_uploads">Бэкенд этого аккаунта не поддерживает загрузку изображений</string>
+    <string name="backend_no_deck">Бэкенд этого аккаунта не поддерживает Nextcloud Deck</string>
+</resources>

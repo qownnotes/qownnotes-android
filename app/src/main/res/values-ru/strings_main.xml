@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common actions -->
+    <string name="action_add_nextcloud_account">Добавить аккаунт Nextcloud</string>
+    <string name="action_back">Назад</string>
+    <string name="action_remove">Удалить</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_saving">Сохранение</string>
+    <string name="action_cancel">Отмена</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Ваши заметки Nextcloud — офлайн</string>
+    <string name="onboarding_description">Выберите аккаунт из приложения Nextcloud Files, чтобы загрузить и сохранить заметки на устройстве.</string>
+    <string name="onboarding_shared_text_waiting">Полученный текст сохранён и станет заметкой после добавления аккаунта.</string>
+
+    <!-- Account management -->
+    <string name="manage_accounts">Управление аккаунтами</string>
+    <string name="note_settings_title">Настройки заметок</string>
+    <string name="note_settings_load_failed">Не удалось загрузить настройки заметок</string>
+    <string name="note_settings_save_failed">Не удалось сохранить настройки заметок</string>
+    <string name="note_settings_note_folder">Папка заметок</string>
+    <string name="note_settings_file_extension">Расширение файлов</string>
+    <string name="note_settings_file_extension_hint">Используется для новых файлов заметок.</string>
+    <string name="note_settings_folder_warning">Смена папки также изменит её для Nextcloud Notes и других клиентов. Файлы не перемещаются.</string>
+    <string name="remove_account_title">Удалить локальные данные?</string>
+    <string name="remove_account_message">Загруженные заметки и история синхронизации для %1$s будут удалены с этого устройства. Аккаунт Nextcloud и заметки на сервере удалены не будут.</string>
+    <string name="action_close">Закрыть</string>
+    <string name="action_reset">Сбросить</string>
+    <string name="action_clear">Очистить</string>
+    <string name="action_restore">Восстановить</string>
+    <string name="action_add_account">Добавить аккаунт</string>
+    <string name="action_create_from_search">Создать из поиска</string>
+    <string name="action_new_note">Новая заметка</string>
+    <string name="action_clear_selection">Снять выделение</string>
+    <string name="action_close_search">Закрыть поиск</string>
+    <string name="action_move_to_trash">Переместить в корзину</string>
+
+    <!-- Note list -->
+    <string name="account_current">Текущий аккаунт</string>
+    <plurals name="notes_selected">
+        <item quantity="one">Выбрана %1$d</item>
+        <item quantity="few">Выбрано %1$d</item>
+        <item quantity="many">Выбрано %1$d</item>
+        <item quantity="other">Выбрано %1$d</item>
+    </plurals>
+    <string name="selected_note_actions">Действия с выбранными заметками</string>
+    <string name="note_actions">Действия с заметкой</string>
+    <string name="sort_latest_first">Сортировка: сначала новые</string>
+    <string name="sort_title_ascending">Сортировка: по названию А–Я</string>
+    <string name="sort_title_descending">Сортировка: по названию Я–А</string>
+    <string name="sort_option_latest_first">Сначала новые</string>
+    <string name="sort_option_title_ascending">Название А–Я</string>
+    <string name="sort_option_title_descending">Название Я–А</string>
+    <string name="category_undefined">Категория: не задана</string>
+    <string name="category_all">Категория: все</string>
+    <string name="category_named">Категория: %1$s</string>
+    <string name="category_option_undefined">Не задана</string>
+    <string name="category_option_all">Все категории</string>
+    <string name="bookmarks">Закладки</string>
+    <string name="trash">Корзина</string>
+    <string name="about">О приложении</string>
+    <string name="notes_empty_search">Нет подходящих заметок</string>
+    <string name="notes_empty_tags">Нет заметок с выбранными тегами</string>
+    <string name="notes_empty_category">В этой категории нет заметок</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_show_note_preview">Показывать превью заметки</string>
+    <string name="settings_show_category">Показывать категорию</string>
+    <string name="settings_compact_note_list">Компактный список заметок</string>
+    <string name="settings_compact_note_list_description">Уменьшить отступы в списке заметок и виджетах-списках.</string>
+    <string name="settings_swipe_note_actions">Действия по свайпу</string>
+    <string name="settings_swipe_note_actions_description">Свайп вправо — избранное, свайп влево — переместить в корзину.</string>
+    <string name="settings_hide_create_button">Скрывать кнопку создания при прокрутке</string>
+    <string name="settings_hide_create_button_description">Скрывать при прокрутке вниз и показывать при прокрутке вверх.</string>
+    <string name="settings_ask_for_new_note_name">Запрашивать имя новых заметок</string>
+    <string name="settings_ask_for_new_note_name_description">Предлагать автоматическое имя с возможностью его изменить.</string>
+    <string name="settings_bookmarks_file">Файл закладок</string>
+    <string name="settings_bookmarks_file_invalid">Укажите относительный путь, оканчивающийся на .md</string>
+    <string name="settings_bookmarks_file_examples">Примеры: Bookmarks.md или Work/Bookmarks.md</string>
+    <string name="appearance">Оформление</string>
+
+    <!-- Diagnostics -->
+    <string name="debug_diagnostics">Отладочная диагностика</string>
+    <string name="diagnostics_load_failed">Не удалось загрузить диагностику синхронизации.</string>
+    <string name="diagnostics_clear_failed">Не удалось очистить диагностику синхронизации.</string>
+    <string name="diagnostics_clip_label">Диагностический отчёт QOwnNotes</string>
+    <string name="diagnostics_privacy_notice">Этот отчёт хранится только на этом устройстве и никогда не отправляется автоматически. Тексты исключений не сохраняются, поэтому идентификаторы аккаунта, сервера и заметок не включаются. Проверьте отчёт перед отправкой.</string>
+    <string name="diagnostics_copy_report">Копировать отчёт</string>
+
+    <!-- About -->
+    <string name="about_title">О QOwnNotes</string>
+    <string name="about_version">Версия: %1$s</string>
+    <string name="about_commit">Коммит: %1$s</string>
+    <string name="about_copyright">Copyright (C) 2026 Patrizio Bekerle</string>
+    <string name="about_license">Свободное ПО под лицензией GNU GPL v3. Без каких-либо гарантий.</string>
+    <string name="about_view_source">Исходный код и лицензия</string>
+
+    <!-- Remote trash -->
+    <string name="remote_trash">Корзина на сервере</string>
+    <string name="trash_load_failed">Не удалось загрузить корзину на сервере</string>
+    <string name="trash_restore_failed">Не удалось восстановить заметку из корзины</string>
+    <string name="trash_restore_title">Восстановить %1$s?</string>
+    <string name="trash_restore_message">Заметка и её версии на сервере будут восстановлены в Nextcloud.</string>
+    <string name="action_clear_search">Очистить поиск</string>
+    <string name="action_favorite">В избранное</string>
+    <string name="action_unfavorite">Убрать из избранного</string>
+    <string name="action_reconnect">Переподключить</string>
+
+    <!-- Search -->
+    <string name="search_notes">Поиск заметок</string>
+    <string name="search_filter">Фильтр поиска</string>
+    <string name="search_filter_title_and_content">Название и содержимое</string>
+    <string name="search_filter_title_only">Только название</string>
+
+    <!-- Note list items -->
+    <string name="favorite_remove">Убрать из избранного</string>
+    <string name="favorite_add">Добавить в избранное</string>
+    <string name="note_uncategorized">Без категории</string>
+    <string name="account_avatar_description">Аккаунт: %1$s</string>
+    <string name="sync_available_offline">Доступно офлайн</string>
+    <string name="sync_refreshing">Обновление</string>
+
+    <!-- Versions and trash dialogs -->
+    <string name="note_versions">Версии заметки</string>
+    <string name="note_versions_empty">Для этой заметки не найдено версий.</string>
+    <string name="trash_empty">На сервере нет заметок в корзине.</string>
+    <string name="trash_search_note_name">Поиск по имени заметки</string>
+    <string name="trash_search_empty">В корзине нет заметок, соответствующих запросу.</string>
+
+    <!-- Note detail -->
+    <string name="insert_image_failed">Не удалось вставить изображение</string>
+    <string name="note_versions_load_failed">Не удалось загрузить версии заметки</string>
+    <string name="conflict_changed">Конфликт заметки изменился. Закройте и повторите попытку.</string>
+    <string name="conflict_server_version_load_failed">Не удалось загрузить версию с сервера</string>
+    <string name="remote_missing_changed">Заметка изменилась. Закройте этот диалог и повторите попытку.</string>
+    <string name="remote_missing_resolve_failed">Не удалось разрешить ситуацию с отсутствующей заметкой</string>
+    <string name="note_title_fallback">Заметка</string>
+    <string name="action_back_to_notes">Назад к заметкам</string>
+    <string name="find_in_note">Найти в заметке</string>
+    <string name="action_edit_note">Редактировать заметку</string>
+    <string name="more_note_actions">Другие действия с заметкой</string>
+    <string name="text_size_decrease">Уменьшить размер текста</string>
+    <string name="text_size_increase">Увеличить размер текста</string>
+    <string name="load_images">Загрузить изображения</string>
+    <string name="note_menu_versions">Версии</string>
+    <string name="note_menu_tags">Теги</string>
+    <string name="note_menu_information">Информация</string>
+    <string name="change_category">Изменить категорию</string>
+    <string name="action_rename">Переименовать</string>
+    <string name="retry_sync">Повторить синхронизацию</string>
+    <string name="note_text_size_decrease">Уменьшить размер текста заметки</string>
+    <string name="note_text_size_increase">Увеличить размер текста заметки</string>
+    <string name="action_cancel_editing">Отменить редактирование</string>
+    <string name="action_finish_editing">Завершить редактирование</string>
+    <string name="read_only">Только чтение</string>
+    <string name="local_changes_safe_finish_editing">Ваши локальные изменения сохранены на этом устройстве. Завершите редактирование, чтобы выбрать, как обработать изменение на сервере.</string>
+
+    <!-- Editor toolbar -->
+    <string name="format_undo">Отменить</string>
+    <string name="format_redo">Повторить</string>
+    <string name="format_list">Создать элемент списка</string>
+    <string name="format_checkbox_list">Создать элемент списка с флажком</string>
+    <string name="format_indent">Увеличить отступ на 4 пробела</string>
+    <string name="format_outdent">Уменьшить отступ на 4 пробела</string>
+    <string name="format_bold">Полужирный</string>
+    <string name="format_italic">Курсив</string>
+    <string name="format_strikethrough">Зачёркнутый</string>
+    <string name="format_code">Встроенный код</string>
+    <string name="format_link">Вставить ссылку</string>
+    <string name="format_heading">Заголовок</string>
+    <string name="format_numbered_list">Создать элемент нумерованного списка</string>
+    <string name="format_quote">Создать цитату</string>
+    <string name="insert_image">Вставить изображение</string>
+    <string name="insert_date">Вставить дату</string>
+    <string name="insert_date_time">Вставить дату и время</string>
+    <string name="create_deck_card">Создать карточку Nextcloud Deck</string>
+    <string name="large_note_highlighting_disabled">Подсветка синтаксиса отключена для этой большой заметки, чтобы редактирование оставалось быстрым.</string>
+    <string name="local_changes_safe">Ваши локальные изменения сохранены на этом устройстве.</string>
+    <string name="resolve_conflict">Разрешить конфликт</string>
+    <string name="resolve_missing_note">Разобраться с отсутствующей заметкой</string>
+    <string name="attachment_download_failed">Не удалось загрузить вложение</string>
+    <string name="attachment_no_viewer">Нет приложения для открытия этого вложения</string>
+
+    <!-- Note detail dialogs -->
+    <string name="action_discard">Отменить изменения</string>
+    <string name="action_keep_editing">Продолжить редактирование</string>
+    <string name="discard_changes_title">Отменить изменения?</string>
+    <string name="discard_changes_message">Заметка была изменена. При отмене будет восстановлен текст, который был на момент начала редактирования.</string>
+    <string name="delete_note_title">Переместить заметку в корзину?</string>
+    <string name="delete_note_message">Заметка сразу исчезнет с этого устройства и будет перемещена в корзину Nextcloud, когда станет доступна синхронизация.</string>
+    <string name="resolve_note_conflict">Разрешение конфликта заметки</string>
+    <string name="conflict_read_only_message">Заметка стала доступна только для чтения, пока ваши локальные изменения ожидали отправки. Загрузите версию с сервера или сначала сохраните локальную версию как новую редактируемую заметку.</string>
+    <string name="conflict_message">Заметка изменилась на сервере после вашего локального редактирования. Загрузите версию с сервера или сначала сохраните локальную версию как новую заметку.</string>
+    <string name="conflict_local_version">Локальная версия</string>
+    <string name="conflict_server_version">Версия на сервере</string>
+    <string name="conflict_common_base">Общая основа</string>
+    <!-- %1$s is a comma-separated list of merge_field_* values -->
+    <string name="conflict_merge_unavailable">Автоматическое слияние недоступно, так как в обеих версиях изменено: %1$s.</string>
+    <string name="list_separator">", "</string>
+    <string name="merge_field_title">название</string>
+    <string name="merge_field_content">содержимое</string>
+    <string name="merge_field_category">категория</string>
+    <string name="merge_field_favorite">избранное</string>
+    <string name="conflict_use_merged">Использовать объединённую версию</string>
+    <string name="conflict_keep_local_copy">Сохранить локальную как копию</string>
+    <string name="conflict_use_server">Использовать серверную</string>
+    <string name="remote_missing_message">Эта заметка была удалена на сервере, пока локальные изменения ожидали отправки. Создайте её заново на сервере или отмените локальную версию.</string>
+    <string name="remote_missing_recreate">Создать заново</string>
+    <string name="remote_missing_discard_local">Отменить локальную</string>
+    <string name="restore_version_title">Восстановить эту версию?</string>
+    <string name="restore_version_message">Текущее содержимое заметки будет заменено и синхронизировано как новое изменение.</string>
+    <string name="restore_version_failed">Не удалось восстановить версию заметки</string>
+    <string name="restore_version_update_failed">Не удалось обновить заметку</string>
+    <string name="yes">Да</string>
+    <string name="no">Нет</string>
+    <string name="action_create">Создать</string>
+    <string name="action_move">Переместить</string>
+
+    <!-- Note information -->
+    <string name="note_information_title">Информация о заметке</string>
+    <string name="note_info_modified">Изменено</string>
+    <string name="note_info_markdown_size">Размер Markdown</string>
+    <string name="note_info_words">Слова</string>
+    <string name="note_info_characters">Символы</string>
+    <string name="note_info_lines">Строки</string>
+    <string name="note_info_category">Категория</string>
+    <string name="note_info_category_root">Корень</string>
+    <string name="note_info_account">Аккаунт</string>
+    <string name="note_info_synchronization">Синхронизация</string>
+    <string name="note_info_access">Доступ</string>
+    <string name="note_info_writable">Доступна для записи</string>
+    <string name="note_info_favorite">Избранное</string>
+    <string name="note_info_note_id">ID заметки</string>
+    <string name="sync_state_synchronized">Синхронизировано</string>
+    <string name="sync_state_locally_created">Ещё не синхронизировано</string>
+    <string name="sync_state_locally_modified">Есть неотправленные изменения</string>
+    <string name="sync_state_pending_deletion">Ожидает удаления</string>
+    <string name="sync_state_synchronizing">Синхронизация</string>
+    <string name="sync_state_conflict">Конфликт</string>
+    <string name="sync_state_remote_missing">Отсутствует на сервере</string>
+    <string name="sync_state_read_only_conflict">Конфликт (только чтение)</string>
+    <string name="sync_state_failed">Ошибка синхронизации</string>
+    <string name="conflict_version_summary">Название: %1$s\nКатегория: %2$s\nИзбранное: %3$s</string>
+
+    <!-- Rename, new note, and category dialogs -->
+    <string name="rename_note_title">Переименовать заметку</string>
+    <string name="rename_note_file_name">Имя файла</string>
+    <string name="note_name_invalid_characters_hint">Символы, недопустимые в имени файла, заменяются пробелами.</string>
+    <string name="rename_note_update_heading">Обновить заголовок 1-го уровня</string>
+    <string name="new_note_name">Имя заметки</string>
+    <string name="category_undefined_root">Не задана (корень)</string>
+    <string name="category_new">Новая категория</string>
+    <string name="category_new_path">Путь новой категории</string>
+    <string name="category_new_path_hint">Используйте / для создания вложенных категорий.</string>
+
+    <!-- Fast scroll and find -->
+    <string name="note_fast_scroll">Быстрая прокрутка заметки</string>
+    <string name="editor_fast_scroll">Быстрая прокрутка редактора</string>
+    <string name="find_previous_match">Предыдущее совпадение</string>
+    <string name="find_next_match">Следующее совпадение</string>
+    <string name="find_close">Закрыть поиск</string>
+    <string name="find_no_matches">Нет совпадений</string>
+    <string name="find_match_position">%1$d из %2$d</string>
+
+    <!-- Synchronization errors -->
+    <string name="sync_error_details">Подробности</string>
+    <string name="sync_error_details_title">Сведения о синхронизации</string>
+    <string name="sync_error_exception_text">Текст исключения</string>
+    <string name="sync_error_exception_privacy">Текст исключения может содержать сведения о сервере или аккаунте. Проверьте его перед отправкой.</string>
+    <string name="sync_error_clip_label">Исключение синхронизации</string>
+    <string name="sync_error_copy_exception">Копировать исключение</string>
+    <string name="sync_error_server_unreachable_explanation">Синхронизация прервалась до ответа сервера. Локальные изменения остаются сохранёнными на этом устройстве. Для локального сервера проверьте Wi-Fi или VPN телефона и убедитесь, что Nextcloud Files может подключиться к аккаунту. Проверьте адрес и порт сервера в браузере и убедитесь, что его HTTPS-сертификат считается доверенным в Android. Android может блокировать незашифрованные HTTP-подключения. Затем повторите синхронизацию.</string>
+</resources>

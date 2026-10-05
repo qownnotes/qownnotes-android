@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="encrypted_content_locked">Zaszyfrowana treść jest zablokowana na tym urządzeniu.</string>
+    <string name="paste_as_markdown_link">Wklej jako link Markdown</string>
+    <string name="paste_markdown_link_failed">Nie udało się pobrać tytułu strony</string>
+</resources>

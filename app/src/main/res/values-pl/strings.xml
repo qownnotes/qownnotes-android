@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_note_list">Lista notatek</string>
+    <string name="widget_note_list_description">Przeglądaj notatki i szybko twórz nowe</string>
+    <string name="widget_single_note">Pojedyncza notatka</string>
+    <string name="widget_single_note_description">Wyświetl notatkę na ekranie głównym</string>
+    <string name="widget_choose_account">Wybierz konto</string>
+    <string name="widget_choose_note">Wybierz notatkę</string>
+    <string name="widget_no_accounts">Dodaj konto w QOwnNotes przed skonfigurowaniem widżetu.</string>
+    <string name="widget_choose_category">Wybierz, które notatki pokazać</string>
+    <string name="widget_customize_appearance">Wygląd</string>
+    <string name="widget_reset_appearance">Resetuj</string>
+    <string name="widget_save">Zapisz</string>
+    <string name="widget_all_notes">Notatki</string>
+    <string name="widget_all_categories">Wszystkie kategorie</string>
+    <string name="widget_uncategorized">Bez kategorii</string>
+    <string name="widget_no_notes">Brak notatek</string>
+    <string name="widget_note_unavailable">Notatka niedostępna</string>
+    <string name="widget_create_note">Utwórz notatkę</string>
+    <string name="widget_take_picture">Zrób zdjęcie jako notatkę</string>
+    <string name="widget_picture_failed">Nie udało się utworzyć notatki ze zdjęcia</string>
+    <string name="widget_camera_unavailable">Brak dostępnej aplikacji aparatu</string>
+    <string name="note_label">Notatka</string>
+    <string name="share_to_new_note">Nowa notatka</string>
+</resources>

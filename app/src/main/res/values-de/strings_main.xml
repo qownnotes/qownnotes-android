@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common actions -->
+    <string name="action_add_nextcloud_account">Nextcloud-Konto hinzufügen</string>
+    <string name="action_back">Zurück</string>
+    <string name="action_remove">Entfernen</string>
+    <string name="action_save">Speichern</string>
+    <string name="action_saving">Wird gespeichert</string>
+    <string name="action_cancel">Abbrechen</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Deine Nextcloud-Notizen, offline</string>
+    <string name="onboarding_description">Wähle ein Konto aus der Nextcloud-Files-App, um deine Notizen herunterzuladen und zwischenzuspeichern.</string>
+    <string name="onboarding_shared_text_waiting">Der geteilte Text bleibt erhalten und wird zu einer Notiz, sobald ein Konto hinzugefügt wurde.</string>
+
+    <!-- Account management -->
+    <string name="manage_accounts">Konten verwalten</string>
+    <string name="note_settings_title">Notizeinstellungen</string>
+    <string name="note_settings_load_failed">Notizeinstellungen konnten nicht geladen werden</string>
+    <string name="note_settings_save_failed">Notizeinstellungen konnten nicht gespeichert werden</string>
+    <string name="note_settings_note_folder">Notizordner</string>
+    <string name="note_settings_file_extension">Dateiendung</string>
+    <string name="note_settings_file_extension_hint">Wird für neu erstellte Notizdateien verwendet.</string>
+    <string name="note_settings_folder_warning">Das Ändern des Ordners ändert ihn auch für Nextcloud Notes und andere Clients. Dateien werden nicht verschoben.</string>
+    <string name="remove_account_title">Lokale Daten entfernen?</string>
+    <string name="remove_account_message">Heruntergeladene Notizen und der Synchronisierungsverlauf für %1$s werden von diesem Gerät entfernt. Das Nextcloud-Konto und die Notizen auf dem Server werden nicht gelöscht.</string>
+    <string name="action_close">Schließen</string>
+    <string name="action_reset">Zurücksetzen</string>
+    <string name="action_clear">Leeren</string>
+    <string name="action_restore">Wiederherstellen</string>
+    <string name="action_add_account">Konto hinzufügen</string>
+    <string name="action_create_from_search">Aus Suche erstellen</string>
+    <string name="action_new_note">Neue Notiz</string>
+    <string name="action_clear_selection">Auswahl aufheben</string>
+    <string name="action_close_search">Suche schließen</string>
+    <string name="action_move_to_trash">In den Papierkorb</string>
+
+    <!-- Note list -->
+    <string name="account_current">Aktuelles Konto</string>
+    <plurals name="notes_selected">
+        <item quantity="one">%1$d ausgewählt</item>
+        <item quantity="other">%1$d ausgewählt</item>
+    </plurals>
+    <string name="selected_note_actions">Aktionen für ausgewählte Notizen</string>
+    <string name="note_actions">Notizaktionen</string>
+    <string name="sort_latest_first">Sortierung: Neueste zuerst</string>
+    <string name="sort_title_ascending">Sortierung: Titel A–Z</string>
+    <string name="sort_title_descending">Sortierung: Titel Z–A</string>
+    <string name="sort_option_latest_first">Neueste zuerst</string>
+    <string name="sort_option_title_ascending">Titel A–Z</string>
+    <string name="sort_option_title_descending">Titel Z–A</string>
+    <string name="category_undefined">Kategorie: Keine</string>
+    <string name="category_all">Kategorie: Alle</string>
+    <string name="category_named">Kategorie: %1$s</string>
+    <string name="category_option_undefined">Keine Kategorie</string>
+    <string name="category_option_all">Alle Kategorien</string>
+    <string name="bookmarks">Lesezeichen</string>
+    <string name="trash">Papierkorb</string>
+    <string name="about">Über</string>
+    <string name="notes_empty_search">Keine passenden Notizen</string>
+    <string name="notes_empty_tags">Keine Notizen mit den ausgewählten Tags</string>
+    <string name="notes_empty_category">Keine Notizen in dieser Kategorie</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_show_note_preview">Notizvorschau anzeigen</string>
+    <string name="settings_show_category">Kategorie anzeigen</string>
+    <string name="settings_compact_note_list">Kompakte Notizliste</string>
+    <string name="settings_compact_note_list_description">Verringert die Abstände in der Notizliste und in Listen-Widgets.</string>
+    <string name="settings_swipe_note_actions">Wischaktionen für Notizen</string>
+    <string name="settings_swipe_note_actions_description">Nach rechts wischen, um Favorit umzuschalten, nach links, um in den Papierkorb zu verschieben.</string>
+    <string name="settings_hide_create_button">Erstellen-Schaltfläche beim Scrollen ausblenden</string>
+    <string name="settings_hide_create_button_description">Beim Scrollen nach unten ausblenden, beim Scrollen nach oben anzeigen.</string>
+    <string name="settings_ask_for_new_note_name">Nach Namen neuer Notizen fragen</string>
+    <string name="settings_ask_for_new_note_name_description">Schlägt den automatischen Namen vor und lässt dich ihn ändern.</string>
+    <string name="settings_bookmarks_file">Lesezeichen-Datei</string>
+    <string name="settings_bookmarks_file_invalid">Verwende einen relativen Pfad, der auf .md endet</string>
+    <string name="settings_bookmarks_file_examples">Beispiele: Bookmarks.md oder Work/Bookmarks.md</string>
+    <string name="appearance">Darstellung</string>
+
+    <!-- Diagnostics -->
+    <string name="debug_diagnostics">Debug-Diagnose</string>
+    <string name="diagnostics_load_failed">Synchronisierungsdiagnose konnte nicht geladen werden.</string>
+    <string name="diagnostics_clear_failed">Synchronisierungsdiagnose konnte nicht gelöscht werden.</string>
+    <string name="diagnostics_clip_label">QOwnNotes-Diagnosebericht</string>
+    <string name="diagnostics_privacy_notice">Dieser Bericht wird nur auf diesem Gerät gespeichert und niemals automatisch gesendet. Fehlermeldungen werden nicht gespeichert, daher sind Konto-, Server- und Notizkennungen nicht enthalten. Prüfe ihn, bevor du ihn teilst.</string>
+    <string name="diagnostics_copy_report">Bericht kopieren</string>
+
+    <!-- About -->
+    <string name="about_title">Über QOwnNotes</string>
+    <string name="about_version">Version: %1$s</string>
+    <string name="about_commit">Commit: %1$s</string>
+    <string name="about_copyright">Copyright (C) 2026 Patrizio Bekerle</string>
+    <string name="about_license">Freie Software unter der GNU GPL v3. Keine Gewährleistung.</string>
+    <string name="about_view_source">Quellcode und Lizenz ansehen</string>
+
+    <!-- Remote trash -->
+    <string name="remote_trash">Server-Papierkorb</string>
+    <string name="trash_load_failed">Server-Papierkorb konnte nicht geladen werden</string>
+    <string name="trash_restore_failed">Die gelöschte Notiz konnte nicht wiederhergestellt werden</string>
+    <string name="trash_restore_title">%1$s wiederherstellen?</string>
+    <string name="trash_restore_message">Die Notiz und ihre Serverversionen werden in Nextcloud wiederhergestellt.</string>
+    <string name="action_clear_search">Suche leeren</string>
+    <string name="action_favorite">Favorisieren</string>
+    <string name="action_unfavorite">Kein Favorit mehr</string>
+    <string name="action_reconnect">Neu verbinden</string>
+
+    <!-- Search -->
+    <string name="search_notes">Notizen durchsuchen</string>
+    <string name="search_filter">Suchfilter</string>
+    <string name="search_filter_title_and_content">Titel und Inhalt</string>
+    <string name="search_filter_title_only">Nur Titel</string>
+
+    <!-- Note list items -->
+    <string name="favorite_remove">Aus Favoriten entfernen</string>
+    <string name="favorite_add">Zu Favoriten hinzufügen</string>
+    <string name="note_uncategorized">Ohne Kategorie</string>
+    <string name="account_avatar_description">Konto: %1$s</string>
+    <string name="sync_available_offline">Offline verfügbar</string>
+    <string name="sync_refreshing">Wird aktualisiert</string>
+
+    <!-- Versions and trash dialogs -->
+    <string name="note_versions">Notizversionen</string>
+    <string name="note_versions_empty">Für diese Notiz wurden keine Versionen gefunden.</string>
+    <string name="trash_empty">Auf dem Server wurden keine gelöschten Notizen gefunden.</string>
+    <string name="trash_search_note_name">Notizname suchen</string>
+    <string name="trash_search_empty">Keine gelöschten Notizen entsprechen deiner Suche.</string>
+
+    <!-- Note detail -->
+    <string name="insert_image_failed">Bild konnte nicht eingefügt werden</string>
+    <string name="note_versions_load_failed">Notizversionen konnten nicht geladen werden</string>
+    <string name="conflict_changed">Der Notizkonflikt hat sich geändert. Schließe und versuche es erneut.</string>
+    <string name="conflict_server_version_load_failed">Die Serverversion konnte nicht geladen werden</string>
+    <string name="remote_missing_changed">Die Notiz hat sich geändert. Schließe diesen Dialog und versuche es erneut.</string>
+    <string name="remote_missing_resolve_failed">Die fehlende Notiz konnte nicht aufgelöst werden</string>
+    <string name="note_title_fallback">Notiz</string>
+    <string name="action_back_to_notes">Zurück zu den Notizen</string>
+    <string name="find_in_note">In Notiz suchen</string>
+    <string name="action_edit_note">Notiz bearbeiten</string>
+    <string name="more_note_actions">Weitere Notizaktionen</string>
+    <string name="text_size_decrease">Schrift verkleinern</string>
+    <string name="text_size_increase">Schrift vergrößern</string>
+    <string name="load_images">Bilder laden</string>
+    <string name="note_menu_versions">Versionen</string>
+    <string name="note_menu_tags">Tags</string>
+    <string name="note_menu_information">Informationen</string>
+    <string name="change_category">Kategorie ändern</string>
+    <string name="action_rename">Umbenennen</string>
+    <string name="retry_sync">Synchronisierung wiederholen</string>
+    <string name="note_text_size_decrease">Notizschrift verkleinern</string>
+    <string name="note_text_size_increase">Notizschrift vergrößern</string>
+    <string name="action_cancel_editing">Bearbeitung abbrechen</string>
+    <string name="action_finish_editing">Bearbeitung beenden</string>
+    <string name="read_only">Schreibgeschützt</string>
+    <string name="local_changes_safe_finish_editing">Deine lokalen Änderungen sind auf diesem Gerät sicher. Beende die Bearbeitung, um zu wählen, wie die Serveränderung aufgelöst werden soll.</string>
+
+    <!-- Editor toolbar -->
+    <string name="format_undo">Rückgängig</string>
+    <string name="format_redo">Wiederholen</string>
+    <string name="format_list">Listeneintrag erstellen</string>
+    <string name="format_checkbox_list">Checklisteneintrag erstellen</string>
+    <string name="format_indent">Um 4 Leerzeichen einrücken</string>
+    <string name="format_outdent">Um 4 Leerzeichen ausrücken</string>
+    <string name="format_bold">Fett</string>
+    <string name="format_italic">Kursiv</string>
+    <string name="format_strikethrough">Durchgestrichen</string>
+    <string name="format_code">Inline-Code</string>
+    <string name="format_link">Link einfügen</string>
+    <string name="format_heading">Überschrift</string>
+    <string name="format_numbered_list">Nummerierten Listeneintrag erstellen</string>
+    <string name="format_quote">Blockzitat erstellen</string>
+    <string name="insert_image">Bild einfügen</string>
+    <string name="insert_date">Datum einfügen</string>
+    <string name="insert_date_time">Datum und Uhrzeit einfügen</string>
+    <string name="create_deck_card">Nextcloud-Deck-Karte erstellen</string>
+    <string name="large_note_highlighting_disabled">Die Syntaxhervorhebung ist für diese große Notiz deaktiviert, damit die Bearbeitung flüssig bleibt.</string>
+    <string name="local_changes_safe">Deine lokalen Änderungen sind auf diesem Gerät sicher.</string>
+    <string name="resolve_conflict">Konflikt lösen</string>
+    <string name="resolve_missing_note">Fehlende Notiz auflösen</string>
+    <string name="attachment_download_failed">Anhang konnte nicht heruntergeladen werden</string>
+    <string name="attachment_no_viewer">Keine App kann diesen Anhang öffnen</string>
+
+    <!-- Note detail dialogs -->
+    <string name="action_discard">Verwerfen</string>
+    <string name="action_keep_editing">Weiter bearbeiten</string>
+    <string name="discard_changes_title">Änderungen verwerfen?</string>
+    <string name="discard_changes_message">Diese Notiz wurde geändert. Beim Verwerfen wird der Text vom Beginn der Bearbeitung wiederhergestellt.</string>
+    <string name="delete_note_title">Notiz in den Papierkorb verschieben?</string>
+    <string name="delete_note_message">Die Notiz verschwindet sofort von diesem Gerät und wird in den Nextcloud-Papierkorb verschoben, sobald eine Synchronisierung möglich ist.</string>
+    <string name="resolve_note_conflict">Notizkonflikt lösen</string>
+    <string name="conflict_read_only_message">Die Notiz wurde schreibgeschützt, während deine lokalen Änderungen ausstanden. Lade die Serverversion oder sichere zuerst deine lokale Version als neue beschreibbare Notiz.</string>
+    <string name="conflict_message">Die Notiz wurde nach deiner lokalen Bearbeitung auf dem Server geändert. Lade die Serverversion oder sichere zuerst deine lokale Version als neue Notiz.</string>
+    <string name="conflict_local_version">Lokale Version</string>
+    <string name="conflict_server_version">Serverversion</string>
+    <string name="conflict_common_base">Gemeinsame Basis</string>
+    <!-- %1$s is a comma-separated list of merge_field_* values -->
+    <string name="conflict_merge_unavailable">Automatisches Zusammenführen ist nicht möglich, da beide Versionen Folgendes geändert haben: %1$s.</string>
+    <string name="list_separator">", "</string>
+    <string name="merge_field_title">Titel</string>
+    <string name="merge_field_content">Inhalt</string>
+    <string name="merge_field_category">Kategorie</string>
+    <string name="merge_field_favorite">Favorit</string>
+    <string name="conflict_use_merged">Zusammengeführte Version verwenden</string>
+    <string name="conflict_keep_local_copy">Lokale als Kopie behalten</string>
+    <string name="conflict_use_server">Server verwenden</string>
+    <string name="remote_missing_message">Diese Notiz wurde auf dem Server gelöscht, während lokale Änderungen ausstanden. Erstelle sie als neue Servernotiz neu oder verwirf die lokale Version.</string>
+    <string name="remote_missing_recreate">Notiz neu erstellen</string>
+    <string name="remote_missing_discard_local">Lokale verwerfen</string>
+    <string name="restore_version_title">Diese Version wiederherstellen?</string>
+    <string name="restore_version_message">Der aktuelle Notizinhalt wird ersetzt und als neue Bearbeitung synchronisiert.</string>
+    <string name="restore_version_failed">Die Notizversion konnte nicht wiederhergestellt werden</string>
+    <string name="restore_version_update_failed">Die Notiz konnte nicht aktualisiert werden</string>
+    <string name="yes">Ja</string>
+    <string name="no">Nein</string>
+    <string name="action_create">Erstellen</string>
+    <string name="action_move">Verschieben</string>
+
+    <!-- Note information -->
+    <string name="note_information_title">Notizinformationen</string>
+    <string name="note_info_modified">Geändert</string>
+    <string name="note_info_markdown_size">Markdown-Größe</string>
+    <string name="note_info_words">Wörter</string>
+    <string name="note_info_characters">Zeichen</string>
+    <string name="note_info_lines">Zeilen</string>
+    <string name="note_info_category">Kategorie</string>
+    <string name="note_info_category_root">Stammordner</string>
+    <string name="note_info_account">Konto</string>
+    <string name="note_info_synchronization">Synchronisierung</string>
+    <string name="note_info_access">Zugriff</string>
+    <string name="note_info_writable">Beschreibbar</string>
+    <string name="note_info_favorite">Favorit</string>
+    <string name="note_info_note_id">Notiz-ID</string>
+    <string name="sync_state_synchronized">Synchronisiert</string>
+    <string name="sync_state_locally_created">Noch nicht synchronisiert</string>
+    <string name="sync_state_locally_modified">Lokale Änderungen ausstehend</string>
+    <string name="sync_state_pending_deletion">Löschung ausstehend</string>
+    <string name="sync_state_synchronizing">Wird synchronisiert</string>
+    <string name="sync_state_conflict">Konflikt</string>
+    <string name="sync_state_remote_missing">Fehlt auf dem Server</string>
+    <string name="sync_state_read_only_conflict">Schreibschutzkonflikt</string>
+    <string name="sync_state_failed">Synchronisierung fehlgeschlagen</string>
+    <string name="conflict_version_summary">Titel: %1$s\nKategorie: %2$s\nFavorit: %3$s</string>
+
+    <!-- Rename, new note, and category dialogs -->
+    <string name="rename_note_title">Notiz umbenennen</string>
+    <string name="rename_note_file_name">Dateiname</string>
+    <string name="note_name_invalid_characters_hint">Zeichen, die in Dateinamen nicht erlaubt sind, werden durch Leerzeichen ersetzt.</string>
+    <string name="rename_note_update_heading">Überschrift 1 aktualisieren</string>
+    <string name="new_note_name">Notizname</string>
+    <string name="category_undefined_root">Keine (Stammordner)</string>
+    <string name="category_new">Neue Kategorie</string>
+    <string name="category_new_path">Pfad der neuen Kategorie</string>
+    <string name="category_new_path_hint">Verwende /, um verschachtelte Kategorien zu erstellen.</string>
+
+    <!-- Fast scroll and find -->
+    <string name="note_fast_scroll">Schnelles Scrollen in der Notiz</string>
+    <string name="editor_fast_scroll">Schnelles Scrollen im Editor</string>
+    <string name="find_previous_match">Vorheriger Treffer</string>
+    <string name="find_next_match">Nächster Treffer</string>
+    <string name="find_close">Suche schließen</string>
+    <string name="find_no_matches">Keine Treffer</string>
+    <string name="find_match_position">%1$d von %2$d</string>
+
+    <!-- Synchronization errors -->
+    <string name="sync_error_details">Details</string>
+    <string name="sync_error_details_title">Synchronisierungsdetails</string>
+    <string name="sync_error_exception_text">Fehlertext</string>
+    <string name="sync_error_exception_privacy">Der Fehlertext kann Server- oder Kontoinformationen enthalten. Prüfe ihn, bevor du ihn teilst.</string>
+    <string name="sync_error_clip_label">Synchronisierungsfehler</string>
+    <string name="sync_error_copy_exception">Fehler kopieren</string>
+    <string name="sync_error_server_unreachable_explanation">Die Synchronisierung wurde beendet, bevor der Server geantwortet hat. Lokale Änderungen bleiben auf diesem Gerät gespeichert. Prüfe bei einem lokalen Server das WLAN oder VPN des Telefons und stelle sicher, dass Nextcloud Files das Konto erreichen kann. Prüfe die Serveradresse und den Port in einem Browser und stelle sicher, dass Android dem HTTPS-Zertifikat vertraut. Unverschlüsselte HTTP-Verbindungen können von Android blockiert werden. Versuche die Synchronisierung dann erneut.</string>
+</resources>

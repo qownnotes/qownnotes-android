@@ -195,6 +195,7 @@
     <string name="conflict_common_base">Common base</string>
     <!-- %1$s is a comma-separated list of merge_field_* values -->
     <string name="conflict_merge_unavailable">Automatic merge is unavailable because both versions changed %1$s.</string>
+    <string name="list_separator">", "</string>
     <string name="merge_field_title">title</string>
     <string name="merge_field_content">content</string>
     <string name="merge_field_category">category</string>

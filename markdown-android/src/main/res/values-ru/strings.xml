@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="encrypted_content_locked">Зашифрованное содержимое заблокировано на этом устройстве.</string>
+    <string name="paste_as_markdown_link">Вставить как ссылку Markdown</string>
+    <string name="paste_markdown_link_failed">Не удалось получить заголовок страницы</string>
+</resources>

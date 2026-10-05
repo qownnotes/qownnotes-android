@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="encrypted_content_locked">Le contenu chiffré est verrouillé sur cet appareil.</string>
+    <string name="paste_as_markdown_link">Coller comme lien Markdown</string>
+    <string name="paste_markdown_link_failed">Impossible de récupérer le titre de la page</string>
+</resources>

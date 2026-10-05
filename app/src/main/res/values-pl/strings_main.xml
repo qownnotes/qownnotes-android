@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common actions -->
+    <string name="action_add_nextcloud_account">Dodaj konto Nextcloud</string>
+    <string name="action_back">Wstecz</string>
+    <string name="action_remove">Usuń</string>
+    <string name="action_save">Zapisz</string>
+    <string name="action_saving">Zapisywanie</string>
+    <string name="action_cancel">Anuluj</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Twoje notatki z Nextcloud, offline</string>
+    <string name="onboarding_description">Wybierz konto z aplikacji Nextcloud Files, aby pobrać notatki i przechowywać je na urządzeniu.</string>
+    <string name="onboarding_shared_text_waiting">Udostępniony tekst zostanie zachowany i stanie się notatką po dodaniu konta.</string>
+
+    <!-- Account management -->
+    <string name="manage_accounts">Zarządzaj kontami</string>
+    <string name="note_settings_title">Ustawienia notatek</string>
+    <string name="note_settings_load_failed">Nie udało się wczytać ustawień notatek</string>
+    <string name="note_settings_save_failed">Nie udało się zapisać ustawień notatek</string>
+    <string name="note_settings_note_folder">Folder notatek</string>
+    <string name="note_settings_file_extension">Rozszerzenie pliku</string>
+    <string name="note_settings_file_extension_hint">Używane dla nowo tworzonych plików notatek.</string>
+    <string name="note_settings_folder_warning">Zmiana folderu zmienia go także dla Nextcloud Notes i innych klientów. Pliki nie są przenoszone.</string>
+    <string name="remove_account_title">Usunąć dane lokalne?</string>
+    <string name="remove_account_message">Pobrane notatki i historia synchronizacji konta %1$s zostaną usunięte z tego urządzenia. Konto Nextcloud i notatki na serwerze nie zostaną usunięte.</string>
+    <string name="action_close">Zamknij</string>
+    <string name="action_reset">Resetuj</string>
+    <string name="action_clear">Wyczyść</string>
+    <string name="action_restore">Przywróć</string>
+    <string name="action_add_account">Dodaj konto</string>
+    <string name="action_create_from_search">Utwórz z wyszukiwania</string>
+    <string name="action_new_note">Nowa notatka</string>
+    <string name="action_clear_selection">Wyczyść zaznaczenie</string>
+    <string name="action_close_search">Zamknij wyszukiwanie</string>
+    <string name="action_move_to_trash">Przenieś do kosza</string>
+
+    <!-- Note list -->
+    <string name="account_current">Bieżące konto</string>
+    <plurals name="notes_selected">
+        <item quantity="one">Zaznaczono %1$d</item>
+        <item quantity="few">Zaznaczono %1$d</item>
+        <item quantity="many">Zaznaczono %1$d</item>
+        <item quantity="other">Zaznaczono %1$d</item>
+    </plurals>
+    <string name="selected_note_actions">Działania dla zaznaczonych notatek</string>
+    <string name="note_actions">Działania notatki</string>
+    <string name="sort_latest_first">Sortuj: najnowsze najpierw</string>
+    <string name="sort_title_ascending">Sortuj: tytuł A–Z</string>
+    <string name="sort_title_descending">Sortuj: tytuł Z–A</string>
+    <string name="sort_option_latest_first">Najnowsze najpierw</string>
+    <string name="sort_option_title_ascending">Tytuł A–Z</string>
+    <string name="sort_option_title_descending">Tytuł Z–A</string>
+    <string name="category_undefined">Kategoria: nieokreślona</string>
+    <string name="category_all">Kategoria: wszystkie</string>
+    <string name="category_named">Kategoria: %1$s</string>
+    <string name="category_option_undefined">Nieokreślona</string>
+    <string name="category_option_all">Wszystkie kategorie</string>
+    <string name="bookmarks">Zakładki</string>
+    <string name="trash">Kosz</string>
+    <string name="about">O aplikacji</string>
+    <string name="notes_empty_search">Brak pasujących notatek</string>
+    <string name="notes_empty_tags">Brak notatek z wybranymi tagami</string>
+    <string name="notes_empty_category">Brak notatek w tej kategorii</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ustawienia</string>
+    <string name="settings_show_note_preview">Pokaż podgląd notatki</string>
+    <string name="settings_show_category">Pokaż kategorię</string>
+    <string name="settings_compact_note_list">Kompaktowa lista notatek</string>
+    <string name="settings_compact_note_list_description">Zmniejsz odstępy na liście notatek i w widżetach list.</string>
+    <string name="settings_swipe_note_actions">Działania przesunięciem</string>
+    <string name="settings_swipe_note_actions_description">Przesuń w prawo, aby przełączyć ulubione, i w lewo, aby przenieść do kosza.</string>
+    <string name="settings_hide_create_button">Ukryj przycisk tworzenia podczas przewijania</string>
+    <string name="settings_hide_create_button_description">Ukryj przy przewijaniu w dół i pokaż przy przewijaniu w górę.</string>
+    <string name="settings_ask_for_new_note_name">Pytaj o nazwę nowych notatek</string>
+    <string name="settings_ask_for_new_note_name_description">Proponuje automatyczną nazwę i pozwala ją zmienić.</string>
+    <string name="settings_bookmarks_file">Plik zakładek</string>
+    <string name="settings_bookmarks_file_invalid">Użyj ścieżki względnej zakończonej na .md</string>
+    <string name="settings_bookmarks_file_examples">Przykłady: Bookmarks.md lub Work/Bookmarks.md</string>
+    <string name="appearance">Wygląd</string>
+
+    <!-- Diagnostics -->
+    <string name="debug_diagnostics">Diagnostyka debugowania</string>
+    <string name="diagnostics_load_failed">Nie udało się wczytać diagnostyki synchronizacji.</string>
+    <string name="diagnostics_clear_failed">Nie udało się wyczyścić diagnostyki synchronizacji.</string>
+    <string name="diagnostics_clip_label">Raport diagnostyczny QOwnNotes</string>
+    <string name="diagnostics_privacy_notice">Ten raport jest przechowywany tylko na tym urządzeniu i nigdy nie jest wysyłany automatycznie. Komunikaty wyjątków nie są zachowywane, więc identyfikatory kont, serwerów i notatek są pomijane. Przejrzyj go przed udostępnieniem.</string>
+    <string name="diagnostics_copy_report">Kopiuj raport</string>
+
+    <!-- About -->
+    <string name="about_title">O QOwnNotes</string>
+    <string name="about_version">Wersja: %1$s</string>
+    <string name="about_commit">Commit: %1$s</string>
+    <string name="about_copyright">Copyright (C) 2026 Patrizio Bekerle</string>
+    <string name="about_license">Wolne oprogramowanie na licencji GNU GPL v3. Bez gwarancji.</string>
+    <string name="about_view_source">Zobacz kod źródłowy i licencję</string>
+
+    <!-- Remote trash -->
+    <string name="remote_trash">Zdalny kosz</string>
+    <string name="trash_load_failed">Nie udało się wczytać zdalnego kosza</string>
+    <string name="trash_restore_failed">Nie udało się przywrócić notatki z kosza</string>
+    <string name="trash_restore_title">Przywrócić %1$s?</string>
+    <string name="trash_restore_message">Notatka i jej wersje na serwerze zostaną przywrócone w Nextcloud.</string>
+    <string name="action_clear_search">Wyczyść wyszukiwanie</string>
+    <string name="action_favorite">Dodaj do ulubionych</string>
+    <string name="action_unfavorite">Usuń z ulubionych</string>
+    <string name="action_reconnect">Połącz ponownie</string>
+
+    <!-- Search -->
+    <string name="search_notes">Szukaj notatek</string>
+    <string name="search_filter">Filtr wyszukiwania</string>
+    <string name="search_filter_title_and_content">Tytuł i treść</string>
+    <string name="search_filter_title_only">Tylko tytuł</string>
+
+    <!-- Note list items -->
+    <string name="favorite_remove">Usuń z ulubionych</string>
+    <string name="favorite_add">Dodaj do ulubionych</string>
+    <string name="note_uncategorized">Bez kategorii</string>
+    <string name="account_avatar_description">Konto: %1$s</string>
+    <string name="sync_available_offline">Dostępne offline</string>
+    <string name="sync_refreshing">Odświeżanie</string>
+
+    <!-- Versions and trash dialogs -->
+    <string name="note_versions">Wersje notatki</string>
+    <string name="note_versions_empty">Nie znaleziono wersji tej notatki.</string>
+    <string name="trash_empty">Na serwerze nie znaleziono notatek w koszu.</string>
+    <string name="trash_search_note_name">Szukaj nazwy notatki</string>
+    <string name="trash_search_empty">Żadna notatka w koszu nie pasuje do wyszukiwania.</string>
+
+    <!-- Note detail -->
+    <string name="insert_image_failed">Nie udało się wstawić obrazu</string>
+    <string name="note_versions_load_failed">Nie udało się wczytać wersji notatki</string>
+    <string name="conflict_changed">Konflikt notatki uległ zmianie. Zamknij i spróbuj ponownie.</string>
+    <string name="conflict_server_version_load_failed">Nie udało się wczytać wersji z serwera</string>
+    <string name="remote_missing_changed">Notatka uległa zmianie. Zamknij to okno i spróbuj ponownie.</string>
+    <string name="remote_missing_resolve_failed">Nie udało się rozwiązać problemu z brakującą notatką</string>
+    <string name="note_title_fallback">Notatka</string>
+    <string name="action_back_to_notes">Wróć do notatek</string>
+    <string name="find_in_note">Znajdź w notatce</string>
+    <string name="action_edit_note">Edytuj notatkę</string>
+    <string name="more_note_actions">Więcej działań</string>
+    <string name="text_size_decrease">Zmniejsz rozmiar tekstu</string>
+    <string name="text_size_increase">Zwiększ rozmiar tekstu</string>
+    <string name="load_images">Wczytaj obrazy</string>
+    <string name="note_menu_versions">Wersje</string>
+    <string name="note_menu_tags">Tagi</string>
+    <string name="note_menu_information">Informacje</string>
+    <string name="change_category">Zmień kategorię</string>
+    <string name="action_rename">Zmień nazwę</string>
+    <string name="retry_sync">Ponów synchronizację</string>
+    <string name="note_text_size_decrease">Zmniejsz rozmiar tekstu notatki</string>
+    <string name="note_text_size_increase">Zwiększ rozmiar tekstu notatki</string>
+    <string name="action_cancel_editing">Anuluj edycję</string>
+    <string name="action_finish_editing">Zakończ edycję</string>
+    <string name="read_only">Tylko do odczytu</string>
+    <string name="local_changes_safe_finish_editing">Twoje lokalne zmiany są bezpieczne na tym urządzeniu. Zakończ edycję, aby wybrać sposób rozwiązania zmiany na serwerze.</string>
+
+    <!-- Editor toolbar -->
+    <string name="format_undo">Cofnij</string>
+    <string name="format_redo">Ponów</string>
+    <string name="format_list">Utwórz element listy</string>
+    <string name="format_checkbox_list">Utwórz element listy kontrolnej</string>
+    <string name="format_indent">Zwiększ wcięcie o 4 spacje</string>
+    <string name="format_outdent">Zmniejsz wcięcie o 4 spacje</string>
+    <string name="format_bold">Pogrubienie</string>
+    <string name="format_italic">Kursywa</string>
+    <string name="format_strikethrough">Przekreślenie</string>
+    <string name="format_code">Kod w linii</string>
+    <string name="format_link">Wstaw link</string>
+    <string name="format_heading">Nagłówek</string>
+    <string name="format_numbered_list">Utwórz element listy numerowanej</string>
+    <string name="format_quote">Utwórz cytat blokowy</string>
+    <string name="insert_image">Wstaw obraz</string>
+    <string name="insert_date">Wstaw datę</string>
+    <string name="insert_date_time">Wstaw datę i godzinę</string>
+    <string name="create_deck_card">Utwórz kartę Nextcloud Deck</string>
+    <string name="large_note_highlighting_disabled">Podświetlanie składni jest wyłączone dla tej dużej notatki, aby edycja działała płynnie.</string>
+    <string name="local_changes_safe">Twoje lokalne zmiany są bezpieczne na tym urządzeniu.</string>
+    <string name="resolve_conflict">Rozwiąż konflikt</string>
+    <string name="resolve_missing_note">Rozwiąż problem z brakującą notatką</string>
+    <string name="attachment_download_failed">Nie można pobrać załącznika</string>
+    <string name="attachment_no_viewer">Żadna aplikacja nie może otworzyć tego załącznika</string>
+
+    <!-- Note detail dialogs -->
+    <string name="action_discard">Odrzuć</string>
+    <string name="action_keep_editing">Kontynuuj edycję</string>
+    <string name="discard_changes_title">Odrzucić zmiany?</string>
+    <string name="discard_changes_message">Ta notatka została zmodyfikowana. Odrzucenie przywróci tekst z chwili rozpoczęcia edycji.</string>
+    <string name="delete_note_title">Przenieść notatkę do kosza?</string>
+    <string name="delete_note_message">Notatka zniknie teraz z tego urządzenia i trafi do kosza Nextcloud, gdy synchronizacja będzie dostępna.</string>
+    <string name="resolve_note_conflict">Rozwiąż konflikt notatki</string>
+    <string name="conflict_read_only_message">Notatka stała się tylko do odczytu, gdy Twoje lokalne zmiany oczekiwały na synchronizację. Wczytaj wersję z serwera lub najpierw zachowaj wersję lokalną jako nową, edytowalną notatkę.</string>
+    <string name="conflict_message">Notatka została zmieniona na serwerze po Twojej lokalnej edycji. Wczytaj wersję z serwera lub najpierw zachowaj wersję lokalną jako nową notatkę.</string>
+    <string name="conflict_local_version">Wersja lokalna</string>
+    <string name="conflict_server_version">Wersja z serwera</string>
+    <string name="conflict_common_base">Wspólna baza</string>
+    <!-- %1$s is a comma-separated list of merge_field_* values -->
+    <string name="conflict_merge_unavailable">Automatyczne scalanie jest niedostępne, ponieważ w obu wersjach zmieniono: %1$s.</string>
+    <string name="list_separator">", "</string>
+    <string name="merge_field_title">tytuł</string>
+    <string name="merge_field_content">treść</string>
+    <string name="merge_field_category">kategoria</string>
+    <string name="merge_field_favorite">ulubione</string>
+    <string name="conflict_use_merged">Użyj scalonej wersji</string>
+    <string name="conflict_keep_local_copy">Zachowaj lokalną jako kopię</string>
+    <string name="conflict_use_server">Użyj wersji z serwera</string>
+    <string name="remote_missing_message">Ta notatka została usunięta na serwerze, gdy lokalne zmiany oczekiwały na synchronizację. Utwórz ją ponownie jako nową notatkę na serwerze lub odrzuć wersję lokalną.</string>
+    <string name="remote_missing_recreate">Utwórz ponownie</string>
+    <string name="remote_missing_discard_local">Odrzuć lokalną</string>
+    <string name="restore_version_title">Przywrócić tę wersję?</string>
+    <string name="restore_version_message">Bieżąca treść notatki zostanie zastąpiona i zsynchronizowana jako nowa zmiana.</string>
+    <string name="restore_version_failed">Nie udało się przywrócić wersji notatki</string>
+    <string name="restore_version_update_failed">Nie udało się zaktualizować notatki</string>
+    <string name="yes">Tak</string>
+    <string name="no">Nie</string>
+    <string name="action_create">Utwórz</string>
+    <string name="action_move">Przenieś</string>
+
+    <!-- Note information -->
+    <string name="note_information_title">Informacje o notatce</string>
+    <string name="note_info_modified">Zmodyfikowano</string>
+    <string name="note_info_markdown_size">Rozmiar Markdown</string>
+    <string name="note_info_words">Słowa</string>
+    <string name="note_info_characters">Znaki</string>
+    <string name="note_info_lines">Wiersze</string>
+    <string name="note_info_category">Kategoria</string>
+    <string name="note_info_category_root">Główna</string>
+    <string name="note_info_account">Konto</string>
+    <string name="note_info_synchronization">Synchronizacja</string>
+    <string name="note_info_access">Dostęp</string>
+    <string name="note_info_writable">Zapisywalna</string>
+    <string name="note_info_favorite">Ulubiona</string>
+    <string name="note_info_note_id">ID notatki</string>
+    <string name="sync_state_synchronized">Zsynchronizowano</string>
+    <string name="sync_state_locally_created">Jeszcze niezsynchronizowana</string>
+    <string name="sync_state_locally_modified">Lokalne zmiany oczekują</string>
+    <string name="sync_state_pending_deletion">Oczekuje na usunięcie</string>
+    <string name="sync_state_synchronizing">Synchronizowanie</string>
+    <string name="sync_state_conflict">Konflikt</string>
+    <string name="sync_state_remote_missing">Brak na serwerze</string>
+    <string name="sync_state_read_only_conflict">Konflikt tylko do odczytu</string>
+    <string name="sync_state_failed">Synchronizacja nie powiodła się</string>
+    <string name="conflict_version_summary">Tytuł: %1$s\nKategoria: %2$s\nUlubiona: %3$s</string>
+
+    <!-- Rename, new note, and category dialogs -->
+    <string name="rename_note_title">Zmień nazwę notatki</string>
+    <string name="rename_note_file_name">Nazwa pliku</string>
+    <string name="note_name_invalid_characters_hint">Znaki niedozwolone w nazwie pliku są zastępowane spacjami.</string>
+    <string name="rename_note_update_heading">Zaktualizuj nagłówek 1. stopnia</string>
+    <string name="new_note_name">Nazwa notatki</string>
+    <string name="category_undefined_root">Nieokreślona (główna)</string>
+    <string name="category_new">Nowa kategoria</string>
+    <string name="category_new_path">Ścieżka nowej kategorii</string>
+    <string name="category_new_path_hint">Użyj /, aby utworzyć zagnieżdżone kategorie.</string>
+
+    <!-- Fast scroll and find -->
+    <string name="note_fast_scroll">Szybkie przewijanie notatki</string>
+    <string name="editor_fast_scroll">Szybkie przewijanie edytora</string>
+    <string name="find_previous_match">Poprzednie dopasowanie</string>
+    <string name="find_next_match">Następne dopasowanie</string>
+    <string name="find_close">Zamknij wyszukiwanie</string>
+    <string name="find_no_matches">Brak dopasowań</string>
+    <string name="find_match_position">%1$d z %2$d</string>
+
+    <!-- Synchronization errors -->
+    <string name="sync_error_details">Szczegóły</string>
+    <string name="sync_error_details_title">Szczegóły synchronizacji</string>
+    <string name="sync_error_exception_text">Treść wyjątku</string>
+    <string name="sync_error_exception_privacy">Treść wyjątku może zawierać informacje o serwerze lub koncie. Przejrzyj ją przed udostępnieniem.</string>
+    <string name="sync_error_clip_label">Wyjątek synchronizacji</string>
+    <string name="sync_error_copy_exception">Kopiuj wyjątek</string>
+    <string name="sync_error_server_unreachable_explanation">Synchronizacja została przerwana, zanim serwer odpowiedział. Lokalne zmiany pozostają zapisane na tym urządzeniu. W przypadku serwera lokalnego sprawdź Wi-Fi lub VPN w telefonie i upewnij się, że Nextcloud Files ma dostęp do konta. Sprawdź adres i port serwera w przeglądarce oraz upewnij się, że jego certyfikat HTTPS jest zaufany przez Androida. Android może blokować nieszyfrowane połączenia HTTP. Następnie ponów synchronizację.</string>
+</resources>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette colors -->
+    <string name="color_white">白色</string>
+    <string name="color_light_gray">浅灰色</string>
+    <string name="color_gray">灰色</string>
+    <string name="color_dark_gray">深灰色</string>
+    <string name="color_black">黑色</string>
+    <string name="color_light_yellow">浅黄色</string>
+    <string name="color_light_green">浅绿色</string>
+    <string name="color_light_blue">浅蓝色</string>
+    <string name="color_light_purple">浅紫色</string>
+    <string name="color_light_pink">浅粉色</string>
+    <string name="color_red">红色</string>
+    <string name="color_orange">橙色</string>
+    <string name="color_amber">琥珀色</string>
+    <string name="color_green">绿色</string>
+    <string name="color_teal">青色</string>
+    <string name="color_blue">蓝色</string>
+    <string name="color_indigo">靛蓝色</string>
+    <string name="color_purple">紫色</string>
+    <string name="color_pink">粉色</string>
+
+    <!-- App appearance -->
+    <string name="appearance_show_list_header">显示列表标题栏</string>
+    <string name="appearance_show_list_header_summary">在搜索栏下方显示当前分类和账号名称。</string>
+    <string name="appearance_note_cards">以卡片形式显示笔记</string>
+    <string name="appearance_note_cards_summary">为每条笔记绘制边框，并在笔记之间留出小间隙。</string>
+    <string name="appearance_header_color">标题栏颜色</string>
+    <string name="appearance_default_header">默认标题栏</string>
+    <string name="appearance_note_background">笔记背景</string>
+    <string name="appearance_default_note_background">默认笔记背景</string>
+    <string name="appearance_highlight_categories">突出显示分类</string>
+    <string name="appearance_highlight_categories_summary">在开启“显示分类”时生效。</string>
+    <string name="appearance_category_highlight_color">分类突出显示颜色</string>
+    <string name="appearance_default_category_highlight">默认分类突出显示</string>
+    <string name="appearance_custom_colors_hint">自定义颜色在浅色和深色模式下保持不变。文字颜色会自动调整以确保可读性。</string>
+
+    <!-- Widget appearance -->
+    <string name="widget_appearance_background">背景</string>
+    <string name="widget_appearance_default_background">默认背景</string>
+    <string name="widget_appearance_background_opacity">背景不透明度：%1$d%%</string>
+    <string name="widget_appearance_header">标题栏</string>
+    <string name="widget_appearance_no_header_color">无标题栏颜色</string>
+    <string name="widget_appearance_note_rows">笔记行</string>
+    <string name="widget_appearance_default_note_rows">默认笔记行</string>
+    <string name="widget_appearance_frame">边框</string>
+    <string name="widget_appearance_frame_color">边框颜色</string>
+    <string name="widget_appearance_default_frame">默认边框</string>
+    <string name="widget_preview_shopping_list">购物清单</string>
+    <string name="widget_preview_notes">笔记</string>
+    <string name="widget_preview_personal">个人</string>
+    <string name="widget_preview_milk">- 牛奶</string>
+    <string name="widget_preview_bread">- 面包</string>
+    <string name="widget_preview_meeting_notes">会议记录</string>
+    <string name="widget_preview_meeting_notes_excerpt">议程与决议</string>
+    <string name="widget_preview_ideas">灵感</string>
+    <string name="widget_preview_ideas_excerpt">周末项目</string>
+
+    <!-- Generic -->
+    <string name="ui_cancel">取消</string>
+    <string name="ui_ok">确定</string>
+    <string name="ui_retry">重试</string>
+    <string name="ui_done">完成</string>
+    <string name="ui_clear">清除</string>
+    <string name="ui_back">返回</string>
+    <string name="ui_clear_search">清除搜索</string>
+
+    <!-- Nextcloud Deck -->
+    <string name="deck_load_boards_failed">无法加载 Deck 看板</string>
+    <string name="deck_new_card_title">新建 Deck 卡片</string>
+    <string name="deck_card_title_label">标题</string>
+    <string name="deck_card_title_too_long">最多使用 %1$d 个字符</string>
+    <string name="deck_card_description_label">描述</string>
+    <string name="deck_no_lists">请先在 Nextcloud Deck 中创建一个包含列表的看板。</string>
+    <string name="deck_board_and_list">看板和列表</string>
+    <string name="deck_choose_list">选择列表</string>
+    <string name="deck_due_date">截止日期</string>
+    <string name="deck_create_card_failed">无法创建 Deck 卡片</string>
+    <string name="deck_creating">正在创建</string>
+    <string name="deck_create_and_link">创建并链接</string>
+
+    <!-- Note tags -->
+    <string name="tags_filter_all">标签：全部</string>
+    <string name="tags_filter_selected">标签：%1$s</string>
+    <string name="tags_filter_title">按标签筛选</string>
+    <string name="tags_filter_no_tags">notes.sqlite 中还没有标签。</string>
+    <string name="tags_title">标签</string>
+    <string name="tags_search">搜索标签</string>
+    <string name="tags_after_next_sync">标签将在下次同步后显示。</string>
+    <string name="tags_unavailable">此账号不支持标签。</string>
+    <string name="tags_read_only">notes.sqlite 由较新版本的 QOwnNotes 写入，因此标签为只读。</string>
+    <string name="tags_none">还没有标签。</string>
+    <string name="tags_no_matches">没有匹配的标签。</string>
+    <string name="tags_new_tag">新建标签</string>
+    <string name="tags_add_tag">添加标签</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">书签</string>
+    <string name="bookmarks_open_source">打开书签笔记</string>
+    <string name="bookmarks_search">搜索书签</string>
+    <string name="bookmarks_loading">正在加载书签…</string>
+    <string name="bookmarks_invalid_path">书签路径无效。请在设置中选择一个相对的 Markdown 路径。</string>
+    <string name="bookmarks_source_missing">未找到书签来源笔记。</string>
+    <string name="bookmarks_encrypted">无法显示加密的书签笔记。</string>
+    <string name="bookmarks_none">此笔记中未找到书签。</string>
+    <string name="bookmarks_no_matches">没有匹配的书签。</string>
+
+    <!-- Images -->
+    <string name="image_unsupported_type">请选择 JPEG、PNG 或 WebP 图片</string>
+    <string name="image_too_large">图片大小不得超过 5 MB</string>
+    <string name="image_open_failed">无法打开所选图片</string>
+    <string name="image_empty">所选图片为空</string>
+    <string name="capture_image_add_failed">无法将拍摄的图片添加到笔记</string>
+
+    <!-- Account, note settings, and backend errors -->
+    <string name="account_reconnect_different_account">请选择同一个 Nextcloud 账号以重新连接</string>
+    <string name="account_identity_in_use">另一个 Nextcloud 账号已在使用此本地身份</string>
+    <string name="account_no_longer_configured">此 Nextcloud 账号已不再配置于 QOwnNotes Mobile 中</string>
+    <string name="account_import_failed">账号导入失败</string>
+    <string name="sync_failed">同步失败</string>
+    <string name="note_read_only_error">此笔记为只读</string>
+    <string name="note_settings_folder_empty">笔记文件夹不能为空</string>
+    <string name="note_settings_invalid_extension">请输入有效的文件扩展名</string>
+    <string name="note_settings_unsynchronized_notes">更改笔记文件夹前，请先处理尚未同步的笔记</string>
+    <string name="deck_card_title_invalid">卡片标题长度必须为 1 到 %1$d 个字符</string>
+    <string name="backend_no_archive">此账号后端不提供笔记版本或远程回收站</string>
+    <string name="backend_no_note_settings">此账号后端不提供笔记文件夹设置</string>
+    <string name="backend_no_image_uploads">此账号后端不支持上传图片</string>
+    <string name="backend_no_deck">此账号后端不支持 Nextcloud Deck</string>
+</resources>

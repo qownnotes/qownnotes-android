@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The app is translated into German, Chinese (Simplified), Russian, Italian, Portuguese (Brazil),
+  Polish, French, and Spanish. It follows the system language, and on Android 13 or newer the
+  language can also be chosen per app in the system settings.
+
 ### Changed
 
 - Note-list widgets follow the app's note-list settings: "Show note preview", "Show category"

@@ -19,7 +19,7 @@
     <string name="widget_take_picture">Take picture as note</string>
     <string name="widget_picture_failed">Could not create a note from the picture</string>
     <string name="widget_camera_unavailable">No camera application is available</string>
-    <string name="app_name">QOwnNotes</string>
+    <string name="app_name" translatable="false">QOwnNotes</string>
     <string name="note_label">Note</string>
     <string name="share_to_new_note">New note</string>
 </resources>

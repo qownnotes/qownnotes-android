@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_note_list">Notizliste</string>
+    <string name="widget_note_list_description">Notizen anzeigen und schnell eine Notiz erstellen</string>
+    <string name="widget_single_note">Einzelne Notiz</string>
+    <string name="widget_single_note_description">Eine Notiz auf dem Startbildschirm anzeigen</string>
+    <string name="widget_choose_account">Konto auswählen</string>
+    <string name="widget_choose_note">Notiz auswählen</string>
+    <string name="widget_no_accounts">Füge in QOwnNotes ein Konto hinzu, bevor du ein Widget einrichtest.</string>
+    <string name="widget_choose_category">Anzuzeigende Notizen auswählen</string>
+    <string name="widget_customize_appearance">Darstellung</string>
+    <string name="widget_reset_appearance">Zurücksetzen</string>
+    <string name="widget_save">Speichern</string>
+    <string name="widget_all_notes">Notizen</string>
+    <string name="widget_all_categories">Alle Kategorien</string>
+    <string name="widget_uncategorized">Ohne Kategorie</string>
+    <string name="widget_no_notes">Keine Notizen</string>
+    <string name="widget_note_unavailable">Notiz nicht verfügbar</string>
+    <string name="widget_create_note">Notiz erstellen</string>
+    <string name="widget_take_picture">Foto als Notiz aufnehmen</string>
+    <string name="widget_picture_failed">Aus dem Foto konnte keine Notiz erstellt werden</string>
+    <string name="widget_camera_unavailable">Keine Kamera-App verfügbar</string>
+    <string name="note_label">Notiz</string>
+    <string name="share_to_new_note">Neue Notiz</string>
+</resources>

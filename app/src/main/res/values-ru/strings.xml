@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_note_list">Список заметок</string>
+    <string name="widget_note_list_description">Просмотр заметок и быстрое создание заметки</string>
+    <string name="widget_single_note">Одна заметка</string>
+    <string name="widget_single_note_description">Показывать заметку на главном экране</string>
+    <string name="widget_choose_account">Выберите аккаунт</string>
+    <string name="widget_choose_note">Выберите заметку</string>
+    <string name="widget_no_accounts">Добавьте аккаунт в QOwnNotes перед настройкой виджета.</string>
+    <string name="widget_choose_category">Выберите, какие заметки показывать</string>
+    <string name="widget_customize_appearance">Оформление</string>
+    <string name="widget_reset_appearance">Сбросить</string>
+    <string name="widget_save">Сохранить</string>
+    <string name="widget_all_notes">Заметки</string>
+    <string name="widget_all_categories">Все категории</string>
+    <string name="widget_uncategorized">Без категории</string>
+    <string name="widget_no_notes">Нет заметок</string>
+    <string name="widget_note_unavailable">Заметка недоступна</string>
+    <string name="widget_create_note">Создать заметку</string>
+    <string name="widget_take_picture">Сфотографировать как заметку</string>
+    <string name="widget_picture_failed">Не удалось создать заметку из снимка</string>
+    <string name="widget_camera_unavailable">Нет приложения камеры</string>
+    <string name="note_label">Заметка</string>
+    <string name="share_to_new_note">Новая заметка</string>
+</resources>

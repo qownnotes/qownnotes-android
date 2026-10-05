@@ -3959,7 +3959,9 @@ private fun NoteDetailScreen(
                             Text(
                                 stringResource(
                                     R.string.conflict_merge_unavailable,
-                                    mergeResult.conflicts.joinToString {
+                                    mergeResult.conflicts.joinToString(
+                                        stringResource(R.string.list_separator)
+                                    ) {
                                         fieldNames.getValue(it)
                                     }
                                 ),
