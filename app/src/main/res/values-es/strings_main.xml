@@ -50,11 +50,7 @@
     <string name="sort_option_latest_first">Más recientes primero</string>
     <string name="sort_option_title_ascending">Título A-Z</string>
     <string name="sort_option_title_descending">Título Z-A</string>
-    <string name="category_undefined">Categoría: sin definir</string>
-    <string name="category_all">Categoría: todas</string>
-    <string name="category_named">Categoría: %1$s</string>
     <string name="category_option_undefined">Sin definir</string>
-    <string name="category_option_all">Todas las categorías</string>
     <string name="bookmarks">Marcadores</string>
     <string name="trash">Papelera</string>
     <string name="about">Acerca de</string>

@@ -72,6 +72,8 @@ class NextcloudBackend(context: Context) :
     override val capabilities =
         BackendCapabilities(
             categories = true,
+            // The server derives categories from the path below the notes root at any depth.
+            nestedCategories = true,
             favorites = true,
             attachments = true,
             readOnlyNotes = true

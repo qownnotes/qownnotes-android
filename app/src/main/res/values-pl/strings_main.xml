@@ -51,11 +51,7 @@
     <string name="sort_option_latest_first">Najnowsze najpierw</string>
     <string name="sort_option_title_ascending">Tytuł A–Z</string>
     <string name="sort_option_title_descending">Tytuł Z–A</string>
-    <string name="category_undefined">Kategoria: nieokreślona</string>
-    <string name="category_all">Kategoria: wszystkie</string>
-    <string name="category_named">Kategoria: %1$s</string>
     <string name="category_option_undefined">Nieokreślona</string>
-    <string name="category_option_all">Wszystkie kategorie</string>
     <string name="bookmarks">Zakładki</string>
     <string name="trash">Kosz</string>
     <string name="about">O aplikacji</string>

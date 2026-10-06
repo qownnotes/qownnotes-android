@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Note folder navigation -->
+    <string name="folders_title">Pastas</string>
+    <string name="folders_open">Mostrar pastas</string>
+    <string name="folders_root">Pasta raiz</string>
+    <string name="folders_show_subfolders">Mostrar notas das subpastas</string>
+    <string name="folders_expand">Expandir %1$s</string>
+    <string name="folders_collapse">Recolher %1$s</string>
+    <string name="folders_menu_label">Pasta: %1$s</string>
+    <string name="search_all_folders">Pesquisar em todas as pastas</string>
+</resources>

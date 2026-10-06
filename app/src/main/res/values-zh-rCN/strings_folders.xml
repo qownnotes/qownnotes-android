@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Note folder navigation -->
+    <string name="folders_title">文件夹</string>
+    <string name="folders_open">显示文件夹</string>
+    <string name="folders_root">根文件夹</string>
+    <string name="folders_show_subfolders">显示子文件夹中的笔记</string>
+    <string name="folders_expand">展开 %1$s</string>
+    <string name="folders_collapse">折叠 %1$s</string>
+    <string name="folders_menu_label">文件夹：%1$s</string>
+    <string name="search_all_folders">搜索所有文件夹</string>
+</resources>

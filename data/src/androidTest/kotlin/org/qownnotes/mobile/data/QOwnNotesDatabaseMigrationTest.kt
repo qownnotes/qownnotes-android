@@ -307,6 +307,23 @@ class QOwnNotesDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationEightToNineIndexesFoldersAndPreservesNotes() {
+        helper.createDatabase(DATABASE_NAME, 8).use { database ->
+            insertVersionSixConflict(database)
+        }
+
+        helper.runMigrationsAndValidate(DATABASE_NAME, 9, true, MIGRATION_8_9).use { database ->
+            assertConflictSnapshotPreserved(database)
+            database.query("PRAGMA index_info('index_notes_accountId_category')").use { cursor ->
+                val columns = buildList {
+                    while (cursor.moveToNext()) add(cursor.string("name"))
+                }
+                assertEquals(listOf("accountId", "category"), columns)
+            }
+        }
+    }
+
     private fun insertVersionSixConflict(database: androidx.sqlite.db.SupportSQLiteDatabase) {
         insertAccountAndNote(database)
         insertConflict(database, includeBase = false)

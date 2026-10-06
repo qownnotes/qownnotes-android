@@ -38,6 +38,7 @@ import org.qownnotes.mobile.data.MIGRATION_4_5
 import org.qownnotes.mobile.data.MIGRATION_5_6
 import org.qownnotes.mobile.data.MIGRATION_6_7
 import org.qownnotes.mobile.data.MIGRATION_7_8
+import org.qownnotes.mobile.data.MIGRATION_8_9
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 
 class TestQOwnNotesApplication : QOwnNotesApplication() {
@@ -55,7 +56,8 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
                     MIGRATION_4_5,
                     MIGRATION_5_6,
                     MIGRATION_6_7,
-                    MIGRATION_7_8
+                    MIGRATION_7_8,
+                    MIGRATION_8_9
                 )
                 .addCallback(QOwnNotesDatabase.CALLBACK)
                 .allowMainThreadQueries()
@@ -186,7 +188,12 @@ class FakePullBackend :
     org.qownnotes.mobile.core.NoteTagFileBackend,
     NoteDeckBackend {
     override val capabilities =
-        BackendCapabilities(categories = true, favorites = true, readOnlyNotes = true)
+        BackendCapabilities(
+            categories = true,
+            nestedCategories = true,
+            favorites = true,
+            readOnlyNotes = true
+        )
     private val pulls = mutableMapOf<String, ArrayDeque<Result<PullResult>>>()
     val checkpoints = mutableListOf<Pair<String, PullCheckpoint>>()
     val validatedAccountIds = mutableListOf<String>()

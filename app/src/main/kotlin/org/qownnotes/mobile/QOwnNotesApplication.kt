@@ -72,6 +72,7 @@ import org.qownnotes.mobile.data.MIGRATION_4_5
 import org.qownnotes.mobile.data.MIGRATION_5_6
 import org.qownnotes.mobile.data.MIGRATION_6_7
 import org.qownnotes.mobile.data.MIGRATION_7_8
+import org.qownnotes.mobile.data.MIGRATION_8_9
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 import org.qownnotes.mobile.data.RoomAccountRepository
 import org.qownnotes.mobile.data.RoomNoteRepository
@@ -115,7 +116,8 @@ class ApplicationComponent(
                 MIGRATION_4_5,
                 MIGRATION_5_6,
                 MIGRATION_6_7,
-                MIGRATION_7_8
+                MIGRATION_7_8,
+                MIGRATION_8_9
             )
             .addCallback(QOwnNotesDatabase.CALLBACK)
             .build(),
@@ -321,7 +323,7 @@ class ApplicationComponent(
             editorDrafts.remove(localNoteIds)
             localNoteIds.forEach(editReservations::remove)
             settings.removeShowCategory(accountId)
-            settings.removeNoteCategoryScope(accountId)
+            settings.removeNoteFolderScope(accountId)
             settings.removeBookmarksPath(accountId)
             settings.removeNextcloudDeck(accountId)
             deckChecks.remove(accountId)
@@ -837,6 +839,10 @@ class ApplicationComponent(
             refreshLocked(accountId, propagateFailure = true)
         }
     }
+
+    /** Whether categories nest, so the note list can offer a folder tree. */
+    val nestedFolders: Boolean
+        get() = backend.capabilities.nestedCategories
 
     /** Whether the account backend can create Nextcloud Deck cards at all. */
     val supportsNextcloudDeck: Boolean

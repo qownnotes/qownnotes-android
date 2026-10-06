@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.qownnotes.mobile.core.DEFAULT_BOOKMARKS_PATH
 import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.NoteCategoryScope
+import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.markdown.NoteTextSize
 
 /**
@@ -176,22 +177,47 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         editor.apply()
     }
 
-    fun noteCategoryScope(accountId: String): NoteCategoryScope = NoteCategoryScopeCodec.decode(
-        preferences.getString("$NOTE_CATEGORY_SCOPE_PREFIX$accountId", null),
-        default = NoteCategoryScope.Undefined
-    )
+    /**
+     * The folder the note list shows. The path keeps the key of the earlier flat category selector,
+     * whose stored choices therefore keep showing the same notes, and the subfolder choice is
+     * stored beside it once the reader makes one.
+     */
+    fun noteFolderScope(accountId: String): NoteFolderScope {
+        val subfoldersKey = "$NOTE_FOLDER_SUBFOLDERS_PREFIX$accountId"
+        return NoteFolderScope.fromCategoryScope(
+            NoteCategoryScopeCodec.decode(
+                preferences.getString("$NOTE_CATEGORY_SCOPE_PREFIX$accountId", null),
+                default = NoteCategoryScope.Undefined
+            ),
+            includeSubfolders = if (preferences.contains(subfoldersKey)) {
+                preferences.getBoolean(subfoldersKey, false)
+            } else {
+                null
+            }
+        )
+    }
 
-    fun setNoteCategoryScope(accountId: String, scope: NoteCategoryScope) {
+    fun setNoteFolderScope(accountId: String, scope: NoteFolderScope) {
         preferences.edit()
             .putString(
                 "$NOTE_CATEGORY_SCOPE_PREFIX$accountId",
-                NoteCategoryScopeCodec.encode(scope)
+                NoteCategoryScopeCodec.encode(
+                    if (scope.isRoot) {
+                        NoteCategoryScope.Undefined
+                    } else {
+                        NoteCategoryScope.Category(scope.path)
+                    }
+                )
             )
+            .putBoolean("$NOTE_FOLDER_SUBFOLDERS_PREFIX$accountId", scope.includeSubfolders)
             .apply()
     }
 
-    fun removeNoteCategoryScope(accountId: String) {
-        preferences.edit().remove("$NOTE_CATEGORY_SCOPE_PREFIX$accountId").apply()
+    fun removeNoteFolderScope(accountId: String) {
+        preferences.edit()
+            .remove("$NOTE_CATEGORY_SCOPE_PREFIX$accountId")
+            .remove("$NOTE_FOLDER_SUBFOLDERS_PREFIX$accountId")
+            .apply()
     }
 
     /** Relative Markdown path of the bookmarks note for this account. */
@@ -291,6 +317,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val SHOW_CATEGORY = "showCategory"
         const val SHOW_CATEGORY_PREFIX = "showCategory."
         const val NOTE_CATEGORY_SCOPE_PREFIX = "noteCategoryScope."
+        const val NOTE_FOLDER_SUBFOLDERS_PREFIX = "noteFolderSubfolders."
         const val BOOKMARKS_PATH_PREFIX = "bookmarksPath."
         const val NEXTCLOUD_DECK_AVAILABLE_PREFIX = "nextcloudDeckAvailable."
         const val NEXTCLOUD_DECK_BOARD_PREFIX = "nextcloudDeckBoardId."

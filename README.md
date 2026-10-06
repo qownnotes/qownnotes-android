@@ -26,7 +26,8 @@ The initial F-Droid submission merge request is [fdroiddata!48269](https://gitla
 - Browse and restore server note versions and remotely trashed notes when the Nextcloud
   QOwnNotesAPI app is installed.
 - Favorite notes with a star and keep them above other notes, including while offline.
-- Filter notes by Nextcloud category, with per-account selections that remain available offline.
+- Browse nested Nextcloud categories as a folder tree with note counts and an optional
+  subfolder view, with per-account selections and folder-scoped search that work offline.
 - Browse and search QOwnNotes-style bookmarks from an account-specific Markdown note, with
   `Bookmarks.md` used by default and optional tag filtering.
 - Create a note from text shared by another Android application.

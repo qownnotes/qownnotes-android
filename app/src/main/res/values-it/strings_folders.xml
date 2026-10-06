@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Note folder navigation -->
+    <string name="folders_title">Cartelle</string>
+    <string name="folders_open">Mostra cartelle</string>
+    <string name="folders_root">Cartella principale</string>
+    <string name="folders_show_subfolders">Mostra note dalle sottocartelle</string>
+    <string name="folders_expand">Espandi %1$s</string>
+    <string name="folders_collapse">Comprimi %1$s</string>
+    <string name="folders_menu_label">Cartella: %1$s</string>
+    <string name="search_all_folders">Cerca in tutte le cartelle</string>
+</resources>

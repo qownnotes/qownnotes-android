@@ -20,7 +20,11 @@ interface NoteRepository {
         accountId: String,
         query: String,
         scope: NoteSearchScope,
-        sortOrder: NoteSortOrder
+        sortOrder: NoteSortOrder,
+        /** Limits the result to a folder; `null` searches the whole account. */
+        folder: NoteFolderScope? = null,
+        /** Whether folders nest, as reported by [BackendCapabilities.nestedCategories]. */
+        nestedFolders: Boolean = true
     ): Flow<List<NoteListItem>>
 
     fun observeNote(localId: String): Flow<Note?>
@@ -175,6 +179,8 @@ interface PushStore {
 
 data class BackendCapabilities(
     val categories: Boolean = false,
+    /** Whether a `/` in a category nests folders, so screens may show a folder tree. */
+    val nestedCategories: Boolean = false,
     val favorites: Boolean = false,
     val attachments: Boolean = false,
     val readOnlyNotes: Boolean = false

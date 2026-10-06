@@ -51,11 +51,7 @@
     <string name="sort_option_latest_first">Сначала новые</string>
     <string name="sort_option_title_ascending">Название А–Я</string>
     <string name="sort_option_title_descending">Название Я–А</string>
-    <string name="category_undefined">Категория: не задана</string>
-    <string name="category_all">Категория: все</string>
-    <string name="category_named">Категория: %1$s</string>
     <string name="category_option_undefined">Не задана</string>
-    <string name="category_option_all">Все категории</string>
     <string name="bookmarks">Закладки</string>
     <string name="trash">Корзина</string>
     <string name="about">О приложении</string>

@@ -12,8 +12,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The app is translated into German, Chinese (Simplified), Russian, Italian, Portuguese (Brazil),
   Polish, French, and Spanish. It follows the system language, and on Android 13 or newer the
   language can also be chosen per app in the system settings.
+- Nested Nextcloud categories are shown as a folder tree in a drawer, opened from the folder button
+  or the note-list menu. Each folder shows its note count, folders can be expanded and collapsed,
+  and a per-account **Show notes from subfolders** switch decides whether a folder also lists the
+  notes below it, as in QOwnNotes desktop. The previous **Undefined** and **All categories**
+  choices are the root folder without and with subfolders.
+- Search stays within the listed folder and, in title and content mode, also matches categories.
+  **Search all folders** in the search filter widens a search to the whole account.
 
 ### Changed
+
+- The **Change category** dialog lists folders as an indented tree, including parent folders that
+  contain no notes of their own.
 
 - Note-list widgets follow the app's note-list settings: "Show note preview", "Show category"
   for the widget's account, and "Highlight categories" with its color, in addition to "Compact

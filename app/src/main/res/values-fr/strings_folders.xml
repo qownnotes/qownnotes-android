@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Note folder navigation -->
+    <string name="folders_title">Dossiers</string>
+    <string name="folders_open">Afficher les dossiers</string>
+    <string name="folders_root">Dossier racine</string>
+    <string name="folders_show_subfolders">Afficher les notes des sous-dossiers</string>
+    <string name="folders_expand">Développer %1$s</string>
+    <string name="folders_collapse">Réduire %1$s</string>
+    <string name="folders_menu_label">Dossier : %1$s</string>
+    <string name="search_all_folders">Rechercher dans tous les dossiers</string>
+</resources>

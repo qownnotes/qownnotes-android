@@ -36,7 +36,11 @@ data class AccountEntity(
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("accountId"), Index(value = ["accountId", "remoteId"], unique = true)]
+    indices = [
+        Index("accountId"),
+        Index(value = ["accountId", "remoteId"], unique = true),
+        Index(value = ["accountId", "category"])
+    ]
 )
 data class NoteEntity(
     @PrimaryKey val localId: String,

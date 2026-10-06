@@ -49,11 +49,7 @@
     <string name="sort_option_latest_first">Neueste zuerst</string>
     <string name="sort_option_title_ascending">Titel A–Z</string>
     <string name="sort_option_title_descending">Titel Z–A</string>
-    <string name="category_undefined">Kategorie: Keine</string>
-    <string name="category_all">Kategorie: Alle</string>
-    <string name="category_named">Kategorie: %1$s</string>
     <string name="category_option_undefined">Keine Kategorie</string>
-    <string name="category_option_all">Alle Kategorien</string>
     <string name="bookmarks">Lesezeichen</string>
     <string name="trash">Papierkorb</string>
     <string name="about">Über</string>

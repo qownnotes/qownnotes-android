@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Note folder navigation -->
+    <string name="folders_title">Ordner</string>
+    <string name="folders_open">Ordner anzeigen</string>
+    <string name="folders_root">Stammordner</string>
+    <string name="folders_show_subfolders">Notizen aus Unterordnern anzeigen</string>
+    <string name="folders_expand">%1$s aufklappen</string>
+    <string name="folders_collapse">%1$s zuklappen</string>
+    <string name="folders_menu_label">Ordner: %1$s</string>
+    <string name="search_all_folders">Alle Ordner durchsuchen</string>
+</resources>

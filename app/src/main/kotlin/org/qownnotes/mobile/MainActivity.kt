@@ -76,6 +76,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatListNumbered
@@ -97,6 +98,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -107,6 +109,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -119,6 +122,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -194,9 +198,11 @@ import org.qownnotes.mobile.BuildConfig
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteCategories
-import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteConflict
 import org.qownnotes.mobile.core.NoteExcerpt
+import org.qownnotes.mobile.core.NoteFolder
+import org.qownnotes.mobile.core.NoteFolderScope
+import org.qownnotes.mobile.core.NoteFolders
 import org.qownnotes.mobile.core.NoteListItem
 import org.qownnotes.mobile.core.NoteMergeField
 import org.qownnotes.mobile.core.NoteNames
@@ -913,11 +919,20 @@ private fun NoteListScreen(
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var noteListMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
-    var categoryMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var sortMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
-    var categoryScope by remember(accountId) {
-        mutableStateOf(component.settings.noteCategoryScope(accountId))
+    var folderScope by remember(accountId) {
+        mutableStateOf(component.settings.noteFolderScope(accountId))
     }
+    val nestedFolders = component.nestedFolders
+    // Expanded folder keys; the selected folder's ancestors start expanded so it is visible.
+    var expandedFolders by rememberSaveable(accountId) {
+        mutableStateOf(
+            NoteFolders.key(folderScope.path).split('/').dropLast(1)
+                .runningReduce { parent, segment -> "$parent/$segment" }
+        )
+    }
+    var searchAllFolders by rememberSaveable(accountId) { mutableStateOf(false) }
+    val folderDrawerState = rememberDrawerState(DrawerValue.Closed)
     var selectedNoteIds by rememberSaveable(accountId) { mutableStateOf(emptyList<String>()) }
     var trashState by remember(accountId) {
         mutableStateOf<ArchiveLoadState<TrashedNote>>(ArchiveLoadState.Idle)
@@ -930,11 +945,20 @@ private fun NoteListScreen(
             initialValue = null as List<NoteListItem>?,
             context = UiDispatcher
         )
-    val notesFlow = remember(accountId, query, searchScope, sortOrder) {
+    // Searching all folders only widens an actual search; the list itself stays in its folder.
+    val listedFolder = folderScope.takeUnless { searchAllFolders && query.isNotBlank() }
+    val notesFlow = remember(accountId, query, searchScope, sortOrder, listedFolder) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
         } else {
-            component.noteRepository.searchNotes(accountId, query, searchScope, sortOrder)
+            component.noteRepository.searchNotes(
+                accountId,
+                query,
+                searchScope,
+                sortOrder,
+                listedFolder,
+                nestedFolders
+            )
         }
     }
     val notes by notesFlow
@@ -991,7 +1015,9 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val bookmarksPathFlow = remember(accountId) { component.settings.bookmarksPath(accountId) }
     val bookmarksPath by bookmarksPathFlow.collectAsStateWithLifecycle(context = UiDispatcher)
-    val categories = remember(allNotes) { NoteCategories.selectable(allNotes.orEmpty()) }
+    val folderTree = remember(allNotes, nestedFolders) {
+        NoteFolders.tree(allNotes.orEmpty().map(NoteListItem::category), nestedFolders)
+    }
     val tagStateFlow = remember(accountId) { component.observeNoteTags(accountId) }
     val tagState by tagStateFlow.collectAsStateWithLifecycle(
         initialValue = NoteTagState(),
@@ -1006,16 +1032,13 @@ private fun NoteListScreen(
     }
     val tagFilterActive = tagFilter.isNotEmpty() &&
         tagState.availability == NoteTagAvailability.AVAILABLE
-    val visibleNotes = remember(notes, categoryScope, tagState, selectedTagIds, tagFilterActive) {
+    val visibleNotes = remember(notes, tagState, selectedTagIds, tagFilterActive) {
         notes?.filter { note ->
-            NoteCategories.matches(note.category, categoryScope) &&
-                (
-                    !tagFilterActive ||
-                        NoteTags.matches(
-                            tagState.tagIdsByNote[NoteTags.keyOf(note)].orEmpty(),
-                            selectedTagIds
-                        )
-                    )
+            !tagFilterActive ||
+                NoteTags.matches(
+                    tagState.tagIdsByNote[NoteTags.keyOf(note)].orEmpty(),
+                    selectedTagIds
+                )
         }
     }
     val noteListState = key(accountId) { rememberLazyListState() }
@@ -1044,8 +1067,7 @@ private fun NoteListScreen(
         }
     }
     val createNamedNote = { name: String? ->
-        val category = (categoryScope as? NoteCategoryScope.Category)?.value.orEmpty()
-        onCreate(accountId, category, name)
+        onCreate(accountId, folderScope.path, name)
     }
     val createNote = {
         val searchName = query.takeIf(NoteNames::isValid)
@@ -1059,13 +1081,14 @@ private fun NoteListScreen(
     }
 
     LaunchedEffect(accountId) { withContext(UiDispatcher) { component.refresh(accountId) } }
-    LaunchedEffect(allNotes, categories, categoryScope) {
+    val selectFolderScope = { selected: NoteFolderScope ->
+        folderScope = selected
+        component.settings.setNoteFolderScope(accountId, selected)
+    }
+    LaunchedEffect(allNotes, folderTree, folderScope) {
         allNotes ?: return@LaunchedEffect
-        val selected = categoryScope as? NoteCategoryScope.Category ?: return@LaunchedEffect
-        if (categories.none { it.equals(selected.value, ignoreCase = true) }) {
-            categoryScope = NoteCategoryScope.Undefined
-            component.settings.setNoteCategoryScope(accountId, categoryScope)
-        }
+        // A folder exists only while it holds notes, so a remembered one may have disappeared.
+        if (!folderTree.contains(folderScope.path)) selectFolderScope(folderScope.copy(path = ""))
     }
     LaunchedEffect(tagState) {
         // Forget selected tags that no longer exist, so the list cannot stay filtered to nothing.
@@ -1084,568 +1107,610 @@ private fun NoteListScreen(
         selectedNoteIds = emptyList()
     }
     BackHandler(enabled = searchFocused && !selectionActive) { leaveSearch() }
+    BackHandler(enabled = folderDrawerState.isOpen) { scope.launch { folderDrawerState.close() } }
 
-    Scaffold(
-        floatingActionButton = {
-            if (
-                !selectionActive &&
-                (!hideCreateButtonOnScroll || createButtonVisible)
-            ) {
-                if (NoteNames.isValid(query)) {
-                    ExtendedFloatingActionButton(
-                        onClick = createNote,
-                        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                        text = { Text(stringResource(R.string.action_create_from_search)) },
-                        modifier = Modifier.testTag("create-note-from-search")
-                    )
-                } else {
-                    FloatingActionButton(
-                        onClick = createNote,
-                        modifier = Modifier.testTag("create-note")
-                    ) {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = stringResource(R.string.action_new_note)
+    ModalNavigationDrawer(
+        drawerState = folderDrawerState,
+        // Opening is left to the buttons, since a swipe from the edge competes with the swipe
+        // actions of the note rows.
+        gesturesEnabled = folderDrawerState.isOpen,
+        drawerContent = {
+            NoteFolderDrawerSheet(
+                accountName = account.displayName,
+                tree = folderTree,
+                scope = folderScope,
+                nested = nestedFolders,
+                expanded = expandedFolders.toSet(),
+                onToggleExpanded = { folder ->
+                    val key = NoteFolders.key(folder.path)
+                    expandedFolders = if (key in expandedFolders) {
+                        expandedFolders - key
+                    } else {
+                        expandedFolders + key
+                    }
+                },
+                onSelect = { path ->
+                    selectFolderScope(folderScope.copy(path = path))
+                    scope.launch { folderDrawerState.close() }
+                },
+                onIncludeSubfoldersChange = { include ->
+                    selectFolderScope(folderScope.copy(includeSubfolders = include))
+                },
+                visible = folderDrawerState.isOpen ||
+                    folderDrawerState.targetValue == DrawerValue.Open
+            )
+        }
+    ) {
+        Scaffold(
+            floatingActionButton = {
+                if (
+                    !selectionActive &&
+                    (!hideCreateButtonOnScroll || createButtonVisible)
+                ) {
+                    if (NoteNames.isValid(query)) {
+                        ExtendedFloatingActionButton(
+                            onClick = createNote,
+                            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                            text = { Text(stringResource(R.string.action_create_from_search)) },
+                            modifier = Modifier.testTag("create-note-from-search")
                         )
+                    } else {
+                        FloatingActionButton(
+                            onClick = createNote,
+                            modifier = Modifier.testTag("create-note")
+                        ) {
+                            Icon(
+                                Icons.Filled.Add,
+                                contentDescription = stringResource(R.string.action_new_note)
+                            )
+                        }
                     }
                 }
-            }
-        },
-        topBar = {
-            Column(modifier = Modifier.background(headerContainer)) {
-                TopAppBar(
-                    colors = if (headerContent == null) {
-                        TopAppBarDefaults.topAppBarColors()
-                    } else {
-                        TopAppBarDefaults.topAppBarColors(
-                            containerColor = headerContainer,
-                            scrolledContainerColor = headerContainer,
-                            navigationIconContentColor = headerContent,
-                            titleContentColor = headerContent,
-                            actionIconContentColor = headerContent
-                        )
-                    },
-                    navigationIcon = {
-                        if (selectionActive) {
-                            IconButton(
-                                onClick = { selectedNoteIds = emptyList() },
-                                modifier = Modifier.testTag("clear-note-selection")
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(
-                                        R.string.action_clear_selection
-                                    )
-                                )
-                            }
-                        } else if (searchFocused) {
-                            IconButton(
-                                onClick = leaveSearch,
-                                modifier = Modifier.testTag("close-note-search")
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(
-                                        R.string.action_close_search
-                                    )
-                                )
-                            }
+            },
+            topBar = {
+                Column(modifier = Modifier.background(headerContainer)) {
+                    TopAppBar(
+                        colors = if (headerContent == null) {
+                            TopAppBarDefaults.topAppBarColors()
                         } else {
-                            Box {
+                            TopAppBarDefaults.topAppBarColors(
+                                containerColor = headerContainer,
+                                scrolledContainerColor = headerContainer,
+                                navigationIconContentColor = headerContent,
+                                titleContentColor = headerContent,
+                                actionIconContentColor = headerContent
+                            )
+                        },
+                        navigationIcon = {
+                            if (selectionActive) {
                                 IconButton(
-                                    onClick = { accountMenuOpen = true },
-                                    modifier = Modifier.testTag("account-menu")
+                                    onClick = { selectedNoteIds = emptyList() },
+                                    modifier = Modifier.testTag("clear-note-selection")
                                 ) {
-                                    AccountAvatar(component, account)
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = stringResource(
+                                            R.string.action_clear_selection
+                                        )
+                                    )
                                 }
-                                DropdownMenu(
-                                    expanded = accountMenuOpen,
-                                    onDismissRequest = { accountMenuOpen = false }
+                            } else if (searchFocused) {
+                                IconButton(
+                                    onClick = leaveSearch,
+                                    modifier = Modifier.testTag("close-note-search")
                                 ) {
-                                    accounts.forEach { choice ->
-                                        val current = choice.id == accountId
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = stringResource(
+                                            R.string.action_close_search
+                                        )
+                                    )
+                                }
+                            } else {
+                                Box {
+                                    IconButton(
+                                        onClick = { accountMenuOpen = true },
+                                        modifier = Modifier.testTag("account-menu")
+                                    ) {
+                                        AccountAvatar(component, account)
+                                    }
+                                    DropdownMenu(
+                                        expanded = accountMenuOpen,
+                                        onDismissRequest = { accountMenuOpen = false }
+                                    ) {
+                                        accounts.forEach { choice ->
+                                            val current = choice.id == accountId
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        choice.displayName,
+                                                        fontWeight = if (current) {
+                                                            FontWeight.Bold
+                                                        } else {
+                                                            null
+                                                        },
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                },
+                                                leadingIcon = {
+                                                    AccountAvatar(
+                                                        component,
+                                                        choice,
+                                                        Modifier.size(32.dp)
+                                                    )
+                                                },
+                                                trailingIcon = if (current) {
+                                                    {
+                                                        Icon(
+                                                            Icons.Filled.Check,
+                                                            contentDescription = stringResource(
+                                                                R.string.account_current
+                                                            )
+                                                        )
+                                                    }
+                                                } else {
+                                                    null
+                                                },
+                                                onClick = {
+                                                    accountMenuOpen = false
+                                                    if (!current) onSelectAccount(choice.id)
+                                                },
+                                                modifier = Modifier
+                                                    .semantics { selected = current }
+                                                    .testTag("account-choice-${choice.id}")
+                                            )
+                                        }
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                                .testTag("account-menu-divider")
+                                        )
                                         DropdownMenuItem(
                                             text = {
-                                                Text(
-                                                    choice.displayName,
-                                                    fontWeight = if (current) {
-                                                        FontWeight.Bold
-                                                    } else {
-                                                        null
-                                                    },
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
+                                                Text(stringResource(R.string.action_add_account))
                                             },
                                             leadingIcon = {
-                                                AccountAvatar(
-                                                    component,
-                                                    choice,
-                                                    Modifier.size(32.dp)
+                                                Icon(
+                                                    Icons.Filled.Add,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.testTag("add-account-icon")
                                                 )
-                                            },
-                                            trailingIcon = if (current) {
-                                                {
-                                                    Icon(
-                                                        Icons.Filled.Check,
-                                                        contentDescription = stringResource(
-                                                            R.string.account_current
-                                                        )
-                                                    )
-                                                }
-                                            } else {
-                                                null
                                             },
                                             onClick = {
                                                 accountMenuOpen = false
-                                                if (!current) onSelectAccount(choice.id)
+                                                onImportAccount()
                                             },
-                                            modifier = Modifier
-                                                .semantics { selected = current }
-                                                .testTag("account-choice-${choice.id}")
+                                            modifier = Modifier.testTag("add-account")
                                         )
-                                    }
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(vertical = 4.dp)
-                                            .testTag("account-menu-divider")
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.action_add_account))
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Filled.Add,
-                                                contentDescription = null,
-                                                modifier = Modifier.testTag("add-account-icon")
-                                            )
-                                        },
-                                        onClick = {
-                                            accountMenuOpen = false
-                                            onImportAccount()
-                                        },
-                                        modifier = Modifier.testTag("add-account")
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.manage_accounts)) },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Filled.Settings,
-                                                contentDescription = null,
-                                                modifier = Modifier.testTag("manage-accounts-icon")
-                                            )
-                                        },
-                                        onClick = {
-                                            accountMenuOpen = false
-                                            onManageAccounts()
-                                        },
-                                        modifier = Modifier.testTag("manage-accounts")
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    title = {
-                        if (selectionActive) {
-                            Text(
-                                pluralStringResource(
-                                    R.plurals.notes_selected,
-                                    selectedNoteIds.size,
-                                    selectedNoteIds.size
-                                )
-                            )
-                        } else {
-                            CompactSearchField(
-                                value = query,
-                                onValueChange = { query = it },
-                                onClear = { query = "" },
-                                searchScope = searchScope,
-                                onSearchScopeChange = { searchScope = it },
-                                // Only losing the focus closes search. Regaining it does not
-                                // reopen it, because hiding the input method hands the focus back
-                                // to the field, which would undo the reader leaving search.
-                                onFocusChange = { focused -> if (!focused) searchFocused = false },
-                                onPress = { searchFocused = true },
-                                contentColor = headerContent,
-                                modifier = Modifier.fillMaxWidth().testTag("note-search")
-                            )
-                        }
-                    },
-                    actions = {
-                        if (selectionActive) {
-                            Box {
-                                IconButton(
-                                    onClick = { selectionMenuOpen = true },
-                                    modifier = Modifier.testTag("note-selection-menu")
-                                ) {
-                                    Icon(
-                                        Icons.Filled.MoreVert,
-                                        contentDescription = stringResource(
-                                            R.string.selected_note_actions
-                                        )
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = selectionMenuOpen,
-                                    onDismissRequest = { selectionMenuOpen = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.action_move_to_trash))
-                                        },
-                                        onClick = {
-                                            val ids = selectedNoteIds
-                                            selectionMenuOpen = false
-                                            selectedNoteIds = emptyList()
-                                            scope.launch {
-                                                component.moveNotesToTrash(accountId, ids)
-                                            }
-                                        },
-                                        modifier = Modifier.testTag("move-notes-to-trash")
-                                    )
-                                }
-                            }
-                        } else if (!searchFocused) {
-                            Box {
-                                IconButton(
-                                    onClick = { noteListMenuOpen = true },
-                                    modifier = Modifier.testTag("note-list-menu")
-                                ) {
-                                    Icon(
-                                        Icons.Filled.MoreVert,
-                                        contentDescription = stringResource(R.string.note_actions)
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = noteListMenuOpen,
-                                    onDismissRequest = { noteListMenuOpen = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                when (sortOrder) {
-                                                    NoteSortOrder.LATEST_FIRST ->
-                                                        stringResource(R.string.sort_latest_first)
-                                                    NoteSortOrder.TITLE_ASCENDING ->
-                                                        stringResource(
-                                                            R.string.sort_title_ascending
-                                                        )
-                                                    NoteSortOrder.TITLE_DESCENDING ->
-                                                        stringResource(
-                                                            R.string.sort_title_descending
-                                                        )
-                                                }
-                                            )
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.AutoMirrored.Filled.Sort,
-                                                contentDescription = null
-                                            )
-                                        },
-                                        onClick = {
-                                            noteListMenuOpen = false
-                                            sortMenuOpen = true
-                                        },
-                                        modifier = Modifier.testTag("sort-selector")
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                when (val selected = categoryScope) {
-                                                    NoteCategoryScope.Undefined ->
-                                                        stringResource(R.string.category_undefined)
-                                                    NoteCategoryScope.All ->
-                                                        stringResource(R.string.category_all)
-                                                    is NoteCategoryScope.Category ->
-                                                        stringResource(
-                                                            R.string.category_named,
-                                                            selected.value
-                                                        )
-                                                }
-                                            )
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Filled.KeyboardArrowDown,
-                                                contentDescription = null
-                                            )
-                                        },
-                                        onClick = {
-                                            noteListMenuOpen = false
-                                            categoryMenuOpen = true
-                                        },
-                                        modifier = Modifier.testTag("category-selector")
-                                    )
-                                    if (tagState.availability == NoteTagAvailability.AVAILABLE) {
                                         DropdownMenuItem(
-                                            text = { Text(tagFilterLabel(tagState, tagFilter)) },
+                                            text = {
+                                                Text(stringResource(R.string.manage_accounts))
+                                            },
                                             leadingIcon = {
                                                 Icon(
-                                                    Icons.Filled.FilterList,
+                                                    Icons.Filled.Settings,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.testTag(
+                                                        "manage-accounts-icon"
+                                                    )
+                                                )
+                                            },
+                                            onClick = {
+                                                accountMenuOpen = false
+                                                onManageAccounts()
+                                            },
+                                            modifier = Modifier.testTag("manage-accounts")
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        title = {
+                            if (selectionActive) {
+                                Text(
+                                    pluralStringResource(
+                                        R.plurals.notes_selected,
+                                        selectedNoteIds.size,
+                                        selectedNoteIds.size
+                                    )
+                                )
+                            } else {
+                                CompactSearchField(
+                                    value = query,
+                                    onValueChange = { query = it },
+                                    onClear = { query = "" },
+                                    searchScope = searchScope,
+                                    onSearchScopeChange = { searchScope = it },
+                                    searchAllFolders = searchAllFolders,
+                                    onSearchAllFoldersChange = { searchAllFolders = it },
+                                    // Only losing the focus closes search. Regaining it does
+                                    // not reopen it, because hiding the input method hands the
+                                    // focus back to the field, which would undo the reader
+                                    // leaving search.
+                                    onFocusChange = { focused ->
+                                        if (!focused) searchFocused = false
+                                    },
+                                    onPress = { searchFocused = true },
+                                    contentColor = headerContent,
+                                    modifier = Modifier.fillMaxWidth().testTag("note-search")
+                                )
+                            }
+                        },
+                        actions = {
+                            if (selectionActive) {
+                                Box {
+                                    IconButton(
+                                        onClick = { selectionMenuOpen = true },
+                                        modifier = Modifier.testTag("note-selection-menu")
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.MoreVert,
+                                            contentDescription = stringResource(
+                                                R.string.selected_note_actions
+                                            )
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = selectionMenuOpen,
+                                        onDismissRequest = { selectionMenuOpen = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.action_move_to_trash))
+                                            },
+                                            onClick = {
+                                                val ids = selectedNoteIds
+                                                selectionMenuOpen = false
+                                                selectedNoteIds = emptyList()
+                                                scope.launch {
+                                                    component.moveNotesToTrash(accountId, ids)
+                                                }
+                                            },
+                                            modifier = Modifier.testTag("move-notes-to-trash")
+                                        )
+                                    }
+                                }
+                            } else if (!searchFocused) {
+                                IconButton(
+                                    onClick = { scope.launch { folderDrawerState.open() } },
+                                    modifier = Modifier.testTag("folder-navigation")
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Folder,
+                                        contentDescription = stringResource(R.string.folders_open)
+                                    )
+                                }
+                                Box {
+                                    IconButton(
+                                        onClick = { noteListMenuOpen = true },
+                                        modifier = Modifier.testTag("note-list-menu")
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.MoreVert,
+                                            contentDescription = stringResource(
+                                                R.string.note_actions
+                                            )
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = noteListMenuOpen,
+                                        onDismissRequest = { noteListMenuOpen = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    when (sortOrder) {
+                                                        NoteSortOrder.LATEST_FIRST ->
+                                                            stringResource(
+                                                                R.string.sort_latest_first
+                                                            )
+                                                        NoteSortOrder.TITLE_ASCENDING ->
+                                                            stringResource(
+                                                                R.string.sort_title_ascending
+                                                            )
+                                                        NoteSortOrder.TITLE_DESCENDING ->
+                                                            stringResource(
+                                                                R.string.sort_title_descending
+                                                            )
+                                                    }
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.Sort,
                                                     contentDescription = null
                                                 )
                                             },
                                             onClick = {
                                                 noteListMenuOpen = false
-                                                tagFilterOpen = true
+                                                sortMenuOpen = true
                                             },
-                                            modifier = Modifier.testTag("tag-filter-selector")
+                                            modifier = Modifier.testTag("sort-selector")
                                         )
-                                    }
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.bookmarks)) },
-                                        leadingIcon = {
-                                            Icon(Icons.Filled.Bookmarks, contentDescription = null)
-                                        },
-                                        onClick = {
-                                            noteListMenuOpen = false
-                                            onOpenBookmarks()
-                                        },
-                                        modifier = Modifier.testTag("bookmarks-menu")
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.trash)) },
-                                        leadingIcon = {
-                                            Icon(Icons.Filled.Delete, contentDescription = null)
-                                        },
-                                        onClick = {
-                                            noteListMenuOpen = false
-                                            val requestId = ++trashRequestId
-                                            trashState = ArchiveLoadState.Loading
-                                            scope.launch {
-                                                val result = runCatching {
-                                                    component.trashedNotes(
-                                                        accountId,
-                                                        allNotes.orEmpty().mapTo(mutableSetOf()) {
-                                                            it.category
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    NoteFolderLabels.menu(
+                                                        LocalContext.current,
+                                                        folderScope
+                                                    )
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.Folder, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                noteListMenuOpen = false
+                                                scope.launch { folderDrawerState.open() }
+                                            },
+                                            modifier = Modifier.testTag("category-selector")
+                                        )
+                                        if (tagState.availability ==
+                                            NoteTagAvailability.AVAILABLE
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(tagFilterLabel(tagState, tagFilter))
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        Icons.Filled.FilterList,
+                                                        contentDescription = null
+                                                    )
+                                                },
+                                                onClick = {
+                                                    noteListMenuOpen = false
+                                                    tagFilterOpen = true
+                                                },
+                                                modifier = Modifier.testTag("tag-filter-selector")
+                                            )
+                                        }
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.bookmarks)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.Bookmarks,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                noteListMenuOpen = false
+                                                onOpenBookmarks()
+                                            },
+                                            modifier = Modifier.testTag("bookmarks-menu")
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.trash)) },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.Delete, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                noteListMenuOpen = false
+                                                val requestId = ++trashRequestId
+                                                trashState = ArchiveLoadState.Loading
+                                                scope.launch {
+                                                    val result = runCatching {
+                                                        component.trashedNotes(
+                                                            accountId,
+                                                            allNotes.orEmpty().mapTo(
+                                                                mutableSetOf()
+                                                            ) {
+                                                                it.category
+                                                            }
+                                                        )
+                                                    }.fold(
+                                                        onSuccess = { ArchiveLoadState.Loaded(it) },
+                                                        onFailure = {
+                                                            ArchiveLoadState.Failed(
+                                                                it.message
+                                                                    ?: trashLoadFailedMessage
+                                                            )
                                                         }
                                                     )
-                                                }.fold(
-                                                    onSuccess = { ArchiveLoadState.Loaded(it) },
-                                                    onFailure = {
-                                                        ArchiveLoadState.Failed(
-                                                            it.message
-                                                                ?: trashLoadFailedMessage
-                                                        )
+                                                    if (trashRequestId ==
+                                                        requestId
+                                                    ) {
+                                                        trashState = result
                                                     }
-                                                )
-                                                if (trashRequestId == requestId) trashState = result
-                                            }
-                                        },
-                                        modifier = Modifier.testTag("remote-trash")
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.settings_title)) },
-                                        leadingIcon = {
-                                            Icon(Icons.Filled.Settings, contentDescription = null)
-                                        },
-                                        onClick = {
-                                            noteListMenuOpen = false
-                                            showSettings = true
-                                        },
-                                        modifier = Modifier.testTag("settings")
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.about)) },
-                                        onClick = {
-                                            noteListMenuOpen = false
-                                            showAbout = true
-                                        },
-                                        modifier = Modifier.testTag("about")
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = sortMenuOpen,
-                                    onDismissRequest = { sortMenuOpen = false }
-                                ) {
-                                    fun select(order: NoteSortOrder) {
-                                        sortOrder = order
-                                        sortMenuOpen = false
-                                    }
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.sort_option_latest_first))
-                                        },
-                                        leadingIcon = {
-                                            RadioButton(
-                                                selected = sortOrder == NoteSortOrder.LATEST_FIRST,
-                                                onClick = null
-                                            )
-                                        },
-                                        onClick = { select(NoteSortOrder.LATEST_FIRST) },
-                                        modifier = Modifier.testTag("sort-option-latest")
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                stringResource(R.string.sort_option_title_ascending)
-                                            )
-                                        },
-                                        leadingIcon = {
-                                            RadioButton(
-                                                selected =
-                                                sortOrder == NoteSortOrder.TITLE_ASCENDING,
-                                                onClick = null
-                                            )
-                                        },
-                                        onClick = { select(NoteSortOrder.TITLE_ASCENDING) },
-                                        modifier = Modifier.testTag("sort-option-title-ascending")
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                stringResource(
-                                                    R.string.sort_option_title_descending
-                                                )
-                                            )
-                                        },
-                                        leadingIcon = {
-                                            RadioButton(
-                                                selected =
-                                                sortOrder == NoteSortOrder.TITLE_DESCENDING,
-                                                onClick = null
-                                            )
-                                        },
-                                        onClick = { select(NoteSortOrder.TITLE_DESCENDING) },
-                                        modifier = Modifier.testTag("sort-option-title-descending")
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = categoryMenuOpen,
-                                    onDismissRequest = { categoryMenuOpen = false }
-                                ) {
-                                    fun select(scope: NoteCategoryScope) {
-                                        categoryScope = scope
-                                        component.settings.setNoteCategoryScope(accountId, scope)
-                                        categoryMenuOpen = false
-                                    }
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.category_option_undefined))
-                                        },
-                                        onClick = { select(NoteCategoryScope.Undefined) },
-                                        modifier = Modifier.testTag("category-option-undefined")
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.category_option_all))
-                                        },
-                                        onClick = { select(NoteCategoryScope.All) },
-                                        modifier = Modifier.testTag("category-option-all")
-                                    )
-                                    categories.forEach { category ->
-                                        DropdownMenuItem(
-                                            text = { Text(category) },
-                                            onClick = {
-                                                select(NoteCategoryScope.Category(category))
+                                                }
                                             },
-                                            modifier = Modifier.testTag("category-option-$category")
+                                            modifier = Modifier.testTag("remote-trash")
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.settings_title))
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.Settings,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                noteListMenuOpen = false
+                                                showSettings = true
+                                            },
+                                            modifier = Modifier.testTag("settings")
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.about)) },
+                                            onClick = {
+                                                noteListMenuOpen = false
+                                                showAbout = true
+                                            },
+                                            modifier = Modifier.testTag("about")
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = sortMenuOpen,
+                                        onDismissRequest = { sortMenuOpen = false }
+                                    ) {
+                                        fun select(order: NoteSortOrder) {
+                                            sortOrder = order
+                                            sortMenuOpen = false
+                                        }
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    stringResource(
+                                                        R.string.sort_option_latest_first
+                                                    )
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                RadioButton(
+                                                    selected =
+                                                    sortOrder == NoteSortOrder.LATEST_FIRST,
+                                                    onClick = null
+                                                )
+                                            },
+                                            onClick = { select(NoteSortOrder.LATEST_FIRST) },
+                                            modifier = Modifier.testTag("sort-option-latest")
+                                        )
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    stringResource(
+                                                        R.string.sort_option_title_ascending
+                                                    )
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                RadioButton(
+                                                    selected =
+                                                    sortOrder == NoteSortOrder.TITLE_ASCENDING,
+                                                    onClick = null
+                                                )
+                                            },
+                                            onClick = { select(NoteSortOrder.TITLE_ASCENDING) },
+                                            modifier = Modifier.testTag(
+                                                "sort-option-title-ascending"
+                                            )
+                                        )
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    stringResource(
+                                                        R.string.sort_option_title_descending
+                                                    )
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                RadioButton(
+                                                    selected =
+                                                    sortOrder == NoteSortOrder.TITLE_DESCENDING,
+                                                    onClick = null
+                                                )
+                                            },
+                                            onClick = { select(NoteSortOrder.TITLE_DESCENDING) },
+                                            modifier = Modifier.testTag(
+                                                "sort-option-title-descending"
+                                            )
                                         )
                                     }
                                 }
                             }
                         }
-                    }
-                )
-                if (appearance.showListHeader) {
-                    NoteListHeader(
-                        title = NoteListWidgetHeader.title(LocalContext.current, categoryScope),
-                        accountName = account.displayName,
-                        contentColor = headerContent ?: MaterialTheme.colorScheme.onSurface,
-                        secondaryColor =
-                        headerSecondary ?: MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (appearance.showListHeader) {
+                        NoteListHeader(
+                            title = NoteFolderLabels.title(LocalContext.current, folderScope),
+                            accountName = account.displayName,
+                            contentColor = headerContent ?: MaterialTheme.colorScheme.onSurface,
+                            secondaryColor =
+                            headerSecondary ?: MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
-        }
-    ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = syncState is SyncUiState.Refreshing,
-            onRefresh = { scope.launch { component.refresh(accountId) } },
-            modifier = Modifier.fillMaxSize().padding(padding).testTag("pull-to-refresh")
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                SyncStatus(syncState, reconnect = { onReconnectAccount(accountId) })
-                LazyColumn(
-                    state = noteListState,
-                    modifier = Modifier.weight(1f).testTag("note-list")
-                ) {
-                    if (importState is SyncUiState.Failed) {
-                        item {
-                            Text(
-                                importState.message,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
+        ) { padding ->
+            PullToRefreshBox(
+                isRefreshing = syncState is SyncUiState.Refreshing,
+                onRefresh = { scope.launch { component.refresh(accountId) } },
+                modifier = Modifier.fillMaxSize().padding(padding).testTag("pull-to-refresh")
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    SyncStatus(syncState, reconnect = { onReconnectAccount(accountId) })
+                    LazyColumn(
+                        state = noteListState,
+                        modifier = Modifier.weight(1f).testTag("note-list")
+                    ) {
+                        if (importState is SyncUiState.Failed) {
+                            item {
+                                Text(
+                                    importState.message,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                            }
                         }
-                    }
-                    if (visibleNotes == null) {
-                        item {
-                            CircularProgressIndicator(
-                                modifier = Modifier.padding(24.dp).testTag("notes-loading")
-                            )
-                        }
-                    } else if (visibleNotes.isEmpty()) {
-                        item {
-                            Text(
-                                when {
-                                    query.isNotBlank() -> stringResource(
-                                        R.string.notes_empty_search
-                                    )
-                                    tagFilterActive -> stringResource(R.string.notes_empty_tags)
-                                    else -> stringResource(R.string.notes_empty_category)
-                                },
-                                modifier = Modifier.padding(24.dp),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                    } else {
-                        items(visibleNotes, key = { it.localId }) { note ->
-                            val selected = note.localId in selectedNoteIds
-                            NoteListItem(
-                                note = note,
-                                selected = selected,
-                                selectionActive = selectionActive,
-                                showCategory = showCategory,
-                                showNotePreview = showNotePreview,
-                                tags = tagState.tagsOf(NoteTags.keyOf(note)),
-                                compact = compactNoteList,
-                                appearance = appearance,
-                                swipeEnabled = swipeNoteActions,
-                                onClick = {
-                                    if (selectionActive) {
-                                        selectedNoteIds =
-                                            if (selected) {
-                                                selectedNoteIds - note.localId
-                                            } else {
-                                                selectedNoteIds + note.localId
-                                            }
-                                    } else {
-                                        onOpen(
-                                            note.localId,
-                                            query.trim().takeIf(String::isNotEmpty)
+                        if (visibleNotes == null) {
+                            item {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.padding(24.dp).testTag("notes-loading")
+                                )
+                            }
+                        } else if (visibleNotes.isEmpty()) {
+                            item {
+                                Text(
+                                    when {
+                                        query.isNotBlank() -> stringResource(
+                                            R.string.notes_empty_search
                                         )
+                                        tagFilterActive -> stringResource(R.string.notes_empty_tags)
+                                        else -> stringResource(R.string.notes_empty_category)
+                                    },
+                                    modifier = Modifier.padding(24.dp),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        } else {
+                            items(visibleNotes, key = { it.localId }) { note ->
+                                val selected = note.localId in selectedNoteIds
+                                NoteListItem(
+                                    note = note,
+                                    selected = selected,
+                                    selectionActive = selectionActive,
+                                    showCategory = showCategory,
+                                    showNotePreview = showNotePreview,
+                                    tags = tagState.tagsOf(NoteTags.keyOf(note)),
+                                    compact = compactNoteList,
+                                    appearance = appearance,
+                                    swipeEnabled = swipeNoteActions,
+                                    onClick = {
+                                        if (selectionActive) {
+                                            selectedNoteIds =
+                                                if (selected) {
+                                                    selectedNoteIds - note.localId
+                                                } else {
+                                                    selectedNoteIds + note.localId
+                                                }
+                                        } else {
+                                            onOpen(
+                                                note.localId,
+                                                query.trim().takeIf(String::isNotEmpty)
+                                            )
+                                        }
+                                    },
+                                    onLongClick = {
+                                        if (!selected) selectedNoteIds += note.localId
+                                    },
+                                    onToggleFavorite = {
+                                        scope.launch {
+                                            component.setFavorite(note.localId, !note.favorite)
+                                        }
+                                    },
+                                    onTrash = {
+                                        scope.launch {
+                                            component.moveNotesToTrash(
+                                                accountId,
+                                                listOf(note.localId)
+                                            )
+                                        }
                                     }
-                                },
-                                onLongClick = {
-                                    if (!selected) selectedNoteIds += note.localId
-                                },
-                                onToggleFavorite = {
-                                    scope.launch {
-                                        component.setFavorite(note.localId, !note.favorite)
-                                    }
-                                },
-                                onTrash = {
-                                    scope.launch {
-                                        component.moveNotesToTrash(
-                                            accountId,
-                                            listOf(note.localId)
-                                        )
-                                    }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
@@ -2014,6 +2079,9 @@ private fun CompactSearchField(
     onClear: () -> Unit,
     searchScope: NoteSearchScope,
     onSearchScopeChange: (NoteSearchScope) -> Unit,
+    /** Whether a search looks beyond the listed folder. */
+    searchAllFolders: Boolean,
+    onSearchAllFoldersChange: (Boolean) -> Unit,
     onFocusChange: (Boolean) -> Unit,
     onPress: () -> Unit,
     modifier: Modifier = Modifier,
@@ -2082,7 +2150,7 @@ private fun CompactSearchField(
                         Icon(
                             Icons.Filled.FilterList,
                             contentDescription = stringResource(R.string.search_filter),
-                            tint = if (searchScope == NoteSearchScope.TITLE) {
+                            tint = if (searchScope == NoteSearchScope.TITLE || searchAllFolders) {
                                 accentColor
                             } else {
                                 secondaryColor
@@ -2120,6 +2188,18 @@ private fun CompactSearchField(
                             },
                             onClick = { select(NoteSearchScope.TITLE) },
                             modifier = Modifier.testTag("search-filter-title")
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.search_all_folders)) },
+                            leadingIcon = {
+                                Checkbox(checked = searchAllFolders, onCheckedChange = null)
+                            },
+                            onClick = {
+                                onSearchAllFoldersChange(!searchAllFolders)
+                                filterMenuOpen = false
+                            },
+                            modifier = Modifier.testTag("search-all-folders")
                         )
                     }
                 }
@@ -4091,7 +4171,12 @@ private fun NoteDetailScreen(
         if (current != null) {
             ChangeNoteCategoryDialog(
                 currentCategory = current.category,
-                categories = NoteCategories.selectable(accountNotes),
+                folders = remember(accountNotes) {
+                    NoteFolders.tree(
+                        accountNotes.map(NoteListItem::category),
+                        component.nestedFolders
+                    ).flatten()
+                },
                 onDismiss = { changingCategory = false },
                 onConfirm = { category ->
                     changingCategory = false
@@ -4463,7 +4548,8 @@ private fun NewNoteNameDialog(
 @Composable
 private fun ChangeNoteCategoryDialog(
     currentCategory: String,
-    categories: List<String>,
+    /** Existing folders in tree order, including intermediate folders without notes. */
+    folders: List<NoteFolder>,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
@@ -4493,14 +4579,16 @@ private fun ChangeNoteCategoryDialog(
                         selectedCategory = ""
                     }
                 )
-                categories.forEach { category ->
+                folders.forEach { folder ->
                     CategoryDestinationRow(
-                        label = category,
-                        selected = !creatingCategory && selectedCategory == category,
-                        testTag = "note-category-$category",
+                        label = folder.name,
+                        selected = !creatingCategory &&
+                            NoteFolders.key(selectedCategory) == NoteFolders.key(folder.path),
+                        testTag = "note-category-${folder.path}",
+                        depth = folder.depth + 1,
                         onClick = {
                             creatingCategory = false
-                            selectedCategory = category
+                            selectedCategory = folder.path
                         }
                     )
                 }
@@ -4541,11 +4629,15 @@ private fun CategoryDestinationRow(
     label: String,
     selected: Boolean,
     testTag: String,
+    /** Nesting level, indenting folders below the root. */
+    depth: Int = 0,
     onClick: () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).testTag(testTag)
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(start = (depth * 16).dp)
+            .testTag(testTag)
     ) {
         RadioButton(selected = selected, onClick = null)
         Text(label)

@@ -69,6 +69,7 @@ import org.qownnotes.mobile.core.DeckCardDraft
 import org.qownnotes.mobile.core.DeckStack
 import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.core.RemoteNoteVersion
@@ -194,7 +195,7 @@ class AppLaunchTest {
     }
 
     @Test
-    fun categorySelectorDefaultsToUndefinedAndExcludesInternalFiles() {
+    fun folderDrawerDefaultsToTheRootAndExcludesInternalFiles() {
         val account = testAccount("alice")
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(
@@ -223,26 +224,33 @@ class AppLaunchTest {
         composeRule.waitForText("Root note")
         composeRule.onNodeWithText("Work note").assertDoesNotExist()
         listAction("category-selector")
-        composeRule.onNodeWithTag("category-option-undefined").assertIsDisplayed()
-        composeRule.onNodeWithTag("category-option-all").assertIsDisplayed()
-        composeRule.onNodeWithTag("category-option-Work").assertIsDisplayed()
-        composeRule.onNodeWithTag("category-option-media").assertDoesNotExist()
-        composeRule.onNodeWithTag("category-option-attachments/archive").assertDoesNotExist()
+        composeRule.waitForTag("folder-root")
+        composeRule.onNodeWithTag("folder-root").assertIsDisplayed().assertIsSelected()
+        composeRule.onNodeWithTag("folder-Work").assertIsDisplayed()
+        composeRule.onNodeWithTag("folder-media").assertDoesNotExist()
+        composeRule.onNodeWithTag("folder-attachments").assertDoesNotExist()
 
-        composeRule.onNodeWithTag("category-option-all").performClick()
+        composeRule.onNodeWithTag("folder-show-subfolders").performClick()
+        composeRule.onNodeWithTag("folder-root").performClick()
+        composeRule.waitForTagToGo("folder-root")
         composeRule.waitForText("Work note")
         composeRule.onNodeWithText("Root note").assertIsDisplayed()
         composeRule.onNodeWithText("Media note").assertDoesNotExist()
         composeRule.onNodeWithText("Attachment note").assertDoesNotExist()
-        listAction("category-selector")
 
-        composeRule.onNodeWithTag("category-option-Work").performClick()
+        composeRule.onNodeWithTag("folder-navigation").performClick()
+        composeRule.waitForTag("folder-Work")
+        composeRule.onNodeWithTag("folder-Work").performClick()
 
-        composeRule.waitForText("Work note")
-        composeRule.onNodeWithText("Root note").assertDoesNotExist()
+        composeRule.waitForTextToGo("Root note")
+        composeRule.onNodeWithText("Work note").assertIsDisplayed()
         composeRule.activityRule.scenario.recreate()
         composeRule.waitForText("Work note")
         composeRule.onNodeWithText("Root note").assertDoesNotExist()
+        assertEquals(
+            NoteFolderScope("Work", includeSubfolders = true),
+            application.component.settings.noteFolderScope(account.localAccountId())
+        )
 
         val existingIds = runBlocking { notesOf("alice").map(Note::localId).toSet() }
         composeRule.onNodeWithTag("create-note").performClick()
@@ -250,6 +258,75 @@ class AppLaunchTest {
             runBlocking {
                 notesOf("alice").any { it.localId !in existingIds && it.category == "Work" }
             }
+        }
+    }
+
+    @Test
+    fun folderTreeNestsFoldersCountsNotesAndScopesSearch() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(41, "etag-root", "Root note", "# Root", "", 10),
+                    RemoteNote(42, "etag-work", "Work note", "# Work", "Work", 11),
+                    RemoteNote(43, "etag-archive", "Archive note", "# Old", "Work/Archive", 12),
+                    RemoteNote(44, "etag-private", "Private note", "# Private", "Private", 13)
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 13
+            )
+        )
+
+        accountAction("add-account")
+        composeRule.waitForText("Root note")
+        composeRule.onNodeWithTag("folder-navigation").performClick()
+        composeRule.waitForTag("folder-Work")
+        composeRule.onNodeWithTag("folder-root-count", useUnmergedTree = true)
+            .assertTextEquals("1")
+        composeRule.onNodeWithTag("folder-Work-count", useUnmergedTree = true)
+            .assertTextEquals("1")
+        composeRule.onNodeWithTag("folder-Work/Archive").assertDoesNotExist()
+        composeRule.onNodeWithTag("folder-Work-expand").performClick()
+        composeRule.waitForTag("folder-Work/Archive")
+        composeRule.onNodeWithTag("folder-Private-expand").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("folder-show-subfolders").performClick()
+        composeRule.onNodeWithTag("folder-Work-count", useUnmergedTree = true)
+            .assertTextEquals("2")
+        composeRule.onNodeWithTag("folder-root-count", useUnmergedTree = true)
+            .assertTextEquals("4")
+        composeRule.onNodeWithTag("folder-Work").performClick()
+        composeRule.waitForTagToGo("folder-Work")
+        composeRule.waitForText("Archive note")
+        composeRule.onNodeWithText("Work note").assertIsDisplayed()
+        composeRule.onNodeWithText("Private note").assertDoesNotExist()
+        composeRule.onNodeWithText("Root note").assertDoesNotExist()
+
+        // Search stays in the folder until it is widened to every folder.
+        composeRule.onNodeWithTag("note-search").performTextInput("Private")
+        composeRule.waitForText("No matching notes")
+        composeRule.onNodeWithTag("note-search-filter").performClick()
+        composeRule.waitForTag("search-all-folders")
+        composeRule.onNodeWithTag("search-all-folders").performClick()
+        composeRule.waitForText("Private note")
+        composeRule.onNodeWithText("Work note").assertDoesNotExist()
+    }
+
+    @Test
+    fun aRememberedFolderWithoutNotesFallsBackToTheRoot() {
+        val account = testAccount("alice")
+        application.component.settings.setNoteFolderScope(
+            account.localAccountId(),
+            NoteFolderScope("Gone", includeSubfolders = false)
+        )
+        importAccount("alice", "Root note", "etag-1", 10)
+
+        composeRule.waitForText("Root note")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.component.settings.noteFolderScope(account.localAccountId()) ==
+                NoteFolderScope("", includeSubfolders = false)
         }
     }
 
@@ -1162,7 +1239,9 @@ class AppLaunchTest {
             )
         }
         listAction("category-selector")
-        composeRule.onNodeWithTag("category-option-all").performClick()
+        composeRule.waitForTag("folder-show-subfolders")
+        composeRule.onNodeWithTag("folder-show-subfolders").performClick()
+        composeRule.onNodeWithTag("folder-root").performClick()
         composeRule.waitForText("Filtered note")
         composeRule.onNodeWithTag("note-search").performTextInput("Visible")
         composeRule.waitForTextToGo("Filtered note")
@@ -3106,6 +3185,14 @@ class AppLaunchTest {
     ) {
         waitUntil(timeoutMillis = 10_000) {
             onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.waitForTagToGo(
+        tag: String
+    ) {
+        waitUntil(timeoutMillis = 10_000) {
+            onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
         }
     }
 

@@ -14,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.NoteSortOrder
 import org.qownnotes.mobile.core.PullResult
@@ -594,6 +595,124 @@ class RoomPullStoreTest {
         assertEquals(listOf("Bravo", "alpha", "Charlie"), titles(NoteSortOrder.LATEST_FIRST))
         assertEquals(listOf("alpha", "Bravo", "Charlie"), titles(NoteSortOrder.TITLE_ASCENDING))
         assertEquals(listOf("Charlie", "Bravo", "alpha"), titles(NoteSortOrder.TITLE_DESCENDING))
+    }
+
+    @Test
+    fun searchIsScopedToAFolderAndOptionallyItsSubfolders() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        listOf(
+            "" to "Root",
+            "Work" to "Work",
+            "work/Archive" to "Archive",
+            "Workshop" to "Workshop",
+            "100%_x" to "Percent",
+            "100%_x/Sub" to "Percent sub",
+            "100ab_x/Sub" to "Wildcard trap",
+            "100%_x\\y/Sub" to "Escape trap"
+        ).forEachIndexed { index, (category, title) ->
+            database.noteDao().upsert(
+                localNote(100L + index, SyncState.SYNCHRONIZED, title = title)
+                    .copy(category = category)
+            )
+        }
+
+        suspend fun titles(folder: NoteFolderScope?, nested: Boolean = true) = notes.searchNotes(
+            "account",
+            "",
+            NoteSearchScope.TITLE_AND_CONTENT,
+            NoteSortOrder.TITLE_ASCENDING,
+            folder,
+            nested
+        ).first().map { it.title }
+
+        assertEquals(listOf("Root"), titles(NoteFolderScope("", includeSubfolders = false)))
+        assertEquals(8, titles(NoteFolderScope("", includeSubfolders = true)).size)
+        assertEquals(8, titles(null).size)
+        assertEquals(listOf("Work"), titles(NoteFolderScope("WORK", includeSubfolders = false)))
+        assertEquals(
+            listOf("Archive", "Work"),
+            titles(NoteFolderScope("work", includeSubfolders = true))
+        )
+        assertEquals(
+            listOf("Percent", "Percent sub"),
+            titles(NoteFolderScope("100%_x", includeSubfolders = true))
+        )
+        assertEquals(
+            listOf("Escape trap"),
+            titles(NoteFolderScope("100%_x\\y", includeSubfolders = true))
+        )
+        assertEquals(
+            listOf("Work"),
+            titles(NoteFolderScope("Work", includeSubfolders = true), nested = false)
+        )
+    }
+
+    @Test
+    fun searchMatchesCategoriesWithinTheFolderScope() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(
+            localNote(42, SyncState.SYNCHRONIZED, title = "Plan").copy(category = "Work/Budget")
+        )
+        database.noteDao().upsert(
+            localNote(43, SyncState.SYNCHRONIZED, title = "Other").copy(category = "Private/Budget")
+        )
+
+        suspend fun titles(scope: NoteSearchScope, folder: NoteFolderScope?) = notes.searchNotes(
+            "account",
+            "budget",
+            scope,
+            NoteSortOrder.TITLE_ASCENDING,
+            folder
+        ).first().map { it.title }
+
+        assertEquals(
+            listOf("Other", "Plan"),
+            titles(NoteSearchScope.TITLE_AND_CONTENT, null)
+        )
+        assertEquals(
+            listOf("Plan"),
+            titles(NoteSearchScope.TITLE_AND_CONTENT, NoteFolderScope("Work", true))
+        )
+        // Title-only search keeps matching the title alone.
+        assertEquals(emptyList<String>(), titles(NoteSearchScope.TITLE, null))
+    }
+
+    @Test
+    fun folderScopeNeverAffectsPullsOrRemoteDeletion() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val store = RoomPullStore(database)
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        val work = RemoteNote(42, "etag-work", "Work note", "Work", "Work", 10)
+        val other = RemoteNote(43, "etag-other", "Other note", "Other", "Private", 10)
+        store.applyPull("account", PullResult(listOf(work, other), "etag-1", 10))
+        val scoped = notes.searchNotes(
+            "account",
+            "",
+            NoteSearchScope.TITLE_AND_CONTENT,
+            NoteSortOrder.TITLE_ASCENDING,
+            NoteFolderScope("Work", includeSubfolders = true)
+        )
+        assertEquals(listOf("Work note"), scoped.first().map { it.title })
+
+        // A complete pull while a folder is shown keeps the notes outside of it.
+        store.applyPull("account", PullResult(listOf(work, other), "etag-2", 20))
+        assertEquals(
+            setOf("Work note", "Other note"),
+            notes.observeNotes("account").first().mapTo(mutableSetOf()) { it.title }
+        )
+
+        // Only a note missing from the complete collection is removed, wherever it is filed.
+        store.applyPull("account", PullResult(listOf(other), "etag-3", 30))
+        assertEquals(emptyList<String>(), scoped.first().map { it.title })
+        assertEquals(
+            listOf("Other note"),
+            notes.observeNotes("account").first().map { it.title }
+        )
     }
 
     @Test

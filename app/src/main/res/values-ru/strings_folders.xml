@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Note folder navigation -->
+    <string name="folders_title">Папки</string>
+    <string name="folders_open">Показать папки</string>
+    <string name="folders_root">Корневая папка</string>
+    <string name="folders_show_subfolders">Показывать заметки из подпапок</string>
+    <string name="folders_expand">Развернуть %1$s</string>
+    <string name="folders_collapse">Свернуть %1$s</string>
+    <string name="folders_menu_label">Папка: %1$s</string>
+    <string name="search_all_folders">Искать во всех папках</string>
+</resources>

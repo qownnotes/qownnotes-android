@@ -2,6 +2,8 @@ package org.qownnotes.mobile.data
 
 import kotlinx.coroutines.flow.map
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteFolderScope
+import org.qownnotes.mobile.core.NoteFolders
 import org.qownnotes.mobile.core.NoteRepository
 import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.NoteSortOrder
@@ -15,7 +17,9 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
         accountId: String,
         query: String,
         scope: NoteSearchScope,
-        sortOrder: NoteSortOrder
+        sortOrder: NoteSortOrder,
+        folder: NoteFolderScope?,
+        nestedFolders: Boolean
     ) = noteDao.search(
         accountId,
         query.trim(),
@@ -24,7 +28,13 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
             NoteSortOrder.LATEST_FIRST -> 0
             NoteSortOrder.TITLE_ASCENDING -> 1
             NoteSortOrder.TITLE_DESCENDING -> 2
-        }
+        },
+        // The root with its subfolders is the whole account and needs no category condition.
+        filterFolder = folder != null && !folder.isWholeAccount,
+        folder = folder?.path.orEmpty(),
+        subfolderPattern = folder
+            ?.takeIf { nestedFolders && it.includeSubfolders && !it.isRoot }
+            ?.let { NoteFolders.subfolderPattern(it.path) }
     ).map { notes -> notes.map(NoteListItemEntity::toDomain) }
 
     override fun observeNote(localId: String) = noteDao.observe(localId).map { it?.toDomain() }

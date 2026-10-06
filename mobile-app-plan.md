@@ -1,6 +1,6 @@
 # QOwnNotes Mobile Application Plan
 
-Status: Phase 4 in progress; Phase 3 compatibility verification remains open
+Status: Phase 5 implemented; Phase 3–5 real-server verification remains open
 Primary platform: Android
 Potential later platform: iOS
 Project location: Separate repository
@@ -59,6 +59,11 @@ semantics. The note screen adds and removes existing or new top-level tags offli
 replayed on the newest server file and uploaded with `If-Match`. Renaming, deleting, and
 reparenting tags, and editing tag colors and priority, are still open. See "Implemented Note
 Tags" below.
+
+Phase 5 note folders are implemented. The note list derives a folder tree from the cached
+categories and offers it in a drawer with note counts and a per-account "show notes from
+subfolders" switch. Note creation, search, and the move dialog follow the selected folder, while
+the pull stays unfiltered. See the Phase 5 section below.
 
 Optional Nextcloud Deck support, enabled per account in Settings, adds a note-editor action that
 creates a Deck card and links it into the note (#16). See "Implemented Nextcloud Deck Links" below.
@@ -703,7 +708,7 @@ Folders are derived state, not stored entities. Build the tree from the distinct
 
 An empty folder cannot exist on the server. Do not offer creating an empty folder as a durable object. A new-folder affordance may only pre-fill the category of a note that is being created.
 
-The selected scope is a device-local preference. Persist it per account through the existing `AppSettings` rather than in Room, and fall back to Undefined when the remembered category no longer contains notes. The first category increment uses a flat exact-category selector: Undefined means only notes whose category is empty, while All categories removes the category filter. This is intentionally distinct from the later hierarchical root scope described below.
+The selected scope is a device-local preference. Persist it per account through the existing `AppSettings` rather than in Room, and fall back to Undefined when the remembered category no longer contains notes. The first category increment used a flat exact-category selector. It has been replaced by the hierarchical scope, a folder plus a subfolder choice, and its stored Undefined and All categories values now mean the root without and with subfolders.
 
 Category normalization belongs in `core`. Split on `/`, trim each segment, drop empty, `.`, and `..` segments, remove the characters the server removes, and rejoin with `/`, where the root is the empty string. The local-folder backend needs the same policy, and the rule has to stay portable for a later Kotlin Multiplatform extraction. Always adopt the server's canonical category from the response, exactly as the canonical title is adopted today.
 
@@ -1065,29 +1070,48 @@ Remaining:
 
 ### Phase 5: Note Folders
 
+Status: Implemented; real-server verification pending
+
 Give Nextcloud accounts QOwnNotes-style folders through the Notes `category` attribute, as decided in the Note Folders section. This follows Phase 4 because moving a note between folders is a guarded remote update that needs the conflict infrastructure built there.
 
-The first increment provides a persisted flat selector for Undefined, All categories, and exact
-cached categories, filters locally, excludes the internal `media` and `attachments` trees from the
-choices, creates notes in the selected category, and moves notes to existing or newly entered
-categories from the note view. Hierarchical navigation remains planned below.
+Implemented:
 
-- Add folder-tree derivation to `core`; category normalization is implemented.
-- Derive the per-account folder tree from the cached notes rather than from a new table.
-- Add folder navigation to the note list, with the current scope, a note count per folder, and a subfolder-inclusion toggle.
-- Persist the selected scope per account in `AppSettings` and fall back to the root when the folder no longer exists.
-- Create notes in the current folder scope.
-- Scope the search to the current subtree, allow searching the whole account, and match the category as well.
-- Add an indexed, correctly escaped subtree query to the note DAO.
-- List connected accounts and let the user update each account's notes root and file extension
-  through `GET /settings` and `PUT /settings`.
-- Moving a note to another folder with `If-Match`, including canonical category/title adoption, is
-  implemented through the note-view menu.
-- Add the `nestedCategories` backend capability.
-- Keep the pull unfiltered and confirm that folder scoping cannot influence remote-deletion detection.
+- `core` derives the per-account folder tree (`NoteFolders.tree`) from the categories of the
+  cached notes, without a new table. Folders group case-insensitively for ASCII letters, matching
+  SQLite `NOCASE` and `LIKE`, keep the spelling first seen, include parent folders that hold no
+  notes themselves, count direct and subtree notes, and exclude the internal `media` and
+  `attachments` trees. Category normalization was already in place.
+- `NoteFolderScope` is a folder path plus a "show notes from subfolders" choice. The root with
+  subfolders is the whole account, and the root without them is the uncategorized notes. The
+  earlier flat selector's stored values are read compatibly: Undefined becomes the root, All
+  categories becomes the root with subfolders, and a named category becomes that folder without
+  subfolders. The subfolder choice is stored per account beside the path in `AppSettings`.
+- The note list opens a modal folder drawer from a folder button and the existing menu item. It
+  shows the root and an expandable tree with note counts that follow the subfolder switch. The
+  edge swipe only closes the drawer, because opening by swipe would compete with the note rows'
+  swipe actions. A remembered folder that no longer holds notes falls back to the root while the
+  subfolder choice is kept.
+- New notes are created in the selected folder, and the move dialog lists the folder tree.
+- `NoteDao.search` filters by folder in SQL with an `ESCAPE`d subtree `LIKE` pattern, never a
+  pattern for the root, and is backed by a new `(accountId, category)` index (database version 9).
+  Searches stay in the selected folder unless **Search all folders** is chosen, and title-and-
+  content searches also match the category.
+- `BackendCapabilities.nestedCategories` is set by the Nextcloud backend. Without it the tree is
+  flat and a folder never includes other categories.
+- The pull remains unfiltered, and a regression test confirms that a selected folder neither
+  changes a complete pull nor protects or removes notes outside it.
+- Account management lists connected accounts and updates each account's notes root and file
+  extension through `GET /settings` and `PUT /settings`. Moving a note with `If-Match`, including
+  canonical category and title adoption, is available from the note-view menu.
 
-Explicitly out of scope for this phase: creating durable empty folders and renaming or deleting
-category folders.
+Remaining:
+
+- Verify the folder drawer, subfolder switch, and folder-scoped search against a real Nextcloud
+  account with nested categories created by QOwnNotes desktop.
+
+Explicitly out of scope for this phase: creating durable empty folders, renaming or deleting
+category folders, per-folder exclusion, and subfolder scopes for note-list widgets, which keep
+their exact-category filter.
 
 ### Implemented Bookmark Browser
 

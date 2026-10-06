@@ -32,8 +32,11 @@ interface NoteDao {
            lastSyncedTitle, lastSyncedCategory
            FROM notes WHERE accountId = :accountId
            AND syncState != 'PENDING_DELETION' AND
+           (NOT :filterFolder OR category = :folder COLLATE NOCASE OR
+             (:subfolderPattern IS NOT NULL AND category LIKE :subfolderPattern ESCAPE '\')) AND
            (:query = '' OR title LIKE '%' || :query || '%' COLLATE NOCASE OR
-           (:includeContent AND content LIKE '%' || :query || '%' COLLATE NOCASE))
+           (:includeContent AND (content LIKE '%' || :query || '%' COLLATE NOCASE OR
+             category LIKE '%' || :query || '%' COLLATE NOCASE)))
            ORDER BY
            CASE WHEN :sortOrder = 0 THEN favorite END DESC,
            CASE WHEN :sortOrder = 0 THEN modifiedAtEpochSeconds END DESC,
@@ -45,7 +48,13 @@ interface NoteDao {
         accountId: String,
         query: String,
         includeContent: Boolean,
-        sortOrder: Int
+        sortOrder: Int,
+        /** False lists every folder, including the root. */
+        filterFolder: Boolean,
+        /** Folder compared case-insensitively; the empty string is the root. */
+        folder: String,
+        /** Escaped `LIKE` pattern of the folders below [folder], or `null` to exclude them. */
+        subfolderPattern: String?
     ): Flow<List<NoteListItemEntity>>
 
     @Query("SELECT * FROM notes WHERE localId = :localId")
@@ -354,7 +363,7 @@ class DatabaseConverters {
         PendingTagOperationEntity::class,
         TagFileEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
@@ -590,5 +599,15 @@ val MIGRATION_7_8 =
                 )"""
             )
             db.execSQL(QOwnNotesDatabase.NOTE_TAG_RELINK_TRIGGER)
+        }
+    }
+
+val MIGRATION_8_9 =
+    object : Migration(8, 9) {
+        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_notes_accountId_category` " +
+                    "ON `notes` (`accountId`, `category`)"
+            )
         }
     }
