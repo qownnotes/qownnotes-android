@@ -1092,6 +1092,10 @@ Implemented:
   swipe actions. A remembered folder that no longer holds notes falls back to the root while the
   subfolder choice is kept.
 - New notes are created in the selected folder, and the move dialog lists the folder tree.
+- A per-account "Use subfolders" setting, stored in `AppSettings` and on by default, mirrors the
+  QOwnNotes desktop note-folder option. When off, the list and new notes are limited to the root
+  folder, folder navigation, the subfolder label setting, "Search all folders", and the move
+  action are hidden, and the remembered folder is kept. Synchronization is unaffected.
 - `NoteDao.search` filters by folder in SQL with an `ESCAPE`d subtree `LIKE` pattern, never a
   pattern for the root, and is backed by a new `(accountId, category)` index (database version 9).
   Searches stay in the selected folder unless **Search all folders** is chosen, and title-and-

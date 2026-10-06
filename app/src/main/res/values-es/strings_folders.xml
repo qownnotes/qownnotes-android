@@ -9,4 +9,6 @@
     <string name="folders_collapse">Contraer %1$s</string>
     <string name="folders_menu_label">Subcarpeta: %1$s</string>
     <string name="search_all_folders">Buscar en todas las carpetas</string>
+    <string name="settings_use_subfolders">Usar subcarpetas</string>
+    <string name="settings_use_subfolders_description">Por cuenta. Si está desactivado, solo se muestran las notas de la carpeta raíz y las notas nuevas se crean allí, como en QOwnNotes de escritorio. Las notas de las subcarpetas se siguen sincronizando.</string>
 </resources>

@@ -9,4 +9,6 @@
     <string name="folders_collapse">Recolher %1$s</string>
     <string name="folders_menu_label">Subpasta: %1$s</string>
     <string name="search_all_folders">Pesquisar em todas as pastas</string>
+    <string name="settings_use_subfolders">Usar subpastas</string>
+    <string name="settings_use_subfolders_description">Por conta. Quando desativado, apenas as notas da pasta raiz são listadas e as novas notas são criadas nela, como no QOwnNotes para desktop. As notas em subpastas continuam sendo sincronizadas.</string>
 </resources>

@@ -9,4 +9,6 @@
     <string name="folders_collapse">%1$s zuklappen</string>
     <string name="folders_menu_label">Unterordner: %1$s</string>
     <string name="search_all_folders">Alle Ordner durchsuchen</string>
+    <string name="settings_use_subfolders">Unterordner verwenden</string>
+    <string name="settings_use_subfolders_description">Pro Konto. Ist dies aus, werden wie in QOwnNotes Desktop nur Notizen im Stammordner angezeigt und dort angelegt. Notizen in Unterordnern werden weiterhin synchronisiert.</string>
 </resources>

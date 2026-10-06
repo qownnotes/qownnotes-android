@@ -9,4 +9,6 @@
     <string name="folders_collapse">Свернуть %1$s</string>
     <string name="folders_menu_label">Подпапка: %1$s</string>
     <string name="search_all_folders">Искать во всех папках</string>
+    <string name="settings_use_subfolders">Использовать подпапки</string>
+    <string name="settings_use_subfolders_description">Для каждой учётной записи. Если выключено, показываются только заметки из корневой папки и новые заметки создаются в ней, как в QOwnNotes для компьютера. Заметки в подпапках по-прежнему синхронизируются.</string>
 </resources>

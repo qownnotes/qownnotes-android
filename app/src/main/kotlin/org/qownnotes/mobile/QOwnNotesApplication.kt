@@ -323,6 +323,7 @@ class ApplicationComponent(
             editorDrafts.remove(localNoteIds)
             localNoteIds.forEach(editReservations::remove)
             settings.removeShowCategory(accountId)
+            settings.removeUseSubfolders(accountId)
             settings.removeNoteFolderScope(accountId)
             settings.removeBookmarksPath(accountId)
             settings.removeNextcloudDeck(accountId)

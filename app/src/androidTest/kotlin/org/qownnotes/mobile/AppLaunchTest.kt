@@ -315,6 +315,50 @@ class AppLaunchTest {
     }
 
     @Test
+    fun turningSubfoldersOffListsAndCreatesOnlyRootNotes() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(
+                    RemoteNote(41, "etag-root", "Root note", "# Root", "", 10),
+                    RemoteNote(42, "etag-work", "Work note", "# Work", "Work", 11)
+                ),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 11
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Root note")
+        composeRule.onNodeWithTag("folder-navigation").performClick()
+        composeRule.waitForTag("folder-Work")
+        composeRule.onNodeWithTag("folder-Work").performClick()
+        composeRule.waitForTextToGo("Root note")
+
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-use-subfolders").performClick()
+        composeRule.onNodeWithTag("toggle-category").assertDoesNotExist()
+        composeRule.onNodeWithTag("close-settings").performClick()
+
+        composeRule.waitForText("Root note")
+        composeRule.onNodeWithText("Work note").assertDoesNotExist()
+        composeRule.onNodeWithTag("folder-navigation").assertDoesNotExist()
+        val existingIds = runBlocking { notesOf("alice").map(Note::localId).toSet() }
+        composeRule.onNodeWithTag("create-note").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                notesOf("alice").any { it.localId !in existingIds && it.category.isEmpty() }
+            }
+        }
+        // The subfolder chosen before is kept for when subfolders are turned on again.
+        assertEquals(
+            NoteFolderScope("Work", includeSubfolders = false),
+            application.component.settings.noteFolderScope(account.localAccountId())
+        )
+    }
+
+    @Test
     fun aRememberedFolderWithoutNotesFallsBackToTheRoot() {
         val account = testAccount("alice")
         application.component.settings.setNoteFolderScope(

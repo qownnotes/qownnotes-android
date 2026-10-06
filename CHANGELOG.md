@@ -17,6 +17,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   collapsed, and a per-account **Show notes from subfolders** switch decides whether a subfolder
   also lists the notes below it, as in QOwnNotes desktop. The previous **Undefined** and **All
   categories** choices are the root folder without and with subfolders.
+- A per-account **Use subfolders** setting turns subfolders off, as the QOwnNotes desktop
+  note-folder option does. The note list then shows and creates only notes in the root folder
+  and hides subfolder navigation and **Move to subfolder**; notes in subfolders are still
+  synchronized.
 - Search stays within the listed subfolder and, in title and content mode, also matches subfolder
   names. **Search all folders** in the search filter widens a search to the whole account.
 

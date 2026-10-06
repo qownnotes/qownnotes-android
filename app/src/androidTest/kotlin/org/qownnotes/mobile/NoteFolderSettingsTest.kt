@@ -58,4 +58,17 @@ class NoteFolderSettingsTest {
         assertEquals(NoteFolderScope("", false), reread.noteFolderScope("first"))
         assertEquals(NoteFolderScope("", true), reread.noteFolderScope("second"))
     }
+
+    @Test
+    fun subfoldersAreUsedByDefaultAndCanBeTurnedOffPerAccount() {
+        val settings = AppSettings(context, name)
+        assertEquals(true, settings.useSubfolders("first").value)
+
+        settings.setUseSubfolders("first", false)
+
+        assertEquals(false, AppSettings(context, name).useSubfolders("first").value)
+        assertEquals(true, AppSettings(context, name).useSubfolders("second").value)
+        settings.removeUseSubfolders("first")
+        assertEquals(true, AppSettings(context, name).useSubfolders("first").value)
+    }
 }

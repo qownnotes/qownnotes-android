@@ -9,4 +9,6 @@
     <string name="folders_collapse">Collapse %1$s</string>
     <string name="folders_menu_label">Subfolder: %1$s</string>
     <string name="search_all_folders">Search all folders</string>
+    <string name="settings_use_subfolders">Use subfolders</string>
+    <string name="settings_use_subfolders_description">Per account. When off, only notes in the root folder are listed and new notes are created there, as in QOwnNotes desktop. Notes in subfolders are still synchronized.</string>
 </resources>

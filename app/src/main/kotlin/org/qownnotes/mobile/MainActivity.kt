@@ -191,6 +191,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -920,9 +921,14 @@ private fun NoteListScreen(
     var noteListMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var sortMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
-    var folderScope by remember(accountId) {
+    var storedFolderScope by remember(accountId) {
         mutableStateOf(component.settings.noteFolderScope(accountId))
     }
+    val useSubfoldersFlow = remember(accountId) { component.settings.useSubfolders(accountId) }
+    val useSubfolders by useSubfoldersFlow.collectAsStateWithLifecycle(context = UiDispatcher)
+    // Without subfolders the account behaves like a QOwnNotes note folder with subfolders turned
+    // off: only root notes are listed and created. The remembered folder is kept for later.
+    val folderScope = if (useSubfolders) storedFolderScope else NoteFolderScope()
     val nestedFolders = component.nestedFolders
     // Expanded folder keys; the selected folder's ancestors start expanded so it is visible.
     var expandedFolders by rememberSaveable(accountId) {
@@ -946,7 +952,9 @@ private fun NoteListScreen(
             context = UiDispatcher
         )
     // Searching all folders only widens an actual search; the list itself stays in its folder.
-    val listedFolder = folderScope.takeUnless { searchAllFolders && query.isNotBlank() }
+    val listedFolder = folderScope.takeUnless {
+        useSubfolders && searchAllFolders && query.isNotBlank()
+    }
     val notesFlow = remember(accountId, query, searchScope, sortOrder, listedFolder) {
         if (accountId.isBlank()) {
             flowOf(emptyList())
@@ -1082,11 +1090,12 @@ private fun NoteListScreen(
 
     LaunchedEffect(accountId) { withContext(UiDispatcher) { component.refresh(accountId) } }
     val selectFolderScope = { selected: NoteFolderScope ->
-        folderScope = selected
+        storedFolderScope = selected
         component.settings.setNoteFolderScope(accountId, selected)
     }
     LaunchedEffect(allNotes, folderTree, folderScope) {
         allNotes ?: return@LaunchedEffect
+        if (!useSubfolders) return@LaunchedEffect
         // A folder exists only while it holds notes, so a remembered one may have disappeared.
         if (!folderTree.contains(folderScope.path)) selectFolderScope(folderScope.copy(path = ""))
     }
@@ -1113,7 +1122,7 @@ private fun NoteListScreen(
         drawerState = folderDrawerState,
         // Opening is left to the buttons, since a swipe from the edge competes with the swipe
         // actions of the note rows.
-        gesturesEnabled = folderDrawerState.isOpen,
+        gesturesEnabled = useSubfolders && folderDrawerState.isOpen,
         drawerContent = {
             NoteFolderDrawerSheet(
                 accountName = account.displayName,
@@ -1321,7 +1330,7 @@ private fun NoteListScreen(
                                     onClear = { query = "" },
                                     searchScope = searchScope,
                                     onSearchScopeChange = { searchScope = it },
-                                    searchAllFolders = searchAllFolders,
+                                    searchAllFolders = searchAllFolders.takeIf { useSubfolders },
                                     onSearchAllFoldersChange = { searchAllFolders = it },
                                     // Only losing the focus closes search. Regaining it does
                                     // not reopen it, because hiding the input method hands the
@@ -1371,14 +1380,17 @@ private fun NoteListScreen(
                                     }
                                 }
                             } else if (!searchFocused) {
-                                IconButton(
-                                    onClick = { scope.launch { folderDrawerState.open() } },
-                                    modifier = Modifier.testTag("folder-navigation")
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Folder,
-                                        contentDescription = stringResource(R.string.folders_open)
-                                    )
+                                if (useSubfolders) {
+                                    IconButton(
+                                        onClick = { scope.launch { folderDrawerState.open() } },
+                                        modifier = Modifier.testTag("folder-navigation")
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.Folder,
+                                            contentDescription =
+                                            stringResource(R.string.folders_open)
+                                        )
+                                    }
                                 }
                                 Box {
                                     IconButton(
@@ -1427,24 +1439,29 @@ private fun NoteListScreen(
                                             },
                                             modifier = Modifier.testTag("sort-selector")
                                         )
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    NoteFolderLabels.menu(
-                                                        LocalContext.current,
-                                                        folderScope
+                                        if (useSubfolders) {
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        NoteFolderLabels.menu(
+                                                            LocalContext.current,
+                                                            folderScope
+                                                        )
                                                     )
-                                                )
-                                            },
-                                            leadingIcon = {
-                                                Icon(Icons.Filled.Folder, contentDescription = null)
-                                            },
-                                            onClick = {
-                                                noteListMenuOpen = false
-                                                scope.launch { folderDrawerState.open() }
-                                            },
-                                            modifier = Modifier.testTag("category-selector")
-                                        )
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        Icons.Filled.Folder,
+                                                        contentDescription = null
+                                                    )
+                                                },
+                                                onClick = {
+                                                    noteListMenuOpen = false
+                                                    scope.launch { folderDrawerState.open() }
+                                                },
+                                                modifier = Modifier.testTag("category-selector")
+                                            )
+                                        }
                                         if (tagState.availability ==
                                             NoteTagAvailability.AVAILABLE
                                         ) {
@@ -1752,11 +1769,20 @@ private fun NoteListScreen(
                         testTag = "toggle-note-preview"
                     )
                     SettingsCheckbox(
-                        label = stringResource(R.string.settings_show_category),
-                        checked = showCategory,
-                        onCheckedChange = { component.settings.setShowCategory(accountId, it) },
-                        testTag = "toggle-category"
+                        label = stringResource(R.string.settings_use_subfolders),
+                        description = stringResource(R.string.settings_use_subfolders_description),
+                        checked = useSubfolders,
+                        onCheckedChange = { component.settings.setUseSubfolders(accountId, it) },
+                        testTag = "toggle-use-subfolders"
                     )
+                    if (useSubfolders) {
+                        SettingsCheckbox(
+                            label = stringResource(R.string.settings_show_category),
+                            checked = showCategory,
+                            onCheckedChange = { component.settings.setShowCategory(accountId, it) },
+                            testTag = "toggle-category"
+                        )
+                    }
                     SettingsCheckbox(
                         label = stringResource(R.string.settings_compact_note_list),
                         description = stringResource(
@@ -2079,8 +2105,8 @@ private fun CompactSearchField(
     onClear: () -> Unit,
     searchScope: NoteSearchScope,
     onSearchScopeChange: (NoteSearchScope) -> Unit,
-    /** Whether a search looks beyond the listed folder. */
-    searchAllFolders: Boolean,
+    /** Whether a search looks beyond the listed folder; `null` hides the choice. */
+    searchAllFolders: Boolean?,
     onSearchAllFoldersChange: (Boolean) -> Unit,
     onFocusChange: (Boolean) -> Unit,
     onPress: () -> Unit,
@@ -2150,7 +2176,9 @@ private fun CompactSearchField(
                         Icon(
                             Icons.Filled.FilterList,
                             contentDescription = stringResource(R.string.search_filter),
-                            tint = if (searchScope == NoteSearchScope.TITLE || searchAllFolders) {
+                            tint = if (
+                                searchScope == NoteSearchScope.TITLE || searchAllFolders == true
+                            ) {
                                 accentColor
                             } else {
                                 secondaryColor
@@ -2189,18 +2217,20 @@ private fun CompactSearchField(
                             onClick = { select(NoteSearchScope.TITLE) },
                             modifier = Modifier.testTag("search-filter-title")
                         )
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.search_all_folders)) },
-                            leadingIcon = {
-                                Checkbox(checked = searchAllFolders, onCheckedChange = null)
-                            },
-                            onClick = {
-                                onSearchAllFoldersChange(!searchAllFolders)
-                                filterMenuOpen = false
-                            },
-                            modifier = Modifier.testTag("search-all-folders")
-                        )
+                        if (searchAllFolders != null) {
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.search_all_folders)) },
+                                leadingIcon = {
+                                    Checkbox(checked = searchAllFolders, onCheckedChange = null)
+                                },
+                                onClick = {
+                                    onSearchAllFoldersChange(!searchAllFolders)
+                                    filterMenuOpen = false
+                                },
+                                modifier = Modifier.testTag("search-all-folders")
+                            )
+                        }
                     }
                 }
                 if (value.isNotEmpty()) {
@@ -2728,6 +2758,10 @@ private fun NoteDetailScreen(
     val account = remember(note?.accountId, accounts) {
         accounts.firstOrNull { it.id == note?.accountId }
     }
+    val useSubfoldersFlow = remember(note?.accountId) {
+        note?.accountId?.let(component.settings::useSubfolders) ?: MutableStateFlow(true)
+    }
+    val useSubfolders by useSubfoldersFlow.collectAsStateWithLifecycle(context = UiDispatcher)
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope { UiDispatcher }
     val context = LocalContext.current
@@ -3264,6 +3298,7 @@ private fun NoteDetailScreen(
                                     }
                                     if (
                                         current != null &&
+                                        useSubfolders &&
                                         !current.readOnly &&
                                         current.syncState !in
                                         setOf(

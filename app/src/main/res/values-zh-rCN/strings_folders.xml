@@ -9,4 +9,6 @@
     <string name="folders_collapse">折叠 %1$s</string>
     <string name="folders_menu_label">子文件夹：%1$s</string>
     <string name="search_all_folders">搜索所有文件夹</string>
+    <string name="settings_use_subfolders">使用子文件夹</string>
+    <string name="settings_use_subfolders_description">按账户设置。关闭后，与 QOwnNotes 桌面版相同，只列出根文件夹中的笔记，新笔记也创建在根文件夹中。子文件夹中的笔记仍会同步。</string>
 </resources>

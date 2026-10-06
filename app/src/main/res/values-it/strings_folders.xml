@@ -9,4 +9,6 @@
     <string name="folders_collapse">Comprimi %1$s</string>
     <string name="folders_menu_label">Sottocartella: %1$s</string>
     <string name="search_all_folders">Cerca in tutte le cartelle</string>
+    <string name="settings_use_subfolders">Usa sottocartelle</string>
+    <string name="settings_use_subfolders_description">Per account. Se disattivato, vengono elencate solo le note della cartella principale e le nuove note vengono create lì, come in QOwnNotes desktop. Le note nelle sottocartelle continuano a essere sincronizzate.</string>
 </resources>

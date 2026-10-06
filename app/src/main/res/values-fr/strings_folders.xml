@@ -9,4 +9,6 @@
     <string name="folders_collapse">Réduire %1$s</string>
     <string name="folders_menu_label">Sous-dossier : %1$s</string>
     <string name="search_all_folders">Rechercher dans tous les dossiers</string>
+    <string name="settings_use_subfolders">Utiliser les sous-dossiers</string>
+    <string name="settings_use_subfolders_description">Par compte. Désactivé, seules les notes du dossier racine sont affichées et les nouvelles notes y sont créées, comme dans QOwnNotes pour ordinateur. Les notes des sous-dossiers restent synchronisées.</string>
 </resources>

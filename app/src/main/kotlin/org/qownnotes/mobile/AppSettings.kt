@@ -146,6 +146,30 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
 
     private val mutableShowCategories = mutableMapOf<String, MutableStateFlow<Boolean>>()
     private val mutableBookmarksPaths = mutableMapOf<String, MutableStateFlow<String>>()
+    private val mutableUseSubfolders = mutableMapOf<String, MutableStateFlow<Boolean>>()
+
+    /**
+     * Whether the account's note folder uses subfolders, like the QOwnNotes desktop note-folder
+     * setting. Without them the note list shows and creates only notes in the root folder; notes
+     * in subfolders are still synchronized.
+     */
+    fun useSubfolders(accountId: String): StateFlow<Boolean> =
+        mutableUseSubfolders.getOrPut(accountId) {
+            MutableStateFlow(preferences.getBoolean("$USE_SUBFOLDERS_PREFIX$accountId", true))
+        }.asStateFlow()
+
+    fun setUseSubfolders(accountId: String, enabled: Boolean) {
+        useSubfolders(accountId)
+        val state = mutableUseSubfolders.getValue(accountId)
+        if (enabled == state.value) return
+        preferences.edit().putBoolean("$USE_SUBFOLDERS_PREFIX$accountId", enabled).apply()
+        state.value = enabled
+    }
+
+    fun removeUseSubfolders(accountId: String) {
+        preferences.edit().remove("$USE_SUBFOLDERS_PREFIX$accountId").apply()
+        mutableUseSubfolders.remove(accountId)
+    }
 
     /** Whether the note list and this account's note-list widgets show each note's category. */
     fun showCategory(accountId: String): StateFlow<Boolean> =
@@ -318,6 +342,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val SHOW_CATEGORY_PREFIX = "showCategory."
         const val NOTE_CATEGORY_SCOPE_PREFIX = "noteCategoryScope."
         const val NOTE_FOLDER_SUBFOLDERS_PREFIX = "noteFolderSubfolders."
+        const val USE_SUBFOLDERS_PREFIX = "useSubfolders."
         const val BOOKMARKS_PATH_PREFIX = "bookmarksPath."
         const val NEXTCLOUD_DECK_AVAILABLE_PREFIX = "nextcloudDeckAvailable."
         const val NEXTCLOUD_DECK_BOARD_PREFIX = "nextcloudDeckBoardId."

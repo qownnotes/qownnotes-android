@@ -9,4 +9,6 @@
     <string name="folders_collapse">Zwiń %1$s</string>
     <string name="folders_menu_label">Podfolder: %1$s</string>
     <string name="search_all_folders">Szukaj we wszystkich folderach</string>
+    <string name="settings_use_subfolders">Używaj podfolderów</string>
+    <string name="settings_use_subfolders_description">Dla każdego konta osobno. Po wyłączeniu wyświetlane są tylko notatki z folderu głównego i tam tworzone są nowe notatki, jak w QOwnNotes na komputer. Notatki w podfolderach są nadal synchronizowane.</string>
 </resources>
