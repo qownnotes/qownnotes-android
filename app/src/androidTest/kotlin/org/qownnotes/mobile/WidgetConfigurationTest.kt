@@ -29,7 +29,7 @@ class WidgetConfigurationTest {
             LazyColumn { widgetCategoryChoices(listOf("Personal", "Work/Projects"), chosen::add) }
         }
 
-        composeRule.onNodeWithText("All categories").assertIsDisplayed()
+        composeRule.onNodeWithText("All subfolders").assertIsDisplayed()
         composeRule.onNodeWithText("Root folder").assertIsDisplayed()
         composeRule.onNodeWithTag("widget-category-all").performClick()
         composeRule.onNodeWithTag("widget-category-undefined").performClick()
