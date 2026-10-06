@@ -51,18 +51,18 @@
     <string name="sort_option_latest_first">Сначала новые</string>
     <string name="sort_option_title_ascending">Название А–Я</string>
     <string name="sort_option_title_descending">Название Я–А</string>
-    <string name="category_option_undefined">Не задана</string>
+    <string name="category_option_undefined">Корневая папка</string>
     <string name="bookmarks">Закладки</string>
     <string name="trash">Корзина</string>
     <string name="about">О приложении</string>
     <string name="notes_empty_search">Нет подходящих заметок</string>
     <string name="notes_empty_tags">Нет заметок с выбранными тегами</string>
-    <string name="notes_empty_category">В этой категории нет заметок</string>
+    <string name="notes_empty_category">В этой подпапке нет заметок</string>
 
     <!-- Settings -->
     <string name="settings_title">Настройки</string>
     <string name="settings_show_note_preview">Показывать превью заметки</string>
-    <string name="settings_show_category">Показывать категорию</string>
+    <string name="settings_show_category">Показывать подпапку</string>
     <string name="settings_compact_note_list">Компактный список заметок</string>
     <string name="settings_compact_note_list_description">Уменьшить отступы в списке заметок и виджетах-списках.</string>
     <string name="settings_swipe_note_actions">Действия по свайпу</string>
@@ -112,7 +112,7 @@
     <!-- Note list items -->
     <string name="favorite_remove">Убрать из избранного</string>
     <string name="favorite_add">Добавить в избранное</string>
-    <string name="note_uncategorized">Без категории</string>
+    <string name="note_uncategorized">Корневая папка</string>
     <string name="account_avatar_description">Аккаунт: %1$s</string>
     <string name="sync_available_offline">Доступно офлайн</string>
     <string name="sync_refreshing">Обновление</string>
@@ -142,7 +142,7 @@
     <string name="note_menu_versions">Версии</string>
     <string name="note_menu_tags">Теги</string>
     <string name="note_menu_information">Информация</string>
-    <string name="change_category">Изменить категорию</string>
+    <string name="change_category">Переместить в подпапку</string>
     <string name="action_rename">Переименовать</string>
     <string name="retry_sync">Повторить синхронизацию</string>
     <string name="note_text_size_decrease">Уменьшить размер текста заметки</string>
@@ -196,7 +196,7 @@
     <string name="list_separator">", "</string>
     <string name="merge_field_title">название</string>
     <string name="merge_field_content">содержимое</string>
-    <string name="merge_field_category">категория</string>
+    <string name="merge_field_category">подпапка</string>
     <string name="merge_field_favorite">избранное</string>
     <string name="conflict_use_merged">Использовать объединённую версию</string>
     <string name="conflict_keep_local_copy">Сохранить локальную как копию</string>
@@ -220,8 +220,8 @@
     <string name="note_info_words">Слова</string>
     <string name="note_info_characters">Символы</string>
     <string name="note_info_lines">Строки</string>
-    <string name="note_info_category">Категория</string>
-    <string name="note_info_category_root">Корень</string>
+    <string name="note_info_category">Подпапка</string>
+    <string name="note_info_category_root">Корневая папка</string>
     <string name="note_info_account">Аккаунт</string>
     <string name="note_info_synchronization">Синхронизация</string>
     <string name="note_info_access">Доступ</string>
@@ -237,18 +237,18 @@
     <string name="sync_state_remote_missing">Отсутствует на сервере</string>
     <string name="sync_state_read_only_conflict">Конфликт (только чтение)</string>
     <string name="sync_state_failed">Ошибка синхронизации</string>
-    <string name="conflict_version_summary">Название: %1$s\nКатегория: %2$s\nИзбранное: %3$s</string>
+    <string name="conflict_version_summary">Название: %1$s\nПодпапка: %2$s\nИзбранное: %3$s</string>
 
-    <!-- Rename, new note, and category dialogs -->
+    <!-- Rename, new note, and subfolder dialogs -->
     <string name="rename_note_title">Переименовать заметку</string>
     <string name="rename_note_file_name">Имя файла</string>
     <string name="note_name_invalid_characters_hint">Символы, недопустимые в имени файла, заменяются пробелами.</string>
     <string name="rename_note_update_heading">Обновить заголовок 1-го уровня</string>
     <string name="new_note_name">Имя заметки</string>
-    <string name="category_undefined_root">Не задана (корень)</string>
-    <string name="category_new">Новая категория</string>
-    <string name="category_new_path">Путь новой категории</string>
-    <string name="category_new_path_hint">Используйте / для создания вложенных категорий.</string>
+    <string name="category_undefined_root">Корневая папка</string>
+    <string name="category_new">Новая подпапка</string>
+    <string name="category_new_path">Путь новой подпапки</string>
+    <string name="category_new_path_hint">Используйте / для создания вложенных подпапок.</string>
 
     <!-- Fast scroll and find -->
     <string name="note_fast_scroll">Быстрая прокрутка заметки</string>

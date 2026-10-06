@@ -12,8 +12,8 @@
     <string name="widget_reset_appearance">重置</string>
     <string name="widget_save">保存</string>
     <string name="widget_all_notes">笔记</string>
-    <string name="widget_all_categories">所有分类</string>
-    <string name="widget_uncategorized">未分类</string>
+    <string name="widget_all_categories">所有子文件夹</string>
+    <string name="widget_uncategorized">根文件夹</string>
     <string name="widget_no_notes">没有笔记</string>
     <string name="widget_note_unavailable">笔记不可用</string>
     <string name="widget_create_note">新建笔记</string>

@@ -12,8 +12,8 @@
     <string name="widget_reset_appearance">Réinitialiser</string>
     <string name="widget_save">Enregistrer</string>
     <string name="widget_all_notes">Notes</string>
-    <string name="widget_all_categories">Toutes les catégories</string>
-    <string name="widget_uncategorized">Sans catégorie</string>
+    <string name="widget_all_categories">Tous les sous-dossiers</string>
+    <string name="widget_uncategorized">Dossier racine</string>
     <string name="widget_no_notes">Aucune note</string>
     <string name="widget_note_unavailable">Note indisponible</string>
     <string name="widget_create_note">Créer une note</string>

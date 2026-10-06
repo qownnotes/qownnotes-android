@@ -23,17 +23,17 @@
 
     <!-- App appearance -->
     <string name="appearance_show_list_header">Показывать заголовок списка</string>
-    <string name="appearance_show_list_header_summary">Показывает текущую категорию и имя аккаунта под строкой поиска.</string>
+    <string name="appearance_show_list_header_summary">Показывает текущую подпапку и имя учётной записи под строкой поиска.</string>
     <string name="appearance_note_cards">Показывать заметки карточками</string>
     <string name="appearance_note_cards_summary">Рисует рамку вокруг каждой заметки с небольшим промежутком между ними.</string>
     <string name="appearance_header_color">Цвет заголовка</string>
     <string name="appearance_default_header">Заголовок по умолчанию</string>
     <string name="appearance_note_background">Фон заметки</string>
     <string name="appearance_default_note_background">Фон заметки по умолчанию</string>
-    <string name="appearance_highlight_categories">Выделять категории</string>
-    <string name="appearance_highlight_categories_summary">Действует, когда включено «Показывать категорию».</string>
-    <string name="appearance_category_highlight_color">Цвет выделения категорий</string>
-    <string name="appearance_default_category_highlight">Выделение категорий по умолчанию</string>
+    <string name="appearance_highlight_categories">Выделять подпапки</string>
+    <string name="appearance_highlight_categories_summary">Действует, когда включено «Показывать подпапку».</string>
+    <string name="appearance_category_highlight_color">Цвет выделения подпапок</string>
+    <string name="appearance_default_category_highlight">Выделение подпапок по умолчанию</string>
     <string name="appearance_custom_colors_hint">Пользовательские цвета одинаковы в светлой и тёмной темах. Цвет текста подбирается автоматически для удобства чтения.</string>
 
     <!-- Widget appearance -->

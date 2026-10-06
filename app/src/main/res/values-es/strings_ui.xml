@@ -23,17 +23,17 @@
 
     <!-- App appearance -->
     <string name="appearance_show_list_header">Mostrar cabecera de la lista</string>
-    <string name="appearance_show_list_header_summary">Muestra la categoría listada y el nombre de la cuenta debajo de la barra de búsqueda.</string>
+    <string name="appearance_show_list_header_summary">Muestra la subcarpeta listada y el nombre de la cuenta debajo de la barra de búsqueda.</string>
     <string name="appearance_note_cards">Mostrar notas como tarjetas</string>
     <string name="appearance_note_cards_summary">Dibuja un borde alrededor de cada nota con un pequeño espacio entre notas.</string>
     <string name="appearance_header_color">Color de la cabecera</string>
     <string name="appearance_default_header">Cabecera predeterminada</string>
     <string name="appearance_note_background">Fondo de las notas</string>
     <string name="appearance_default_note_background">Fondo de notas predeterminado</string>
-    <string name="appearance_highlight_categories">Resaltar categorías</string>
-    <string name="appearance_highlight_categories_summary">Se aplica cuando «Mostrar categoría» está activado.</string>
-    <string name="appearance_category_highlight_color">Color de resaltado de categorías</string>
-    <string name="appearance_default_category_highlight">Resaltado de categorías predeterminado</string>
+    <string name="appearance_highlight_categories">Resaltar subcarpetas</string>
+    <string name="appearance_highlight_categories_summary">Se aplica cuando «Mostrar subcarpeta» está activado.</string>
+    <string name="appearance_category_highlight_color">Color de resaltado de subcarpetas</string>
+    <string name="appearance_default_category_highlight">Resaltado de subcarpetas predeterminado</string>
     <string name="appearance_custom_colors_hint">Los colores personalizados no cambian entre el modo claro y el oscuro. El color del texto se ajusta automáticamente para facilitar la lectura.</string>
 
     <!-- Widget appearance -->

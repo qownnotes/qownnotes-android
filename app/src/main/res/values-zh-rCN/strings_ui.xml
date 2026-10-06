@@ -23,17 +23,17 @@
 
     <!-- App appearance -->
     <string name="appearance_show_list_header">显示列表标题栏</string>
-    <string name="appearance_show_list_header_summary">在搜索栏下方显示当前分类和账号名称。</string>
+    <string name="appearance_show_list_header_summary">在搜索栏下方显示当前子文件夹和账户名称。</string>
     <string name="appearance_note_cards">以卡片形式显示笔记</string>
     <string name="appearance_note_cards_summary">为每条笔记绘制边框，并在笔记之间留出小间隙。</string>
     <string name="appearance_header_color">标题栏颜色</string>
     <string name="appearance_default_header">默认标题栏</string>
     <string name="appearance_note_background">笔记背景</string>
     <string name="appearance_default_note_background">默认笔记背景</string>
-    <string name="appearance_highlight_categories">突出显示分类</string>
-    <string name="appearance_highlight_categories_summary">在开启“显示分类”时生效。</string>
-    <string name="appearance_category_highlight_color">分类突出显示颜色</string>
-    <string name="appearance_default_category_highlight">默认分类突出显示</string>
+    <string name="appearance_highlight_categories">突出显示子文件夹</string>
+    <string name="appearance_highlight_categories_summary">在开启“显示子文件夹”时生效。</string>
+    <string name="appearance_category_highlight_color">子文件夹突出显示颜色</string>
+    <string name="appearance_default_category_highlight">默认子文件夹突出显示</string>
     <string name="appearance_custom_colors_hint">自定义颜色在浅色和深色模式下保持不变。文字颜色会自动调整以确保可读性。</string>
 
     <!-- Widget appearance -->

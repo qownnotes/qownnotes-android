@@ -23,17 +23,17 @@
 
     <!-- App appearance -->
     <string name="appearance_show_list_header">Pokaż nagłówek listy</string>
-    <string name="appearance_show_list_header_summary">Pokazuje wyświetlaną kategorię i nazwę konta pod paskiem wyszukiwania.</string>
+    <string name="appearance_show_list_header_summary">Pokazuje wyświetlany podfolder i nazwę konta pod paskiem wyszukiwania.</string>
     <string name="appearance_note_cards">Pokaż notatki jako karty</string>
     <string name="appearance_note_cards_summary">Rysuje obramowanie wokół każdej notatki z niewielkim odstępem między notatkami.</string>
     <string name="appearance_header_color">Kolor nagłówka</string>
     <string name="appearance_default_header">Domyślny nagłówek</string>
     <string name="appearance_note_background">Tło notatki</string>
     <string name="appearance_default_note_background">Domyślne tło notatki</string>
-    <string name="appearance_highlight_categories">Wyróżniaj kategorie</string>
-    <string name="appearance_highlight_categories_summary">Działa, gdy włączona jest opcja „Pokaż kategorię”.</string>
-    <string name="appearance_category_highlight_color">Kolor wyróżnienia kategorii</string>
-    <string name="appearance_default_category_highlight">Domyślne wyróżnienie kategorii</string>
+    <string name="appearance_highlight_categories">Wyróżniaj podfoldery</string>
+    <string name="appearance_highlight_categories_summary">Działa, gdy włączona jest opcja „Pokaż podfolder”.</string>
+    <string name="appearance_category_highlight_color">Kolor wyróżnienia podfolderów</string>
+    <string name="appearance_default_category_highlight">Domyślne wyróżnienie podfolderów</string>
     <string name="appearance_custom_colors_hint">Własne kolory są takie same w trybie jasnym i ciemnym. Kolor tekstu dopasowuje się automatycznie dla lepszej czytelności.</string>
 
     <!-- Widget appearance -->

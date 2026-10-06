@@ -30,7 +30,7 @@ class WidgetConfigurationTest {
         }
 
         composeRule.onNodeWithText("All categories").assertIsDisplayed()
-        composeRule.onNodeWithText("Uncategorized").assertIsDisplayed()
+        composeRule.onNodeWithText("Root folder").assertIsDisplayed()
         composeRule.onNodeWithTag("widget-category-all").performClick()
         composeRule.onNodeWithTag("widget-category-undefined").performClick()
         composeRule.onNodeWithTag("widget-category-Work/Projects").performClick()

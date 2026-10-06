@@ -50,18 +50,18 @@
     <string name="sort_option_latest_first">Más recientes primero</string>
     <string name="sort_option_title_ascending">Título A-Z</string>
     <string name="sort_option_title_descending">Título Z-A</string>
-    <string name="category_option_undefined">Sin definir</string>
+    <string name="category_option_undefined">Carpeta raíz</string>
     <string name="bookmarks">Marcadores</string>
     <string name="trash">Papelera</string>
     <string name="about">Acerca de</string>
     <string name="notes_empty_search">No hay notas coincidentes</string>
     <string name="notes_empty_tags">No hay notas con las etiquetas seleccionadas</string>
-    <string name="notes_empty_category">No hay notas en esta categoría</string>
+    <string name="notes_empty_category">No hay notas en esta subcarpeta</string>
 
     <!-- Settings -->
     <string name="settings_title">Ajustes</string>
     <string name="settings_show_note_preview">Mostrar vista previa de las notas</string>
-    <string name="settings_show_category">Mostrar categoría</string>
+    <string name="settings_show_category">Mostrar subcarpeta</string>
     <string name="settings_compact_note_list">Lista de notas compacta</string>
     <string name="settings_compact_note_list_description">Reduce el espaciado en la lista de notas y en los widgets de lista.</string>
     <string name="settings_swipe_note_actions">Acciones al deslizar notas</string>
@@ -111,7 +111,7 @@
     <!-- Note list items -->
     <string name="favorite_remove">Quitar de favoritas</string>
     <string name="favorite_add">Añadir a favoritas</string>
-    <string name="note_uncategorized">Sin categoría</string>
+    <string name="note_uncategorized">Carpeta raíz</string>
     <string name="account_avatar_description">Cuenta: %1$s</string>
     <string name="sync_available_offline">Disponible sin conexión</string>
     <string name="sync_refreshing">Actualizando</string>
@@ -141,7 +141,7 @@
     <string name="note_menu_versions">Versiones</string>
     <string name="note_menu_tags">Etiquetas</string>
     <string name="note_menu_information">Información</string>
-    <string name="change_category">Cambiar categoría</string>
+    <string name="change_category">Mover a subcarpeta</string>
     <string name="action_rename">Renombrar</string>
     <string name="retry_sync">Reintentar sincronización</string>
     <string name="note_text_size_decrease">Reducir tamaño del texto de la nota</string>
@@ -195,7 +195,7 @@
     <string name="list_separator">", "</string>
     <string name="merge_field_title">título</string>
     <string name="merge_field_content">contenido</string>
-    <string name="merge_field_category">categoría</string>
+    <string name="merge_field_category">subcarpeta</string>
     <string name="merge_field_favorite">favorita</string>
     <string name="conflict_use_merged">Usar versión combinada</string>
     <string name="conflict_keep_local_copy">Conservar local como copia</string>
@@ -219,8 +219,8 @@
     <string name="note_info_words">Palabras</string>
     <string name="note_info_characters">Caracteres</string>
     <string name="note_info_lines">Líneas</string>
-    <string name="note_info_category">Categoría</string>
-    <string name="note_info_category_root">Raíz</string>
+    <string name="note_info_category">Subcarpeta</string>
+    <string name="note_info_category_root">Carpeta raíz</string>
     <string name="note_info_account">Cuenta</string>
     <string name="note_info_synchronization">Sincronización</string>
     <string name="note_info_access">Acceso</string>
@@ -236,18 +236,18 @@
     <string name="sync_state_remote_missing">No está en el servidor</string>
     <string name="sync_state_read_only_conflict">Conflicto de solo lectura</string>
     <string name="sync_state_failed">Error de sincronización</string>
-    <string name="conflict_version_summary">Título: %1$s\nCategoría: %2$s\nFavorita: %3$s</string>
+    <string name="conflict_version_summary">Título: %1$s\nSubcarpeta: %2$s\nFavorita: %3$s</string>
 
-    <!-- Rename, new note, and category dialogs -->
+    <!-- Rename, new note, and subfolder dialogs -->
     <string name="rename_note_title">Renombrar nota</string>
     <string name="rename_note_file_name">Nombre de archivo</string>
     <string name="note_name_invalid_characters_hint">Los caracteres no permitidos en un nombre de archivo se sustituyen por espacios.</string>
     <string name="rename_note_update_heading">Actualizar encabezado 1</string>
     <string name="new_note_name">Nombre de la nota</string>
-    <string name="category_undefined_root">Sin definir (raíz)</string>
-    <string name="category_new">Nueva categoría</string>
-    <string name="category_new_path">Ruta de la nueva categoría</string>
-    <string name="category_new_path_hint">Usa / para crear categorías anidadas.</string>
+    <string name="category_undefined_root">Carpeta raíz</string>
+    <string name="category_new">Nueva subcarpeta</string>
+    <string name="category_new_path">Ruta de la nueva subcarpeta</string>
+    <string name="category_new_path_hint">Usa / para crear subcarpetas anidadas.</string>
 
     <!-- Fast scroll and find -->
     <string name="note_fast_scroll">Desplazamiento rápido de la nota</string>

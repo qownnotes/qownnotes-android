@@ -23,17 +23,17 @@
 
     <!-- App appearance -->
     <string name="appearance_show_list_header">Afficher l\'en-tête de la liste</string>
-    <string name="appearance_show_list_header_summary">Affiche la catégorie listée et le nom du compte sous la barre de recherche.</string>
+    <string name="appearance_show_list_header_summary">Affiche le sous-dossier listé et le nom du compte sous la barre de recherche.</string>
     <string name="appearance_note_cards">Afficher les notes sous forme de cartes</string>
     <string name="appearance_note_cards_summary">Dessine une bordure autour de chaque note avec un petit espace entre les notes.</string>
     <string name="appearance_header_color">Couleur de l\'en-tête</string>
     <string name="appearance_default_header">En-tête par défaut</string>
     <string name="appearance_note_background">Arrière-plan des notes</string>
     <string name="appearance_default_note_background">Arrière-plan des notes par défaut</string>
-    <string name="appearance_highlight_categories">Mettre en évidence les catégories</string>
-    <string name="appearance_highlight_categories_summary">S\'applique lorsque « Afficher la catégorie » est activé.</string>
-    <string name="appearance_category_highlight_color">Couleur de mise en évidence des catégories</string>
-    <string name="appearance_default_category_highlight">Mise en évidence par défaut</string>
+    <string name="appearance_highlight_categories">Mettre en évidence les sous-dossiers</string>
+    <string name="appearance_highlight_categories_summary">S\'applique lorsque « Afficher le sous-dossier » est activé.</string>
+    <string name="appearance_category_highlight_color">Couleur de mise en évidence des sous-dossiers</string>
+    <string name="appearance_default_category_highlight">Mise en évidence des sous-dossiers par défaut</string>
     <string name="appearance_custom_colors_hint">Les couleurs personnalisées restent identiques en mode clair et sombre. La couleur du texte s\'adapte automatiquement pour rester lisible.</string>
 
     <!-- Widget appearance -->

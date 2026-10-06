@@ -50,18 +50,18 @@
     <string name="sort_option_latest_first">Mais recentes primeiro</string>
     <string name="sort_option_title_ascending">Título A-Z</string>
     <string name="sort_option_title_descending">Título Z-A</string>
-    <string name="category_option_undefined">Indefinida</string>
+    <string name="category_option_undefined">Pasta raiz</string>
     <string name="bookmarks">Marcadores</string>
     <string name="trash">Lixeira</string>
     <string name="about">Sobre</string>
     <string name="notes_empty_search">Nenhuma nota correspondente</string>
     <string name="notes_empty_tags">Nenhuma nota com as etiquetas selecionadas</string>
-    <string name="notes_empty_category">Nenhuma nota nesta categoria</string>
+    <string name="notes_empty_category">Nenhuma nota nesta subpasta</string>
 
     <!-- Settings -->
     <string name="settings_title">Configurações</string>
     <string name="settings_show_note_preview">Mostrar prévia das notas</string>
-    <string name="settings_show_category">Mostrar categoria</string>
+    <string name="settings_show_category">Mostrar subpasta</string>
     <string name="settings_compact_note_list">Lista de notas compacta</string>
     <string name="settings_compact_note_list_description">Reduz o espaçamento na lista de notas e nos widgets de lista.</string>
     <string name="settings_swipe_note_actions">Ações de deslizar nas notas</string>
@@ -111,7 +111,7 @@
     <!-- Note list items -->
     <string name="favorite_remove">Remover dos favoritos</string>
     <string name="favorite_add">Adicionar aos favoritos</string>
-    <string name="note_uncategorized">Sem categoria</string>
+    <string name="note_uncategorized">Pasta raiz</string>
     <string name="account_avatar_description">Conta: %1$s</string>
     <string name="sync_available_offline">Disponível offline</string>
     <string name="sync_refreshing">Atualizando</string>
@@ -141,7 +141,7 @@
     <string name="note_menu_versions">Versões</string>
     <string name="note_menu_tags">Etiquetas</string>
     <string name="note_menu_information">Informações</string>
-    <string name="change_category">Alterar categoria</string>
+    <string name="change_category">Mover para subpasta</string>
     <string name="action_rename">Renomear</string>
     <string name="retry_sync">Tentar sincronizar novamente</string>
     <string name="note_text_size_decrease">Diminuir tamanho do texto da nota</string>
@@ -195,7 +195,7 @@
     <string name="list_separator">", "</string>
     <string name="merge_field_title">título</string>
     <string name="merge_field_content">conteúdo</string>
-    <string name="merge_field_category">categoria</string>
+    <string name="merge_field_category">subpasta</string>
     <string name="merge_field_favorite">favorito</string>
     <string name="conflict_use_merged">Usar versão mesclada</string>
     <string name="conflict_keep_local_copy">Manter local como cópia</string>
@@ -219,8 +219,8 @@
     <string name="note_info_words">Palavras</string>
     <string name="note_info_characters">Caracteres</string>
     <string name="note_info_lines">Linhas</string>
-    <string name="note_info_category">Categoria</string>
-    <string name="note_info_category_root">Raiz</string>
+    <string name="note_info_category">Subpasta</string>
+    <string name="note_info_category_root">Pasta raiz</string>
     <string name="note_info_account">Conta</string>
     <string name="note_info_synchronization">Sincronização</string>
     <string name="note_info_access">Acesso</string>
@@ -236,18 +236,18 @@
     <string name="sync_state_remote_missing">Ausente no servidor</string>
     <string name="sync_state_read_only_conflict">Conflito somente leitura</string>
     <string name="sync_state_failed">Falha na sincronização</string>
-    <string name="conflict_version_summary">Título: %1$s\nCategoria: %2$s\nFavorito: %3$s</string>
+    <string name="conflict_version_summary">Título: %1$s\nSubpasta: %2$s\nFavorito: %3$s</string>
 
-    <!-- Rename, new note, and category dialogs -->
+    <!-- Rename, new note, and subfolder dialogs -->
     <string name="rename_note_title">Renomear nota</string>
     <string name="rename_note_file_name">Nome do arquivo</string>
     <string name="note_name_invalid_characters_hint">Caracteres não permitidos em nomes de arquivo são substituídos por espaços.</string>
     <string name="rename_note_update_heading">Atualizar título de nível 1</string>
     <string name="new_note_name">Nome da nota</string>
-    <string name="category_undefined_root">Indefinida (raiz)</string>
-    <string name="category_new">Nova categoria</string>
-    <string name="category_new_path">Caminho da nova categoria</string>
-    <string name="category_new_path_hint">Use / para criar categorias aninhadas.</string>
+    <string name="category_undefined_root">Pasta raiz</string>
+    <string name="category_new">Nova subpasta</string>
+    <string name="category_new_path">Caminho da nova subpasta</string>
+    <string name="category_new_path_hint">Use / para criar subpastas aninhadas.</string>
 
     <!-- Fast scroll and find -->
     <string name="note_fast_scroll">Rolagem rápida da nota</string>

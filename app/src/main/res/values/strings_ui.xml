@@ -22,17 +22,17 @@
 
     <!-- App appearance -->
     <string name="appearance_show_list_header">Show list header</string>
-    <string name="appearance_show_list_header_summary">Shows the listed category and the account name below the search bar.</string>
+    <string name="appearance_show_list_header_summary">Shows the listed subfolder and the account name below the search bar.</string>
     <string name="appearance_note_cards">Show notes as cards</string>
     <string name="appearance_note_cards_summary">Draws a border around each note with a small gap between notes.</string>
     <string name="appearance_header_color">Header color</string>
     <string name="appearance_default_header">Default header</string>
     <string name="appearance_note_background">Note background</string>
     <string name="appearance_default_note_background">Default note background</string>
-    <string name="appearance_highlight_categories">Highlight categories</string>
-    <string name="appearance_highlight_categories_summary">Applies when \"Show category\" is on.</string>
-    <string name="appearance_category_highlight_color">Category highlight color</string>
-    <string name="appearance_default_category_highlight">Default category highlight</string>
+    <string name="appearance_highlight_categories">Highlight subfolders</string>
+    <string name="appearance_highlight_categories_summary">Applies when \"Show subfolder\" is on.</string>
+    <string name="appearance_category_highlight_color">Subfolder highlight color</string>
+    <string name="appearance_default_category_highlight">Default subfolder highlight</string>
     <string name="appearance_custom_colors_hint">Custom colors stay the same in light and dark mode. Text color adjusts automatically for readability.</string>
 
     <!-- Widget appearance -->

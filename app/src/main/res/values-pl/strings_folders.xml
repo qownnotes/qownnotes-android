@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Note folder navigation -->
-    <string name="folders_title">Foldery</string>
-    <string name="folders_open">Pokaż foldery</string>
+    <string name="folders_title">Podfoldery</string>
+    <string name="folders_open">Otwórz podfoldery</string>
     <string name="folders_root">Folder główny</string>
     <string name="folders_show_subfolders">Pokaż notatki z podfolderów</string>
     <string name="folders_expand">Rozwiń %1$s</string>
     <string name="folders_collapse">Zwiń %1$s</string>
-    <string name="folders_menu_label">Folder: %1$s</string>
+    <string name="folders_menu_label">Podfolder: %1$s</string>
     <string name="search_all_folders">Szukaj we wszystkich folderach</string>
 </resources>

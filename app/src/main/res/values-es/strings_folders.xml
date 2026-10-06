@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Note folder navigation -->
-    <string name="folders_title">Carpetas</string>
-    <string name="folders_open">Mostrar carpetas</string>
+    <string name="folders_title">Subcarpetas</string>
+    <string name="folders_open">Abrir subcarpetas</string>
     <string name="folders_root">Carpeta raíz</string>
     <string name="folders_show_subfolders">Mostrar notas de subcarpetas</string>
     <string name="folders_expand">Expandir %1$s</string>
     <string name="folders_collapse">Contraer %1$s</string>
-    <string name="folders_menu_label">Carpeta: %1$s</string>
+    <string name="folders_menu_label">Subcarpeta: %1$s</string>
     <string name="search_all_folders">Buscar en todas las carpetas</string>
 </resources>

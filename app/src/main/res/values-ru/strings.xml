@@ -12,8 +12,8 @@
     <string name="widget_reset_appearance">Сбросить</string>
     <string name="widget_save">Сохранить</string>
     <string name="widget_all_notes">Заметки</string>
-    <string name="widget_all_categories">Все категории</string>
-    <string name="widget_uncategorized">Без категории</string>
+    <string name="widget_all_categories">Все подпапки</string>
+    <string name="widget_uncategorized">Корневая папка</string>
     <string name="widget_no_notes">Нет заметок</string>
     <string name="widget_note_unavailable">Заметка недоступна</string>
     <string name="widget_create_note">Создать заметку</string>

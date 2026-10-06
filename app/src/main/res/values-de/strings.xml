@@ -12,8 +12,8 @@
     <string name="widget_reset_appearance">Zurücksetzen</string>
     <string name="widget_save">Speichern</string>
     <string name="widget_all_notes">Notizen</string>
-    <string name="widget_all_categories">Alle Kategorien</string>
-    <string name="widget_uncategorized">Ohne Kategorie</string>
+    <string name="widget_all_categories">Alle Unterordner</string>
+    <string name="widget_uncategorized">Stammordner</string>
     <string name="widget_no_notes">Keine Notizen</string>
     <string name="widget_note_unavailable">Notiz nicht verfügbar</string>
     <string name="widget_create_note">Notiz erstellen</string>

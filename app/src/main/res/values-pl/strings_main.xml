@@ -51,18 +51,18 @@
     <string name="sort_option_latest_first">Najnowsze najpierw</string>
     <string name="sort_option_title_ascending">Tytuł A–Z</string>
     <string name="sort_option_title_descending">Tytuł Z–A</string>
-    <string name="category_option_undefined">Nieokreślona</string>
+    <string name="category_option_undefined">Folder główny</string>
     <string name="bookmarks">Zakładki</string>
     <string name="trash">Kosz</string>
     <string name="about">O aplikacji</string>
     <string name="notes_empty_search">Brak pasujących notatek</string>
     <string name="notes_empty_tags">Brak notatek z wybranymi tagami</string>
-    <string name="notes_empty_category">Brak notatek w tej kategorii</string>
+    <string name="notes_empty_category">Brak notatek w tym podfolderze</string>
 
     <!-- Settings -->
     <string name="settings_title">Ustawienia</string>
     <string name="settings_show_note_preview">Pokaż podgląd notatki</string>
-    <string name="settings_show_category">Pokaż kategorię</string>
+    <string name="settings_show_category">Pokaż podfolder</string>
     <string name="settings_compact_note_list">Kompaktowa lista notatek</string>
     <string name="settings_compact_note_list_description">Zmniejsz odstępy na liście notatek i w widżetach list.</string>
     <string name="settings_swipe_note_actions">Działania przesunięciem</string>
@@ -112,7 +112,7 @@
     <!-- Note list items -->
     <string name="favorite_remove">Usuń z ulubionych</string>
     <string name="favorite_add">Dodaj do ulubionych</string>
-    <string name="note_uncategorized">Bez kategorii</string>
+    <string name="note_uncategorized">Folder główny</string>
     <string name="account_avatar_description">Konto: %1$s</string>
     <string name="sync_available_offline">Dostępne offline</string>
     <string name="sync_refreshing">Odświeżanie</string>
@@ -142,7 +142,7 @@
     <string name="note_menu_versions">Wersje</string>
     <string name="note_menu_tags">Tagi</string>
     <string name="note_menu_information">Informacje</string>
-    <string name="change_category">Zmień kategorię</string>
+    <string name="change_category">Przenieś do podfolderu</string>
     <string name="action_rename">Zmień nazwę</string>
     <string name="retry_sync">Ponów synchronizację</string>
     <string name="note_text_size_decrease">Zmniejsz rozmiar tekstu notatki</string>
@@ -196,7 +196,7 @@
     <string name="list_separator">", "</string>
     <string name="merge_field_title">tytuł</string>
     <string name="merge_field_content">treść</string>
-    <string name="merge_field_category">kategoria</string>
+    <string name="merge_field_category">podfolder</string>
     <string name="merge_field_favorite">ulubione</string>
     <string name="conflict_use_merged">Użyj scalonej wersji</string>
     <string name="conflict_keep_local_copy">Zachowaj lokalną jako kopię</string>
@@ -220,8 +220,8 @@
     <string name="note_info_words">Słowa</string>
     <string name="note_info_characters">Znaki</string>
     <string name="note_info_lines">Wiersze</string>
-    <string name="note_info_category">Kategoria</string>
-    <string name="note_info_category_root">Główna</string>
+    <string name="note_info_category">Podfolder</string>
+    <string name="note_info_category_root">Folder główny</string>
     <string name="note_info_account">Konto</string>
     <string name="note_info_synchronization">Synchronizacja</string>
     <string name="note_info_access">Dostęp</string>
@@ -237,18 +237,18 @@
     <string name="sync_state_remote_missing">Brak na serwerze</string>
     <string name="sync_state_read_only_conflict">Konflikt tylko do odczytu</string>
     <string name="sync_state_failed">Synchronizacja nie powiodła się</string>
-    <string name="conflict_version_summary">Tytuł: %1$s\nKategoria: %2$s\nUlubiona: %3$s</string>
+    <string name="conflict_version_summary">Tytuł: %1$s\nPodfolder: %2$s\nUlubiona: %3$s</string>
 
-    <!-- Rename, new note, and category dialogs -->
+    <!-- Rename, new note, and subfolder dialogs -->
     <string name="rename_note_title">Zmień nazwę notatki</string>
     <string name="rename_note_file_name">Nazwa pliku</string>
     <string name="note_name_invalid_characters_hint">Znaki niedozwolone w nazwie pliku są zastępowane spacjami.</string>
     <string name="rename_note_update_heading">Zaktualizuj nagłówek 1. stopnia</string>
     <string name="new_note_name">Nazwa notatki</string>
-    <string name="category_undefined_root">Nieokreślona (główna)</string>
-    <string name="category_new">Nowa kategoria</string>
-    <string name="category_new_path">Ścieżka nowej kategorii</string>
-    <string name="category_new_path_hint">Użyj /, aby utworzyć zagnieżdżone kategorie.</string>
+    <string name="category_undefined_root">Folder główny</string>
+    <string name="category_new">Nowy podfolder</string>
+    <string name="category_new_path">Ścieżka nowego podfolderu</string>
+    <string name="category_new_path_hint">Użyj /, aby utworzyć zagnieżdżone podfoldery.</string>
 
     <!-- Fast scroll and find -->
     <string name="note_fast_scroll">Szybkie przewijanie notatki</string>

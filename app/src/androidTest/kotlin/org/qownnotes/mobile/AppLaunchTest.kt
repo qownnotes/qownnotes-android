@@ -626,17 +626,17 @@ class AppLaunchTest {
         listAction("settings")
         composeRule.onNodeWithTag("toggle-category").performClick()
         composeRule.onNodeWithTag("close-settings").performClick()
-        composeRule.waitForText("Uncategorized")
+        composeRule.waitForText("Root folder")
 
         importAccount("bob", "Bob note", "etag-b", 20)
-        composeRule.onNodeWithText("Uncategorized").assertDoesNotExist()
+        composeRule.onNodeWithText("Root folder").assertDoesNotExist()
 
         composeRule.activityRule.scenario.recreate()
         composeRule.waitForText("Bob note")
-        composeRule.onNodeWithText("Uncategorized").assertDoesNotExist()
+        composeRule.onNodeWithText("Root folder").assertDoesNotExist()
         accountAction("account-choice-${alice.localAccountId()}")
         composeRule.waitForText("Alice note")
-        composeRule.onNodeWithText("Uncategorized").assertIsDisplayed()
+        composeRule.onNodeWithText("Root folder").assertIsDisplayed()
     }
 
     @Test
@@ -698,7 +698,7 @@ class AppLaunchTest {
 
         fun assertAppearance() {
             composeRule.onNodeWithTag("note-list-header-title")
-                .assertTextEquals("Uncategorized")
+                .assertTextEquals("Root folder")
             composeRule.onNodeWithTag("note-list-header-account").assertTextEquals(displayName)
             assertEquals(0xFF1565C0.toInt(), pixel("note-list-header"))
             // Sample the row's start padding: card corners are clipped and outlined.

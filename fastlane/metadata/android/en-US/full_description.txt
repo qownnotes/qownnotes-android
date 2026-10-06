@@ -10,7 +10,7 @@ Features include:
 * Read, search, create, rename, edit, and delete notes while offline
 * Conflict-safe synchronization using ETags and durable pending changes
 * CommonMark and GitHub Flavored Markdown rendering and source editing
-* QOwnNotes wiki links, task states, note naming, categories, and favorites
+* QOwnNotes wiki links, task states, note naming, subfolders, and favorites
 * Note tags shared with QOwnNotes desktop, with tag filtering in the note list
 * Nextcloud Deck card creation from the editor
 * Safe remote images and authenticated Nextcloud note attachments

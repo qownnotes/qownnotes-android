@@ -50,18 +50,18 @@
     <string name="sort_option_latest_first">Plus récentes d\'abord</string>
     <string name="sort_option_title_ascending">Titre A-Z</string>
     <string name="sort_option_title_descending">Titre Z-A</string>
-    <string name="category_option_undefined">Non définie</string>
+    <string name="category_option_undefined">Dossier racine</string>
     <string name="bookmarks">Signets</string>
     <string name="trash">Corbeille</string>
     <string name="about">À propos</string>
     <string name="notes_empty_search">Aucune note correspondante</string>
     <string name="notes_empty_tags">Aucune note avec les étiquettes sélectionnées</string>
-    <string name="notes_empty_category">Aucune note dans cette catégorie</string>
+    <string name="notes_empty_category">Aucune note dans ce sous-dossier</string>
 
     <!-- Settings -->
     <string name="settings_title">Paramètres</string>
     <string name="settings_show_note_preview">Afficher l\'aperçu des notes</string>
-    <string name="settings_show_category">Afficher la catégorie</string>
+    <string name="settings_show_category">Afficher le sous-dossier</string>
     <string name="settings_compact_note_list">Liste de notes compacte</string>
     <string name="settings_compact_note_list_description">Réduit l\'espacement dans la liste de notes et les widgets de liste.</string>
     <string name="settings_swipe_note_actions">Actions par balayage</string>
@@ -111,7 +111,7 @@
     <!-- Note list items -->
     <string name="favorite_remove">Retirer des favoris</string>
     <string name="favorite_add">Ajouter aux favoris</string>
-    <string name="note_uncategorized">Sans catégorie</string>
+    <string name="note_uncategorized">Dossier racine</string>
     <string name="account_avatar_description">Compte\u00A0: %1$s</string>
     <string name="sync_available_offline">Disponible hors ligne</string>
     <string name="sync_refreshing">Actualisation</string>
@@ -141,7 +141,7 @@
     <string name="note_menu_versions">Versions</string>
     <string name="note_menu_tags">Étiquettes</string>
     <string name="note_menu_information">Informations</string>
-    <string name="change_category">Changer de catégorie</string>
+    <string name="change_category">Déplacer vers un sous-dossier</string>
     <string name="action_rename">Renommer</string>
     <string name="retry_sync">Réessayer la synchronisation</string>
     <string name="note_text_size_decrease">Réduire la taille du texte de la note</string>
@@ -195,7 +195,7 @@
     <string name="list_separator">", "</string>
     <string name="merge_field_title">titre</string>
     <string name="merge_field_content">contenu</string>
-    <string name="merge_field_category">catégorie</string>
+    <string name="merge_field_category">sous-dossier</string>
     <string name="merge_field_favorite">favori</string>
     <string name="conflict_use_merged">Utiliser la version fusionnée</string>
     <string name="conflict_keep_local_copy">Garder la locale en copie</string>
@@ -219,8 +219,8 @@
     <string name="note_info_words">Mots</string>
     <string name="note_info_characters">Caractères</string>
     <string name="note_info_lines">Lignes</string>
-    <string name="note_info_category">Catégorie</string>
-    <string name="note_info_category_root">Racine</string>
+    <string name="note_info_category">Sous-dossier</string>
+    <string name="note_info_category_root">Dossier racine</string>
     <string name="note_info_account">Compte</string>
     <string name="note_info_synchronization">Synchronisation</string>
     <string name="note_info_access">Accès</string>
@@ -236,18 +236,18 @@
     <string name="sync_state_remote_missing">Absente du serveur</string>
     <string name="sync_state_read_only_conflict">Conflit en lecture seule</string>
     <string name="sync_state_failed">Échec de la synchronisation</string>
-    <string name="conflict_version_summary">Titre\u00A0: %1$s\nCatégorie\u00A0: %2$s\nFavori\u00A0: %3$s</string>
+    <string name="conflict_version_summary">Titre\u00A0: %1$s\nSous-dossier\u00A0: %2$s\nFavori\u00A0: %3$s</string>
 
-    <!-- Rename, new note, and category dialogs -->
+    <!-- Rename, new note, and subfolder dialogs -->
     <string name="rename_note_title">Renommer la note</string>
     <string name="rename_note_file_name">Nom du fichier</string>
     <string name="note_name_invalid_characters_hint">Les caractères non autorisés dans un nom de fichier sont remplacés par des espaces.</string>
     <string name="rename_note_update_heading">Mettre à jour le titre de niveau 1</string>
     <string name="new_note_name">Nom de la note</string>
-    <string name="category_undefined_root">Non définie (racine)</string>
-    <string name="category_new">Nouvelle catégorie</string>
-    <string name="category_new_path">Chemin de la nouvelle catégorie</string>
-    <string name="category_new_path_hint">Utilisez / pour créer des catégories imbriquées.</string>
+    <string name="category_undefined_root">Dossier racine</string>
+    <string name="category_new">Nouveau sous-dossier</string>
+    <string name="category_new_path">Chemin du nouveau sous-dossier</string>
+    <string name="category_new_path_hint">Utilisez / pour créer des sous-dossiers imbriqués.</string>
 
     <!-- Fast scroll and find -->
     <string name="note_fast_scroll">Défilement rapide de la note</string>

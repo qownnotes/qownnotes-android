@@ -253,7 +253,7 @@ class NoteWidgetTest {
 
         val undefined = header(NoteCategoryScope.Undefined, null)
         assertEquals(
-            "Uncategorized",
+            "Root folder",
             undefined.findViewById<TextView>(R.id.widget_title).text.toString()
         )
         assertEquals(View.GONE, undefined.findViewById<TextView>(R.id.widget_subtitle).visibility)
@@ -385,7 +385,7 @@ class NoteWidgetTest {
             note.copy(category = ""),
             NoteListWidgetDisplay(showCategory = true)
         ).reapply(context, row)
-        assertEquals("Uncategorized", label.text.toString())
+        assertEquals("Root folder", label.text.toString())
         assertEquals(View.GONE, background.visibility)
         assertEquals(0, label.paddingStart)
         assertEquals(context.getColor(R.color.widget_text), label.currentTextColor)

@@ -23,17 +23,17 @@
 
     <!-- App appearance -->
     <string name="appearance_show_list_header">Listenkopf anzeigen</string>
-    <string name="appearance_show_list_header_summary">Zeigt die angezeigte Kategorie und den Kontonamen unter der Suchleiste.</string>
+    <string name="appearance_show_list_header_summary">Zeigt den angezeigten Unterordner und den Kontonamen unter der Suchleiste.</string>
     <string name="appearance_note_cards">Notizen als Karten anzeigen</string>
     <string name="appearance_note_cards_summary">Zeichnet einen Rahmen um jede Notiz mit einem kleinen Abstand zwischen den Notizen.</string>
     <string name="appearance_header_color">Kopfzeilenfarbe</string>
     <string name="appearance_default_header">Standard-Kopfzeile</string>
     <string name="appearance_note_background">Notizhintergrund</string>
     <string name="appearance_default_note_background">Standard-Notizhintergrund</string>
-    <string name="appearance_highlight_categories">Kategorien hervorheben</string>
-    <string name="appearance_highlight_categories_summary">Gilt, wenn „Kategorie anzeigen“ aktiviert ist.</string>
-    <string name="appearance_category_highlight_color">Hervorhebungsfarbe für Kategorien</string>
-    <string name="appearance_default_category_highlight">Standard-Kategoriehervorhebung</string>
+    <string name="appearance_highlight_categories">Unterordner hervorheben</string>
+    <string name="appearance_highlight_categories_summary">Gilt, wenn „Unterordner anzeigen“ aktiviert ist.</string>
+    <string name="appearance_category_highlight_color">Hervorhebungsfarbe für Unterordner</string>
+    <string name="appearance_default_category_highlight">Standard-Hervorhebung für Unterordner</string>
     <string name="appearance_custom_colors_hint">Eigene Farben bleiben im hellen und dunklen Modus gleich. Die Textfarbe passt sich für bessere Lesbarkeit automatisch an.</string>
 
     <!-- Widget appearance -->

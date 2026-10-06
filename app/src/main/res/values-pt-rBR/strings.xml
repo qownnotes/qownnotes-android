@@ -12,8 +12,8 @@
     <string name="widget_reset_appearance">Redefinir</string>
     <string name="widget_save">Salvar</string>
     <string name="widget_all_notes">Notas</string>
-    <string name="widget_all_categories">Todas as categorias</string>
-    <string name="widget_uncategorized">Sem categoria</string>
+    <string name="widget_all_categories">Todas as subpastas</string>
+    <string name="widget_uncategorized">Pasta raiz</string>
     <string name="widget_no_notes">Nenhuma nota</string>
     <string name="widget_note_unavailable">Nota indisponível</string>
     <string name="widget_create_note">Criar nota</string>

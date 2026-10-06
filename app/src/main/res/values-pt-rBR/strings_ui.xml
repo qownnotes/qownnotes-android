@@ -23,17 +23,17 @@
 
     <!-- App appearance -->
     <string name="appearance_show_list_header">Mostrar cabeçalho da lista</string>
-    <string name="appearance_show_list_header_summary">Mostra a categoria listada e o nome da conta abaixo da barra de pesquisa.</string>
+    <string name="appearance_show_list_header_summary">Mostra a subpasta listada e o nome da conta abaixo da barra de pesquisa.</string>
     <string name="appearance_note_cards">Mostrar notas como cartões</string>
     <string name="appearance_note_cards_summary">Desenha uma borda em volta de cada nota com um pequeno espaço entre as notas.</string>
     <string name="appearance_header_color">Cor do cabeçalho</string>
     <string name="appearance_default_header">Cabeçalho padrão</string>
     <string name="appearance_note_background">Fundo da nota</string>
     <string name="appearance_default_note_background">Fundo de nota padrão</string>
-    <string name="appearance_highlight_categories">Destacar categorias</string>
-    <string name="appearance_highlight_categories_summary">Aplica-se quando \"Mostrar categoria\" está ativado.</string>
-    <string name="appearance_category_highlight_color">Cor de destaque da categoria</string>
-    <string name="appearance_default_category_highlight">Destaque de categoria padrão</string>
+    <string name="appearance_highlight_categories">Destacar subpastas</string>
+    <string name="appearance_highlight_categories_summary">Aplica-se quando \"Mostrar subpasta\" está ativado.</string>
+    <string name="appearance_category_highlight_color">Cor de destaque das subpastas</string>
+    <string name="appearance_default_category_highlight">Destaque padrão das subpastas</string>
     <string name="appearance_custom_colors_hint">As cores personalizadas permanecem iguais nos modos claro e escuro. A cor do texto se ajusta automaticamente para facilitar a leitura.</string>
 
     <!-- Widget appearance -->

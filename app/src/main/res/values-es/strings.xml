@@ -12,8 +12,8 @@
     <string name="widget_reset_appearance">Restablecer</string>
     <string name="widget_save">Guardar</string>
     <string name="widget_all_notes">Notas</string>
-    <string name="widget_all_categories">Todas las categorías</string>
-    <string name="widget_uncategorized">Sin categoría</string>
+    <string name="widget_all_categories">Todas las subcarpetas</string>
+    <string name="widget_uncategorized">Carpeta raíz</string>
     <string name="widget_no_notes">No hay notas</string>
     <string name="widget_note_unavailable">Nota no disponible</string>
     <string name="widget_create_note">Crear nota</string>

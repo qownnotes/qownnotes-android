@@ -11,8 +11,8 @@
     <string name="widget_reset_appearance">Reset</string>
     <string name="widget_save">Save</string>
     <string name="widget_all_notes">Notes</string>
-    <string name="widget_all_categories">All categories</string>
-    <string name="widget_uncategorized">Uncategorized</string>
+    <string name="widget_all_categories">All subfolders</string>
+    <string name="widget_uncategorized">Root folder</string>
     <string name="widget_no_notes">No notes</string>
     <string name="widget_note_unavailable">Note unavailable</string>
     <string name="widget_create_note">Create note</string>

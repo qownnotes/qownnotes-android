@@ -50,18 +50,18 @@
     <string name="sort_option_latest_first">Più recenti prima</string>
     <string name="sort_option_title_ascending">Titolo A-Z</string>
     <string name="sort_option_title_descending">Titolo Z-A</string>
-    <string name="category_option_undefined">Non definita</string>
+    <string name="category_option_undefined">Cartella principale</string>
     <string name="bookmarks">Segnalibri</string>
     <string name="trash">Cestino</string>
     <string name="about">Informazioni</string>
     <string name="notes_empty_search">Nessuna nota corrispondente</string>
     <string name="notes_empty_tags">Nessuna nota con le etichette selezionate</string>
-    <string name="notes_empty_category">Nessuna nota in questa categoria</string>
+    <string name="notes_empty_category">Nessuna nota in questa sottocartella</string>
 
     <!-- Settings -->
     <string name="settings_title">Impostazioni</string>
     <string name="settings_show_note_preview">Mostra anteprima delle note</string>
-    <string name="settings_show_category">Mostra categoria</string>
+    <string name="settings_show_category">Mostra sottocartella</string>
     <string name="settings_compact_note_list">Elenco note compatto</string>
     <string name="settings_compact_note_list_description">Riduce la spaziatura nell\'elenco delle note e nei widget a elenco.</string>
     <string name="settings_swipe_note_actions">Azioni con scorrimento</string>
@@ -111,7 +111,7 @@
     <!-- Note list items -->
     <string name="favorite_remove">Rimuovi dai preferiti</string>
     <string name="favorite_add">Aggiungi ai preferiti</string>
-    <string name="note_uncategorized">Senza categoria</string>
+    <string name="note_uncategorized">Cartella principale</string>
     <string name="account_avatar_description">Account: %1$s</string>
     <string name="sync_available_offline">Disponibile offline</string>
     <string name="sync_refreshing">Aggiornamento</string>
@@ -141,7 +141,7 @@
     <string name="note_menu_versions">Versioni</string>
     <string name="note_menu_tags">Etichette</string>
     <string name="note_menu_information">Informazioni</string>
-    <string name="change_category">Cambia categoria</string>
+    <string name="change_category">Sposta in sottocartella</string>
     <string name="action_rename">Rinomina</string>
     <string name="retry_sync">Riprova sincronizzazione</string>
     <string name="note_text_size_decrease">Riduci dimensione testo della nota</string>
@@ -195,7 +195,7 @@
     <string name="list_separator">", "</string>
     <string name="merge_field_title">titolo</string>
     <string name="merge_field_content">contenuto</string>
-    <string name="merge_field_category">categoria</string>
+    <string name="merge_field_category">sottocartella</string>
     <string name="merge_field_favorite">preferito</string>
     <string name="conflict_use_merged">Usa versione unita</string>
     <string name="conflict_keep_local_copy">Mantieni locale come copia</string>
@@ -219,8 +219,8 @@
     <string name="note_info_words">Parole</string>
     <string name="note_info_characters">Caratteri</string>
     <string name="note_info_lines">Righe</string>
-    <string name="note_info_category">Categoria</string>
-    <string name="note_info_category_root">Radice</string>
+    <string name="note_info_category">Sottocartella</string>
+    <string name="note_info_category_root">Cartella principale</string>
     <string name="note_info_account">Account</string>
     <string name="note_info_synchronization">Sincronizzazione</string>
     <string name="note_info_access">Accesso</string>
@@ -236,18 +236,18 @@
     <string name="sync_state_remote_missing">Mancante sul server</string>
     <string name="sync_state_read_only_conflict">Conflitto di sola lettura</string>
     <string name="sync_state_failed">Sincronizzazione non riuscita</string>
-    <string name="conflict_version_summary">Titolo: %1$s\nCategoria: %2$s\nPreferita: %3$s</string>
+    <string name="conflict_version_summary">Titolo: %1$s\nSottocartella: %2$s\nPreferita: %3$s</string>
 
-    <!-- Rename, new note, and category dialogs -->
+    <!-- Rename, new note, and subfolder dialogs -->
     <string name="rename_note_title">Rinomina nota</string>
     <string name="rename_note_file_name">Nome file</string>
     <string name="note_name_invalid_characters_hint">I caratteri non ammessi nei nomi di file vengono sostituiti da spazi.</string>
     <string name="rename_note_update_heading">Aggiorna titolo di livello 1</string>
     <string name="new_note_name">Nome della nota</string>
-    <string name="category_undefined_root">Non definita (radice)</string>
-    <string name="category_new">Nuova categoria</string>
-    <string name="category_new_path">Percorso nuova categoria</string>
-    <string name="category_new_path_hint">Usa / per creare categorie annidate.</string>
+    <string name="category_undefined_root">Cartella principale</string>
+    <string name="category_new">Nuova sottocartella</string>
+    <string name="category_new_path">Percorso della nuova sottocartella</string>
+    <string name="category_new_path_hint">Usa / per creare sottocartelle annidate.</string>
 
     <!-- Fast scroll and find -->
     <string name="note_fast_scroll">Scorrimento rapido nota</string>

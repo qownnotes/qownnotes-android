@@ -12,8 +12,8 @@
     <string name="widget_reset_appearance">Ripristina</string>
     <string name="widget_save">Salva</string>
     <string name="widget_all_notes">Note</string>
-    <string name="widget_all_categories">Tutte le categorie</string>
-    <string name="widget_uncategorized">Senza categoria</string>
+    <string name="widget_all_categories">Tutte le sottocartelle</string>
+    <string name="widget_uncategorized">Cartella principale</string>
     <string name="widget_no_notes">Nessuna nota</string>
     <string name="widget_note_unavailable">Nota non disponibile</string>
     <string name="widget_create_note">Crea nota</string>

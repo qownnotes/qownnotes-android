@@ -23,17 +23,17 @@
 
     <!-- App appearance -->
     <string name="appearance_show_list_header">Mostra intestazione elenco</string>
-    <string name="appearance_show_list_header_summary">Mostra la categoria visualizzata e il nome dell\'account sotto la barra di ricerca.</string>
+    <string name="appearance_show_list_header_summary">Mostra la sottocartella elencata e il nome dell\'account sotto la barra di ricerca.</string>
     <string name="appearance_note_cards">Mostra le note come schede</string>
     <string name="appearance_note_cards_summary">Disegna un bordo attorno a ogni nota con un piccolo spazio tra le note.</string>
     <string name="appearance_header_color">Colore intestazione</string>
     <string name="appearance_default_header">Intestazione predefinita</string>
     <string name="appearance_note_background">Sfondo delle note</string>
     <string name="appearance_default_note_background">Sfondo note predefinito</string>
-    <string name="appearance_highlight_categories">Evidenzia categorie</string>
-    <string name="appearance_highlight_categories_summary">Si applica quando «Mostra categoria» è attivo.</string>
-    <string name="appearance_category_highlight_color">Colore evidenziazione categoria</string>
-    <string name="appearance_default_category_highlight">Evidenziazione categoria predefinita</string>
+    <string name="appearance_highlight_categories">Evidenzia sottocartelle</string>
+    <string name="appearance_highlight_categories_summary">Si applica quando «Mostra sottocartella» è attivo.</string>
+    <string name="appearance_category_highlight_color">Colore di evidenziazione delle sottocartelle</string>
+    <string name="appearance_default_category_highlight">Evidenziazione predefinita delle sottocartelle</string>
     <string name="appearance_custom_colors_hint">I colori personalizzati restano uguali in modalità chiara e scura. Il colore del testo si adatta automaticamente per la leggibilità.</string>
 
     <!-- Widget appearance -->

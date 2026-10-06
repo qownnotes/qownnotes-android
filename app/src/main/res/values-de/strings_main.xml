@@ -49,18 +49,18 @@
     <string name="sort_option_latest_first">Neueste zuerst</string>
     <string name="sort_option_title_ascending">Titel A–Z</string>
     <string name="sort_option_title_descending">Titel Z–A</string>
-    <string name="category_option_undefined">Keine Kategorie</string>
+    <string name="category_option_undefined">Stammordner</string>
     <string name="bookmarks">Lesezeichen</string>
     <string name="trash">Papierkorb</string>
     <string name="about">Über</string>
     <string name="notes_empty_search">Keine passenden Notizen</string>
     <string name="notes_empty_tags">Keine Notizen mit den ausgewählten Tags</string>
-    <string name="notes_empty_category">Keine Notizen in dieser Kategorie</string>
+    <string name="notes_empty_category">Keine Notizen in diesem Unterordner</string>
 
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>
     <string name="settings_show_note_preview">Notizvorschau anzeigen</string>
-    <string name="settings_show_category">Kategorie anzeigen</string>
+    <string name="settings_show_category">Unterordner anzeigen</string>
     <string name="settings_compact_note_list">Kompakte Notizliste</string>
     <string name="settings_compact_note_list_description">Verringert die Abstände in der Notizliste und in Listen-Widgets.</string>
     <string name="settings_swipe_note_actions">Wischaktionen für Notizen</string>
@@ -110,7 +110,7 @@
     <!-- Note list items -->
     <string name="favorite_remove">Aus Favoriten entfernen</string>
     <string name="favorite_add">Zu Favoriten hinzufügen</string>
-    <string name="note_uncategorized">Ohne Kategorie</string>
+    <string name="note_uncategorized">Stammordner</string>
     <string name="account_avatar_description">Konto: %1$s</string>
     <string name="sync_available_offline">Offline verfügbar</string>
     <string name="sync_refreshing">Wird aktualisiert</string>
@@ -140,7 +140,7 @@
     <string name="note_menu_versions">Versionen</string>
     <string name="note_menu_tags">Tags</string>
     <string name="note_menu_information">Informationen</string>
-    <string name="change_category">Kategorie ändern</string>
+    <string name="change_category">In Unterordner verschieben</string>
     <string name="action_rename">Umbenennen</string>
     <string name="retry_sync">Synchronisierung wiederholen</string>
     <string name="note_text_size_decrease">Notizschrift verkleinern</string>
@@ -194,7 +194,7 @@
     <string name="list_separator">", "</string>
     <string name="merge_field_title">Titel</string>
     <string name="merge_field_content">Inhalt</string>
-    <string name="merge_field_category">Kategorie</string>
+    <string name="merge_field_category">Unterordner</string>
     <string name="merge_field_favorite">Favorit</string>
     <string name="conflict_use_merged">Zusammengeführte Version verwenden</string>
     <string name="conflict_keep_local_copy">Lokale als Kopie behalten</string>
@@ -218,7 +218,7 @@
     <string name="note_info_words">Wörter</string>
     <string name="note_info_characters">Zeichen</string>
     <string name="note_info_lines">Zeilen</string>
-    <string name="note_info_category">Kategorie</string>
+    <string name="note_info_category">Unterordner</string>
     <string name="note_info_category_root">Stammordner</string>
     <string name="note_info_account">Konto</string>
     <string name="note_info_synchronization">Synchronisierung</string>
@@ -235,18 +235,18 @@
     <string name="sync_state_remote_missing">Fehlt auf dem Server</string>
     <string name="sync_state_read_only_conflict">Schreibschutzkonflikt</string>
     <string name="sync_state_failed">Synchronisierung fehlgeschlagen</string>
-    <string name="conflict_version_summary">Titel: %1$s\nKategorie: %2$s\nFavorit: %3$s</string>
+    <string name="conflict_version_summary">Titel: %1$s\nUnterordner: %2$s\nFavorit: %3$s</string>
 
-    <!-- Rename, new note, and category dialogs -->
+    <!-- Rename, new note, and subfolder dialogs -->
     <string name="rename_note_title">Notiz umbenennen</string>
     <string name="rename_note_file_name">Dateiname</string>
     <string name="note_name_invalid_characters_hint">Zeichen, die in Dateinamen nicht erlaubt sind, werden durch Leerzeichen ersetzt.</string>
     <string name="rename_note_update_heading">Überschrift 1 aktualisieren</string>
     <string name="new_note_name">Notizname</string>
-    <string name="category_undefined_root">Keine (Stammordner)</string>
-    <string name="category_new">Neue Kategorie</string>
-    <string name="category_new_path">Pfad der neuen Kategorie</string>
-    <string name="category_new_path_hint">Verwende /, um verschachtelte Kategorien zu erstellen.</string>
+    <string name="category_undefined_root">Stammordner</string>
+    <string name="category_new">Neuer Unterordner</string>
+    <string name="category_new_path">Pfad des neuen Unterordners</string>
+    <string name="category_new_path_hint">Mit / werden verschachtelte Unterordner angelegt.</string>
 
     <!-- Fast scroll and find -->
     <string name="note_fast_scroll">Schnelles Scrollen in der Notiz</string>

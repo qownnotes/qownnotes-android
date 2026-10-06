@@ -49,18 +49,18 @@
     <string name="sort_option_latest_first">Latest first</string>
     <string name="sort_option_title_ascending">Title A-Z</string>
     <string name="sort_option_title_descending">Title Z-A</string>
-    <string name="category_option_undefined">Undefined</string>
+    <string name="category_option_undefined">Root folder</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="trash">Trash</string>
     <string name="about">About</string>
     <string name="notes_empty_search">No matching notes</string>
     <string name="notes_empty_tags">No notes with the selected tags</string>
-    <string name="notes_empty_category">No notes in this category</string>
+    <string name="notes_empty_category">No notes in this subfolder</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_show_note_preview">Show note preview</string>
-    <string name="settings_show_category">Show category</string>
+    <string name="settings_show_category">Show subfolder</string>
     <string name="settings_compact_note_list">Compact note list</string>
     <string name="settings_compact_note_list_description">Reduce spacing in the note list and list widgets.</string>
     <string name="settings_swipe_note_actions">Swipe note actions</string>
@@ -110,7 +110,7 @@
     <!-- Note list items -->
     <string name="favorite_remove">Remove from favorites</string>
     <string name="favorite_add">Add to favorites</string>
-    <string name="note_uncategorized">Uncategorized</string>
+    <string name="note_uncategorized">Root folder</string>
     <string name="account_avatar_description">Account: %1$s</string>
     <string name="sync_available_offline">Available offline</string>
     <string name="sync_refreshing">Refreshing</string>
@@ -140,7 +140,7 @@
     <string name="note_menu_versions">Versions</string>
     <string name="note_menu_tags">Tags</string>
     <string name="note_menu_information">Information</string>
-    <string name="change_category">Change category</string>
+    <string name="change_category">Move to subfolder</string>
     <string name="action_rename">Rename</string>
     <string name="retry_sync">Retry sync</string>
     <string name="note_text_size_decrease">Decrease note text size</string>
@@ -194,7 +194,7 @@
     <string name="list_separator">", "</string>
     <string name="merge_field_title">title</string>
     <string name="merge_field_content">content</string>
-    <string name="merge_field_category">category</string>
+    <string name="merge_field_category">subfolder</string>
     <string name="merge_field_favorite">favorite</string>
     <string name="conflict_use_merged">Use merged version</string>
     <string name="conflict_keep_local_copy">Keep local as copy</string>
@@ -218,8 +218,8 @@
     <string name="note_info_words">Words</string>
     <string name="note_info_characters">Characters</string>
     <string name="note_info_lines">Lines</string>
-    <string name="note_info_category">Category</string>
-    <string name="note_info_category_root">Root</string>
+    <string name="note_info_category">Subfolder</string>
+    <string name="note_info_category_root">Root folder</string>
     <string name="note_info_account">Account</string>
     <string name="note_info_synchronization">Synchronization</string>
     <string name="note_info_access">Access</string>
@@ -235,18 +235,18 @@
     <string name="sync_state_remote_missing">Missing on server</string>
     <string name="sync_state_read_only_conflict">Read-only conflict</string>
     <string name="sync_state_failed">Synchronization failed</string>
-    <string name="conflict_version_summary">Title: %1$s\nCategory: %2$s\nFavorite: %3$s</string>
+    <string name="conflict_version_summary">Title: %1$s\nSubfolder: %2$s\nFavorite: %3$s</string>
 
-    <!-- Rename, new note, and category dialogs -->
+    <!-- Rename, new note, and subfolder dialogs -->
     <string name="rename_note_title">Rename note</string>
     <string name="rename_note_file_name">File name</string>
     <string name="note_name_invalid_characters_hint">Characters a file name cannot hold are replaced by spaces.</string>
     <string name="rename_note_update_heading">Update heading 1</string>
     <string name="new_note_name">Note name</string>
-    <string name="category_undefined_root">Undefined (root)</string>
-    <string name="category_new">New category</string>
-    <string name="category_new_path">New category path</string>
-    <string name="category_new_path_hint">Use / to create nested categories.</string>
+    <string name="category_undefined_root">Root folder</string>
+    <string name="category_new">New subfolder</string>
+    <string name="category_new_path">New subfolder path</string>
+    <string name="category_new_path_hint">Use / to create nested subfolders.</string>
 
     <!-- Fast scroll and find -->
     <string name="note_fast_scroll">Note fast scroll</string>

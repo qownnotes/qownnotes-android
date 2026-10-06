@@ -12,8 +12,8 @@
     <string name="widget_reset_appearance">Resetuj</string>
     <string name="widget_save">Zapisz</string>
     <string name="widget_all_notes">Notatki</string>
-    <string name="widget_all_categories">Wszystkie kategorie</string>
-    <string name="widget_uncategorized">Bez kategorii</string>
+    <string name="widget_all_categories">Wszystkie podfoldery</string>
+    <string name="widget_uncategorized">Folder główny</string>
     <string name="widget_no_notes">Brak notatek</string>
     <string name="widget_note_unavailable">Notatka niedostępna</string>
     <string name="widget_create_note">Utwórz notatkę</string>
