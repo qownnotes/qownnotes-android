@@ -1,0 +1,6 @@
+• Translations into eight languages and per-app language selection
+• Nested subfolder navigation, folder-scoped search, and an option to search all folders
+• Per-account subfolder support, off by default to match QOwnNotes desktop
+• Insert links from clipboard URLs with automatic page titles
+• Note-list widgets follow preview and subfolder appearance settings
+• Fix Markdown previews and stale link-title lookups

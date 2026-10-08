@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-08
+
 ### Added
 
 - The editor's **Insert link** toolbar button opens a dialog prefilled with a clipboard web URL
@@ -457,7 +459,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.10.0...v1.0.0
 [0.10.0]: https://github.com/qownnotes/qownnotes-android/compare/v0.9.0...v0.10.0
