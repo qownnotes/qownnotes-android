@@ -42,6 +42,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Changing the URL in **Insert link** prevents an earlier page-title lookup from applying a
+  stale title or changing the new lookup's status.
 - Note-list widget previews now show plain text like the app list, without Markdown syntax and
   without repeating the note title.
 - Note previews no longer drop characters that only look like Markdown markers in the middle of

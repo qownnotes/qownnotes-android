@@ -57,18 +57,21 @@ internal fun InsertLinkDialog(
         loading = false
         lookupFailed = false
         if (safeUrl == null || manualTitle) return@LaunchedEffect
+        val requestedUrl = url
+        val requestedRefresh = refreshRequest
+        fun isCurrentRequest() = url == requestedUrl && refreshRequest == requestedRefresh
         loading = true
         try {
             // Avoid requesting a page for every character while the URL is being typed.
             delay(400)
             val fetched = fetchTitle(safeUrl)
-            if (!manualTitle) title = fetched.title
+            if (isCurrentRequest() && !manualTitle) title = fetched.title
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
-            lookupFailed = true
+            if (isCurrentRequest()) lookupFailed = true
         } finally {
-            loading = false
+            if (isCurrentRequest()) loading = false
         }
     }
 
