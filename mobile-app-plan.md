@@ -34,6 +34,12 @@ Phase 2 now has an end-to-end read path: Nextcloud SSO account import, account a
 
 Phase 3 now has an initial end-to-end write path with offline-first note creation, note creation from text shared by another application, and Markdown source editing, asynchronous source highlighting, source-text finding, a formatting toolbar, toolbar undo and redo, debounced and lifecycle-aware Room persistence, Nextcloud creation and ETag-protected updates, and stale-response protection through persisted local revisions. Nextcloud favorites are synchronized through the same guarded write path, can be changed offline (including on read-only notes), and sort ahead of other notes in normal and searched lists. Editor focus, cursor, keyboard input, a representative 100 KiB note, canonical collision titles, and conflict preservation are verified on the OPPO CPH2653; source highlighting is intentionally omitted above 32 KiB to keep medium-large notes with many links and tasks responsive. Every listed Phase 3 implementation task is complete, but server-version records, remaining real-server conflict-resolution paths, and a second physical-device input check are still open. See the Phase 3 section for the full list.
 
+The editor's **Insert link** toolbar action opens a desktop-style web-link dialog. It reads an
+HTTP(S) URL from the clipboard on opening, fetches the page title asynchronously using the existing
+bounded, public-network-only title lookup, and inserts one undoable Markdown link. Selected text
+or a manually entered label is preserved; the writer can refresh the title or insert manually if
+lookup fails. URL changes and dismissal discard stale title results.
+
 Phase 4 implementation now includes account-scoped WorkManager synchronization. Persisted mutations enqueue
 unique connected-network work, retryable failures use WorkManager backoff, and authentication,
 permission, conflict, missing-note, storage, uncertain-create, and protocol failures stop automatic

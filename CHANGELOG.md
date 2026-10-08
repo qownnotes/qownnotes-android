@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The editor's **Insert link** toolbar button opens a dialog prefilled with a clipboard web URL
+  and automatically uses the page title as the Markdown label. The URL and label can be edited,
+  selected text is kept as the label, and title lookup can be retried or skipped when offline.
 - The app is translated into German, Chinese (Simplified), Russian, Italian, Portuguese (Brazil),
   Polish, French, and Spanish. It follows the system language, and on Android 13 or newer the
   language can also be chosen per app in the system settings.

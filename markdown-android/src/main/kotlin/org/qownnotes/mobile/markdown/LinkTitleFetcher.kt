@@ -11,7 +11,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-internal class LinkTitleFetcher(private val client: OkHttpClient = safeLinkTitleClient()) {
+class LinkTitleFetcher(private val client: OkHttpClient = safeLinkTitleClient()) {
     fun fetch(rawUrl: String): FetchedLink {
         var url = requireSafeWebUrl(rawUrl)
         repeat(MAX_LINK_REDIRECTS + 1) { redirectCount ->
@@ -63,9 +63,9 @@ private fun InputStream.readAtMost(limit: Int): ByteArray {
     }
 }
 
-internal data class FetchedLink(val url: String, val title: String)
+data class FetchedLink(val url: String, val title: String)
 
-internal fun canonicalSafeWebUrl(raw: String): String? =
+fun canonicalSafeWebUrl(raw: String): String? =
     runCatching { requireSafeWebUrl(raw).toString() }.getOrNull()
 
 internal fun requireSafeWebUrl(raw: String): HttpUrl {
@@ -84,12 +84,15 @@ internal fun extractHtmlTitle(html: String): String? {
         .takeIf(String::isNotEmpty)
 }
 
-internal fun markdownLink(title: String, url: String): String {
+fun markdownLink(title: String, url: String): String {
     val escapedTitle = title
+        .replace("\r", " ")
+        .replace("\n", " ")
         .replace("\\", "\\\\")
         .replace("[", "\\[")
         .replace("]", "\\]")
-    return "[$escapedTitle]($url)"
+    val escapedUrl = url.replace("(", "%28").replace(")", "%29")
+    return "[$escapedTitle]($escapedUrl)"
 }
 
 private fun decodeHtmlEntity(entity: String): String {

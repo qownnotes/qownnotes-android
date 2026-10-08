@@ -1,0 +1,9 @@
+<resources>
+    <string name="link_url">URL</string>
+    <string name="link_text">Linktext</string>
+    <string name="link_invalid_url">Gib eine HTTP- oder HTTPS-URL ohne eingebettete Zugangsdaten ein.</string>
+    <string name="link_fetching_title">Seitentitel wird abgerufen…</string>
+    <string name="link_fetch_title">Seitentitel abrufen</string>
+    <string name="link_title_failed">Der Seitentitel konnte nicht abgerufen werden. Gib einen Linktext ein oder verwende die URL als Beschriftung.</string>
+    <string name="link_insert">Einfügen</string>
+</resources>

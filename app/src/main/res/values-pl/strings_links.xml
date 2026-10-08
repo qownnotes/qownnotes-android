@@ -1,0 +1,9 @@
+<resources>
+    <string name="link_url">URL</string>
+    <string name="link_text">Tekst odnośnika</string>
+    <string name="link_invalid_url">Wprowadź adres HTTP lub HTTPS bez osadzonych danych logowania.</string>
+    <string name="link_fetching_title">Pobieranie tytułu strony…</string>
+    <string name="link_fetch_title">Pobierz tytuł strony</string>
+    <string name="link_title_failed">Nie udało się pobrać tytułu strony. Wprowadź tekst odnośnika lub użyj adresu URL jako etykiety.</string>
+    <string name="link_insert">Wstaw</string>
+</resources>

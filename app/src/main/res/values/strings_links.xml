@@ -1,0 +1,9 @@
+<resources>
+    <string name="link_url">URL</string>
+    <string name="link_text">Link text</string>
+    <string name="link_invalid_url">Enter an HTTP or HTTPS URL without embedded credentials.</string>
+    <string name="link_fetching_title">Fetching page title…</string>
+    <string name="link_fetch_title">Fetch page title</string>
+    <string name="link_title_failed">Could not fetch the page title. Enter link text or use the URL as the label.</string>
+    <string name="link_insert">Insert</string>
+</resources>

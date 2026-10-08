@@ -2096,6 +2096,31 @@ class AppLaunchTest {
     }
 
     @Test
+    fun toolbarLinkDialogUsesClipboardAndReplacesSelectionWithUndo() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText("Read this"))
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(5, 9)
+            composeRule.activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(
+                android.content.ClipData.newPlainText("URL", "https://example.com/article")
+            )
+        }
+        composeRule.onNodeWithTag("format-link").performScrollTo().performClick()
+        composeRule.onNodeWithTag("link-url").assertTextContains("https://example.com/article")
+        composeRule.onNodeWithTag("link-text").assertTextContains("this")
+        composeRule.onNodeWithTag("insert-link-confirm").performClick()
+        awaitEditorText("Read [this](https://example.com/article)")
+        composeRule.onNodeWithTag("undo-edit").performScrollTo().performClick()
+        awaitEditorText("Read this")
+        composeRule.onNodeWithTag("redo-edit").performClick()
+        awaitEditorText("Read [this](https://example.com/article)")
+    }
+
+    @Test
     fun failedDeckCardCreationKeepsTheDialogAndTheNoteUnchanged() {
         val account = importAccount("alice", "Existing note", "etag-1", 10)
         val accountId = account.localAccountId()

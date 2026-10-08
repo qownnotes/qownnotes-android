@@ -28,6 +28,15 @@ including the device's IP address. The note menu's **Load images** toggle disabl
 the current view; it resets to enabled when the note is reopened. Local Nextcloud note attachments
 are requested from the selected Nextcloud server using Single Sign-On.
 
+## Web Link Titles
+
+Opening the editor's **Insert link** dialog reads a web URL from the clipboard and, when no link
+text is selected, requests that page to fill in its title. Changing the URL or choosing **Fetch
+page title** can also request the page. The editor's **Paste as Markdown link** action performs
+the same lookup. Page hosts can observe the device's IP address and request metadata; Nextcloud
+credentials are not sent with these requests. Link insertion also works with a manually entered
+label if title lookup fails.
+
 ## Android Backups
 
 Android may back up local notes, account metadata, and settings according to the device's backup

@@ -1,0 +1,9 @@
+<resources>
+    <string name="link_url">网址</string>
+    <string name="link_text">链接文本</string>
+    <string name="link_invalid_url">请输入不含嵌入式凭据的 HTTP 或 HTTPS 网址。</string>
+    <string name="link_fetching_title">正在获取网页标题…</string>
+    <string name="link_fetch_title">获取网页标题</string>
+    <string name="link_title_failed">无法获取网页标题。请输入链接文本，或使用网址作为标签。</string>
+    <string name="link_insert">插入</string>
+</resources>

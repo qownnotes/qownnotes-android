@@ -8,6 +8,14 @@ import org.junit.Test
 
 class LinkTitleFetcherTest {
     @Test
+    fun markdownLinkEscapesLabelAndDestinationDelimiters() {
+        assertEquals(
+            "[Line \\[one\\] \\\\ two](https://example.com/a%28b%29)",
+            markdownLink("Line [one]\n\\ two", "https://example.com/a(b)")
+        )
+    }
+
+    @Test
     fun fetchesTitleAndUsesTheRedirectDestination() {
         MockWebServer().use { server ->
             server.enqueue(

@@ -1,0 +1,9 @@
+<resources>
+    <string name="link_url">URL</string>
+    <string name="link_text">Текст ссылки</string>
+    <string name="link_invalid_url">Введите URL HTTP или HTTPS без встроенных учётных данных.</string>
+    <string name="link_fetching_title">Получение заголовка страницы…</string>
+    <string name="link_fetch_title">Получить заголовок страницы</string>
+    <string name="link_title_failed">Не удалось получить заголовок страницы. Введите текст ссылки или используйте URL в качестве подписи.</string>
+    <string name="link_insert">Вставить</string>
+</resources>

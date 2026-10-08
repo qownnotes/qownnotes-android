@@ -35,6 +35,7 @@ The initial F-Droid submission merge request is [fdroiddata!48269](https://gitla
   `note://` links, tables, fenced code, and safe remote images.
 - Edit highlighted Markdown source with formatting actions, undo and redo, cursor preservation, and
   local draft persistence.
+- Insert web links from a clipboard-prefilled dialog with automatic page titles and editable labels.
 - Find text inside an open note, select and copy rendered text, and adjust the note text size.
 - Detect read-only and QOwnNotes-encrypted notes and fail closed for unsafe HTML, links, images, and
   filesystem access.

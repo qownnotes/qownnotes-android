@@ -2802,6 +2802,8 @@ private fun NoteDetailScreen(
     var selectionStart by rememberSaveable(localId) { mutableStateOf(0) }
     var selectionEnd by rememberSaveable(localId) { mutableStateOf(0) }
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
+    var linkDialogUrl by rememberSaveable(localId) { mutableStateOf<String?>(null) }
+    var linkDialogTitle by rememberSaveable(localId) { mutableStateOf("") }
     var importingImage by remember(localId) { mutableStateOf(false) }
     val nextcloudDeckFlow = remember(note?.accountId) {
         note?.accountId?.takeIf { component.supportsNextcloudDeck }
@@ -3559,12 +3561,21 @@ private fun NoteDetailScreen(
                             stringResource(R.string.format_code),
                             "format-code"
                         )
-                        FormatButton(
-                            Icons.Filled.Link,
-                            MarkdownFormatAction.LINK,
-                            editor,
-                            stringResource(R.string.format_link),
-                            "format-link"
+                        ActionIconButton(
+                            icon = Icons.Filled.Link,
+                            description = stringResource(R.string.format_link),
+                            testTag = "format-link",
+                            onClick = {
+                                val current = editor
+                                val source = current?.text?.toString().orEmpty()
+                                val start = (current?.selectionStart ?: 0)
+                                    .coerceIn(0, source.length)
+                                val end = (current?.selectionEnd ?: start)
+                                    .coerceIn(0, source.length)
+                                linkDialogTitle =
+                                    source.substring(minOf(start, end), maxOf(start, end))
+                                linkDialogUrl = current?.clipboardWebUrl().orEmpty()
+                            }
                         )
                         ActionIconButton(
                             icon = Icons.Filled.AddPhotoAlternate,
@@ -4160,6 +4171,22 @@ private fun NoteDetailScreen(
                         enabled = !resolvingRemoteMissing
                     ) { Text(stringResource(R.string.action_cancel)) }
                 }
+            }
+        )
+    }
+    val pendingLinkUrl = linkDialogUrl
+    if (pendingLinkUrl != null && editing) {
+        InsertLinkDialog(
+            initialUrl = pendingLinkUrl,
+            initialTitle = linkDialogTitle,
+            onDismiss = {
+                linkDialogUrl = null
+                editor?.focusForInput()
+            },
+            onInsert = { link ->
+                linkDialogUrl = null
+                editor?.insertText(link)
+                editor?.focusForInput()
             }
         )
     }

@@ -269,6 +269,9 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
     internal var loadLinkTitle: (String) -> FetchedLink = LinkTitleFetcher()::fetch
     internal var linkTitleTaskExecutor: Executor = linkTitleExecutor
     internal var clipboardWebUrlProvider: () -> String? = ::readClipboardWebUrl
+
+    /** Reads the clipboard only when the writer explicitly opens the link dialog. */
+    fun clipboardWebUrl(): String? = clipboardWebUrlProvider()
     private var attachmentGeneration = 0
     private val verticalFling = OverScroller(context)
     private val flingDetector =

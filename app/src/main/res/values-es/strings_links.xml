@@ -1,0 +1,9 @@
+<resources>
+    <string name="link_url">URL</string>
+    <string name="link_text">Texto del enlace</string>
+    <string name="link_invalid_url">Introduce una URL HTTP o HTTPS sin credenciales integradas.</string>
+    <string name="link_fetching_title">Obteniendo el título de la página…</string>
+    <string name="link_fetch_title">Obtener el título de la página</string>
+    <string name="link_title_failed">No se pudo obtener el título de la página. Introduce el texto del enlace o usa la URL como etiqueta.</string>
+    <string name="link_insert">Insertar</string>
+</resources>
