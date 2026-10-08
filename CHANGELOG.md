@@ -29,6 +29,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Use subfolders** is now off by default for each account, matching QOwnNotes desktop.
 - Nextcloud categories are now called subfolders throughout the app, as in QOwnNotes desktop:
   **Show subfolder**, **Highlight subfolders**, **Move to subfolder**, and **Root folder** for
   notes without one. Existing settings are kept.

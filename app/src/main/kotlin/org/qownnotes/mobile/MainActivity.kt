@@ -2759,7 +2759,7 @@ private fun NoteDetailScreen(
         accounts.firstOrNull { it.id == note?.accountId }
     }
     val useSubfoldersFlow = remember(note?.accountId) {
-        note?.accountId?.let(component.settings::useSubfolders) ?: MutableStateFlow(true)
+        note?.accountId?.let(component.settings::useSubfolders) ?: MutableStateFlow(false)
     }
     val useSubfolders by useSubfoldersFlow.collectAsStateWithLifecycle(context = UiDispatcher)
     val scrollState = rememberScrollState()

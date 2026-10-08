@@ -197,6 +197,7 @@ class AppLaunchTest {
     @Test
     fun folderDrawerDefaultsToTheRootAndExcludesInternalFiles() {
         val account = testAccount("alice")
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(
             account,
@@ -264,6 +265,7 @@ class AppLaunchTest {
     @Test
     fun folderTreeNestsFoldersCountsNotesAndScopesSearch() {
         val account = testAccount("alice")
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(
             account,
@@ -331,6 +333,10 @@ class AppLaunchTest {
         )
         accountAction("add-account")
         composeRule.waitForText("Root note")
+        composeRule.onNodeWithTag("folder-navigation").assertDoesNotExist()
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-use-subfolders").assertIsOff().performClick()
+        composeRule.onNodeWithTag("close-settings").performClick()
         composeRule.onNodeWithTag("folder-navigation").performClick()
         composeRule.waitForTag("folder-Work")
         composeRule.onNodeWithTag("folder-Work").performClick()
@@ -361,6 +367,7 @@ class AppLaunchTest {
     @Test
     fun aRememberedFolderWithoutNotesFallsBackToTheRoot() {
         val account = testAccount("alice")
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
         application.component.settings.setNoteFolderScope(
             account.localAccountId(),
             NoteFolderScope("Gone", includeSubfolders = false)
@@ -668,6 +675,7 @@ class AppLaunchTest {
     fun showCategorySettingIsStoredPerAccount() {
         val alice = importAccount("alice", "Alice note", "etag-a", 10)
         listAction("settings")
+        composeRule.onNodeWithTag("toggle-use-subfolders").performClick()
         composeRule.onNodeWithTag("toggle-category").performClick()
         composeRule.onNodeWithTag("close-settings").performClick()
         composeRule.waitForText("Root folder")
@@ -728,6 +736,7 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("note-list-header").assertDoesNotExist()
 
         listAction("settings")
+        composeRule.onNodeWithTag("toggle-use-subfolders").performClick()
         composeRule.onNodeWithTag("toggle-category").performClick()
         composeRule.onNodeWithTag("open-appearance").performScrollTo().performClick()
         composeRule.onNodeWithTag("appearance-dialog").assertIsDisplayed()
@@ -1267,6 +1276,7 @@ class AppLaunchTest {
     @Test
     fun remoteTrashUsesAllCachedFoldersWhileSearchIsActive() {
         val account = importAccount("alice", "Visible note", "etag-1", 10)
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
         runBlocking {
             application.component.noteRepository.save(
                 Note(
@@ -2576,7 +2586,8 @@ class AppLaunchTest {
 
     @Test
     fun noteCanCreateAndMoveToANewCategory() {
-        importAccount("alice", "Existing note", "etag-1", 10)
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
         composeRule.onNodeWithText("Existing note").performClick()
 
         composeRule.openNoteMenu()
@@ -2596,6 +2607,7 @@ class AppLaunchTest {
     @Test
     fun noteCanMoveToAnExistingCategory() {
         val account = testAccount("alice")
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(
             account,

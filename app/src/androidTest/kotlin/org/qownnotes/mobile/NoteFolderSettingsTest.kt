@@ -60,15 +60,15 @@ class NoteFolderSettingsTest {
     }
 
     @Test
-    fun subfoldersAreUsedByDefaultAndCanBeTurnedOffPerAccount() {
+    fun subfoldersAreOffByDefaultAndCanBeTurnedOnPerAccount() {
         val settings = AppSettings(context, name)
-        assertEquals(true, settings.useSubfolders("first").value)
+        assertEquals(false, settings.useSubfolders("first").value)
 
-        settings.setUseSubfolders("first", false)
+        settings.setUseSubfolders("first", true)
 
-        assertEquals(false, AppSettings(context, name).useSubfolders("first").value)
-        assertEquals(true, AppSettings(context, name).useSubfolders("second").value)
-        settings.removeUseSubfolders("first")
         assertEquals(true, AppSettings(context, name).useSubfolders("first").value)
+        assertEquals(false, AppSettings(context, name).useSubfolders("second").value)
+        settings.removeUseSubfolders("first")
+        assertEquals(false, AppSettings(context, name).useSubfolders("first").value)
     }
 }

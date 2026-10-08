@@ -155,7 +155,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
      */
     fun useSubfolders(accountId: String): StateFlow<Boolean> =
         mutableUseSubfolders.getOrPut(accountId) {
-            MutableStateFlow(preferences.getBoolean("$USE_SUBFOLDERS_PREFIX$accountId", true))
+            MutableStateFlow(preferences.getBoolean("$USE_SUBFOLDERS_PREFIX$accountId", false))
         }.asStateFlow()
 
     fun setUseSubfolders(accountId: String, enabled: Boolean) {
