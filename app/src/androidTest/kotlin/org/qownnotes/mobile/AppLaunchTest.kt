@@ -2530,8 +2530,21 @@ class AppLaunchTest {
     }
 
     @Test
-    fun noteViewKeepsFindAndEditVisibleAndSecondaryActionsInTheMenu() {
+    fun noteMenuHidesMoveToFolderWhenSubfoldersAreOffByDefault() {
         importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("note-information").assertIsDisplayed()
+        composeRule.onNodeWithTag("rename-note").assertIsDisplayed()
+        composeRule.onNodeWithTag("change-note-category").assertDoesNotExist()
+        composeRule.onNodeWithTag("delete-note").assertIsDisplayed()
+    }
+
+    @Test
+    fun noteViewKeepsFindAndEditVisibleAndSecondaryActionsInTheMenu() {
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
         composeRule.onNodeWithText("Existing note").performClick()
 
         composeRule.waitForTag("edit-note")
