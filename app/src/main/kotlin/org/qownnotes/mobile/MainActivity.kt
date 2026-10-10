@@ -67,6 +67,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
@@ -87,6 +88,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
@@ -1813,13 +1815,14 @@ private fun NoteListScreen(
                     modifier = Modifier.heightIn(max = 520.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    SettingsCheckbox(
+                    SettingsSectionHeader(stringResource(R.string.settings_section_note_list))
+                    SettingsToggle(
                         label = stringResource(R.string.settings_show_note_preview),
                         checked = showNotePreview,
                         onCheckedChange = component.settings::setShowNotePreview,
                         testTag = "toggle-note-preview"
                     )
-                    SettingsCheckbox(
+                    SettingsToggle(
                         label = stringResource(R.string.settings_use_subfolders),
                         description = stringResource(R.string.settings_use_subfolders_description),
                         checked = useSubfolders,
@@ -1827,14 +1830,14 @@ private fun NoteListScreen(
                         testTag = "toggle-use-subfolders"
                     )
                     if (useSubfolders) {
-                        SettingsCheckbox(
+                        SettingsToggle(
                             label = stringResource(R.string.settings_show_category),
                             checked = showCategory,
                             onCheckedChange = { component.settings.setShowCategory(accountId, it) },
                             testTag = "toggle-category"
                         )
                     }
-                    SettingsCheckbox(
+                    SettingsToggle(
                         label = stringResource(R.string.settings_compact_note_list),
                         description = stringResource(
                             R.string.settings_compact_note_list_description
@@ -1843,7 +1846,7 @@ private fun NoteListScreen(
                         onCheckedChange = component.settings::setCompactNoteList,
                         testTag = "toggle-compact-note-list"
                     )
-                    SettingsCheckbox(
+                    SettingsToggle(
                         label = stringResource(R.string.settings_swipe_note_actions),
                         description = stringResource(
                             R.string.settings_swipe_note_actions_description
@@ -1852,7 +1855,7 @@ private fun NoteListScreen(
                         onCheckedChange = component.settings::setSwipeNoteActions,
                         testTag = "toggle-swipe-note-actions"
                     )
-                    SettingsCheckbox(
+                    SettingsToggle(
                         label = stringResource(R.string.settings_hide_create_button),
                         description = stringResource(
                             R.string.settings_hide_create_button_description
@@ -1861,7 +1864,9 @@ private fun NoteListScreen(
                         onCheckedChange = component.settings::setHideCreateButtonOnScroll,
                         testTag = "toggle-hide-create-button-on-scroll"
                     )
-                    SettingsCheckbox(
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                    SettingsSectionHeader(stringResource(R.string.settings_section_notes))
+                    SettingsToggle(
                         label = stringResource(R.string.settings_ask_for_new_note_name),
                         description = stringResource(
                             R.string.settings_ask_for_new_note_name_description
@@ -1874,6 +1879,7 @@ private fun NoteListScreen(
                         value = bookmarksPath,
                         onValueChange = { component.settings.setBookmarksPath(accountId, it) },
                         label = { Text(stringResource(R.string.settings_bookmarks_file)) },
+                        leadingIcon = { Icon(Icons.Filled.Bookmarks, contentDescription = null) },
                         singleLine = true,
                         isError = parseBookmarksSource(bookmarksPath) == null,
                         supportingText = {
@@ -1883,35 +1889,37 @@ private fun NoteListScreen(
                                 Text(stringResource(R.string.settings_bookmarks_file_examples))
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                             .testTag("bookmarks-path")
                     )
-                    Button(
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                    SettingsSectionHeader(stringResource(R.string.settings_section_more))
+                    SettingsActionRow(
+                        icon = Icons.Filled.Palette,
+                        label = stringResource(R.string.appearance),
                         onClick = {
                             showSettings = false
                             showAppearance = true
                         },
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-                            .testTag("open-appearance")
-                    ) {
-                        Text(stringResource(R.string.appearance))
-                    }
-                    TextButton(
+                        testTag = "open-appearance"
+                    )
+                    SettingsActionRow(
+                        icon = Icons.Filled.ViewKanban,
+                        label = stringResource(R.string.deck_reset_opening),
                         onClick = { component.settings.resetDeckLinkOpening() },
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-                            .testTag("reset-deck-opening")
-                    ) { Text(stringResource(R.string.deck_reset_opening)) }
-                    Button(
+                        testTag = "reset-deck-opening",
+                        navigates = false
+                    )
+                    SettingsActionRow(
+                        icon = Icons.Filled.BugReport,
+                        label = stringResource(R.string.debug_diagnostics),
                         onClick = {
                             showSettings = false
                             diagnosticReport = null
                             showDiagnostics = true
                         },
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-                            .testTag("open-diagnostics")
-                    ) {
-                        Text(stringResource(R.string.debug_diagnostics))
-                    }
+                        testTag = "open-diagnostics"
+                    )
                 }
             },
             confirmButton = {
@@ -2524,39 +2532,6 @@ private fun NoteListItem(
         modifier = itemModifier.testTag("swipe-note-${note.localId}"),
         content = { content() }
     )
-}
-
-@Composable
-private fun SettingsCheckbox(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    testTag: String,
-    description: String? = null
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .toggleable(
-                value = checked,
-                role = Role.Checkbox,
-                onValueChange = onCheckedChange
-            )
-            .padding(vertical = 8.dp)
-            .testTag(testTag),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(checked = checked, onCheckedChange = null)
-        Column(modifier = Modifier.padding(start = 8.dp)) {
-            Text(label)
-            description?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
 }
 
 @Composable

@@ -60,6 +60,9 @@
 
     <!-- Settings -->
     <string name="settings_title">Ajustes</string>
+    <string name="settings_section_note_list">Lista de notas</string>
+    <string name="settings_section_notes">Notas</string>
+    <string name="settings_section_more">Más</string>
     <string name="settings_show_note_preview">Mostrar vista previa de las notas</string>
     <string name="settings_show_category">Mostrar subcarpeta</string>
     <string name="settings_compact_note_list">Lista de notas compacta</string>

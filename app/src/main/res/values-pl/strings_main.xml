@@ -61,6 +61,9 @@
 
     <!-- Settings -->
     <string name="settings_title">Ustawienia</string>
+    <string name="settings_section_note_list">Lista notatek</string>
+    <string name="settings_section_notes">Notatki</string>
+    <string name="settings_section_more">Więcej</string>
     <string name="settings_show_note_preview">Pokaż podgląd notatki</string>
     <string name="settings_show_category">Pokaż podfolder</string>
     <string name="settings_compact_note_list">Kompaktowa lista notatek</string>

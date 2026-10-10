@@ -59,6 +59,9 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_section_note_list">Note list</string>
+    <string name="settings_section_notes">Notes</string>
+    <string name="settings_section_more">More</string>
     <string name="settings_show_note_preview">Show note preview</string>
     <string name="settings_show_category">Show subfolder</string>
     <string name="settings_compact_note_list">Compact note list</string>

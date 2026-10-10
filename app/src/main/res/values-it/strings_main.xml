@@ -60,6 +60,9 @@
 
     <!-- Settings -->
     <string name="settings_title">Impostazioni</string>
+    <string name="settings_section_note_list">Elenco note</string>
+    <string name="settings_section_notes">Note</string>
+    <string name="settings_section_more">Altro</string>
     <string name="settings_show_note_preview">Mostra anteprima delle note</string>
     <string name="settings_show_category">Mostra sottocartella</string>
     <string name="settings_compact_note_list">Elenco note compatto</string>

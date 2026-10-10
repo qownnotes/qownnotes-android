@@ -59,6 +59,9 @@
 
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>
+    <string name="settings_section_note_list">Notizliste</string>
+    <string name="settings_section_notes">Notizen</string>
+    <string name="settings_section_more">Weitere</string>
     <string name="settings_show_note_preview">Notizvorschau anzeigen</string>
     <string name="settings_show_category">Unterordner anzeigen</string>
     <string name="settings_compact_note_list">Kompakte Notizliste</string>

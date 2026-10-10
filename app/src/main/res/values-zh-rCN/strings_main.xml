@@ -58,6 +58,9 @@
 
     <!-- Settings -->
     <string name="settings_title">设置</string>
+    <string name="settings_section_note_list">笔记列表</string>
+    <string name="settings_section_notes">笔记</string>
+    <string name="settings_section_more">更多</string>
     <string name="settings_show_note_preview">显示笔记预览</string>
     <string name="settings_show_category">显示子文件夹</string>
     <string name="settings_compact_note_list">紧凑笔记列表</string>
