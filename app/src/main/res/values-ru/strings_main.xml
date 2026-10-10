@@ -155,6 +155,7 @@
     <string name="action_cancel_editing">Отменить редактирование</string>
     <string name="action_finish_editing">Завершить редактирование</string>
     <string name="read_only">Только чтение</string>
+    <string name="read_only_explanation">Эту заметку можно читать, но сервер не разрешает её изменять.</string>
     <string name="local_changes_safe_finish_editing">Ваши локальные изменения сохранены на этом устройстве. Завершите редактирование, чтобы выбрать, как обработать изменение на сервере.</string>
 
     <!-- Editor toolbar -->

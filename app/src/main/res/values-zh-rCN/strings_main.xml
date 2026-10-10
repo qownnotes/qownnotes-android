@@ -152,6 +152,7 @@
     <string name="action_cancel_editing">取消编辑</string>
     <string name="action_finish_editing">完成编辑</string>
     <string name="read_only">只读</string>
+    <string name="read_only_explanation">你可以阅读此笔记，但服务器不允许修改它。</string>
     <string name="local_changes_safe_finish_editing">你的本地更改已安全保存在此设备上。完成编辑后可选择如何处理服务器上的更改。</string>
 
     <!-- Editor toolbar -->

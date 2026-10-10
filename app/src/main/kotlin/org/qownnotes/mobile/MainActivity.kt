@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -87,6 +88,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PersonRemove
@@ -100,6 +102,7 @@ import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewKanban
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -2886,6 +2889,7 @@ private fun NoteDetailScreen(
     val toolbarHintDismissed by component.settings.editorToolbarHintDismissed
         .collectAsStateWithLifecycle(context = UiDispatcher)
     var showToolbarHelp by rememberSaveable(localId) { mutableStateOf(false) }
+    var largeNoteNoticeDismissed by rememberSaveable(localId) { mutableStateOf(false) }
     val openToolbarHelp = {
         showToolbarHelp = true
         component.settings.setEditorToolbarHintDismissed(true)
@@ -3434,11 +3438,6 @@ private fun NoteDetailScreen(
                             }
                         )
                     }
-                } else if (current?.readOnly == true) {
-                    Text(
-                        stringResource(R.string.read_only),
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
                 }
             }
         }
@@ -3446,30 +3445,31 @@ private fun NoteDetailScreen(
         if (editing) {
             Column(modifier = Modifier.fillMaxSize().padding(padding).imePadding()) {
                 note?.lastSyncError?.let { message ->
+                    val conflicted =
+                        note?.syncState in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
                     ExpandableSyncError(
                         message = message,
                         technicalDetails = noteSyncDiagnostics[localId],
                         testTag = "note-sync-error",
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        panel = true,
+                        detail = when {
+                            conflicted -> stringResource(R.string.local_changes_safe)
+                            note?.syncState == SyncState.REMOTE_MISSING ->
+                                stringResource(R.string.local_changes_safe_finish_editing)
+                            else -> null
+                        },
+                        actions = if (conflicted) {
+                            {
+                                TextButton(
+                                    onClick = openConflictResolution,
+                                    modifier = Modifier.testTag("resolve-note-conflict")
+                                ) { Text(stringResource(R.string.resolve_conflict)) }
+                            }
+                        } else {
+                            null
+                        }
                     )
-                    if (
-                        note?.syncState in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
-                    ) {
-                        Text(
-                            stringResource(R.string.local_changes_safe),
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        TextButton(
-                            onClick = openConflictResolution,
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                                .testTag("resolve-note-conflict")
-                        ) { Text(stringResource(R.string.resolve_conflict)) }
-                    } else if (note?.syncState == SyncState.REMOTE_MISSING) {
-                        Text(
-                            stringResource(R.string.local_changes_safe_finish_editing),
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                    }
                 }
                 if (finding) {
                     FindInNoteBar(
@@ -3586,11 +3586,22 @@ private fun NoteDetailScreen(
                         )
                     }
                 }
-                if (!supportsMarkdownSourceHighlighting(draft.orEmpty().length)) {
-                    Text(
-                        stringResource(R.string.large_note_highlighting_disabled),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                            .testTag("large-note-highlighting-disabled")
+                if (
+                    !largeNoteNoticeDismissed &&
+                    !supportsMarkdownSourceHighlighting(draft.orEmpty().length)
+                ) {
+                    NoteStatusPanel(
+                        icon = Icons.Outlined.Info,
+                        message = stringResource(R.string.large_note_highlighting_disabled),
+                        tone = NoteStatusTone.INFO,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            .testTag("large-note-highlighting-disabled"),
+                        actions = {
+                            TextButton(
+                                onClick = { largeNoteNoticeDismissed = true },
+                                modifier = Modifier.testTag("dismiss-large-note-notice")
+                            ) { Text(stringResource(R.string.toolbar_hint_dismiss)) }
+                        }
                     )
                 }
                 Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -3696,39 +3707,53 @@ private fun NoteDetailScreen(
                     }
                 }
                 note?.lastSyncError?.let { message ->
+                    val conflicted =
+                        note?.syncState in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
+                    val remoteMissing = note?.syncState == SyncState.REMOTE_MISSING
                     ExpandableSyncError(
                         message = message,
                         technicalDetails = noteSyncDiagnostics[localId],
                         testTag = "note-sync-error",
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        panel = true,
+                        detail = if (conflicted || remoteMissing) {
+                            stringResource(R.string.local_changes_safe)
+                        } else {
+                            null
+                        },
+                        actions = when {
+                            conflicted -> {
+                                {
+                                    TextButton(
+                                        onClick = openConflictResolution,
+                                        modifier = Modifier.testTag("resolve-note-conflict")
+                                    ) { Text(stringResource(R.string.resolve_conflict)) }
+                                }
+                            }
+                            remoteMissing -> {
+                                {
+                                    TextButton(
+                                        onClick = {
+                                            remoteMissingResolutionError = null
+                                            showRemoteMissingResolution = true
+                                        },
+                                        modifier = Modifier.testTag("resolve-remote-missing")
+                                    ) { Text(stringResource(R.string.resolve_missing_note)) }
+                                }
+                            }
+                            else -> null
+                        }
                     )
-                    if (
-                        note?.syncState in
-                        setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
-                    ) {
-                        Text(
-                            stringResource(R.string.local_changes_safe),
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        TextButton(
-                            onClick = openConflictResolution,
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                                .testTag("resolve-note-conflict")
-                        ) { Text(stringResource(R.string.resolve_conflict)) }
-                    } else if (note?.syncState == SyncState.REMOTE_MISSING) {
-                        Text(
-                            stringResource(R.string.local_changes_safe),
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        TextButton(
-                            onClick = {
-                                remoteMissingResolutionError = null
-                                showRemoteMissingResolution = true
-                            },
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                                .testTag("resolve-remote-missing")
-                        ) { Text(stringResource(R.string.resolve_missing_note)) }
-                    }
+                }
+                if (note?.readOnly == true && note?.lastSyncError == null) {
+                    NoteStatusPanel(
+                        icon = Icons.Filled.Lock,
+                        message = stringResource(R.string.read_only),
+                        detail = stringResource(R.string.read_only_explanation),
+                        tone = NoteStatusTone.INFO,
+                        messageTestTag = "note-read-only",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
                 }
                 Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     AndroidView(
@@ -4963,7 +4988,11 @@ private fun ExpandableSyncError(
     message: String,
     technicalDetails: String? = null,
     testTag: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Shows the error on a [NoteStatusPanel] with [detail] and [actions], as on the note screen. */
+    panel: Boolean = false,
+    detail: String? = null,
+    actions: (@Composable RowScope.() -> Unit)? = null
 ) {
     val conflictMessage = when (message) {
         "The note changed on the server" -> R.string.conflict_message
@@ -4976,18 +5005,49 @@ private fun ExpandableSyncError(
     val explanation = syncErrorExplanation(message)?.let { stringResource(it) }
     val context = LocalContext.current
     var showDetails by rememberSaveable(message) { mutableStateOf(false) }
-    Column(modifier = modifier.testTag(testTag)) {
-        Text(
-            conflictMessage?.let { stringResource(it) } ?: message,
-            color = MaterialTheme.colorScheme.error,
-            modifier = Modifier.testTag("$testTag-summary")
+    val hasDetails = explanation != null || diagnosticDetails != null
+    if (panel) {
+        NoteStatusPanel(
+            icon = if (conflictMessage == null) {
+                Icons.Filled.ErrorOutline
+            } else {
+                Icons.AutoMirrored.Filled.CallSplit
+            },
+            message = conflictMessage?.let { stringResource(it) } ?: message,
+            tone = NoteStatusTone.ERROR,
+            messageTestTag = "$testTag-summary",
+            detail = detail,
+            actions = if (hasDetails || actions != null) {
+                {
+                    if (hasDetails) {
+                        TextButton(
+                            onClick = { showDetails = true },
+                            modifier = Modifier.testTag("$testTag-toggle")
+                        ) {
+                            Text(stringResource(R.string.sync_error_details))
+                        }
+                    }
+                    actions?.invoke(this)
+                }
+            } else {
+                null
+            },
+            modifier = modifier.testTag(testTag)
         )
-        if (explanation != null || diagnosticDetails != null) {
-            TextButton(
-                onClick = { showDetails = true },
-                modifier = Modifier.testTag("$testTag-toggle")
-            ) {
-                Text(stringResource(R.string.sync_error_details))
+    } else {
+        Column(modifier = modifier.testTag(testTag)) {
+            Text(
+                conflictMessage?.let { stringResource(it) } ?: message,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("$testTag-summary")
+            )
+            if (hasDetails) {
+                TextButton(
+                    onClick = { showDetails = true },
+                    modifier = Modifier.testTag("$testTag-toggle")
+                ) {
+                    Text(stringResource(R.string.sync_error_details))
+                }
             }
         }
     }

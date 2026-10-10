@@ -57,6 +57,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   icon instead of a magnifying glass.
 - Long-pressing an icon button on the note screen, such as back, find, the note menu, or the
   find bar's previous, next, and close buttons, shows its name.
+- Sync errors, conflicts, notes missing on the server, read-only notes, and the large-note
+  highlighting notice are shown on tinted panels with an icon and their actions. Read-only
+  notes explain why they cannot be edited, and the large-note notice can be dismissed.
 
 ### Fixed
 

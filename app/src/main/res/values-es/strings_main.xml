@@ -154,6 +154,7 @@
     <string name="action_cancel_editing">Cancelar edición</string>
     <string name="action_finish_editing">Terminar edición</string>
     <string name="read_only">Solo lectura</string>
+    <string name="read_only_explanation">Puedes leer esta nota, pero el servidor no permite modificarla.</string>
     <string name="local_changes_safe_finish_editing">Tus cambios locales están a salvo en este dispositivo. Termina la edición para elegir cómo resolver el cambio del servidor.</string>
 
     <!-- Editor toolbar -->
