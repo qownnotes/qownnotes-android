@@ -12,7 +12,7 @@ Features include:
 * CommonMark and GitHub Flavored Markdown rendering and source editing
 * QOwnNotes wiki links, task states, note naming, subfolders, and favorites
 * Note tags shared with QOwnNotes desktop, with tag filtering in the note list
-* Nextcloud Deck card creation from the editor
+* Create, browse, search, edit, and archive Nextcloud Deck cards and insert card links
 * Safe remote images and authenticated Nextcloud note attachments
 * Home-screen widgets for note lists and selected notes
 * Offline bookmark browsing and image insertion while editing

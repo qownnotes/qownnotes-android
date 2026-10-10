@@ -1,0 +1,6 @@
+• Browse, search, edit, and archive Nextcloud Deck cards and insert existing card links
+• Refreshed note screen, dialogs, settings, and bookmarks
+• Formatting toolbar above the keyboard, heading-level menu, tooltips, and tool help
+• Open an account's notes from the note-list widget header
+• Confirm before moving multiple notes to trash
+• Clearer conflict recovery that preserves the latest edits
