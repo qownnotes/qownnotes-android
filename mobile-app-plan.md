@@ -352,7 +352,11 @@ Editor requirements:
 - Discard stale highlighting results if the text changed while parsing.
 - Remain responsive for large notes.
 - Preserve undo and redo behavior.
-- Provide a mobile formatting toolbar for common Markdown operations.
+- Provide a mobile formatting toolbar for common Markdown operations. Group its tools by purpose
+  (history, text, lists, insert, Deck), show each tool's name in a tooltip on long-press, end the
+  toolbar with a help button that explains every tool, point to both once with a dismissible
+  hint, and offer an optional setting that shows a short label under each icon. A single
+  `EditorTool` list drives the toolbar, tooltips, labels, and help so they cannot disagree.
 - Continue unordered, ordered, and task-list markers when Return starts a new item, and leave the
   list when Return is pressed on an empty item.
 - Remove a single trailing space before an inserted Return, preserving two or more spaces for

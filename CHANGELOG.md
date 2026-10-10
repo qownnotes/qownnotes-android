@@ -19,6 +19,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ([#27](https://github.com/qownnotes/qownnotes-android/issues/27)).
 - Tap the note-list widget's title bar to open its account's notes in the app for browsing and
   searching ([#28](https://github.com/qownnotes/qownnotes-android/issues/28)).
+- Long-press any editor toolbar icon to see its name. A **Help** button at the end of the toolbar
+  lists every editor tool with its icon and what it does, a one-time hint points to both, and
+  the optional **Show toolbar labels** setting shows a short name below each icon.
 
 ### Changed
 
@@ -48,6 +51,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The **About** menu entry has an icon, and the About dialog shows the QOwnNotes logo with
   links highlighted. The **Move note to trash?** confirmation shows a trash icon and a
   warning-colored confirm button.
+- The editor toolbar is grouped into history, text, lists, insert, and Deck tools with
+  dividers between groups. Heading uses an "H" icon, **Insert date and time** uses a clock
+  icon, **Create Nextcloud Deck card** uses an add-card icon, and **Deck cards** uses the board
+  icon instead of a magnifying glass.
 
 ### Fixed
 

@@ -2079,7 +2079,7 @@ class AppLaunchTest {
         onView(withId(R.id.markdown_editor)).perform(click(), typeText("bold me"))
         // Format the fully typed text, not whatever part of it the input method has committed.
         awaitEditorText("bold me")
-        composeRule.onNodeWithTag("format-bold").performClick()
+        composeRule.onNodeWithTag("format-bold").performScrollTo().performClick()
 
         awaitEditorText("**")
         onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
@@ -2345,24 +2345,24 @@ class AppLaunchTest {
         composeRule.enterEditMode()
 
         onView(withId(R.id.markdown_editor)).perform(click(), replaceText("item"))
-        composeRule.onNodeWithTag("format-list").performClick()
+        composeRule.onNodeWithTag("format-list").performScrollTo().performClick()
         awaitEditorText("- item")
 
         onView(withId(R.id.markdown_editor)).perform(replaceText("task"))
-        composeRule.onNodeWithTag("format-checkbox-list").performClick()
+        composeRule.onNodeWithTag("format-checkbox-list").performScrollTo().performClick()
         awaitEditorText("- [ ] task")
 
         // Returning on an empty item ends the list. The editor applies that after the key event
         // has been delivered, so wait for the marker to go before reading the remaining text.
         onView(withId(R.id.markdown_editor)).perform(replaceText(""))
-        composeRule.onNodeWithTag("format-list").performClick()
+        composeRule.onNodeWithTag("format-list").performScrollTo().performClick()
         awaitEditorText("- ")
         onView(withId(R.id.markdown_editor)).perform(typeText("\n"))
         awaitEditorText("- ", present = false)
         onView(withId(R.id.markdown_editor)).check(matches(withText("\n")))
 
         onView(withId(R.id.markdown_editor)).perform(replaceText(""))
-        composeRule.onNodeWithTag("format-checkbox-list").performClick()
+        composeRule.onNodeWithTag("format-checkbox-list").performScrollTo().performClick()
         awaitEditorText("- [ ] ")
         onView(withId(R.id.markdown_editor)).perform(typeText("\n"))
         awaitEditorText("- [ ] ", present = false)
@@ -2421,6 +2421,76 @@ class AppLaunchTest {
         // of the document, so read the note back once that rewrite has landed.
         awaitEditorText("Existing note")
         onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
+    }
+
+    @Test
+    fun longPressingAToolbarIconNamesItWithoutApplyingIt() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText("plain"))
+
+        composeRule.onNodeWithTag("format-strikethrough").performScrollTo()
+            .performTouchInput { longClick() }
+
+        composeRule.waitForText("Strikethrough")
+        composeRule.waitForIdle()
+        onView(withId(R.id.markdown_editor)).check(matches(withText("plain")))
+    }
+
+    @Test
+    fun toolbarHintOpensToolHelpWhereLabelsCanBeShown() {
+        application.component.settings.setEditorToolbarHintDismissed(false)
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        composeRule.waitForTag("editor-toolbar-hint")
+        composeRule.onNodeWithTag("editor-toolbar-hint-help").performClick()
+        composeRule.waitForTag("editor-toolbar-help-dialog")
+        assertTrue(application.component.settings.editorToolbarHintDismissed.value)
+        composeRule.onNodeWithText("Make the selected text bold, or start bold text.")
+            .assertExists()
+        // Deck is available on the fake server, so its tools are explained too.
+        composeRule.onNodeWithTag("editor-tool-help-browse-editor-deck-cards").performScrollTo()
+            .assertIsDisplayed()
+
+        composeRule.onNodeWithTag("editor-toolbar-help-labels").performScrollTo().assertIsOff()
+            .performClick()
+        assertTrue(application.component.settings.showEditorToolbarLabels.value)
+        composeRule.onNodeWithTag("close-editor-toolbar-help").performClick()
+        composeRule.waitForTagToGo("editor-toolbar-help-dialog")
+        composeRule.onNodeWithTag("editor-toolbar-hint").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("format-strikethrough").performScrollTo()
+            .assertTextEquals("Strike")
+        // A labelled button still formats.
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText("gone"))
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(0, 4)
+        }
+        composeRule.onNodeWithTag("format-strikethrough").performScrollTo().performClick()
+        awaitEditorText("~~gone~~")
+    }
+
+    @Test
+    fun dismissedToolbarHintStaysHidden() {
+        application.component.settings.setEditorToolbarHintDismissed(false)
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        composeRule.waitForTag("editor-toolbar-hint")
+        composeRule.onNodeWithTag("dismiss-editor-toolbar-hint").performClick()
+        composeRule.waitForTagToGo("editor-toolbar-hint")
+        assertTrue(application.component.settings.editorToolbarHintDismissed.value)
+
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.enterEditMode()
+        composeRule.onNodeWithTag("format-toolbar").assertIsDisplayed()
+        composeRule.onNodeWithTag("editor-toolbar-hint").assertDoesNotExist()
     }
 
     @Test

@@ -61,28 +61,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
-import androidx.compose.material.icons.automirrored.filled.FormatIndentDecrease
-import androidx.compose.material.icons.automirrored.filled.FormatIndentIncrease
-import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.automirrored.filled.NoteAdd
-import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Done
@@ -92,15 +83,10 @@ import androidx.compose.material.icons.filled.EditOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FormatBold
-import androidx.compose.material.icons.filled.FormatItalic
-import androidx.compose.material.icons.filled.FormatListNumbered
-import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PersonRemove
@@ -110,11 +96,8 @@ import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StrikethroughS
 import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
-import androidx.compose.material.icons.filled.Title
-import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewKanban
 import androidx.compose.material3.AlertDialog
@@ -1062,6 +1045,8 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val askForNewNoteName by component.settings.askForNewNoteName
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val showEditorToolbarLabels by component.settings.showEditorToolbarLabels
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     // Visibility is kept apart from the name because the field may report a last value change
     // while the dialog closes, which must not reopen it.
     var namingNewNote by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -1907,6 +1892,15 @@ private fun NoteListScreen(
                         checked = askForNewNoteName,
                         onCheckedChange = component.settings::setAskForNewNoteName,
                         testTag = "toggle-ask-for-new-note-name"
+                    )
+                    SettingsToggle(
+                        label = stringResource(R.string.settings_show_toolbar_labels),
+                        description = stringResource(
+                            R.string.settings_show_toolbar_labels_description
+                        ),
+                        checked = showEditorToolbarLabels,
+                        onCheckedChange = component.settings::setShowEditorToolbarLabels,
+                        testTag = "toggle-editor-toolbar-labels"
                     )
                     OutlinedTextField(
                         value = bookmarksPath,
@@ -2887,6 +2881,15 @@ private fun NoteDetailScreen(
     )
     val noteTextSizeSp by component.settings.noteTextSizeSp
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val showToolbarLabels by component.settings.showEditorToolbarLabels
+        .collectAsStateWithLifecycle(context = UiDispatcher)
+    val toolbarHintDismissed by component.settings.editorToolbarHintDismissed
+        .collectAsStateWithLifecycle(context = UiDispatcher)
+    var showToolbarHelp by rememberSaveable(localId) { mutableStateOf(false) }
+    val openToolbarHelp = {
+        showToolbarHelp = true
+        component.settings.setEditorToolbarHintDismissed(true)
+    }
     // Applied from a composition effect rather than from an `AndroidView` update block. An update
     // block that observes this value is rescheduled through the holder's `View.getHandler()`,
     // which is null while the view is detached, and the view/edit transition detaches one of them.
@@ -3504,138 +3507,77 @@ private fun NoteDetailScreen(
                         focusOnOpen = !findFromListSearch
                     )
                 } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                            .testTag("format-toolbar")
-                    ) {
-                        // First in the row, so stepping back does not require scrolling the toolbar.
-                        EditorHistoryButton(
-                            Icons.AutoMirrored.Filled.Undo,
-                            stringResource(R.string.format_undo),
-                            "undo-edit",
-                            canUndo,
-                            editor
-                        ) {
-                            editorBinding?.undo()
-                        }
-                        EditorHistoryButton(
-                            Icons.AutoMirrored.Filled.Redo,
-                            stringResource(R.string.format_redo),
-                            "redo-edit",
-                            canRedo,
-                            editor
-                        ) {
-                            editorBinding?.redo()
-                        }
-                        FormatButton(
-                            Icons.AutoMirrored.Filled.FormatListBulleted,
-                            MarkdownFormatAction.BULLET,
-                            editor,
-                            stringResource(R.string.format_list),
-                            "format-list"
-                        )
-                        FormatButton(
-                            Icons.Filled.Checklist,
-                            MarkdownFormatAction.TASK,
-                            editor,
-                            stringResource(R.string.format_checkbox_list),
-                            "format-checkbox-list"
-                        )
-                        FormatButton(
-                            Icons.AutoMirrored.Filled.FormatIndentIncrease,
-                            MarkdownFormatAction.INDENT,
-                            editor,
-                            stringResource(R.string.format_indent),
-                            "format-indent"
-                        )
-                        FormatButton(
-                            Icons.AutoMirrored.Filled.FormatIndentDecrease,
-                            MarkdownFormatAction.OUTDENT,
-                            editor,
-                            stringResource(R.string.format_outdent),
-                            "format-outdent"
-                        )
-                        FormatButton(
-                            Icons.Filled.FormatBold,
-                            MarkdownFormatAction.BOLD,
-                            editor,
-                            stringResource(R.string.format_bold),
-                            "format-bold"
-                        )
-                        FormatButton(
-                            Icons.Filled.FormatItalic,
-                            MarkdownFormatAction.ITALIC,
-                            editor,
-                            stringResource(R.string.format_italic),
-                            "format-italic"
-                        )
-                        FormatButton(
-                            Icons.Filled.StrikethroughS,
-                            MarkdownFormatAction.STRIKETHROUGH,
-                            editor,
-                            stringResource(R.string.format_strikethrough),
-                            "format-strikethrough"
-                        )
-                        FormatButton(
-                            Icons.Filled.Code,
-                            MarkdownFormatAction.CODE,
-                            editor,
-                            stringResource(R.string.format_code),
-                            "format-code"
-                        )
-                        ActionIconButton(
-                            icon = Icons.Filled.Link,
-                            description = stringResource(R.string.format_link),
-                            testTag = "format-link",
-                            onClick = {
-                                val current = editor
-                                val source = current?.text?.toString().orEmpty()
-                                val start = (current?.selectionStart ?: 0)
-                                    .coerceIn(0, source.length)
-                                val end = (current?.selectionEnd ?: start)
-                                    .coerceIn(0, source.length)
-                                linkDialogTitle =
-                                    source.substring(minOf(start, end), maxOf(start, end))
-                                linkDialogUrl = current?.clipboardWebUrl().orEmpty()
+                    // Undo and redo stay first, so stepping back does not require scrolling.
+                    EditorToolbar(
+                        deckAvailable = nextcloudDeckAvailable,
+                        showLabels = showToolbarLabels,
+                        isEnabled = { tool ->
+                            when (tool) {
+                                EditorTool.UNDO -> canUndo
+                                EditorTool.REDO -> canRedo
+                                EditorTool.IMAGE -> !importingImage
+                                else -> true
                             }
-                        )
-                        ActionIconButton(
-                            icon = Icons.Filled.AddPhotoAlternate,
-                            description = stringResource(R.string.insert_image),
-                            testTag = "insert-image",
-                            enabled = !importingImage,
-                            onClick = { imagePicker.launch("image/*") }
-                        )
-                        ActionIconButton(
-                            icon = Icons.Filled.Today,
-                            description = stringResource(R.string.insert_date),
-                            testTag = "insert-date",
-                            onClick = {
-                                editor?.insertText(
-                                    LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-                                )
+                        },
+                        onTool = { tool ->
+                            fun format(action: MarkdownFormatAction) {
+                                editor?.applyFormat(action)
+                                // Tapping a Compose button moves focus away from the embedded
+                                // editor, which closes the keyboard. Hand focus back so
+                                // formatting does not interrupt typing.
                                 editor?.focusForInput()
                             }
-                        )
-                        ActionIconButton(
-                            icon = Icons.Filled.DateRange,
-                            description = stringResource(R.string.insert_date_time),
-                            testTag = "insert-datetime",
-                            onClick = {
-                                editor?.insertText(
-                                    LocalDateTime.now().format(
-                                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                            when (tool) {
+                                // The framework editor's own undo buffer is only reachable
+                                // with a hardware keyboard, so phones need these controls.
+                                EditorTool.UNDO -> {
+                                    editorBinding?.undo()
+                                    editor?.focusForInput()
+                                }
+                                EditorTool.REDO -> {
+                                    editorBinding?.redo()
+                                    editor?.focusForInput()
+                                }
+                                EditorTool.HEADING -> format(MarkdownFormatAction.HEADING)
+                                EditorTool.BOLD -> format(MarkdownFormatAction.BOLD)
+                                EditorTool.ITALIC -> format(MarkdownFormatAction.ITALIC)
+                                EditorTool.STRIKETHROUGH ->
+                                    format(MarkdownFormatAction.STRIKETHROUGH)
+                                EditorTool.CODE -> format(MarkdownFormatAction.CODE)
+                                EditorTool.QUOTE -> format(MarkdownFormatAction.QUOTE)
+                                EditorTool.BULLET_LIST -> format(MarkdownFormatAction.BULLET)
+                                EditorTool.NUMBERED_LIST -> format(MarkdownFormatAction.NUMBERED)
+                                EditorTool.CHECKBOX_LIST -> format(MarkdownFormatAction.TASK)
+                                EditorTool.INDENT -> format(MarkdownFormatAction.INDENT)
+                                EditorTool.OUTDENT -> format(MarkdownFormatAction.OUTDENT)
+                                EditorTool.LINK -> {
+                                    val current = editor
+                                    val source = current?.text?.toString().orEmpty()
+                                    val start = (current?.selectionStart ?: 0)
+                                        .coerceIn(0, source.length)
+                                    val end = (current?.selectionEnd ?: start)
+                                        .coerceIn(0, source.length)
+                                    linkDialogTitle =
+                                        source.substring(minOf(start, end), maxOf(start, end))
+                                    linkDialogUrl = current?.clipboardWebUrl().orEmpty()
+                                }
+                                EditorTool.IMAGE -> imagePicker.launch("image/*")
+                                EditorTool.DATE -> {
+                                    editor?.insertText(
+                                        LocalDateTime.now()
+                                            .format(DateTimeFormatter.ISO_LOCAL_DATE)
                                     )
-                                )
-                                editor?.focusForInput()
-                            }
-                        )
-                        if (nextcloudDeckAvailable) {
-                            ActionIconButton(
-                                icon = Icons.Filled.ViewKanban,
-                                description = stringResource(R.string.create_deck_card),
-                                testTag = "create-deck-card-link",
-                                onClick = {
+                                    editor?.focusForInput()
+                                }
+                                EditorTool.DATE_TIME -> {
+                                    editor?.insertText(
+                                        LocalDateTime.now().format(
+                                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                        )
+                                    )
+                                    editor?.focusForInput()
+                                }
+                                EditorTool.CREATE_DECK_CARD -> {
                                     val current = editor
                                     deckCardTitle = deckCardTitleFromSelection(
                                         current?.text,
@@ -3643,34 +3585,15 @@ private fun NoteDetailScreen(
                                         current?.selectionEnd ?: 0
                                     )
                                 }
-                            )
-                            ActionIconButton(
-                                icon = Icons.Filled.Search,
-                                description = stringResource(R.string.deck_cards),
-                                testTag = "browse-editor-deck-cards",
-                                onClick = { showNoteDeckBrowser = true }
-                            )
-                        }
-                        FormatButton(
-                            Icons.Filled.Title,
-                            MarkdownFormatAction.HEADING,
-                            editor,
-                            stringResource(R.string.format_heading),
-                            "format-heading"
-                        )
-                        FormatButton(
-                            Icons.Filled.FormatListNumbered,
-                            MarkdownFormatAction.NUMBERED,
-                            editor,
-                            stringResource(R.string.format_numbered_list),
-                            "format-numbered-list"
-                        )
-                        FormatButton(
-                            Icons.Filled.FormatQuote,
-                            MarkdownFormatAction.QUOTE,
-                            editor,
-                            stringResource(R.string.format_quote),
-                            "format-quote"
+                                EditorTool.BROWSE_DECK_CARDS -> showNoteDeckBrowser = true
+                            }
+                        },
+                        onHelp = openToolbarHelp
+                    )
+                    if (!toolbarHintDismissed) {
+                        EditorToolbarHint(
+                            onShowHelp = openToolbarHelp,
+                            onDismiss = { component.settings.setEditorToolbarHintDismissed(true) }
                         )
                     }
                 }
@@ -4235,6 +4158,17 @@ private fun NoteDetailScreen(
             onInsert = { link ->
                 linkDialogUrl = null
                 editor?.insertText(link)
+                editor?.focusForInput()
+            }
+        )
+    }
+    if (showToolbarHelp && editing) {
+        EditorToolbarHelpDialog(
+            deckAvailable = nextcloudDeckAvailable,
+            showLabels = showToolbarLabels,
+            onShowLabelsChange = component.settings::setShowEditorToolbarLabels,
+            onDismiss = {
+                showToolbarHelp = false
                 editor?.focusForInput()
             }
         )
@@ -5150,53 +5084,6 @@ private fun ActionIconButton(
 ) {
     IconButton(
         onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.testTag(testTag)
-    ) {
-        Icon(icon, contentDescription = description)
-    }
-}
-
-@Composable
-private fun FormatButton(
-    icon: ImageVector,
-    action: MarkdownFormatAction,
-    editor: MarkdownEditText?,
-    description: String,
-    tag: String
-) {
-    IconButton(
-        onClick = {
-            editor?.applyFormat(action)
-            // Tapping a Compose button moves focus away from the embedded editor, which closes
-            // the keyboard. Hand focus back so formatting does not interrupt typing.
-            editor?.focusForInput()
-        },
-        modifier = Modifier.testTag(tag)
-    ) {
-        Icon(icon, contentDescription = description)
-    }
-}
-
-/**
- * Undo or redo. The framework editor has an undo buffer of its own, but it can only be reached
- * with a hardware keyboard, so the writer needs a control that a phone can actually reach.
- */
-@Composable
-private fun EditorHistoryButton(
-    icon: ImageVector,
-    description: String,
-    testTag: String,
-    enabled: Boolean,
-    editor: MarkdownEditText?,
-    onClick: () -> Unit
-) {
-    IconButton(
-        onClick = {
-            onClick()
-            // Like formatting, this moves focus out of the embedded editor. Hand it back.
-            editor?.focusForInput()
-        },
         enabled = enabled,
         modifier = Modifier.testTag(testTag)
     ) {

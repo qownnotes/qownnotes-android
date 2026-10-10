@@ -106,6 +106,31 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableCompactNoteList.value = enabled
     }
 
+    private val mutableShowEditorToolbarLabels =
+        MutableStateFlow(preferences.getBoolean(SHOW_EDITOR_TOOLBAR_LABELS, false))
+
+    /** Whether the note editor's toolbar shows a short name below each icon. */
+    val showEditorToolbarLabels: StateFlow<Boolean> = mutableShowEditorToolbarLabels.asStateFlow()
+
+    fun setShowEditorToolbarLabels(enabled: Boolean) {
+        if (enabled == mutableShowEditorToolbarLabels.value) return
+        preferences.edit().putBoolean(SHOW_EDITOR_TOOLBAR_LABELS, enabled).apply()
+        mutableShowEditorToolbarLabels.value = enabled
+    }
+
+    private val mutableEditorToolbarHintDismissed =
+        MutableStateFlow(preferences.getBoolean(EDITOR_TOOLBAR_HINT_DISMISSED, false))
+
+    /** Whether the reader has seen and dismissed the hint explaining the editor toolbar icons. */
+    val editorToolbarHintDismissed: StateFlow<Boolean> =
+        mutableEditorToolbarHintDismissed.asStateFlow()
+
+    fun setEditorToolbarHintDismissed(dismissed: Boolean) {
+        if (dismissed == mutableEditorToolbarHintDismissed.value) return
+        preferences.edit().putBoolean(EDITOR_TOOLBAR_HINT_DISMISSED, dismissed).apply()
+        mutableEditorToolbarHintDismissed.value = dismissed
+    }
+
     private val mutableAppearance = MutableStateFlow(readAppearance())
 
     /** Note-list colors and header; custom colors are fixed across light and dark themes. */
@@ -348,6 +373,8 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val HIDE_CREATE_BUTTON_ON_SCROLL = "hideCreateButtonOnScroll"
         const val ASK_FOR_NEW_NOTE_NAME = "askForNewNoteName"
         const val COMPACT_NOTE_LIST = "compactNoteList"
+        const val SHOW_EDITOR_TOOLBAR_LABELS = "showEditorToolbarLabels"
+        const val EDITOR_TOOLBAR_HINT_DISMISSED = "editorToolbarHintDismissed"
         const val HEADER_COLOR = "headerColor"
         const val NOTE_BACKGROUND_COLOR = "noteBackgroundColor"
         const val HIGHLIGHT_CATEGORIES = "highlightCategories"

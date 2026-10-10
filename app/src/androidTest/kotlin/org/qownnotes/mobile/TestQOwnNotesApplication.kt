@@ -94,6 +94,9 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         component.settings.setHideCreateButtonOnScroll(true)
         component.settings.setCompactNoteList(false)
         component.settings.setAskForNewNoteName(false)
+        component.settings.setShowEditorToolbarLabels(false)
+        // The first-use hint would shift the editor below the toolbar in unrelated tests.
+        component.settings.setEditorToolbarHintDismissed(true)
         component.settings.setAppearance(AppAppearance())
         component.settings.resetDeckLinkOpening()
         fakeBackend.reset()
