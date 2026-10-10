@@ -153,6 +153,8 @@
     <string name="note_text_size_increase">Aumenta dimensione testo della nota</string>
     <string name="action_cancel_editing">Annulla modifica</string>
     <string name="action_finish_editing">Termina modifica</string>
+    <string name="action_done">Fine</string>
+    <string name="text_size">Dimensione testo</string>
     <string name="read_only">Sola lettura</string>
     <string name="read_only_explanation">Puoi leggere questa nota, ma il server non consente di modificarla.</string>
     <string name="local_changes_safe_finish_editing">Le modifiche locali sono al sicuro su questo dispositivo. Termina la modifica per scegliere come risolvere la modifica sul server.</string>

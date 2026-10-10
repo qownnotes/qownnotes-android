@@ -27,7 +27,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -62,6 +61,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.automirrored.filled.NoteAdd
@@ -98,8 +98,7 @@ import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.TextDecrease
-import androidx.compose.material.icons.filled.TextIncrease
+import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewKanban
 import androidx.compose.material.icons.outlined.Info
@@ -2838,6 +2837,27 @@ private fun NoteDetailScreen(
         }
         Unit
     }
+    val cancelEditing = {
+        if (draft != contentBeforeEditing) {
+            showDiscardConfirmation = true
+        } else {
+            draft?.let { source ->
+                scope.launch {
+                    if (component.saveDraft(localId, source)) leaveEditMode()
+                }
+            } ?: leaveEditMode()
+        }
+        Unit
+    }
+    val finishEditing = {
+        val source = draft
+        if (source != null) {
+            scope.launch {
+                if (component.saveDraft(localId, source)) leaveEditMode()
+            }
+        }
+        Unit
+    }
     var editorScrollValue by remember { mutableIntStateOf(0) }
     var editorScrollRange by remember { mutableIntStateOf(0) }
     var renderedView by remember { mutableStateOf<AppCompatTextView?>(null) }
@@ -3139,26 +3159,27 @@ private fun NoteDetailScreen(
                     title = {
                         Text(
                             note?.title ?: stringResource(R.string.note_title_fallback),
-                            maxLines = 2,
+                            // Editing needs the room for the note itself.
+                            maxLines = if (editing) 1 else 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     },
                     navigationIcon = {
-                        TooltipIconButton(
-                            icon = Icons.AutoMirrored.Filled.ArrowBack,
-                            description = stringResource(R.string.action_back_to_notes),
-                            onClick = {
-                                val source = draft
-                                if (editing && source != null) {
-                                    scope.launch {
-                                        if (component.saveDraft(localId, source)) leaveNoteScreen()
-                                    }
-                                } else {
-                                    leaveNoteScreen()
-                                }
-                            },
-                            testTag = "back-to-note-list"
-                        )
+                        if (editing) {
+                            TooltipIconButton(
+                                icon = Icons.Filled.Close,
+                                description = stringResource(R.string.action_cancel_editing),
+                                onClick = cancelEditing,
+                                testTag = "cancel-editing"
+                            )
+                        } else {
+                            TooltipIconButton(
+                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                description = stringResource(R.string.action_back_to_notes),
+                                onClick = leaveNoteScreen,
+                                testTag = "back-to-note-list"
+                            )
+                        }
                     },
                     actions = {
                         val current = note
@@ -3383,62 +3404,88 @@ private fun NoteDetailScreen(
                                     }
                                 }
                             }
+                        } else {
+                            FilledTonalButton(
+                                onClick = finishEditing,
+                                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                                modifier = Modifier.testTag("finish-editing")
+                            ) {
+                                IconLabel(Icons.Filled.Done, stringResource(R.string.action_done))
+                            }
+                            Box {
+                                TooltipIconButton(
+                                    icon = Icons.Filled.MoreVert,
+                                    description = stringResource(R.string.more_note_actions),
+                                    onClick = { noteMenuOpen = true },
+                                    testTag = "note-menu"
+                                )
+                                DropdownMenu(
+                                    expanded = noteMenuOpen,
+                                    onDismissRequest = { noteMenuOpen = false }
+                                ) {
+                                    TextSizeMenuRow(
+                                        sizeSp = noteTextSizeSp,
+                                        onDecrease = component.settings::decreaseNoteTextSize,
+                                        onIncrease = component.settings::increaseNoteTextSize
+                                    )
+                                    HorizontalDivider()
+                                    if (
+                                        current != null &&
+                                        noteTagState.availability != NoteTagAvailability.UNKNOWN
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.note_menu_tags))
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.Tag, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                editingTags = true
+                                            },
+                                            modifier = Modifier.testTag("edit-note-tags")
+                                        )
+                                    }
+                                    if (current != null) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.note_menu_information))
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Outlined.Info,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                showingInformation = true
+                                            },
+                                            modifier = Modifier.testTag("note-information")
+                                        )
+                                    }
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(stringResource(R.string.toolbar_help_title))
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.HelpOutline,
+                                                contentDescription = null
+                                            )
+                                        },
+                                        onClick = {
+                                            noteMenuOpen = false
+                                            openToolbarHelp()
+                                        },
+                                        modifier = Modifier.testTag("editor-tools-menu")
+                                    )
+                                }
+                            }
                         }
                     }
                 )
-                val current = note
-                if (editing) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                            .testTag("note-actions")
-                    ) {
-                        ActionIconButton(
-                            icon = Icons.Filled.TextDecrease,
-                            description = stringResource(R.string.note_text_size_decrease),
-                            testTag = "decrease-note-text-size",
-                            enabled = NoteTextSize.canDecrease(noteTextSizeSp),
-                            onClick = component.settings::decreaseNoteTextSize
-                        )
-                        ActionIconButton(
-                            icon = Icons.Filled.TextIncrease,
-                            description = stringResource(R.string.note_text_size_increase),
-                            testTag = "increase-note-text-size",
-                            enabled = NoteTextSize.canIncrease(noteTextSizeSp),
-                            onClick = component.settings::increaseNoteTextSize
-                        )
-                        ActionIconButton(
-                            icon = Icons.Filled.Close,
-                            description = stringResource(R.string.action_cancel_editing),
-                            testTag = "cancel-editing",
-                            onClick = {
-                                if (draft != contentBeforeEditing) {
-                                    showDiscardConfirmation = true
-                                } else {
-                                    draft?.let { source ->
-                                        scope.launch {
-                                            if (component.saveDraft(localId, source)) {
-                                                leaveEditMode()
-                                            }
-                                        }
-                                    } ?: leaveEditMode()
-                                }
-                            }
-                        )
-                        ActionIconButton(
-                            icon = Icons.Filled.Done,
-                            description = stringResource(R.string.action_finish_editing),
-                            testTag = "finish-editing",
-                            onClick = {
-                                val source = draft
-                                if (source != null) {
-                                    scope.launch {
-                                        if (component.saveDraft(localId, source)) leaveEditMode()
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
             }
         }
     ) { padding ->

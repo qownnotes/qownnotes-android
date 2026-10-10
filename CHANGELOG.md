@@ -60,6 +60,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Sync errors, conflicts, notes missing on the server, read-only notes, and the large-note
   highlighting notice are shown on tinted panels with an icon and their actions. Read-only
   notes explain why they cannot be edited, and the large-note notice can be dismissed.
+- While editing, the top bar has **Cancel editing** on the left and a **Done** button on the
+  right, replacing the separate row of text-size, cancel, and finish icons. Text size, tags,
+  note information, and the editor tools help are in the editing menu, where text size can be
+  stepped without closing the menu. The note title uses one line while editing.
 
 ### Fixed
 

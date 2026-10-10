@@ -1953,16 +1953,26 @@ class AppLaunchTest {
     }
 
     @Test
-    fun backButtonReturnsToNoteListFromViewAndEditModes() {
+    fun backButtonReturnsToNoteListAndEditingHasCancelAndDone() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
 
         composeRule.onNodeWithTag("back-to-note-list").assertIsDisplayed().performClick()
         composeRule.onNodeWithTag("note-list").assertIsDisplayed()
 
+        // While editing, the top bar offers cancelling and finishing instead of going back.
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.enterEditMode()
-        composeRule.onNodeWithTag("back-to-note-list").assertIsDisplayed().performClick()
+        composeRule.onNodeWithTag("back-to-note-list").assertDoesNotExist()
+        composeRule.onNodeWithTag("cancel-editing").assertIsDisplayed()
+        onView(withId(R.id.markdown_editor)).perform(click(), typeText(" done"))
+        awaitEditorText("Existing note done")
+        composeRule.onNodeWithTag("finish-editing").assertIsDisplayed().performClick()
+        composeRule.waitForTag("markdown-view")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").any { it.content.contains("Existing note done") } }
+        }
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
         composeRule.waitForTag("note-list")
     }
 
@@ -2589,8 +2599,36 @@ class AppLaunchTest {
         composeRule.enterEditMode()
 
         val initial = textSizeOf(R.id.markdown_editor)
+        composeRule.openNoteMenu()
         composeRule.onNodeWithTag("increase-note-text-size").performClick()
-        assertTrue(textSizeOf(R.id.markdown_editor) > initial)
+        val once = textSizeOf(R.id.markdown_editor)
+        assertTrue(once > initial)
+        // The menu stays open, so the size can be stepped again right away.
+        composeRule.onNodeWithTag("increase-note-text-size").performClick()
+        assertTrue(textSizeOf(R.id.markdown_editor) > once)
+        composeRule.onNodeWithTag("editor-tools-menu").assertIsDisplayed()
+    }
+
+    @Test
+    fun editingMenuOffersSafeActionsAndKeepsEditing() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+
+        composeRule.openNoteMenu()
+        // Actions that would conflict with the open draft are left for the note view.
+        composeRule.onNodeWithTag("rename-note").assertDoesNotExist()
+        composeRule.onNodeWithTag("delete-note").assertDoesNotExist()
+        composeRule.onNodeWithTag("note-information").performClick()
+        composeRule.waitForTag("note-information-dialog")
+        composeRule.onNodeWithTag("close-note-information").performClick()
+        composeRule.onNodeWithTag("markdown-editor").assertExists()
+
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("editor-tools-menu").performClick()
+        composeRule.waitForTag("editor-toolbar-help-dialog")
+        composeRule.onNodeWithTag("close-editor-toolbar-help").performClick()
+        composeRule.onNodeWithTag("markdown-editor").assertExists()
     }
 
     @Test
@@ -3443,9 +3481,11 @@ class AppLaunchTest {
     }
 
     private fun textSizeOf(viewId: Int): Float {
-        var size = 0f
-        onView(withId(viewId)).check { view, _ -> size = (view as TextView).textSize }
-        return size
+        // Read from the activity rather than through Espresso, which only searches the focused
+        // window and so cannot see the note while a menu popup is open.
+        return composeRule.runOnIdle {
+            composeRule.activity.findViewById<TextView>(viewId).textSize
+        }
     }
 
     private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.waitForTag(

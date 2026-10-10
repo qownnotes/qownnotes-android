@@ -152,6 +152,8 @@
     <string name="note_text_size_increase">Notizschrift vergrößern</string>
     <string name="action_cancel_editing">Bearbeitung abbrechen</string>
     <string name="action_finish_editing">Bearbeitung beenden</string>
+    <string name="action_done">Fertig</string>
+    <string name="text_size">Textgröße</string>
     <string name="read_only">Schreibgeschützt</string>
     <string name="read_only_explanation">Du kannst diese Notiz lesen, aber der Server erlaubt keine Änderungen.</string>
     <string name="local_changes_safe_finish_editing">Deine lokalen Änderungen sind auf diesem Gerät sicher. Beende die Bearbeitung, um zu wählen, wie die Serveränderung aufgelöst werden soll.</string>

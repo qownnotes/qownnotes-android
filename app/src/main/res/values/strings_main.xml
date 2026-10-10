@@ -152,6 +152,8 @@
     <string name="note_text_size_increase">Increase note text size</string>
     <string name="action_cancel_editing">Cancel editing</string>
     <string name="action_finish_editing">Finish editing</string>
+    <string name="action_done">Done</string>
+    <string name="text_size">Text size</string>
     <string name="read_only">Read only</string>
     <string name="read_only_explanation">You can read this note, but the server does not allow changing it.</string>
     <string name="local_changes_safe_finish_editing">Your local changes are safe on this device. Finish editing to choose how to resolve the server change.</string>

@@ -154,6 +154,8 @@
     <string name="note_text_size_increase">Zwiększ rozmiar tekstu notatki</string>
     <string name="action_cancel_editing">Anuluj edycję</string>
     <string name="action_finish_editing">Zakończ edycję</string>
+    <string name="action_done">Gotowe</string>
+    <string name="text_size">Rozmiar tekstu</string>
     <string name="read_only">Tylko do odczytu</string>
     <string name="read_only_explanation">Możesz czytać tę notatkę, ale serwer nie pozwala jej zmieniać.</string>
     <string name="local_changes_safe_finish_editing">Twoje lokalne zmiany są bezpieczne na tym urządzeniu. Zakończ edycję, aby wybrać sposób rozwiązania zmiany na serwerze.</string>
