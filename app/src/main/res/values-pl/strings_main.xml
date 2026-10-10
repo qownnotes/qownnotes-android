@@ -188,6 +188,13 @@
     <string name="discard_changes_message">Ta notatka została zmodyfikowana. Odrzucenie przywróci tekst z chwili rozpoczęcia edycji.</string>
     <string name="delete_note_title">Przenieść notatkę do kosza?</string>
     <string name="delete_note_message">Notatka zniknie teraz z tego urządzenia i trafi do kosza Nextcloud, gdy synchronizacja będzie dostępna.</string>
+    <plurals name="delete_notes_title">
+        <item quantity="one">Przenieść %1$d notatkę do kosza?</item>
+        <item quantity="few">Przenieść %1$d notatki do kosza?</item>
+        <item quantity="many">Przenieść %1$d notatek do kosza?</item>
+        <item quantity="other">Przenieść %1$d notatki do kosza?</item>
+    </plurals>
+    <string name="delete_notes_message">Notatki znikną teraz z tego urządzenia i trafią do kosza Nextcloud, gdy synchronizacja będzie dostępna.</string>
     <string name="resolve_note_conflict">Rozwiąż konflikt notatki</string>
     <string name="conflict_read_only_message">Notatka stała się tylko do odczytu, gdy Twoje lokalne zmiany oczekiwały na synchronizację. Wczytaj wersję z serwera lub najpierw zachowaj wersję lokalną jako nową, edytowalną notatkę.</string>
     <string name="conflict_message">Notatka została zmieniona na serwerze po Twojej lokalnej edycji. Wczytaj wersję z serwera lub najpierw zachowaj wersję lokalną jako nową notatkę.</string>

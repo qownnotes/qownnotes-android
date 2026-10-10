@@ -187,6 +187,12 @@
     <string name="discard_changes_message">Esta nota foi modificada. Descartar a restaura ao texto que ela tinha quando a edição começou.</string>
     <string name="delete_note_title">Mover nota para a lixeira?</string>
     <string name="delete_note_message">A nota desaparecerá deste dispositivo agora e será movida para a lixeira do Nextcloud quando a sincronização estiver disponível.</string>
+    <plurals name="delete_notes_title">
+        <item quantity="one">Mover %1$d nota para a lixeira?</item>
+        <item quantity="many">Mover %1$d notas para a lixeira?</item>
+        <item quantity="other">Mover %1$d notas para a lixeira?</item>
+    </plurals>
+    <string name="delete_notes_message">As notas desaparecerão deste dispositivo agora e serão movidas para a lixeira do Nextcloud quando a sincronização estiver disponível.</string>
     <string name="resolve_note_conflict">Resolver conflito da nota</string>
     <string name="conflict_read_only_message">A nota passou a ser somente leitura enquanto suas alterações locais estavam pendentes. Carregue a versão do servidor ou, antes, preserve sua versão local como uma nova nota editável.</string>
     <string name="conflict_message">A nota foi alterada no servidor após sua edição local. Carregue a versão do servidor ou, antes, preserve sua versão local como uma nova nota.</string>

@@ -187,6 +187,12 @@
     <string name="discard_changes_message">Esta nota se ha modificado. Al descartar, se restaura el texto que tenía al empezar a editarla.</string>
     <string name="delete_note_title">¿Mover la nota a la papelera?</string>
     <string name="delete_note_message">La nota desaparecerá ahora de este dispositivo y se moverá a la papelera de Nextcloud cuando la sincronización esté disponible.</string>
+    <plurals name="delete_notes_title">
+        <item quantity="one">¿Mover %1$d nota a la papelera?</item>
+        <item quantity="many">¿Mover %1$d notas a la papelera?</item>
+        <item quantity="other">¿Mover %1$d notas a la papelera?</item>
+    </plurals>
+    <string name="delete_notes_message">Las notas desaparecerán ahora de este dispositivo y se moverán a la papelera de Nextcloud cuando la sincronización esté disponible.</string>
     <string name="resolve_note_conflict">Resolver conflicto de la nota</string>
     <string name="conflict_read_only_message">La nota ha pasado a ser de solo lectura mientras tus cambios locales estaban pendientes. Carga la versión del servidor o conserva primero tu versión local como una nota nueva editable.</string>
     <string name="conflict_message">La nota ha cambiado en el servidor después de tu edición local. Carga la versión del servidor o conserva primero tu versión local como una nota nueva.</string>

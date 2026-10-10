@@ -1145,7 +1145,7 @@ class AppLaunchTest {
     }
 
     @Test
-    fun longPressSelectsMultipleNotesAndMovesThemToTrash() {
+    fun longPressSelectsMultipleNotesAndMovesThemToTrashAfterConfirmation() {
         val account = importAccount("alice", "First note", "etag-1", 10)
         val accountId = account.localAccountId()
         val first = runBlocking { notesOf("alice").single() }
@@ -1171,6 +1171,11 @@ class AppLaunchTest {
         composeRule.onNodeWithText("2 selected").assertIsDisplayed()
         composeRule.onNodeWithTag("note-selection-menu").performClick()
         composeRule.onNodeWithTag("move-notes-to-trash").performClick()
+        composeRule.onNodeWithText("Move 2 notes to trash?").assertIsDisplayed()
+        // Nothing is removed before the move is confirmed.
+        assertTrue(application.fakeBackend.deletedRemoteIds.isEmpty())
+        composeRule.onNodeWithText("2 selected").assertIsDisplayed()
+        composeRule.onNodeWithTag("confirm-move-notes-to-trash").performClick()
 
         composeRule.waitUntil(timeoutMillis = 10_000) {
             application.fakeBackend.deletedRemoteIds.toSet() == setOf(42L, 43L)

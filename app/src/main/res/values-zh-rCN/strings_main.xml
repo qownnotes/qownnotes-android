@@ -185,6 +185,10 @@
     <string name="discard_changes_message">此笔记已被修改。放弃更改会将其恢复为开始编辑时的文本。</string>
     <string name="delete_note_title">将笔记移到回收站？</string>
     <string name="delete_note_message">该笔记将立即从此设备上消失，并在可以同步时移到 Nextcloud 回收站。</string>
+    <plurals name="delete_notes_title">
+        <item quantity="other">将 %1$d 条笔记移到回收站？</item>
+    </plurals>
+    <string name="delete_notes_message">这些笔记将立即从此设备上消失，并在可以同步时移到 Nextcloud 回收站。</string>
     <string name="resolve_note_conflict">解决笔记冲突</string>
     <string name="conflict_read_only_message">在你的本地更改等待同步期间，该笔记变为只读。请加载服务器版本，或先将本地版本保存为一条新的可写笔记。</string>
     <string name="conflict_message">在你进行本地编辑后，该笔记在服务器上被修改。请加载服务器版本，或先将本地版本保存为一条新笔记。</string>

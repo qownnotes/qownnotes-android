@@ -22,6 +22,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Moving several selected notes to trash now asks for confirmation first and shows how many
+  notes will be moved.
 - The Deck cards, Deck card editor, and new Deck card dialogs have a refreshed layout: a
   two-line board/list picker grouped by board, card tiles with due-date and archive badges,
   rounded search, consistent spacing, tinted error panels, and icon buttons for due dates and

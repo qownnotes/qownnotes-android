@@ -186,6 +186,11 @@
     <string name="discard_changes_message">This note was modified. Discarding restores it to the text it had when editing started.</string>
     <string name="delete_note_title">Move note to trash?</string>
     <string name="delete_note_message">The note will disappear from this device now and move to the Nextcloud trash bin when synchronization is available.</string>
+    <plurals name="delete_notes_title">
+        <item quantity="one">Move %1$d note to trash?</item>
+        <item quantity="other">Move %1$d notes to trash?</item>
+    </plurals>
+    <string name="delete_notes_message">The notes will disappear from this device now and move to the Nextcloud trash bin when synchronization is available.</string>
     <string name="resolve_note_conflict">Resolve note conflict</string>
     <string name="conflict_read_only_message">The note became read-only while your local changes were pending. Load the server version, or first preserve your local version as a new writable note.</string>
     <string name="conflict_message">The note changed on the server after your local edit. Load the server version, or first preserve your local version as a new note.</string>

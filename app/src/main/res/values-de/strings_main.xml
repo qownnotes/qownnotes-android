@@ -186,6 +186,11 @@
     <string name="discard_changes_message">Diese Notiz wurde geändert. Beim Verwerfen wird der Text vom Beginn der Bearbeitung wiederhergestellt.</string>
     <string name="delete_note_title">Notiz in den Papierkorb verschieben?</string>
     <string name="delete_note_message">Die Notiz verschwindet sofort von diesem Gerät und wird in den Nextcloud-Papierkorb verschoben, sobald eine Synchronisierung möglich ist.</string>
+    <plurals name="delete_notes_title">
+        <item quantity="one">%1$d Notiz in den Papierkorb verschieben?</item>
+        <item quantity="other">%1$d Notizen in den Papierkorb verschieben?</item>
+    </plurals>
+    <string name="delete_notes_message">Die Notizen verschwinden sofort von diesem Gerät und werden in den Nextcloud-Papierkorb verschoben, sobald eine Synchronisierung möglich ist.</string>
     <string name="resolve_note_conflict">Notizkonflikt lösen</string>
     <string name="conflict_read_only_message">Die Notiz wurde schreibgeschützt, während deine lokalen Änderungen ausstanden. Lade die Serverversion oder sichere zuerst deine lokale Version als neue beschreibbare Notiz.</string>
     <string name="conflict_message">Die Notiz wurde nach deiner lokalen Bearbeitung auf dem Server geändert. Lade die Serverversion oder sichere zuerst deine lokale Version als neue Notiz.</string>

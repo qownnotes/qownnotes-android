@@ -946,6 +946,9 @@ private fun NoteListScreen(
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var noteListMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
+    var trashConfirmationIds by rememberSaveable(accountId) {
+        mutableStateOf<List<String>?>(null)
+    }
     var sortMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var storedFolderScope by remember(accountId) {
         mutableStateOf(component.settings.noteFolderScope(accountId))
@@ -1393,13 +1396,15 @@ private fun NoteListScreen(
                                             text = {
                                                 Text(stringResource(R.string.action_move_to_trash))
                                             },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.DeleteOutline,
+                                                    contentDescription = null
+                                                )
+                                            },
                                             onClick = {
-                                                val ids = selectedNoteIds
                                                 selectionMenuOpen = false
-                                                selectedNoteIds = emptyList()
-                                                scope.launch {
-                                                    component.moveNotesToTrash(accountId, ids)
-                                                }
+                                                trashConfirmationIds = selectedNoteIds
                                             },
                                             modifier = Modifier.testTag("move-notes-to-trash")
                                         )
@@ -2042,6 +2047,35 @@ private fun NoteListScreen(
                 }
             },
             modifier = Modifier.testTag("diagnostics-dialog")
+        )
+    }
+    trashConfirmationIds?.let { ids ->
+        AlertDialog(
+            onDismissRequest = { trashConfirmationIds = null },
+            icon = { Icon(Icons.Filled.DeleteOutline, contentDescription = null) },
+            title = {
+                Text(pluralStringResource(R.plurals.delete_notes_title, ids.size, ids.size))
+            },
+            text = { Text(stringResource(R.string.delete_notes_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        trashConfirmationIds = null
+                        selectedNoteIds = emptyList()
+                        scope.launch { component.moveNotesToTrash(accountId, ids) }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.testTag("confirm-move-notes-to-trash")
+                ) { Text(stringResource(R.string.action_move_to_trash)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { trashConfirmationIds = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+            modifier = Modifier.testTag("move-notes-to-trash-dialog")
         )
     }
     if (showAbout) {

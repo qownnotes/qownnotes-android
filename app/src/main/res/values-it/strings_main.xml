@@ -187,6 +187,12 @@
     <string name="discard_changes_message">Questa nota è stata modificata. Scartando le modifiche, verrà ripristinato il testo presente all\'inizio della modifica.</string>
     <string name="delete_note_title">Spostare la nota nel cestino?</string>
     <string name="delete_note_message">La nota scomparirà subito da questo dispositivo e verrà spostata nel cestino di Nextcloud quando la sincronizzazione sarà disponibile.</string>
+    <plurals name="delete_notes_title">
+        <item quantity="one">Spostare %1$d nota nel cestino?</item>
+        <item quantity="many">Spostare %1$d note nel cestino?</item>
+        <item quantity="other">Spostare %1$d note nel cestino?</item>
+    </plurals>
+    <string name="delete_notes_message">Le note scompariranno subito da questo dispositivo e verranno spostate nel cestino di Nextcloud quando la sincronizzazione sarà disponibile.</string>
     <string name="resolve_note_conflict">Risolvi conflitto della nota</string>
     <string name="conflict_read_only_message">La nota è diventata di sola lettura mentre le modifiche locali erano in attesa. Carica la versione del server oppure conserva prima la versione locale come nuova nota modificabile.</string>
     <string name="conflict_message">La nota è cambiata sul server dopo la modifica locale. Carica la versione del server oppure conserva prima la versione locale come nuova nota.</string>

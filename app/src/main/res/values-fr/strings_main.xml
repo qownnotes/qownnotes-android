@@ -187,6 +187,12 @@
     <string name="discard_changes_message">Cette note a été modifiée. L\'abandon la rétablit au texte qu\'elle avait au début de la modification.</string>
     <string name="delete_note_title">Mettre la note à la corbeille\u00A0?</string>
     <string name="delete_note_message">La note disparaîtra immédiatement de cet appareil et sera déplacée dans la corbeille Nextcloud dès que la synchronisation sera possible.</string>
+    <plurals name="delete_notes_title">
+        <item quantity="one">Mettre %1$d note à la corbeille\u00A0?</item>
+        <item quantity="many">Mettre %1$d notes à la corbeille\u00A0?</item>
+        <item quantity="other">Mettre %1$d notes à la corbeille\u00A0?</item>
+    </plurals>
+    <string name="delete_notes_message">Les notes disparaîtront immédiatement de cet appareil et seront déplacées dans la corbeille Nextcloud dès que la synchronisation sera possible.</string>
     <string name="resolve_note_conflict">Résoudre le conflit de la note</string>
     <string name="conflict_read_only_message">La note est passée en lecture seule alors que vos modifications locales étaient en attente. Chargez la version du serveur, ou conservez d\'abord votre version locale dans une nouvelle note modifiable.</string>
     <string name="conflict_message">La note a été modifiée sur le serveur après votre modification locale. Chargez la version du serveur, ou conservez d\'abord votre version locale dans une nouvelle note.</string>
