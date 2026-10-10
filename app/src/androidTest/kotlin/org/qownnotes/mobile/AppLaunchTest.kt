@@ -1637,6 +1637,14 @@ class AppLaunchTest {
     @Test
     fun editorConflictOpensRecoveryWithTheLatestTypedDraft() {
         importAccount("alice", "Existing note", "etag-1", 10, "# Existing note\n\nBase content")
+        application.fakeBackend.remoteNotes[42] = RemoteNote(
+            42,
+            "etag-2",
+            "Existing note",
+            "# Existing note\n\nServer content",
+            "",
+            20
+        )
         application.fakeSyncScheduler.pause()
         val localId = runBlocking { notesOf("alice").single().localId }
         composeRule.onNodeWithText("Existing note").performClick()

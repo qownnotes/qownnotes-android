@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Note conflicts show a plain-language explanation instead of exception details. **Resolve
   conflict** is available while editing and saves the latest draft before opening the version
   comparison and recovery dialog.
+- Edits typed after a background sync reports a conflict are persisted without clearing the
+  conflict, allowing recovery to open with the newest text.
 
 ## [1.2.0] - 2026-10-08
 

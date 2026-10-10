@@ -982,6 +982,8 @@ Implemented:
   64 KiB limit still showed slow typing. Formatting, Find, undo/redo, and draft saves stay available.
 - Kept synchronization and conflict messages outside the rendered note's scrolling container so
   they remain visible while a long note is scrolled.
+- An already-active editor can persist newer text after a sync conflict without clearing its
+  conflict state or queuing an overwrite; the new revision invalidates older resolution requests.
 - Added a visible, draggable scrollbar to long rendered notes while keeping its touch target clear
   of selectable text, links, and task-list controls.
 

@@ -110,17 +110,16 @@ interface NoteDao {
            modifiedAtEpochSeconds = :modifiedAtEpochSeconds,
            localRevision = localRevision + 1,
            syncState = CASE
-             WHEN syncState IN ('REMOTE_MISSING', 'READ_ONLY_CONFLICT')
+             WHEN syncState IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
                OR (syncState = 'FAILED' AND remoteId IS NULL) THEN syncState
              WHEN remoteId IS NULL THEN 'LOCALLY_CREATED'
              ELSE 'LOCALLY_MODIFIED' END,
            lastSyncError = CASE
-             WHEN syncState IN ('REMOTE_MISSING', 'READ_ONLY_CONFLICT')
+             WHEN syncState IN ('CONFLICT', 'REMOTE_MISSING', 'READ_ONLY_CONFLICT')
                OR (syncState = 'FAILED' AND remoteId IS NULL) THEN lastSyncError
              ELSE NULL END
            WHERE localId = :localId
              AND (readOnly = 0 OR syncState = 'READ_ONLY_CONFLICT')
-             AND syncState != 'CONFLICT'
              AND content != :content"""
     )
     suspend fun updateDraft(localId: String, content: String, modifiedAtEpochSeconds: Long): Int

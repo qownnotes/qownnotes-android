@@ -1345,6 +1345,35 @@ class RoomPullStoreTest {
     }
 
     @Test
+    fun activeDraftPreservesConflictAndInvalidatesAnOlderResolution() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        val store = RoomPushStore(database)
+        accounts.save(testAccount())
+        val conflicted = localNote(42, SyncState.CONFLICT)
+        database.noteDao().upsert(conflicted)
+        val remote = RemoteNote(42, "server-etag", "Server", "Server content", "Remote", 20)
+        assertTrue(store.captureConflict(conflicted.localId, 0, remote))
+
+        assertNull(notes.beginEditing(conflicted.localId))
+        assertTrue(notes.updateDraft(conflicted.localId, "Newest editor text", 30))
+
+        val note = notes.get(conflicted.localId)!!
+        assertEquals("Newest editor text", note.content)
+        assertEquals(SyncState.CONFLICT, note.syncState)
+        assertEquals(conflicted.lastSyncError, note.lastSyncError)
+        assertEquals(conflicted.remoteEtag, note.remoteEtag)
+        assertEquals(conflicted.lastSyncedContent, note.lastSyncedContent)
+        assertEquals(1L, note.localRevision)
+        assertTrue(notes.pending("account").isEmpty())
+        assertFalse(store.resolveConflict(conflicted.localId, 0, "server-etag", 40, null, null))
+        assertEquals("Newest editor text", notes.get(conflicted.localId)!!.content)
+        val preservedRemote = store.conflict(conflicted.localId)!!.remote
+        assertEquals(remote.content, preservedRemote.content)
+        assertEquals(remote.etag, preservedRemote.etag)
+    }
+
+    @Test
     fun activeDraftCanFinishPersistingAfterServerRecoveryBecomesRequired() = runBlocking {
         val accounts = RoomAccountRepository(database.accountDao())
         val notes = RoomNoteRepository(database.noteDao())
