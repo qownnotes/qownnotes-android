@@ -3257,6 +3257,50 @@ class AppLaunchTest {
     }
 
     @Test
+    fun savingEditedNotesCleansSingleTrailingSpacesWithoutChangingLiveDrafts() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking { notesOf("alice").single() }
+        val draft = "# Edited \r\nHard break  \r\nLast "
+        val cleaned = "# Edited\r\nHard break  \r\nLast"
+
+        runBlocking {
+            application.component.beginEditing(note.localId)
+            application.component.cacheDraft(note.localId, draft)
+            assertTrue(application.component.checkpointDraft(note.localId, draft))
+            assertEquals(draft, application.component.noteRepository.get(note.localId)?.content)
+            assertTrue(application.component.saveDraft(note.localId, draft))
+            assertEquals(cleaned, application.component.noteRepository.get(note.localId)?.content)
+            assertEquals(cleaned, application.component.draft(note.localId, cleaned))
+
+            // The raw editor text remains the current snapshot, even after a cleaned save.
+            assertTrue(application.component.saveDraft(note.localId, draft))
+            application.component.cacheDraft(note.localId, "$draft newer ")
+            assertTrue(application.component.saveDraft(note.localId, draft))
+            assertEquals(cleaned, application.component.noteRepository.get(note.localId)?.content)
+            assertEquals("$draft newer ", application.component.draft(note.localId, cleaned))
+        }
+    }
+
+    @Test
+    fun savingAnUnchangedNotePreservesItsTrailingSpaces() {
+        val content = "# Existing note \nOriginal "
+        importAccount("alice", "Existing note", "etag-1", 10, content)
+        val note = runBlocking { notesOf("alice").single() }
+
+        runBlocking {
+            application.component.beginEditing(note.localId)
+            application.component.cacheDraft(note.localId, content)
+            assertTrue(application.component.saveDraft(note.localId, content))
+            assertTrue(application.component.saveDraft(note.localId, content))
+            assertEquals(content, application.component.noteRepository.get(note.localId)?.content)
+            assertEquals(
+                SyncState.SYNCHRONIZED,
+                application.component.noteRepository.get(note.localId)?.syncState
+            )
+        }
+    }
+
+    @Test
     fun editorDraftIsSavedWhenTheEditorLosesFocus() {
         importAccount("alice", "Existing note", "etag-1", 10)
         val note = runBlocking { notesOf("alice").single() }

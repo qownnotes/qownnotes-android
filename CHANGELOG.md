@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Saving edited notes removes single trailing spaces from each line and the end of the note,
+  preserving two or more trailing spaces for Markdown hard line breaks.
+
 ## [1.3.0] - 2026-10-10
 
 ### Added

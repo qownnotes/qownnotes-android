@@ -371,6 +371,8 @@ Editor requirements:
   list when Return is pressed on an empty item.
 - Remove a single trailing space before an inserted Return, preserving two or more spaces for
   Markdown hard line breaks.
+- Apply the same cleanup to edited notes when saving, without modifying the active editor text
+  or unchanged notes. Recovery checkpoints retain the exact draft, and line endings are preserved.
 - Keep editor draft persistence separate from remote synchronization.
 
 ### Undo and Redo

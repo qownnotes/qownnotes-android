@@ -56,6 +56,7 @@ import org.qownnotes.mobile.core.NoteSettingsBackend
 import org.qownnotes.mobile.core.NoteTagFileBackend
 import org.qownnotes.mobile.core.NoteTagState
 import org.qownnotes.mobile.core.NoteTags
+import org.qownnotes.mobile.core.NoteWhitespace
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.SharedText
@@ -566,7 +567,20 @@ class ApplicationComponent(
                     return@withLock true
                 }
             }
-            saveDraftLocked(localId, content).also { saved ->
+            // Closing the editor can save again after releasing an unchanged reservation.
+            // Checkpoints may already contain an edited draft, so keep the reservation check too.
+            val persistedContent = if (
+                reservation != null || noteRepository.get(localId)?.content != content
+            ) {
+                NoteWhitespace.removeSingleTrailingSpaces(content)
+            } else {
+                content
+            }
+            saveDraftLocked(
+                localId,
+                content,
+                persistedContent
+            ).also { saved ->
                 if (saved) editReservations.remove(localId)
             }
         }
@@ -581,10 +595,14 @@ class ApplicationComponent(
             }
         }
 
-    private suspend fun saveDraftLocked(localId: String, content: String): Boolean {
+    private suspend fun saveDraftLocked(
+        localId: String,
+        content: String,
+        persistedContent: String = content
+    ): Boolean {
         val note = noteRepository.get(localId) ?: return false
         if (note.readOnly && note.syncState != SyncState.READ_ONLY_CONFLICT) return false
-        if (note.content == content) {
+        if (note.content == persistedContent) {
             editorDrafts.markPersisted(localId, content)
             if (note.syncState == SyncState.LOCALLY_MODIFIED ||
                 note.syncState == SyncState.LOCALLY_CREATED
@@ -593,7 +611,11 @@ class ApplicationComponent(
             }
             return true
         }
-        val saved = noteRepository.updateDraft(localId, content, clock.instant().epochSecond)
+        val saved = noteRepository.updateDraft(
+            localId,
+            persistedContent,
+            clock.instant().epochSecond
+        )
         if (saved) {
             editorDrafts.markPersisted(localId, content)
             scheduleSync(note.accountId)
