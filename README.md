@@ -78,9 +78,10 @@ connected-network WorkManager job retries transient failures with backoff, even 
 process is restarted. A later edit or manual refresh also requests synchronization.
 
 Updates use the last known ETag. If the server copy changed in the meantime, the app keeps the
-local text and marks the note as conflicted instead of overwriting the server. Open the conflict in
-the note view and choose **Resolve conflict** to load the server version or first preserve the local
-version as a new note. If the server cannot be reached, the local conflict remains untouched.
+local text and marks the note as conflicted instead of overwriting the server. Choose **Resolve
+conflict** in the editor or note view to compare versions, merge independent changes, load the server
+version, or first preserve the local version as a new note. Opening resolution from the editor saves
+the latest draft first. If the server cannot be reached, the local conflict remains untouched.
 Authentication, permission, conflict, missing-note, storage, and malformed-response failures do not
 retry indefinitely; the app keeps the local state and reports that attention is required. Because
 the live draft cache is in memory, an abrupt process kill can lose only the characters entered since

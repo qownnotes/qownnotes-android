@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Note conflicts show a plain-language explanation instead of exception details. **Resolve
+  conflict** is available while editing and saves the latest draft before opening the version
+  comparison and recovery dialog.
+
 ## [1.2.0] - 2026-10-08
 
 ### Added

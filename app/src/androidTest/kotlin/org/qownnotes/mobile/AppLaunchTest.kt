@@ -1633,6 +1633,47 @@ class AppLaunchTest {
     }
 
     @Test
+    fun editorConflictOpensRecoveryWithTheLatestTypedDraft() {
+        importAccount("alice", "Existing note", "etag-1", 10, "# Existing note\n\nBase content")
+        application.fakeSyncScheduler.pause()
+        val localId = runBlocking { notesOf("alice").single().localId }
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), typeText(" latest edit"))
+        awaitEditorText("latest edit")
+
+        // A background sync can report a conflict while the editor still owns a live draft.
+        application.fakeBackend.updateFailure = BackendException.Conflict()
+        runBlocking {
+            application.component.saveDraft(localId, application.component.draft(localId, ""))
+            application.component.refresh(notesOf("alice").single().accountId)
+        }
+        composeRule.waitForTag("resolve-note-conflict")
+        composeRule.onNodeWithTag("markdown-editor").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-sync-error-toggle").assertDoesNotExist()
+
+        onView(withId(R.id.markdown_editor)).perform(click(), typeText(" newest text"))
+        awaitEditorText("newest text")
+        composeRule.onNodeWithTag("resolve-note-conflict").performClick()
+        composeRule.waitForTag("conflict-local-version")
+        composeRule.waitForText("newest text", substring = true)
+        composeRule.onNodeWithTag("markdown-editor").assertDoesNotExist()
+        composeRule.onNodeWithTag("keep-local-conflict-copy").performScrollTo().performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                notesOf("alice").any {
+                    it.localId != localId && it.content.contains("newest text")
+                }
+            }
+        }
+        assertEquals(
+            SyncState.SYNCHRONIZED,
+            runBlocking { application.component.noteRepository.get(localId)!!.syncState }
+        )
+    }
+
+    @Test
     fun resolvesConflictWhilePreservingLocalChangesAsANewNote() {
         importAccount(
             "alice",

@@ -3054,6 +3054,21 @@ private fun NoteDetailScreen(
             if (versionsRequestId == requestId) versionsState = result
         }
     }
+    val openConflictResolution = {
+        scope.launch {
+            // Finish persisting the live editor draft before capturing the version to review.
+            if (editing) {
+                val source = draft
+                if (source != null && !component.saveDraft(localId, source)) return@launch
+                editor?.releaseInputFocus()
+                editing = false
+            }
+            conflictResolutionError = null
+            conflictSnapshot = null
+            showConflictResolution = true
+        }
+        Unit
+    }
     val resolveConflict = { keepLocalCopy: Boolean, merge: Boolean ->
         val reviewed = conflictSnapshot
         if (reviewed != null) {
@@ -3444,13 +3459,18 @@ private fun NoteDetailScreen(
                         modifier = Modifier.padding(16.dp)
                     )
                     if (
-                        note?.syncState in
-                        setOf(
-                            SyncState.CONFLICT,
-                            SyncState.REMOTE_MISSING,
-                            SyncState.READ_ONLY_CONFLICT
-                        )
+                        note?.syncState in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
                     ) {
+                        Text(
+                            stringResource(R.string.local_changes_safe),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        TextButton(
+                            onClick = openConflictResolution,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                                .testTag("resolve-note-conflict")
+                        ) { Text(stringResource(R.string.resolve_conflict)) }
+                    } else if (note?.syncState == SyncState.REMOTE_MISSING) {
                         Text(
                             stringResource(R.string.local_changes_safe_finish_editing),
                             modifier = Modifier.padding(horizontal = 16.dp)
@@ -3771,11 +3791,7 @@ private fun NoteDetailScreen(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         TextButton(
-                            onClick = {
-                                conflictResolutionError = null
-                                conflictSnapshot = null
-                                showConflictResolution = true
-                            },
+                            onClick = openConflictResolution,
                             modifier = Modifier.padding(horizontal = 4.dp)
                                 .testTag("resolve-note-conflict")
                         ) { Text(stringResource(R.string.resolve_conflict)) }
@@ -4908,16 +4924,24 @@ private fun ExpandableSyncError(
     testTag: String,
     modifier: Modifier = Modifier
 ) {
+    val conflictMessage = when (message) {
+        "The note changed on the server" -> R.string.conflict_message
+        "The note became read-only while local changes were pending" ->
+            R.string.conflict_read_only_message
+        else -> null
+    }
+    // Conflicts have a recovery flow; exception diagnostics remain available in Settings.
+    val diagnosticDetails = technicalDetails.takeIf { conflictMessage == null }
     val explanation = syncErrorExplanation(message)?.let { stringResource(it) }
     val context = LocalContext.current
     var showDetails by rememberSaveable(message) { mutableStateOf(false) }
     Column(modifier = modifier.testTag(testTag)) {
         Text(
-            message,
+            conflictMessage?.let { stringResource(it) } ?: message,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.testTag("$testTag-summary")
         )
-        if (explanation != null || technicalDetails != null) {
+        if (explanation != null || diagnosticDetails != null) {
             TextButton(
                 onClick = { showDetails = true },
                 modifier = Modifier.testTag("$testTag-toggle")
@@ -4937,7 +4961,7 @@ private fun ExpandableSyncError(
                         .testTag("$testTag-details")
                 ) {
                     explanation?.let { Text(it) }
-                    technicalDetails?.let { diagnostic ->
+                    diagnosticDetails?.let { diagnostic ->
                         val topPadding = if (explanation == null) 0.dp else 16.dp
                         Text(
                             stringResource(R.string.sync_error_exception_text),
@@ -4961,7 +4985,7 @@ private fun ExpandableSyncError(
                 }
             },
             confirmButton = {
-                technicalDetails?.let { diagnostic ->
+                diagnosticDetails?.let { diagnostic ->
                     TextButton(
                         onClick = {
                             context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
