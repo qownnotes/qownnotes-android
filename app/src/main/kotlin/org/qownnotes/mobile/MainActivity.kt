@@ -3140,7 +3140,9 @@ private fun NoteDetailScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(
+                        TooltipIconButton(
+                            icon = Icons.AutoMirrored.Filled.ArrowBack,
+                            description = stringResource(R.string.action_back_to_notes),
                             onClick = {
                                 val source = draft
                                 if (editing && source != null) {
@@ -3151,28 +3153,20 @@ private fun NoteDetailScreen(
                                     leaveNoteScreen()
                                 }
                             },
-                            modifier = Modifier.testTag("back-to-note-list")
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.action_back_to_notes)
-                            )
-                        }
+                            testTag = "back-to-note-list"
+                        )
                     },
                     actions = {
                         val current = note
-                        IconButton(
+                        TooltipIconButton(
+                            icon = Icons.Filled.Search,
+                            description = stringResource(R.string.find_in_note),
                             onClick = {
                                 finding = !finding
                                 if (!finding) closeFind()
                             },
-                            modifier = Modifier.testTag("find-in-note")
-                        ) {
-                            Icon(
-                                Icons.Filled.Search,
-                                contentDescription = stringResource(R.string.find_in_note)
-                            )
-                        }
+                            testTag = "find-in-note"
+                        )
                         if (!editing) {
                             if (
                                 current != null &&
@@ -3213,17 +3207,12 @@ private fun NoteDetailScreen(
                                 }
                             }
                             Box {
-                                IconButton(
+                                TooltipIconButton(
+                                    icon = Icons.Filled.MoreVert,
+                                    description = stringResource(R.string.more_note_actions),
                                     onClick = { noteMenuOpen = true },
-                                    modifier = Modifier.testTag("note-menu")
-                                ) {
-                                    Icon(
-                                        Icons.Filled.MoreVert,
-                                        contentDescription = stringResource(
-                                            R.string.more_note_actions
-                                        )
-                                    )
-                                }
+                                    testTag = "note-menu"
+                                )
                                 DropdownMenu(
                                     expanded = noteMenuOpen,
                                     onDismissRequest = { noteMenuOpen = false }
@@ -5082,11 +5071,11 @@ private fun ActionIconButton(
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    IconButton(
+    TooltipIconButton(
+        icon = icon,
+        description = description,
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.testTag(testTag)
-    ) {
-        Icon(icon, contentDescription = description)
-    }
+        testTag = testTag
+    )
 }

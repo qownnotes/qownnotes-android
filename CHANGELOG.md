@@ -55,6 +55,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dividers between groups. Heading uses an "H" icon, **Insert date and time** uses a clock
   icon, **Create Nextcloud Deck card** uses an add-card icon, and **Deck cards** uses the board
   icon instead of a magnifying glass.
+- Long-pressing an icon button on the note screen, such as back, find, the note menu, or the
+  find bar's previous, next, and close buttons, shows its name.
 
 ### Fixed
 
