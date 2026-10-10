@@ -102,13 +102,13 @@ internal fun NextcloudDeckCardDialog(
                 modifier = Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState())
             ) {
                 when {
-                    loadError != null -> DeckErrorPanel(
+                    loadError != null -> DialogErrorPanel(
                         message = loadError.orEmpty(),
                         messageTag = "deck-boards-error",
                         onRetry = { loadRequest++ },
                         retryTag = "retry-deck-boards"
                     )
-                    boards == null -> DeckLoadingIndicator("deck-boards-loading")
+                    boards == null -> DialogLoadingIndicator("deck-boards-loading")
                     boards.orEmpty().targets().isEmpty() -> DeckEmptyState(
                         stringResource(R.string.deck_no_lists),
                         Modifier.testTag("deck-no-lists")
@@ -166,7 +166,7 @@ internal fun NextcloudDeckCardDialog(
                 }
                 DeckDueDateFields(dueAt, !creating, "deck-card", { dueAt = it })
                 createError?.let {
-                    DeckErrorPanel(message = it, messageTag = "deck-card-error")
+                    DialogErrorPanel(message = it, messageTag = "deck-card-error")
                 }
             }
         },

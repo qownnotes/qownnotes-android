@@ -68,7 +68,7 @@ internal fun TrashedNotesDialog(
         title = { Text(stringResource(R.string.remote_trash)) },
         text = {
             if (notes.isEmpty()) {
-                ArchiveEmptyState(Icons.Filled.DeleteOutline, stringResource(R.string.trash_empty))
+                DialogEmptyState(Icons.Filled.DeleteOutline, stringResource(R.string.trash_empty))
             } else {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -99,7 +99,7 @@ internal fun TrashedNotesDialog(
                         modifier = Modifier.fillMaxWidth().testTag("trash-search")
                     )
                     if (filteredNotes.isEmpty()) {
-                        ArchiveEmptyState(
+                        DialogEmptyState(
                             Icons.Filled.SearchOff,
                             stringResource(R.string.trash_search_empty)
                         )
@@ -130,7 +130,7 @@ internal fun TrashedNotesDialog(
                 onClick = { selected?.let(onRestore) },
                 enabled = selected != null,
                 modifier = Modifier.testTag("restore-trashed-note")
-            ) { ArchiveRestoreLabel(Icons.Filled.RestoreFromTrash) }
+            ) { IconLabel(Icons.Filled.RestoreFromTrash, stringResource(R.string.action_restore)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
@@ -151,7 +151,7 @@ internal fun NoteVersionsDialog(
         title = { Text(stringResource(R.string.note_versions)) },
         text = {
             if (versions.isEmpty()) {
-                ArchiveEmptyState(
+                DialogEmptyState(
                     Icons.Filled.History,
                     stringResource(R.string.note_versions_empty)
                 )
@@ -185,18 +185,12 @@ internal fun NoteVersionsDialog(
                 onClick = { selected?.let(onRestore) },
                 enabled = restoreEnabled && selected != null,
                 modifier = Modifier.testTag("restore-note-version")
-            ) { ArchiveRestoreLabel(Icons.Filled.Restore) }
+            ) { IconLabel(Icons.Filled.Restore, stringResource(R.string.action_restore)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         }
     )
-}
-
-@Composable
-private fun ArchiveRestoreLabel(icon: ImageVector) {
-    Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-    Text(stringResource(R.string.action_restore), modifier = Modifier.padding(start = 8.dp))
 }
 
 @Composable
@@ -274,27 +268,5 @@ private fun ArchiveEntryRow(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ArchiveEmptyState(icon: ImageVector, text: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(40.dp)
-        )
-        Text(
-            text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
     }
 }

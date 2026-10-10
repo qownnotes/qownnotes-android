@@ -39,6 +39,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **Debug diagnostics** as rows with icons.
 - The **Insert link** dialog has field icons, a refresh button inside the link text field to
   fetch the page title again, and a compact title lookup status.
+- The remaining dialogs share one visual language: header icons, field icons, centered loading
+  and empty states, tinted error and information panels, and warning-colored destructive
+  actions. This covers account note settings and removal, appearance, diagnostics, sync error
+  details, discarding edits, conflict and missing-note recovery, renaming, new notes, moving to
+  a subfolder, tags and the tag filter, note information, and Deck archive and reload
+  confirmations.
 - The **About** menu entry has an icon, and the About dialog shows the QOwnNotes logo with
   links highlighted. The **Move note to trash?** confirmation shows a trash icon and a
   warning-colored confirm button.

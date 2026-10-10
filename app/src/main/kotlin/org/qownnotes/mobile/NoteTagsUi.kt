@@ -11,8 +11,19 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.NewLabel
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -25,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -74,13 +86,18 @@ internal fun NoteTagFilterDialog(
     val tags = remember(state.tags) { NoteTags.withPaths(state.tags) }
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Filled.FilterList, contentDescription = null) },
         title = { Text(stringResource(R.string.tags_filter_title)) },
         text = {
             Column(
-                modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())
             ) {
                 if (tags.isEmpty()) {
-                    Text(stringResource(R.string.tags_filter_no_tags))
+                    DialogEmptyState(
+                        Icons.AutoMirrored.Filled.Label,
+                        stringResource(R.string.tags_filter_no_tags)
+                    )
                 }
                 tags.forEach { (tag, path) ->
                     val key = NoteTags.pathKey(path)
@@ -138,17 +155,20 @@ internal fun NoteTagsDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null) },
         title = { Text(stringResource(R.string.tags_title)) },
         text = {
             Column(
-                modifier = Modifier.heightIn(max = 480.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.heightIn(max = 560.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (state.availability == NoteTagAvailability.AVAILABLE) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        label = { Text(stringResource(R.string.tags_search)) },
+                        placeholder = { Text(stringResource(R.string.tags_search)) },
+                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                        shape = MaterialTheme.shapes.extraLarge,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("search-note-tags")
                     )
@@ -156,36 +176,39 @@ internal fun NoteTagsDialog(
                 Column(
                     modifier = Modifier.weight(1f, fill = false)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     when {
-                        state.availability == NoteTagAvailability.UNKNOWN -> Text(
+                        state.availability == NoteTagAvailability.UNKNOWN -> DialogEmptyState(
+                            Icons.Filled.Sync,
                             stringResource(R.string.tags_after_next_sync),
-                            modifier = Modifier.testTag("note-tags-unavailable")
+                            Modifier.testTag("note-tags-unavailable")
                         )
-                        state.availability != NoteTagAvailability.AVAILABLE -> Text(
+                        state.availability != NoteTagAvailability.AVAILABLE -> DialogEmptyState(
+                            Icons.Filled.Storage,
                             state.message ?: stringResource(R.string.tags_unavailable),
-                            modifier = Modifier.testTag("note-tags-unavailable")
+                            Modifier.testTag("note-tags-unavailable")
                         )
                         else -> {
                             if (!state.writable) {
-                                Text(
+                                DialogNotice(
                                     stringResource(R.string.tags_read_only),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.testTag("note-tags-read-only")
+                                    Modifier.padding(bottom = 6.dp).testTag("note-tags-read-only")
                                 )
                             }
                             state.message?.let {
-                                Text(
-                                    it,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
+                                DialogErrorPanel(message = it, messageTag = "note-tags-message")
                             }
                             if (tags.isEmpty()) {
-                                Text(stringResource(R.string.tags_none))
+                                DialogEmptyState(
+                                    Icons.AutoMirrored.Filled.Label,
+                                    stringResource(R.string.tags_none)
+                                )
                             } else if (matchingTags.isEmpty()) {
-                                Text(stringResource(R.string.tags_no_matches))
+                                DialogEmptyState(
+                                    Icons.Filled.SearchOff,
+                                    stringResource(R.string.tags_no_matches)
+                                )
                             }
                             matchingTags.forEach { (tag, path) ->
                                 TagCheckboxRow(
@@ -201,17 +224,29 @@ internal fun NoteTagsDialog(
                                     value = newTag,
                                     onValueChange = { newTag = it },
                                     label = { Text(stringResource(R.string.tags_new_tag)) },
+                                    leadingIcon = {
+                                        Icon(Icons.Filled.NewLabel, contentDescription = null)
+                                    },
+                                    trailingIcon = {
+                                        IconButton(
+                                            onClick = addNewTag,
+                                            enabled = normalizedNewTag != null,
+                                            modifier = Modifier.testTag("add-note-tag")
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Add,
+                                                contentDescription = stringResource(
+                                                    R.string.tags_add_tag
+                                                )
+                                            )
+                                        }
+                                    },
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                                     keyboardActions = KeyboardActions(onDone = { addNewTag() }),
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                                         .testTag("new-note-tag")
                                 )
-                                TextButton(
-                                    onClick = addNewTag,
-                                    enabled = normalizedNewTag != null,
-                                    modifier = Modifier.testTag("add-note-tag")
-                                ) { Text(stringResource(R.string.tags_add_tag)) }
                             }
                         }
                     }
@@ -237,16 +272,24 @@ private fun TagCheckboxRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
             .toggleable(
                 value = checked,
                 enabled = enabled,
                 role = Role.Checkbox,
                 onValueChange = onCheckedChange
             )
+            .padding(vertical = 8.dp)
             .testTag(testTag),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Checkbox(checked = checked, onCheckedChange = null, enabled = enabled)
-        Text(label, modifier = Modifier.padding(start = 8.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

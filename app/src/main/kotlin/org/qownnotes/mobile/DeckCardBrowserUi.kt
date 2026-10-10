@@ -150,13 +150,13 @@ internal fun DeckCardBrowserDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 when {
-                    boardError != null -> DeckErrorPanel(
+                    boardError != null -> DialogErrorPanel(
                         message = boardError.orEmpty(),
                         messageTag = "deck-browser-boards-error",
                         onRetry = { boardsRequest++ },
                         retryTag = "deck-browser-retry-boards"
                     )
-                    boards == null -> DeckLoadingIndicator()
+                    boards == null -> DialogLoadingIndicator()
                     stack == null -> DeckEmptyState(stringResource(R.string.deck_no_lists))
                     else -> {
                         DeckTargetPicker(
@@ -212,12 +212,12 @@ internal fun DeckCardBrowserDialog(
                             modifier = Modifier.testTag("deck-browser-show-archived")
                         )
                         when {
-                            cardError != null -> DeckErrorPanel(
+                            cardError != null -> DialogErrorPanel(
                                 message = cardError.orEmpty(),
                                 messageTag = "deck-browser-cards-error",
                                 onRetry = { cardsRequest++ }
                             )
-                            cards == null -> DeckLoadingIndicator("deck-browser-loading")
+                            cards == null -> DialogLoadingIndicator("deck-browser-loading")
                             filtered.isEmpty() -> DeckEmptyState(
                                 stringResource(R.string.deck_no_cards),
                                 Modifier.testTag("deck-browser-empty")
@@ -472,18 +472,6 @@ internal fun DeckBadge(icon: ImageVector, text: String, container: Color, conten
 }
 
 @Composable
-internal fun DeckLoadingIndicator(tag: String? = null) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
-    ) {
-        CircularProgressIndicator(
-            modifier = if (tag == null) Modifier else Modifier.testTag(tag)
-        )
-    }
-}
-
-@Composable
 internal fun DeckEmptyState(text: String, modifier: Modifier = Modifier) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -503,41 +491,5 @@ internal fun DeckEmptyState(text: String, modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center,
             modifier = modifier
         )
-    }
-}
-
-/** An error message on a tinted panel with an optional recovery action below it. */
-@Composable
-internal fun DeckErrorPanel(
-    message: String,
-    messageTag: String,
-    onRetry: (() -> Unit)? = null,
-    retryTag: String? = null,
-    retryLabel: String = stringResource(R.string.ui_retry),
-    retryEnabled: Boolean = true
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.errorContainer,
-        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp)) {
-            Text(
-                message,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(end = 8.dp, bottom = 4.dp).testTag(messageTag)
-            )
-            if (onRetry != null) {
-                TextButton(
-                    onClick = onRetry,
-                    enabled = retryEnabled,
-                    modifier = Modifier.align(Alignment.End)
-                        .then(if (retryTag == null) Modifier else Modifier.testTag(retryTag))
-                ) { Text(retryLabel) }
-            } else {
-                Box(modifier = Modifier.padding(bottom = 8.dp))
-            }
-        }
     }
 }

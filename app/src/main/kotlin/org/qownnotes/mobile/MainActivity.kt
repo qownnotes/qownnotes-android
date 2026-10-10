@@ -48,6 +48,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,9 +59,14 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.automirrored.filled.FormatIndentDecrease
 import androidx.compose.material.icons.automirrored.filled.FormatIndentIncrease
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.MergeType
+import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -71,24 +77,34 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EditOff
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
@@ -99,6 +115,7 @@ import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewKanban
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -110,6 +127,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -117,6 +135,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -182,6 +201,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -807,19 +827,25 @@ private fun AccountNoteSettingsDialog(
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
+        icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
         title = { Text(stringResource(R.string.note_settings_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(account.displayName, style = MaterialTheme.typography.labelLarge)
+                Text(
+                    account.displayName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 if (settings == null && error == null) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.testTag("account-settings-loading")
-                    )
+                    DialogLoadingIndicator("account-settings-loading")
                 } else {
                     OutlinedTextField(
                         value = notesPath,
                         onValueChange = { notesPath = it },
                         label = { Text(stringResource(R.string.note_settings_note_folder)) },
+                        leadingIcon = { Icon(Icons.Filled.Folder, contentDescription = null) },
                         singleLine = true,
                         enabled = !saving,
                         modifier = Modifier.fillMaxWidth().testTag("notes-path")
@@ -828,6 +854,12 @@ private fun AccountNoteSettingsDialog(
                         value = fileExtension,
                         onValueChange = { fileExtension = it.removePrefix(".") },
                         label = { Text(stringResource(R.string.note_settings_file_extension)) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.InsertDriveFile,
+                                contentDescription = null
+                            )
+                        },
                         prefix = { Text(".") },
                         singleLine = true,
                         enabled = !saving,
@@ -836,18 +868,10 @@ private fun AccountNoteSettingsDialog(
                         },
                         modifier = Modifier.fillMaxWidth().testTag("file-extension")
                     )
-                    Text(
-                        stringResource(R.string.note_settings_folder_warning),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    DialogNotice(stringResource(R.string.note_settings_folder_warning))
                 }
                 error?.let {
-                    Text(
-                        it,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.testTag("account-settings-error")
-                    )
+                    DialogErrorPanel(message = it, messageTag = "account-settings-error")
                 }
             }
         },
@@ -895,6 +919,7 @@ private fun AccountNoteSettingsDialog(
 private fun RemoveAccountDialog(account: Account, onDismiss: () -> Unit, onRemove: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Filled.PersonRemove, contentDescription = null) },
         title = { Text(stringResource(R.string.remove_account_title)) },
         text = {
             Text(
@@ -904,6 +929,9 @@ private fun RemoveAccountDialog(account: Account, onDismiss: () -> Unit, onRemov
         confirmButton = {
             TextButton(
                 onClick = onRemove,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
                 modifier = Modifier.testTag("confirm-remove-account")
             ) { Text(stringResource(R.string.action_remove)) }
         },
@@ -1939,6 +1967,7 @@ private fun NoteListScreen(
     if (showAppearance) {
         AlertDialog(
             onDismissRequest = { showAppearance = false },
+            icon = { Icon(Icons.Filled.Palette, contentDescription = null) },
             title = { Text(stringResource(R.string.appearance)) },
             text = {
                 AppAppearanceEditor(
@@ -1952,7 +1981,7 @@ private fun NoteListScreen(
                 TextButton(
                     onClick = { component.settings.setAppearance(AppAppearance()) },
                     modifier = Modifier.testTag("reset-appearance")
-                ) { Text(stringResource(R.string.action_reset)) }
+                ) { IconLabel(Icons.Filled.RestartAlt, stringResource(R.string.action_reset)) }
             },
             confirmButton = {
                 TextButton(
@@ -1981,30 +2010,33 @@ private fun NoteListScreen(
         }
         AlertDialog(
             onDismissRequest = { showDiagnostics = false },
+            icon = { Icon(Icons.Filled.BugReport, contentDescription = null) },
             title = { Text(stringResource(R.string.debug_diagnostics)) },
             text = {
                 Column(
-                    modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())
                         .testTag("diagnostic-report")
                 ) {
-                    Text(
-                        stringResource(R.string.diagnostics_privacy_notice),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
+                    DialogNotice(stringResource(R.string.diagnostics_privacy_notice))
                     val report = diagnosticReport
                     if (report == null) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.testTag("diagnostics-loading")
-                        )
+                        DialogLoadingIndicator("diagnostics-loading")
                     } else {
-                        SelectionContainer {
-                            Text(
-                                report,
-                                fontFamily = FontFamily.Monospace,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.testTag("diagnostic-report-text")
-                            )
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    report,
+                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(12.dp)
+                                        .testTag("diagnostic-report-text")
+                                )
+                            }
                         }
                     }
                 }
@@ -2020,7 +2052,12 @@ private fun NoteListScreen(
                     },
                     enabled = diagnosticReport != null,
                     modifier = Modifier.testTag("copy-diagnostic-report")
-                ) { Text(stringResource(R.string.diagnostics_copy_report)) }
+                ) {
+                    IconLabel(
+                        Icons.Filled.ContentCopy,
+                        stringResource(R.string.diagnostics_copy_report)
+                    )
+                }
             },
             dismissButton = {
                 Row {
@@ -3938,6 +3975,7 @@ private fun NoteDetailScreen(
     if (showDiscardConfirmation) {
         AlertDialog(
             onDismissRequest = { showDiscardConfirmation = false },
+            icon = { Icon(Icons.Filled.EditOff, contentDescription = null) },
             title = { Text(stringResource(R.string.discard_changes_title)) },
             text = {
                 Text(
@@ -3959,6 +3997,9 @@ private fun NoteDetailScreen(
                             leaveEditMode()
                         }
                     },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
                     modifier = Modifier.testTag("confirm-discard-changes")
                 ) { Text(stringResource(R.string.action_discard)) }
             },
@@ -4009,9 +4050,11 @@ private fun NoteDetailScreen(
             onDismissRequest = {
                 if (!resolvingConflict) showConflictResolution = false
             },
+            icon = { Icon(Icons.AutoMirrored.Filled.CallSplit, contentDescription = null) },
             title = { Text(stringResource(R.string.resolve_note_conflict)) },
             text = {
                 Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState())
                 ) {
                     Text(
@@ -4024,23 +4067,13 @@ private fun NoteDetailScreen(
                         )
                     )
                     conflictResolutionError?.let {
-                        Text(
-                            it,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 12.dp)
-                                .testTag("conflict-resolution-error")
-                        )
+                        DialogErrorPanel(message = it, messageTag = "conflict-resolution-error")
                     }
                     if (resolvingConflict) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(top = 16.dp)
-                                .testTag("conflict-resolution-progress")
-                        )
+                        DialogLoadingIndicator("conflict-resolution-progress")
                     }
                     conflictSnapshot?.let { conflict ->
-                        BoxWithConstraints(
-                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-                        ) {
+                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                             if (maxWidth >= 480.dp) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     ConflictVersionCard(
@@ -4072,7 +4105,7 @@ private fun NoteDetailScreen(
                         ConflictVersionCard(
                             stringResource(R.string.conflict_common_base),
                             conflict.base,
-                            Modifier.padding(top = 12.dp).testTag("conflict-base-version")
+                            Modifier.testTag("conflict-base-version")
                         )
                         if (mergeResult?.isClean == false) {
                             val fieldNames = mapOf(
@@ -4084,8 +4117,8 @@ private fun NoteDetailScreen(
                                 NoteMergeField.FAVORITE to
                                     stringResource(R.string.merge_field_favorite)
                             )
-                            Text(
-                                stringResource(
+                            DialogErrorPanel(
+                                message = stringResource(
                                     R.string.conflict_merge_unavailable,
                                     mergeResult.conflicts.joinToString(
                                         stringResource(R.string.list_separator)
@@ -4093,29 +4126,44 @@ private fun NoteDetailScreen(
                                         fieldNames.getValue(it)
                                     }
                                 ),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(top = 12.dp)
-                                    .testTag("conflict-merge-unavailable")
+                                messageTag = "conflict-merge-unavailable"
                             )
                         }
-                        TextButton(
-                            onClick = { resolveConflict(false, true) },
-                            enabled = !resolvingConflict && mergeResult?.isClean == true,
-                            modifier = Modifier.fillMaxWidth().testTag("merge-conflict-versions")
-                        ) { Text(stringResource(R.string.conflict_use_merged)) }
-                        TextButton(
-                            onClick = { resolveConflict(true, false) },
-                            enabled = !resolvingConflict,
-                            modifier = Modifier.fillMaxWidth().testTag("keep-local-conflict-copy")
-                        ) { Text(stringResource(R.string.conflict_keep_local_copy)) }
-                        TextButton(
-                            onClick = { resolveConflict(false, false) },
-                            enabled = !resolvingConflict,
-                            modifier = Modifier.fillMaxWidth().testTag(
-                                "use-server-conflict-version"
-                            )
-                        ) { Text(stringResource(R.string.conflict_use_server)) }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilledTonalButton(
+                                onClick = { resolveConflict(false, true) },
+                                enabled = !resolvingConflict && mergeResult?.isClean == true,
+                                modifier = Modifier.fillMaxWidth()
+                                    .testTag("merge-conflict-versions")
+                            ) {
+                                IconLabel(
+                                    Icons.AutoMirrored.Filled.MergeType,
+                                    stringResource(R.string.conflict_use_merged)
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { resolveConflict(true, false) },
+                                enabled = !resolvingConflict,
+                                modifier = Modifier.fillMaxWidth()
+                                    .testTag("keep-local-conflict-copy")
+                            ) {
+                                IconLabel(
+                                    Icons.Filled.ContentCopy,
+                                    stringResource(R.string.conflict_keep_local_copy)
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { resolveConflict(false, false) },
+                                enabled = !resolvingConflict,
+                                modifier = Modifier.fillMaxWidth()
+                                    .testTag("use-server-conflict-version")
+                            ) {
+                                IconLabel(
+                                    Icons.Filled.CloudDownload,
+                                    stringResource(R.string.conflict_use_server)
+                                )
+                            }
+                        }
                     }
                 }
             },
@@ -4132,25 +4180,21 @@ private fun NoteDetailScreen(
             onDismissRequest = {
                 if (!resolvingRemoteMissing) showRemoteMissingResolution = false
             },
+            icon = { Icon(Icons.Filled.CloudOff, contentDescription = null) },
             title = { Text(stringResource(R.string.resolve_missing_note)) },
             text = {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         stringResource(R.string.remote_missing_message)
                     )
                     remoteMissingResolutionError?.let {
-                        Text(
-                            it,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 12.dp)
-                                .testTag("remote-missing-resolution-error")
+                        DialogErrorPanel(
+                            message = it,
+                            messageTag = "remote-missing-resolution-error"
                         )
                     }
                     if (resolvingRemoteMissing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(top = 16.dp)
-                                .testTag("remote-missing-resolution-progress")
-                        )
+                        DialogLoadingIndicator("remote-missing-resolution-progress")
                     }
                 }
             },
@@ -4166,6 +4210,9 @@ private fun NoteDetailScreen(
                     TextButton(
                         onClick = { resolveRemoteMissing(false) },
                         enabled = !resolvingRemoteMissing,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
                         modifier = Modifier.testTag("discard-remote-missing")
                     ) { Text(stringResource(R.string.remote_missing_discard_local)) }
                     TextButton(
@@ -4378,13 +4425,14 @@ private fun NoteInformationDialog(note: Note, account: Account?, onDismiss: () -
     }
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Filled.Info, contentDescription = null) },
         title = { Text(stringResource(R.string.note_information_title)) },
         text = {
             SelectionContainer {
                 Column(
                     modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
                         .testTag("note-information-dialog"),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     NoteInformationRow(stringResource(R.string.note_info_modified), modified)
                     NoteInformationRow(
@@ -4447,13 +4495,22 @@ private fun NoteInformationDialog(note: Note, account: Account?, onDismiss: () -
 
 @Composable
 private fun NoteInformationRow(label: String, value: String) {
-    Column {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Text(
             label,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.labelMedium
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
         )
-        Text(value, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -4478,11 +4535,16 @@ private fun ConflictVersionCard(
 ) {
     Column(
         modifier = modifier.fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text(label, style = MaterialTheme.typography.titleSmall)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
         Text(
             stringResource(
                 R.string.conflict_version_summary,
@@ -4490,7 +4552,8 @@ private fun ConflictVersionCard(
                 version.category.ifBlank { stringResource(R.string.category_option_undefined) },
                 stringResource(if (version.favorite) R.string.yes else R.string.no)
             ),
-            style = MaterialTheme.typography.labelSmall
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         SelectionContainer {
             Text(
@@ -4527,9 +4590,10 @@ private fun RenameNoteDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Filled.DriveFileRenameOutline, contentDescription = null) },
         title = { Text(stringResource(R.string.rename_note_title)) },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedTextField(
                     value = fieldValue,
                     onValueChange = {
@@ -4545,21 +4609,22 @@ private fun RenameNoteDialog(
                         .onPlaced { fieldPlaced = true }
                         .testTag("note-name-field")
                 )
-                Spacer(modifier = Modifier.height(8.dp))
                 // The whole row toggles, so the label is part of the target and the option
                 // reports one checked state rather than a box beside unrelated text.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
                         .toggleable(
                             value = updateHeading,
                             onValueChange = onUpdateHeadingChange,
                             role = Role.Checkbox
                         )
+                        .padding(vertical = 8.dp)
                         .testTag("update-heading-checkbox")
                 ) {
                     Checkbox(checked = updateHeading, onCheckedChange = null)
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.rename_note_update_heading))
                 }
             }
@@ -4598,6 +4663,7 @@ private fun NewNoteNameDialog(
     val valid = NoteNames.isValid(name)
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.AutoMirrored.Filled.NoteAdd, contentDescription = null) },
         title = { Text(stringResource(R.string.action_new_note)) },
         text = {
             OutlinedTextField(
@@ -4654,15 +4720,18 @@ private fun ChangeNoteCategoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) },
         title = { Text(stringResource(R.string.change_category)) },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp)
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 CategoryDestinationRow(
                     label = stringResource(R.string.category_undefined_root),
                     selected = !creatingCategory && selectedCategory.isEmpty(),
+                    icon = Icons.Filled.Home,
                     testTag = "note-category-root",
                     onClick = {
                         creatingCategory = false
@@ -4685,6 +4754,7 @@ private fun ChangeNoteCategoryDialog(
                 CategoryDestinationRow(
                     label = stringResource(R.string.category_new),
                     selected = creatingCategory,
+                    icon = Icons.Filled.CreateNewFolder,
                     testTag = "note-category-new",
                     onClick = { creatingCategory = true }
                 )
@@ -4697,7 +4767,8 @@ private fun ChangeNoteCategoryDialog(
                     label = { Text(stringResource(R.string.category_new_path)) },
                     supportingText = { Text(stringResource(R.string.category_new_path_hint)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("new-note-category-field")
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        .testTag("new-note-category-field")
                 )
             }
         },
@@ -4721,16 +4792,51 @@ private fun CategoryDestinationRow(
     testTag: String,
     /** Nesting level, indenting folders below the root. */
     depth: Int = 0,
+    icon: ImageVector = Icons.Filled.Folder,
     onClick: () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(start = (depth * 16).dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(
+                if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+            )
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(start = (12 + depth * 16).dp, end = 12.dp, top = 10.dp, bottom = 10.dp)
             .testTag(testTag)
     ) {
-        RadioButton(selected = selected, onClick = null)
-        Text(label)
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (selected) {
+                MaterialTheme.colorScheme.onSecondaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) {
+                MaterialTheme.colorScheme.onSecondaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        if (selected) {
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 
@@ -4966,33 +5072,37 @@ private fun ExpandableSyncError(
         val exceptionClipLabel = stringResource(R.string.sync_error_clip_label)
         AlertDialog(
             onDismissRequest = { showDetails = false },
+            icon = { Icon(Icons.Filled.ErrorOutline, contentDescription = null) },
             title = { Text(stringResource(R.string.sync_error_details_title)) },
             text = {
                 Column(
-                    modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())
                         .testTag("$testTag-details")
                 ) {
                     explanation?.let { Text(it) }
                     diagnosticDetails?.let { diagnostic ->
-                        val topPadding = if (explanation == null) 0.dp else 16.dp
                         Text(
                             stringResource(R.string.sync_error_exception_text),
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(top = topPadding)
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
                         )
-                        SelectionContainer {
-                            Text(
-                                diagnostic,
-                                fontFamily = FontFamily.Monospace,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.testTag("$testTag-diagnostic")
-                            )
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    diagnostic,
+                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(12.dp)
+                                        .testTag("$testTag-diagnostic")
+                                )
+                            }
                         }
-                        Text(
-                            stringResource(R.string.sync_error_exception_privacy),
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(top = 12.dp)
-                        )
+                        DialogNotice(stringResource(R.string.sync_error_exception_privacy))
                     }
                 }
             },
@@ -5005,7 +5115,12 @@ private fun ExpandableSyncError(
                             )
                         },
                         modifier = Modifier.testTag("$testTag-copy")
-                    ) { Text(stringResource(R.string.sync_error_copy_exception)) }
+                    ) {
+                        IconLabel(
+                            Icons.Filled.ContentCopy,
+                            stringResource(R.string.sync_error_copy_exception)
+                        )
+                    }
                 }
             },
             dismissButton = {

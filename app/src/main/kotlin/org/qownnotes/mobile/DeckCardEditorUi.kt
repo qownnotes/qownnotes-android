@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -259,9 +260,9 @@ internal fun DeckCardEditorDialog(
             ) {
                 if (current == null) {
                     if (loadError == null) {
-                        DeckLoadingIndicator("deck-edit-loading")
+                        DialogLoadingIndicator("deck-edit-loading")
                     } else {
-                        DeckErrorPanel(
+                        DialogErrorPanel(
                             message = loadError.orEmpty(),
                             messageTag = "deck-edit-load-error",
                             onRetry = { loadRequest++ },
@@ -334,7 +335,7 @@ internal fun DeckCardEditorDialog(
                     }
                     DeckDueDateFields(dueAt, editable, "deck-edit", { dueAt = it })
                     saveError?.let {
-                        DeckErrorPanel(
+                        DialogErrorPanel(
                             message = it,
                             messageTag = "deck-edit-error",
                             onRetry = { reloading = true },
@@ -405,6 +406,7 @@ internal fun DeckCardEditorDialog(
     if (confirmingArchive && current != null) {
         AlertDialog(
             onDismissRequest = { if (!saving) confirmingArchive = false },
+            icon = { Icon(Icons.Filled.Archive, contentDescription = null) },
             title = { Text(stringResource(R.string.deck_archive_card)) },
             text = { Text(stringResource(R.string.deck_archive_confirm)) },
             confirmButton = {
@@ -443,15 +445,22 @@ internal fun DeckCardEditorDialog(
     if (reloading) {
         AlertDialog(
             onDismissRequest = { reloading = false },
+            icon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
             title = { Text(stringResource(R.string.deck_reload_card)) },
             text = { Text(stringResource(R.string.deck_reload_discard)) },
             confirmButton = {
-                TextButton(onClick = {
-                    reloading = false
-                    original = null
-                    saveError = null
-                    loadRequest++
-                }, modifier = Modifier.testTag("deck-edit-confirm-reload")) {
+                TextButton(
+                    onClick = {
+                        reloading = false
+                        original = null
+                        saveError = null
+                        loadRequest++
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.testTag("deck-edit-confirm-reload")
+                ) {
                     Text(stringResource(R.string.ui_ok))
                 }
             },
