@@ -53,6 +53,14 @@ internal interface DeckApi {
     fun getArchivedStacks(@Path("boardId") boardId: Long): Call<List<DeckStackDto>>
 
     @Headers("Accept: application/json")
+    @PUT("boards/{boardId}/stacks/{stackId}/cards/{cardId}/archive")
+    fun archiveCard(
+        @Path("boardId") boardId: Long,
+        @Path("stackId") stackId: Long,
+        @Path("cardId") cardId: Long
+    ): Call<DeckCardDto>
+
+    @Headers("Accept: application/json")
     @GET("boards/{boardId}/stacks/{stackId}/cards/{cardId}")
     fun getCard(
         @Path("boardId") boardId: Long,
@@ -179,11 +187,15 @@ private fun DeckCardDto.details(
     )
 }
 
-internal fun loadDeckBoardsWithApi(deckApi: DeckApi): List<DeckBoard> {
+internal fun loadDeckBoardsWithApi(
+    deckApi: DeckApi,
+    writableOnly: Boolean = true
+): List<DeckBoard> {
     val boards = deckApi.getBoards().execute().deckBody("boards", missingDeckIsUnavailable = true)
     return boards
         .filter { board ->
-            !board.archived && board.deletedAt == 0L && board.permissions?.edit != false
+            !board.archived && board.deletedAt == 0L &&
+                (!writableOnly || board.permissions?.edit != false)
         }
         .map { board ->
             val id = board.id ?: throw BackendException.Protocol("Deck board is missing its id")
@@ -209,12 +221,48 @@ internal fun loadDeckBoardsWithApi(deckApi: DeckApi): List<DeckBoard> {
                             stackId,
                             stack.title?.takeIf(String::isNotBlank) ?: "List $stackId"
                         )
-                    }
+                    },
+                editable = if (writableOnly) {
+                    board.permissions?.edit != false
+                } else {
+                    board.permissions?.edit == true
+                }
             )
         }
         .sortedWith(
             compareBy(String.CASE_INSENSITIVE_ORDER, DeckBoard::title).thenBy(DeckBoard::id)
         )
+}
+
+internal fun loadDeckCardsWithApi(
+    deckApi: DeckApi,
+    target: DeckStackTarget,
+    includeArchived: Boolean
+): List<DeckCardDetails> {
+    val board = deckApi.getBoard(target.boardId).execute().deckBody("board")
+    if (board.id != target.boardId || board.deletedAt != 0L) throw BackendException.RemoteMissing()
+    val active = deckApi.getStacks(target.boardId).execute().deckBody("lists")
+    val archived = if (includeArchived) {
+        deckApi.getArchivedStacks(target.boardId).execute().deckBody("archived lists")
+    } else {
+        emptyList()
+    }
+    val editable = !board.archived && board.permissions?.edit == true
+    return (active + archived)
+        .filter { it.id == target.stackId && it.deletedAt == 0L }
+        .flatMap { stack -> stack.cards.orEmpty() }
+        .filter { it.deletedAt == 0L && (includeArchived || !it.archived) }
+        .map { it.details(target.boardId, target.stackId, editable, null) }
+        .distinctBy(DeckCardDetails::id)
+        .sortedWith(compareBy<DeckCardDetails> { it.order }.thenBy { it.id })
+}
+
+internal fun archiveDeckCardWithApi(deckApi: DeckApi, original: DeckCardDetails) {
+    if (!original.editable || original.archived) throw BackendException.Permission()
+    val current = loadDeckCardWithApi(deckApi, DeckCardLink(original.boardId, original.id))
+    if (!current.editable) throw BackendException.Permission()
+    if (current != original) throw BackendException.Conflict()
+    deckApi.archiveCard(current.boardId, current.stackId, current.id).execute().deckBody("card")
 }
 
 internal fun createDeckCardWithApi(

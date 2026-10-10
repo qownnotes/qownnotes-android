@@ -235,6 +235,34 @@ class FakePullBackend :
     var loadDeckCardFailure: Throwable? = null
     var updateDeckCardFailure: Throwable? = null
     val updatedDeckCards = mutableListOf<DeckCardDraft>()
+    var archiveDeckCardFailure: Throwable? = null
+    val archivedDeckCards = mutableListOf<Long>()
+    val deckCardListRequests = mutableListOf<Pair<DeckStackTarget, Boolean>>()
+
+    override suspend fun deckBrowseBoards(account: Account): List<DeckBoard> = deckBoards(account)
+
+    override suspend fun deckCards(
+        account: Account,
+        target: DeckStackTarget,
+        includeArchived: Boolean
+    ): List<DeckCardDetails> {
+        deckCardListRequests += target to includeArchived
+        return existingDeckCards.values.filter {
+            it.boardId == target.boardId && it.stackId == target.stackId &&
+                (includeArchived || !it.archived)
+        }.sortedBy { it.order }
+    }
+
+    override suspend fun archiveDeckCard(account: Account, original: DeckCardDetails) {
+        archiveDeckCardFailure?.let {
+            archiveDeckCardFailure = null
+            throw it
+        }
+        if (!original.editable || original.archived) throw BackendException.Permission()
+        if (existingDeckCards[original.id] != original) throw BackendException.Conflict()
+        archivedDeckCards += original.id
+        existingDeckCards[original.id] = original.copy(archived = true)
+    }
 
     override suspend fun deckCard(account: Account, link: DeckCardLink): DeckCardDetails {
         loadDeckCardFailure?.let {
@@ -450,6 +478,9 @@ class FakePullBackend :
         loadDeckCardFailure = null
         updateDeckCardFailure = null
         updatedDeckCards.clear()
+        archiveDeckCardFailure = null
+        archivedDeckCards.clear()
+        deckCardListRequests.clear()
         nextDeckCardId = 500L
     }
 

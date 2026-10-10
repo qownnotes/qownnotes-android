@@ -926,6 +926,10 @@ private fun NoteListScreen(
     var sortOrder by rememberSaveable { mutableStateOf(NoteSortOrder.LATEST_FIRST) }
     var searchFocused by remember { mutableStateOf(false) }
     var showSettings by rememberSaveable(accountId) { mutableStateOf(false) }
+    var showDeckBrowser by rememberSaveable(accountId) { mutableStateOf(false) }
+    val deckAvailableFlow = remember(accountId) { component.nextcloudDeckAvailable(accountId) }
+    val deckAvailable by deckAvailableFlow.collectAsStateWithLifecycle(context = UiDispatcher)
+    LaunchedEffect(accountId) { component.refreshDeckAvailability(accountId) }
     var showAppearance by rememberSaveable(accountId) { mutableStateOf(false) }
     var showDiagnostics by rememberSaveable(accountId) { mutableStateOf(false) }
     var diagnosticReport by remember(accountId) { mutableStateOf<String?>(null) }
@@ -1509,6 +1513,18 @@ private fun NoteListScreen(
                                             },
                                             modifier = Modifier.testTag("bookmarks-menu")
                                         )
+                                        if (deckAvailable) {
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(stringResource(R.string.deck_cards))
+                                                },
+                                                onClick = {
+                                                    noteListMenuOpen = false
+                                                    showDeckBrowser = true
+                                                },
+                                                modifier = Modifier.testTag("browse-deck-cards")
+                                            )
+                                        }
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.trash)) },
                                             leadingIcon = {
@@ -1765,6 +1781,9 @@ private fun NoteListScreen(
                 createNamedNote(newNoteName)
             }
         )
+    }
+    if (showDeckBrowser) {
+        DeckCardBrowserDialog(component, account, onDismiss = { showDeckBrowser = false })
     }
     if (showSettings) {
         AlertDialog(
@@ -2835,6 +2854,7 @@ private fun NoteDetailScreen(
     }
     // The selected text when the dialog opened, offered as the card title. Null hides the dialog.
     var deckCardTitle by rememberSaveable(localId) { mutableStateOf<String?>(null) }
+    var showNoteDeckBrowser by rememberSaveable(localId) { mutableStateOf(false) }
     var deckLinkUrl by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     val imagePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -3305,6 +3325,16 @@ private fun NoteDetailScreen(
                                             modifier = Modifier.testTag("note-versions")
                                         )
                                     }
+                                    if (nextcloudDeckAvailable) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.deck_cards)) },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                showNoteDeckBrowser = true
+                                            },
+                                            modifier = Modifier.testTag("browse-note-deck-cards")
+                                        )
+                                    }
                                     if (
                                         current != null &&
                                         noteTagState.availability != NoteTagAvailability.UNKNOWN
@@ -3660,6 +3690,12 @@ private fun NoteDetailScreen(
                                         current?.selectionEnd ?: 0
                                     )
                                 }
+                            )
+                            ActionIconButton(
+                                icon = Icons.Filled.Search,
+                                description = stringResource(R.string.deck_cards),
+                                testTag = "browse-editor-deck-cards",
+                                onClick = { showNoteDeckBrowser = true }
                             )
                         }
                         FormatButton(
@@ -4237,6 +4273,25 @@ private fun NoteDetailScreen(
         )
     }
     val deckAccountId = account?.id
+    if (showNoteDeckBrowser && account != null) {
+        DeckCardBrowserDialog(
+            component,
+            account,
+            onDismiss = {
+                showNoteDeckBrowser = false
+                if (editing) editor?.focusForInput()
+            },
+            onInsert = if (editing) {
+                { link ->
+                    showNoteDeckBrowser = false
+                    editor?.insertText(link)
+                    editor?.focusForInput()
+                }
+            } else {
+                null
+            }
+        )
+    }
     val pendingDeckLink = deckLinkUrl
     if (pendingDeckLink != null && account != null) {
         DeckCardLinkDialog(component, account, pendingDeckLink, onDismiss = {

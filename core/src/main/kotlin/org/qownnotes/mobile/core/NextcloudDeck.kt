@@ -1,7 +1,12 @@
 package org.qownnotes.mobile.core
 
-/** A Nextcloud Deck board the user can add cards to, with its lists in display order. */
-data class DeckBoard(val id: Long, val title: String, val stacks: List<DeckStack>)
+/** A Nextcloud Deck board with its lists in display order and the account's edit permission. */
+data class DeckBoard(
+    val id: Long,
+    val title: String,
+    val stacks: List<DeckStack>,
+    val editable: Boolean = true
+)
 
 /** A Deck list, which the Deck API calls a stack. */
 data class DeckStack(val id: Long, val title: String)
@@ -55,6 +60,18 @@ interface NoteDeckBackend {
 
     /** Resolves the current list, including archived cards, from a note's board/card link. */
     suspend fun deckCard(account: Account, link: DeckCardLink): DeckCardDetails
+
+    /** Active, readable boards, including shared read-only boards. */
+    suspend fun deckBrowseBoards(account: Account): List<DeckBoard>
+
+    /** Cards of one list, optionally including archived cards from that same list. */
+    suspend fun deckCards(
+        account: Account,
+        target: DeckStackTarget,
+        includeArchived: Boolean
+    ): List<DeckCardDetails>
+
+    suspend fun archiveDeckCard(account: Account, original: DeckCardDetails)
 
     /** Checks [original] against the server before updating. Deck has no atomic If-Match writes. */
     suspend fun updateDeckCard(

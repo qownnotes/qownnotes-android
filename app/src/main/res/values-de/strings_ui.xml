@@ -95,6 +95,15 @@
     <string name="deck_card_request_failed">Die Deck-Karte konnte nicht geladen oder gespeichert werden</string>
     <string name="deck_saving">Wird gespeichert…</string>
     <string name="deck_save">Speichern</string>
+    <string name="deck_cards">Deck-Karten</string>
+    <string name="deck_search_cards">Karten suchen</string>
+    <string name="deck_show_archived">Archivierte Karten anzeigen</string>
+    <string name="deck_no_cards">Keine passenden Karten in dieser Liste.</string>
+    <string name="deck_overdue">Überfällig</string>
+    <string name="deck_insert_existing_link">Kartenlink einfügen</string>
+    <string name="deck_refresh">Aktualisieren</string>
+    <string name="deck_archive_card">Karte archivieren</string>
+    <string name="deck_archive_confirm">Diese Karte archivieren? Der Notizlink bleibt erhalten. Ungespeicherte Kartenänderungen werden nicht gespeichert.</string>
 
     <!-- Note tags -->
     <string name="tags_filter_all">Tags: Alle</string>

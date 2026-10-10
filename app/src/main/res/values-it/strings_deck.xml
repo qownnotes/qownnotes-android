@@ -16,4 +16,13 @@
     <string name="deck_card_request_failed">Impossibile caricare o salvare la scheda Deck</string>
     <string name="deck_saving">Salvataggio…</string>
     <string name="deck_save">Salva</string>
+    <string name="deck_cards">Schede Deck</string>
+    <string name="deck_search_cards">Cerca schede</string>
+    <string name="deck_show_archived">Mostra schede archiviate</string>
+    <string name="deck_no_cards">Nessuna scheda corrispondente in questo elenco.</string>
+    <string name="deck_overdue">Scaduta</string>
+    <string name="deck_insert_existing_link">Inserisci collegamento alla scheda</string>
+    <string name="deck_refresh">Aggiorna</string>
+    <string name="deck_archive_card">Archivia scheda</string>
+    <string name="deck_archive_confirm">Archiviare questa scheda? Il collegamento nella nota sarà conservato. Le modifiche non salvate della scheda non verranno salvate.</string>
 </resources>

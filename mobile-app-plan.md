@@ -1208,7 +1208,13 @@ Deck support follows the QOwnNotes desktop integration (`NextcloudDeckService` a
   `objectId` (remote card ID), and `link`. Deck syncs the card if needed and falls back to the
   link in the browser when the account is not set up in Deck. Other links, or no installed Deck
   app, open in the browser as before.
-- Open: listing, archiving, and deleting existing cards.
+- A Deck cards browser is available from the note-list menu, note-view menu, and editor toolbar
+  (#27). It selects a board/list, searches titles and descriptions, highlights overdue dates,
+  and optionally includes archived cards from the selected list. Shared read-only boards are
+  viewable. Cards open in the same editor with a fresh snapshot; editor browsing also inserts
+  existing links as an undoable edit. Archiving asks for confirmation, keeps note links, and
+  uses the REST archive endpoint with a fresh-snapshot check. Refreshes never mix list results.
+- Open: deleting existing cards, unarchiving, and board/list management.
 
 ### Phase 6: Local-Only Folder Backend
 

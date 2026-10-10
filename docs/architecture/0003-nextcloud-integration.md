@@ -27,6 +27,10 @@ owner, order, type, archive state, and start date, and explicitly clear a remove
 server snapshot is compared before updating; Deck's card update controller does not enforce
 `If-Match`, so this detects stale edits but cannot guarantee atomic protection against a
 simultaneous external write. Failed saves keep input; reloading explicitly confirms discarding it.
+The Deck browser loads readable boards and list-scoped cards, optionally merging archived cards
+from that same list. It opens the shared card editor with a fresh server snapshot. Archiving uses
+the REST archive endpoint after the same snapshot check and explicit confirmation, and never
+modifies note content. Existing card links enter the ordinary editor insertion/undo path.
 Deck data is
 not cached in Room and Deck requests never read or write notes; only the card link inserted into
 the note's Markdown enters the normal note-write path.

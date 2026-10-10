@@ -29,8 +29,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.qownnotes.mobile.core.BackendException
+import org.qownnotes.mobile.core.DeckBoard
 import org.qownnotes.mobile.core.DeckCardDetails
 import org.qownnotes.mobile.core.DeckCardDraft
+import org.qownnotes.mobile.core.DeckStack
 import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
@@ -171,6 +173,129 @@ class DeckCardUiTest {
         assertEquals(DeckStackTarget(3, 31), recreated.nextcloudDeckTarget("bob"))
     }
 
+    @Test
+    fun browserSearchesEditsAndShowsOnlyArchivesOfTheSelectedList() {
+        importLinkedNote()
+        application.fakeBackend.existingDeckCards[43] = card.copy(
+            id = 43,
+            title = "Archived report",
+            archived = true
+        )
+        application.fakeBackend.existingDeckCards[44] = card.copy(
+            id = 44,
+            title = "Other list archive",
+            stackId = 12,
+            archived = true
+        )
+        openBrowser()
+        waitForTag("deck-browser-card-42")
+        composeRule.onNodeWithTag("deck-browser-card-43").assertDoesNotExist()
+        composeRule.onNodeWithTag("deck-browser-show-archived").performClick()
+        waitForTag("deck-browser-card-43")
+        composeRule.onNodeWithTag("deck-browser-card-44").assertDoesNotExist()
+        composeRule.onNodeWithTag("deck-browser-search").performTextReplacement("REPORT")
+        waitForTag("deck-browser-card-43")
+        // Search matches descriptions as well as titles.
+        composeRule.onNodeWithTag("deck-browser-card-42").assertExists()
+        composeRule.onNodeWithTag("deck-browser-search").performTextReplacement("Archived")
+        composeRule.onNodeWithTag("deck-browser-card-42").assertDoesNotExist()
+        composeRule.onNodeWithTag("deck-browser-card-43").performClick()
+        waitForTag("deck-edit-title")
+        composeRule.onNodeWithTag("deck-edit-archive").assertDoesNotExist()
+        composeRule.onNodeWithTag("deck-edit-title").performTextReplacement("Renamed archive")
+        composeRule.onNodeWithTag("deck-edit-save").performClick()
+        waitUntilGone("deck-edit-dialog")
+        composeRule.onNodeWithTag("deck-browser-search").performTextReplacement("Renamed")
+        waitForTag("deck-browser-card-43")
+        composeRule.onNodeWithTag(
+            "deck-browser-card-43"
+        ).assertTextContains("Renamed archive", substring = true)
+        composeRule.onNodeWithTag("deck-browser-target").performClick()
+        composeRule.onNodeWithTag("deck-browser-target-2-12").performClick()
+        composeRule.onNodeWithTag("deck-browser-search").performTextReplacement("")
+        waitForTag("deck-browser-card-44")
+        composeRule.onNodeWithTag("deck-browser-card-43").assertDoesNotExist()
+    }
+
+    @Test
+    fun archivingRequiresConfirmationKeepsInputOnFailureAndRefreshesBrowser() {
+        val account = importLinkedNote()
+        openBrowser()
+        waitForTag("deck-browser-card-42")
+        composeRule.onNodeWithTag("deck-browser-card-42").performClick()
+        waitForTag("deck-edit-title")
+        composeRule.onNodeWithTag("deck-edit-title").performTextReplacement("Unsaved edit")
+        composeRule.onNodeWithTag("deck-edit-archive").performScrollTo().performClick()
+        composeRule.onNodeWithTag("deck-cancel-archive").performClick()
+        assertTrue(application.fakeBackend.archivedDeckCards.isEmpty())
+        application.fakeBackend.archiveDeckCardFailure =
+            BackendException.Retryable(Exception("offline"))
+        composeRule.onNodeWithTag("deck-edit-archive").performScrollTo().performClick()
+        composeRule.onNodeWithTag("deck-confirm-archive").performClick()
+        waitForTag("deck-edit-error")
+        composeRule.onNodeWithTag("deck-edit-title").assertTextContains("Unsaved edit")
+        composeRule.onNodeWithTag("deck-edit-archive").performScrollTo().performClick()
+        composeRule.onNodeWithTag("deck-confirm-archive").performClick()
+        waitUntilGone("deck-edit-dialog")
+        waitForTag("deck-browser-empty")
+        assertEquals(listOf(42L), application.fakeBackend.archivedDeckCards)
+        assertEquals("Call Alice", application.fakeBackend.existingDeckCards[42]!!.title)
+        composeRule.onNodeWithTag("deck-browser-show-archived").performClick()
+        waitForTag("deck-browser-card-42")
+        composeRule.onNodeWithTag("deck-browser-card-42").performClick()
+        waitForTag("deck-edit-title")
+        composeRule.onNodeWithTag("deck-edit-archive").assertDoesNotExist()
+        runBlocking {
+            val localId = application.component.noteRepository.observeNotes(
+                account.localAccountId()
+            ).first().single().localId
+            assertEquals(linkMarkdown, application.component.noteRepository.get(localId)!!.content)
+        }
+    }
+
+    @Test
+    fun browserCanInsertAnExistingCardLinkWithUndo() {
+        importLinkedNote()
+        composeRule.onNodeWithTag("edit-note").performClick()
+        waitForTag("markdown-editor")
+        composeRule.onNodeWithTag("browse-editor-deck-cards").performScrollTo().performClick()
+        waitForTag("deck-browser-insert-42")
+        composeRule.onNodeWithTag("deck-browser-insert-42").performClick()
+        waitUntilGone("deck-browser-dialog")
+        composeRule.waitUntil(10_000) {
+            composeRule.runOnIdle {
+                composeRule.activity.findViewById<TextView>(R.id.markdown_editor).text.toString() ==
+                    linkMarkdown + linkMarkdown
+            }
+        }
+        composeRule.onNodeWithTag("undo-edit").performScrollTo().performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.runOnIdle {
+                composeRule.activity.findViewById<TextView>(R.id.markdown_editor).text.toString() ==
+                    linkMarkdown
+            }
+        }
+    }
+
+    @Test
+    fun noteListBrowserRetriesBoardLoading() {
+        importLinkedNote()
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+        application.fakeBackend.deckBoardsFailure = BackendException.Retryable(Exception("offline"))
+        composeRule.onNodeWithTag("note-list-menu").performClick()
+        waitForTag("browse-deck-cards")
+        composeRule.onNodeWithTag("browse-deck-cards").performClick()
+        waitForTag("deck-browser-boards-error")
+        composeRule.onNodeWithTag("deck-browser-refresh").performClick()
+        waitForTag("deck-browser-card-42")
+    }
+
+    private fun openBrowser() {
+        composeRule.onNodeWithTag("note-menu").performClick()
+        waitForTag("browse-note-deck-cards")
+        composeRule.onNodeWithTag("browse-note-deck-cards").performClick()
+    }
+
     private fun importLinkedNote(): SingleSignOnAccount {
         val account =
             SingleSignOnAccount(
@@ -181,6 +306,9 @@ class DeckCardUiTest {
                 "nextcloud"
             )
         application.fakeBackend.existingDeckCards[42] = card
+        application.fakeBackend.deckBoards = listOf(
+            DeckBoard(2, "Work", listOf(DeckStack(11, "Inbox"), DeckStack(12, "Done")))
+        )
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(
             account,

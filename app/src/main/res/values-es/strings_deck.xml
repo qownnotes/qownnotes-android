@@ -16,4 +16,13 @@
     <string name="deck_card_request_failed">No se pudo cargar o guardar la tarjeta de Deck</string>
     <string name="deck_saving">Guardando…</string>
     <string name="deck_save">Guardar</string>
+    <string name="deck_cards">Tarjetas de Deck</string>
+    <string name="deck_search_cards">Buscar tarjetas</string>
+    <string name="deck_show_archived">Mostrar tarjetas archivadas</string>
+    <string name="deck_no_cards">No hay tarjetas coincidentes en esta lista.</string>
+    <string name="deck_overdue">Vencida</string>
+    <string name="deck_insert_existing_link">Insertar enlace de tarjeta</string>
+    <string name="deck_refresh">Actualizar</string>
+    <string name="deck_archive_card">Archivar tarjeta</string>
+    <string name="deck_archive_confirm">¿Archivar esta tarjeta? Se conservará el enlace en la nota. No se guardarán los cambios sin guardar de la tarjeta.</string>
 </resources>

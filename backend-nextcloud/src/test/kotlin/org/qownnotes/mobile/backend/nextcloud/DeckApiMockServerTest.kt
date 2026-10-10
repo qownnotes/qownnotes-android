@@ -290,6 +290,77 @@ class DeckApiMockServerTest {
         }
     }
 
+    @Test
+    fun browsingIncludesReadOnlyBoardsWithoutEnablingEdits() {
+        server.enqueue(
+            jsonResponse(
+                """[{"id":2,"title":"Shared",
+            "permissions":{"PERMISSION_EDIT":false},"stacks":[{"id":11,"title":"Inbox"}]}]"""
+            )
+        )
+        val board = loadDeckBoardsWithApi(deckApi, writableOnly = false).single()
+        assertFalse(board.editable)
+        assertEquals("Shared", board.title)
+    }
+
+    @Test
+    fun archivedCardsRemainScopedToTheChosenListAndDeletedCardsAreHidden() {
+        server.enqueue(jsonResponse("""{"id":2,"permissions":{"PERMISSION_EDIT":true}}"""))
+        server.enqueue(jsonResponse("""[{"id":11,"cards":[$fullCard]}]"""))
+        val archived = fullCard.replace("\"id\":42", "\"id\":43")
+            .replace("\"archived\":false", "\"archived\":true")
+        val deleted = fullCard.replace("\"id\":42", "\"id\":44")
+            .replace("\"title\":", "\"deletedAt\":100,\"title\":")
+        server.enqueue(
+            jsonResponse(
+                """[
+            {"id":11,"cards":[$archived,$deleted]},
+            {"id":12,"cards":[$archived]}
+        ]"""
+            )
+        )
+        val cards = loadDeckCardsWithApi(deckApi, DeckStackTarget(2, 11), true)
+        assertEquals(listOf(42L, 43L), cards.map { it.id })
+        assertTrue(cards.last().archived)
+        repeat(2) { server.takeRequest() }
+        assertEquals(
+            "/index.php/apps/deck/api/v1.1/boards/2/stacks/archived",
+            server.takeRequest().path
+        )
+    }
+
+    @Test
+    fun activeListingDoesNotFetchArchives() {
+        server.enqueue(jsonResponse("""{"id":2,"permissions":{"PERMISSION_EDIT":false}}"""))
+        server.enqueue(jsonResponse("""[{"id":11,"cards":[$fullCard]}]"""))
+        val cards = loadDeckCardsWithApi(deckApi, DeckStackTarget(2, 11), false)
+        assertFalse(cards.single().editable)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun archiveUsesRestEndpointAndChecksTheReviewedSnapshot() {
+        enqueueCardLoad()
+        val original = loadDeckCardWithApi(deckApi, DeckCardLink(2, 42))
+        repeat(3) { server.takeRequest() }
+        enqueueCardLoad()
+        server.enqueue(jsonResponse(fullCard.replace("\"archived\":false", "\"archived\":true")))
+        archiveDeckCardWithApi(deckApi, original)
+        repeat(3) { server.takeRequest() }
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals(
+            "/index.php/apps/deck/api/v1.1/boards/2/stacks/11/cards/42/archive",
+            request.path
+        )
+        assertNull(request.getHeader("OCS-APIRequest"))
+        enqueueCardLoad("new-etag")
+        assertThrows(BackendException.Conflict::class.java) {
+            archiveDeckCardWithApi(deckApi, original)
+        }
+        assertEquals(10, server.requestCount)
+    }
+
     private val fullCard = """{"id":42,"stackId":11,"title":"Call Alice","description":"Report",
         "owner":"alice","order":7,"type":"plain","archived":false,
         "duedate":"2026-09-21T14:13:20Z","startdate":"2026-09-20T10:00:00Z"}
@@ -299,6 +370,23 @@ class DeckApiMockServerTest {
         server.enqueue(jsonResponse("""{"id":2,"permissions":{"PERMISSION_EDIT":true}}"""))
         server.enqueue(jsonResponse("""[{"id":11,"cards":[{"id":42}]}]"""))
         server.enqueue(jsonResponse(fullCard).setHeader("ETag", etag))
+    }
+
+    @Test
+    fun archiveFailuresKeepTheirClassificationAndIncompleteArchivesAreNotReturned() {
+        enqueueCardLoad()
+        val original = loadDeckCardWithApi(deckApi, DeckCardLink(2, 42))
+        enqueueCardLoad()
+        server.enqueue(MockResponse().setResponseCode(403))
+        assertThrows(BackendException.Permission::class.java) {
+            archiveDeckCardWithApi(deckApi, original)
+        }
+        server.enqueue(jsonResponse("""{"id":2}"""))
+        server.enqueue(jsonResponse("""[{"id":11,"cards":[$fullCard]}]"""))
+        server.enqueue(MockResponse().setResponseCode(503))
+        assertThrows(BackendException.Retryable::class.java) {
+            loadDeckCardsWithApi(deckApi, DeckStackTarget(2, 11), true)
+        }
     }
 
     private fun jsonResponse(body: String) = MockResponse()

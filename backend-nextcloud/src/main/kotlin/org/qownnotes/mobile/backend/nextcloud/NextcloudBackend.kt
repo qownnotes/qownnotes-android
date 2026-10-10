@@ -255,7 +255,7 @@ class NextcloudBackend(context: Context) :
     override suspend fun deckBoards(account: Account): List<DeckBoard> =
         withContext(Dispatchers.IO) {
             try {
-                withDeckApi(account, ::loadDeckBoardsWithApi)
+                withDeckApi(account) { loadDeckBoardsWithApi(it) }
             } catch (error: Throwable) {
                 throw error.asBackendException()
             }
@@ -277,6 +277,36 @@ class NextcloudBackend(context: Context) :
         withContext(Dispatchers.IO) {
             try {
                 withDeckApi(account) { loadDeckCardWithApi(it, link) }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun deckBrowseBoards(account: Account): List<DeckBoard> =
+        withContext(Dispatchers.IO) {
+            try {
+                withDeckApi(account) { loadDeckBoardsWithApi(it, writableOnly = false) }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun deckCards(
+        account: Account,
+        target: DeckStackTarget,
+        includeArchived: Boolean
+    ): List<DeckCardDetails> = withContext(Dispatchers.IO) {
+        try {
+            withDeckApi(account) { loadDeckCardsWithApi(it, target, includeArchived) }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun archiveDeckCard(account: Account, original: DeckCardDetails) =
+        withContext(Dispatchers.IO) {
+            try {
+                withDeckApi(account) { archiveDeckCardWithApi(it, original) }
             } catch (error: Throwable) {
                 throw error.asBackendException()
             }

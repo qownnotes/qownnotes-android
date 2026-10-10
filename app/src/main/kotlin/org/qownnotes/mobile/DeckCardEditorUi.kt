@@ -159,6 +159,7 @@ internal fun DeckCardEditorDialog(
     var saveError by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
     var reloading by remember { mutableStateOf(false) }
+    var confirmingArchive by remember { mutableStateOf(false) }
     var title by rememberSaveable { mutableStateOf("") }
     var description by rememberSaveable { mutableStateOf("") }
     var dueAt by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -228,6 +229,15 @@ internal fun DeckCardEditorDialog(
                     DeckDueDateFields(dueAt, current.editable && !saving, "deck-edit", {
                         dueAt = it
                     })
+                    if (current.editable && !current.archived) {
+                        TextButton(
+                            onClick = { confirmingArchive = true },
+                            enabled = !saving,
+                            modifier = Modifier.testTag("deck-edit-archive")
+                        ) {
+                            Text(stringResource(R.string.deck_archive_card))
+                        }
+                    }
                     saveError?.let {
                         Text(
                             it,
@@ -296,6 +306,44 @@ internal fun DeckCardEditorDialog(
         },
         modifier = Modifier.testTag("deck-edit-dialog")
     )
+    if (confirmingArchive && current != null) {
+        AlertDialog(
+            onDismissRequest = { if (!saving) confirmingArchive = false },
+            title = { Text(stringResource(R.string.deck_archive_card)) },
+            text = { Text(stringResource(R.string.deck_archive_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    saving = true
+                    saveError = null
+                    scope.launch {
+                        try {
+                            component.archiveDeckCard(account.id, current)
+                            confirmingArchive = false
+                            onSaved()
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (error: Exception) {
+                            confirmingArchive = false
+                            saveError = deckErrorMessage(error, resources)
+                        } finally {
+                            saving = false
+                        }
+                    }
+                }, enabled = !saving, modifier = Modifier.testTag("deck-confirm-archive")) {
+                    Text(stringResource(R.string.deck_archive_card))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { confirmingArchive = false },
+                    enabled = !saving,
+                    modifier = Modifier.testTag("deck-cancel-archive")
+                ) {
+                    Text(stringResource(R.string.ui_cancel))
+                }
+            }
+        )
+    }
     if (reloading) {
         AlertDialog(
             onDismissRequest = { reloading = false },

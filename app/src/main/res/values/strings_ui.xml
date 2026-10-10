@@ -94,6 +94,15 @@
     <string name="deck_card_request_failed">Could not load or save the Deck card</string>
     <string name="deck_saving">Saving…</string>
     <string name="deck_save">Save</string>
+    <string name="deck_cards">Deck cards</string>
+    <string name="deck_search_cards">Search cards</string>
+    <string name="deck_show_archived">Show archived cards</string>
+    <string name="deck_no_cards">No matching cards in this list.</string>
+    <string name="deck_overdue">Overdue</string>
+    <string name="deck_insert_existing_link">Insert card link</string>
+    <string name="deck_refresh">Refresh</string>
+    <string name="deck_archive_card">Archive card</string>
+    <string name="deck_archive_confirm">Archive this card? The note link will be kept. Unsaved card edits will not be saved.</string>
 
     <!-- Note tags -->
     <string name="tags_filter_all">Tags: All</string>

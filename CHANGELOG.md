@@ -9,6 +9,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A Deck cards dialog browses and searches existing cards by board/list, including read-only
+  shared boards, and can insert an existing card link while editing a note. Cards can be
+  archived with confirmation, and **Show archived cards** includes archived cards from the
+  selected list ([#27](https://github.com/qownnotes/qownnotes-android/issues/27)).
 - Tapping a Deck card link offers editing in QOwnNotes or opening in Deck, with an optional
   remembered choice per account and a Settings action to reset all choices. The in-app editor
   updates the existing card's title, description, and due date without changing the note link

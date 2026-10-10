@@ -16,4 +16,13 @@
     <string name="deck_card_request_failed">Не удалось загрузить или сохранить карточку Deck</string>
     <string name="deck_saving">Сохранение…</string>
     <string name="deck_save">Сохранить</string>
+    <string name="deck_cards">Карточки Deck</string>
+    <string name="deck_search_cards">Поиск карточек</string>
+    <string name="deck_show_archived">Показать архивные карточки</string>
+    <string name="deck_no_cards">В этом списке нет подходящих карточек.</string>
+    <string name="deck_overdue">Просрочено</string>
+    <string name="deck_insert_existing_link">Вставить ссылку на карточку</string>
+    <string name="deck_refresh">Обновить</string>
+    <string name="deck_archive_card">Архивировать карточку</string>
+    <string name="deck_archive_confirm">Архивировать карточку? Ссылка в заметке останется. Несохранённые изменения карточки не будут сохранены.</string>
 </resources>

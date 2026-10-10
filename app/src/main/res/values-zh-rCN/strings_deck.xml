@@ -16,4 +16,13 @@
     <string name="deck_card_request_failed">无法加载或保存 Deck 卡片</string>
     <string name="deck_saving">正在保存…</string>
     <string name="deck_save">保存</string>
+    <string name="deck_cards">Deck 卡片</string>
+    <string name="deck_search_cards">搜索卡片</string>
+    <string name="deck_show_archived">显示已归档卡片</string>
+    <string name="deck_no_cards">此列表中没有匹配的卡片。</string>
+    <string name="deck_overdue">已逾期</string>
+    <string name="deck_insert_existing_link">插入卡片链接</string>
+    <string name="deck_refresh">刷新</string>
+    <string name="deck_archive_card">归档卡片</string>
+    <string name="deck_archive_confirm">归档此卡片？笔记中的链接将保留。卡片未保存的更改不会被保存。</string>
 </resources>

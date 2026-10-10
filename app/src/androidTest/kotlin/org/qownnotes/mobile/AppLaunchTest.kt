@@ -2158,6 +2158,10 @@ class AppLaunchTest {
 
     @Test
     fun deckActionFollowsTheDetectedServerSupport() {
+        // The note list now checks Deck too. Keep that first check offline so opening the note
+        // can retry it, and then test the note's failed check against its stored availability.
+        application.fakeBackend.deckSupportFailure =
+            BackendException.Retryable(Exception("offline"))
         val account = importAccount("alice", "Existing note", "etag-1", 10)
         val accountId = account.localAccountId()
         // Offline, the last detected support still applies.
@@ -2168,7 +2172,7 @@ class AppLaunchTest {
         composeRule.enterEditMode()
         composeRule.waitForTag("create-deck-card-link")
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            application.fakeBackend.deckSupportChecks.size == 1
+            application.fakeBackend.deckSupportChecks.size == 2
         }
         composeRule.onNodeWithTag("create-deck-card-link").assertExists()
         composeRule.onNodeWithTag("finish-editing").performClick()
@@ -2182,7 +2186,10 @@ class AppLaunchTest {
         composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithTag("create-deck-card-link").fetchSemanticsNodes().isEmpty()
         }
-        assertEquals(listOf(accountId, accountId), application.fakeBackend.deckSupportChecks)
+        assertEquals(
+            listOf(accountId, accountId, accountId),
+            application.fakeBackend.deckSupportChecks
+        )
         assertFalse(application.component.settings.nextcloudDeckAvailable(accountId).value)
         composeRule.onNodeWithTag("finish-editing").performClick()
         composeRule.onNodeWithTag("back-to-note-list").performClick()
@@ -2191,7 +2198,7 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.enterEditMode()
         composeRule.waitForTag("insert-datetime")
-        assertEquals(2, application.fakeBackend.deckSupportChecks.size)
+        assertEquals(3, application.fakeBackend.deckSupportChecks.size)
     }
 
     @Test

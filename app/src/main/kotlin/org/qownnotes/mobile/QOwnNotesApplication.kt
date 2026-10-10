@@ -913,6 +913,25 @@ class ApplicationComponent(
         return requireDeckBackend().deckCard(account, link)
     }
 
+    suspend fun deckBrowseBoards(accountId: String): List<DeckBoard> {
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        return requireDeckBackend().deckBrowseBoards(account)
+    }
+
+    suspend fun deckCards(
+        accountId: String,
+        target: DeckStackTarget,
+        includeArchived: Boolean
+    ): List<DeckCardDetails> {
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        return requireDeckBackend().deckCards(account, target, includeArchived)
+    }
+
+    suspend fun archiveDeckCard(accountId: String, original: DeckCardDetails) {
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        requireDeckBackend().archiveDeckCard(account, original)
+    }
+
     suspend fun updateDeckCard(
         accountId: String,
         original: DeckCardDetails,
