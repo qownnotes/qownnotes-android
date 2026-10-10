@@ -103,6 +103,11 @@ class NoteTagsUiTest {
             latestUploadedTags(NoteTagKey("Groceries", ""))?.containsAll(expected) == true
         }
         assertTrue(latestUploadedTags(NoteTagKey("Groceries", ""))!!.containsAll(expected))
+
+        // The tag line under the title opens the same dialog.
+        composeRule.onNodeWithTag("note-tags").performClick()
+        composeRule.waitForTag("note-tag-option-Work")
+        composeRule.onNodeWithTag("close-note-tags").performClick()
     }
 
     /** Tag names linked to [key] in the most recently uploaded `notes.sqlite`, if any. */

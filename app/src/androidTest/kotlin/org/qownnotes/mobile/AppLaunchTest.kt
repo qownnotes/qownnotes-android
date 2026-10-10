@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -2486,6 +2487,27 @@ class AppLaunchTest {
     }
 
     @Test
+    fun editButtonShrinksWhileReadingOnAndStartsEditing() {
+        val content = "# Long note\n\n" + (1..80).joinToString("\n\n") { "Line $it" }
+        importAccount("alice", "Long note", "etag-1", 10, content)
+        composeRule.onNodeWithText("Long note").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        fun editButtonWidth() =
+            composeRule.onNodeWithTag("edit-note").fetchSemanticsNode().size.width
+        composeRule.onNodeWithTag("edit-note").assertIsDisplayed()
+            .assertContentDescriptionEquals("Edit note")
+        val expandedWidth = editButtonWidth()
+        composeRule.onNodeWithTag("markdown-view").performTouchInput { swipeUp() }
+        composeRule.waitUntil(timeoutMillis = 10_000) { editButtonWidth() < expandedWidth }
+        composeRule.onNodeWithTag("edit-note").assertIsDisplayed().performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("markdown-editor").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("edit-note").assertDoesNotExist()
+    }
+
+    @Test
     fun formattingToolbarSitsDirectlyAboveTheKeyboard() {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
@@ -2719,13 +2741,13 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.waitForTag("markdown-view")
 
-        // Step down to the minimum and verify the menu prevents shrinking any further.
+        // Step down to the minimum and verify the menu prevents shrinking any further. The menu
+        // stays open between steps.
+        composeRule.openNoteMenu()
         repeat(NoteTextSize.steps.indexOf(NoteTextSize.DEFAULT_SP)) {
-            composeRule.openNoteMenu()
             composeRule.onNodeWithTag("decrease-note-text-size").performClick()
         }
 
-        composeRule.openNoteMenu()
         composeRule.onNodeWithTag("decrease-note-text-size").assertIsNotEnabled()
         // Reading stays possible at the smallest step, and enlarging is still offered.
         composeRule.onNodeWithTag("increase-note-text-size").assertIsEnabled()

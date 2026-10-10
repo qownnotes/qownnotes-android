@@ -139,6 +139,7 @@
     <string name="action_back_to_notes">Volver a las notas</string>
     <string name="find_in_note">Buscar en la nota</string>
     <string name="action_edit_note">Editar nota</string>
+    <string name="action_edit">Editar</string>
     <string name="more_note_actions">Más acciones de la nota</string>
     <string name="text_size_decrease">Reducir tamaño del texto</string>
     <string name="text_size_increase">Aumentar tamaño del texto</string>

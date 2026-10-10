@@ -85,7 +85,9 @@ import androidx.compose.material.icons.filled.EditOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -99,6 +101,7 @@ import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewKanban
@@ -128,6 +131,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -155,6 +159,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -244,7 +249,6 @@ import org.qownnotes.mobile.markdown.MarkdownEditorBinding
 import org.qownnotes.mobile.markdown.MarkdownFormatAction
 import org.qownnotes.mobile.markdown.MarkdownRenderer
 import org.qownnotes.mobile.markdown.NoteSearchColors
-import org.qownnotes.mobile.markdown.NoteTextSize
 import org.qownnotes.mobile.markdown.highlightNoteSearchMatches
 import org.qownnotes.mobile.markdown.noteSearchMatchTop
 import org.qownnotes.mobile.markdown.supportsMarkdownSourceHighlighting
@@ -3153,7 +3157,59 @@ private fun NoteDetailScreen(
             resolvingRemoteMissing = false
         }
     }
+    val canStartEditing = note.let { current ->
+        current != null &&
+            !current.readOnly &&
+            !hasEncryptedContent &&
+            current.syncState !in
+            setOf(SyncState.CONFLICT, SyncState.REMOTE_MISSING, SyncState.READ_ONLY_CONFLICT) &&
+            (current.syncState != SyncState.FAILED || current.remoteId != null)
+    }
+    val startEditing = {
+        scope.launch {
+            component.beginEditing(localId)?.let { editable ->
+                draft = editable.content
+                contentBeforeEditing = editable.content
+                selectionStart = sourceOffsetForReadingPosition(
+                    renderedView,
+                    scrollState.value,
+                    editable.content
+                )
+                selectionEnd = selectionStart
+                editing = true
+            }
+        }
+        Unit
+    }
+    // The edit button shrinks to its icon while reading on and grows again when scrolling back.
+    var editButtonExpanded by remember(localId) { mutableStateOf(true) }
+    LaunchedEffect(scrollState) {
+        var previous = scrollState.value
+        snapshotFlow { scrollState.value }.collect { value ->
+            if (value > previous) {
+                editButtonExpanded = false
+            } else if (value < previous || value == 0) {
+                editButtonExpanded = true
+            }
+            previous = value
+        }
+    }
+    val showEditButton = !editing && canStartEditing
+    val editNoteDescription = stringResource(R.string.action_edit_note)
     Scaffold(
+        floatingActionButton = {
+            if (showEditButton) {
+                ExtendedFloatingActionButton(
+                    onClick = startEditing,
+                    expanded = editButtonExpanded,
+                    icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                    text = { Text(stringResource(R.string.action_edit)) },
+                    // The label is not announced by itself and is hidden while collapsed.
+                    modifier = Modifier.semantics { contentDescription = editNoteDescription }
+                        .testTag("edit-note")
+                )
+            }
+        },
         topBar = {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                 TopAppBar(
@@ -3194,44 +3250,6 @@ private fun NoteDetailScreen(
                             testTag = "find-in-note"
                         )
                         if (!editing) {
-                            if (
-                                current != null &&
-                                !current.readOnly &&
-                                !hasEncryptedContent &&
-                                current.syncState !in
-                                setOf(
-                                    SyncState.CONFLICT,
-                                    SyncState.REMOTE_MISSING,
-                                    SyncState.READ_ONLY_CONFLICT
-                                ) &&
-                                (current.syncState != SyncState.FAILED || current.remoteId != null)
-                            ) {
-                                IconButton(
-                                    onClick = {
-                                        scope.launch {
-                                            component.beginEditing(localId)?.let { editable ->
-                                                draft = editable.content
-                                                contentBeforeEditing = editable.content
-                                                selectionStart = sourceOffsetForReadingPosition(
-                                                    renderedView,
-                                                    scrollState.value,
-                                                    editable.content
-                                                )
-                                                selectionEnd = selectionStart
-                                                editing = true
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.testTag("edit-note")
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Edit,
-                                        contentDescription = stringResource(
-                                            R.string.action_edit_note
-                                        )
-                                    )
-                                }
-                            }
                             Box {
                                 TooltipIconButton(
                                     icon = Icons.Filled.MoreVert,
@@ -3243,45 +3261,122 @@ private fun NoteDetailScreen(
                                     expanded = noteMenuOpen,
                                     onDismissRequest = { noteMenuOpen = false }
                                 ) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.text_size_decrease))
-                                        },
-                                        onClick = {
-                                            noteMenuOpen = false
-                                            component.settings.decreaseNoteTextSize()
-                                        },
-                                        enabled = NoteTextSize.canDecrease(noteTextSizeSp),
-                                        modifier = Modifier.testTag("decrease-note-text-size")
+                                    val writable = current != null &&
+                                        !current.readOnly &&
+                                        current.syncState !in
+                                        setOf(
+                                            SyncState.CONFLICT,
+                                            SyncState.REMOTE_MISSING,
+                                            SyncState.READ_ONLY_CONFLICT
+                                        )
+                                    val canTag = current != null &&
+                                        noteTagState.availability != NoteTagAvailability.UNKNOWN
+                                    val canMove = writable && useSubfolders
+                                    val canRetry = current != null &&
+                                        !current.readOnly &&
+                                        !hasEncryptedContent &&
+                                        current.syncState == SyncState.FAILED
+                                    TextSizeMenuRow(
+                                        sizeSp = noteTextSizeSp,
+                                        onDecrease = component.settings::decreaseNoteTextSize,
+                                        onIncrease = component.settings::increaseNoteTextSize
                                     )
                                     DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.text_size_increase))
+                                        text = { Text(stringResource(R.string.load_images)) },
+                                        leadingIcon = {
+                                            Icon(Icons.Filled.Image, contentDescription = null)
                                         },
-                                        onClick = {
-                                            noteMenuOpen = false
-                                            component.settings.increaseNoteTextSize()
-                                        },
-                                        enabled = NoteTextSize.canIncrease(noteTextSizeSp),
-                                        modifier = Modifier.testTag("increase-note-text-size")
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Checkbox(
-                                                    checked = loadImages,
-                                                    onCheckedChange = { loadImages = it }
-                                                )
-                                                Text(stringResource(R.string.load_images))
-                                            }
+                                        trailingIcon = {
+                                            Switch(
+                                                checked = loadImages,
+                                                onCheckedChange = null,
+                                                modifier = Modifier.scale(0.8f)
+                                            )
                                         },
                                         onClick = { loadImages = !loadImages },
                                         modifier = Modifier.testTag("toggle-load-images")
                                     )
+                                    if (canTag || canMove || writable) HorizontalDivider()
+                                    if (canTag) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.note_menu_tags))
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.Tag, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                editingTags = true
+                                            },
+                                            modifier = Modifier.testTag("edit-note-tags")
+                                        )
+                                    }
+                                    if (canMove) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.change_category))
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.DriveFileMove,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                changingCategory = true
+                                            },
+                                            modifier = Modifier.testTag("change-note-category")
+                                        )
+                                    }
+                                    if (writable && current != null) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.action_rename)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.DriveFileRenameOutline,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                noteName = current.title
+                                                updateHeading = true
+                                                renaming = true
+                                            },
+                                            modifier = Modifier.testTag("rename-note")
+                                        )
+                                    }
+                                    HorizontalDivider()
+                                    if (current != null) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.note_menu_information))
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Outlined.Info,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                showingInformation = true
+                                            },
+                                            modifier = Modifier.testTag("note-information")
+                                        )
+                                    }
                                     if (current?.remoteId != null) {
                                         DropdownMenuItem(
                                             text = {
                                                 Text(stringResource(R.string.note_menu_versions))
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.History,
+                                                    contentDescription = null
+                                                )
                                             },
                                             onClick = {
                                                 noteMenuOpen = false
@@ -3306,101 +3401,40 @@ private fun NoteDetailScreen(
                                             modifier = Modifier.testTag("browse-note-deck-cards")
                                         )
                                     }
-                                    if (
-                                        current != null &&
-                                        noteTagState.availability != NoteTagAvailability.UNKNOWN
-                                    ) {
+                                    if (canRetry) {
                                         DropdownMenuItem(
-                                            text = {
-                                                Text(stringResource(R.string.note_menu_tags))
+                                            text = { Text(stringResource(R.string.retry_sync)) },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.Sync, contentDescription = null)
                                             },
                                             onClick = {
                                                 noteMenuOpen = false
-                                                editingTags = true
+                                                scope.launch { component.retryNote(localId) }
                                             },
-                                            modifier = Modifier.testTag("edit-note-tags")
+                                            modifier = Modifier.testTag("retry-note")
                                         )
                                     }
                                     if (current != null) {
+                                        HorizontalDivider()
                                         DropdownMenuItem(
                                             text = {
-                                                Text(stringResource(R.string.note_menu_information))
+                                                Text(
+                                                    stringResource(R.string.action_move_to_trash),
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
                                             },
-                                            onClick = {
-                                                noteMenuOpen = false
-                                                showingInformation = true
-                                            },
-                                            modifier = Modifier.testTag("note-information")
-                                        )
-                                    }
-                                    if (
-                                        current != null &&
-                                        useSubfolders &&
-                                        !current.readOnly &&
-                                        current.syncState !in
-                                        setOf(
-                                            SyncState.CONFLICT,
-                                            SyncState.REMOTE_MISSING,
-                                            SyncState.READ_ONLY_CONFLICT
-                                        )
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(stringResource(R.string.change_category))
-                                            },
-                                            onClick = {
-                                                noteMenuOpen = false
-                                                changingCategory = true
-                                            },
-                                            modifier = Modifier.testTag("change-note-category")
-                                        )
-                                    }
-                                    if (
-                                        current != null &&
-                                        !current.readOnly &&
-                                        current.syncState !in
-                                        setOf(
-                                            SyncState.CONFLICT,
-                                            SyncState.REMOTE_MISSING,
-                                            SyncState.READ_ONLY_CONFLICT
-                                        )
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.action_rename)) },
-                                            onClick = {
-                                                noteMenuOpen = false
-                                                noteName = current.title
-                                                updateHeading = true
-                                                renaming = true
-                                            },
-                                            modifier = Modifier.testTag("rename-note")
-                                        )
-                                    }
-                                    if (current != null) {
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(stringResource(R.string.action_move_to_trash))
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.DeleteOutline,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
                                             },
                                             onClick = {
                                                 noteMenuOpen = false
                                                 showDeleteConfirmation = true
                                             },
                                             modifier = Modifier.testTag("delete-note")
-                                        )
-                                    }
-                                    if (
-                                        current != null &&
-                                        !current.readOnly &&
-                                        !hasEncryptedContent &&
-                                        current.syncState == SyncState.FAILED
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.retry_sync)) },
-                                            onClick = {
-                                                noteMenuOpen = false
-                                                scope.launch { component.retryNote(localId) }
-                                            },
-                                            modifier = Modifier.testTag("retry-note")
                                         )
                                     }
                                 }
@@ -3763,8 +3797,32 @@ private fun NoteDetailScreen(
                     )
                 }
                 if (noteTags.isNotEmpty()) {
-                    Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                        NoteTagLine(tags = noteTags, testTag = "note-tags")
+                    val canEditTags = noteTagState.availability != NoteTagAvailability.UNKNOWN
+                    val editTagsLabel = stringResource(R.string.note_menu_tags)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable(
+                                enabled = canEditTags,
+                                onClickLabel = editTagsLabel,
+                                onClick = { editingTags = true }
+                            )
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                            .testTag("note-tags")
+                    ) {
+                        Box(modifier = Modifier.weight(1f, fill = false)) {
+                            NoteTagLine(tags = noteTags, testTag = "note-tags-text")
+                        }
+                        if (canEditTags) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     }
                 }
                 note?.lastSyncError?.let { message ->
@@ -3960,7 +4018,10 @@ private fun NoteDetailScreen(
                             if (found != matches) matches = found
                         },
                         modifier = Modifier.fillMaxWidth().padding(end = 48.dp)
-                            .verticalScroll(scrollState).padding(20.dp).testTag("markdown-view")
+                            .verticalScroll(scrollState).padding(20.dp)
+                            // The end of the note can scroll out from under the edit button.
+                            .padding(bottom = if (showEditButton) 72.dp else 0.dp)
+                            .testTag("markdown-view")
                     )
                     NoteFastScroller(
                         scrollState = scrollState,

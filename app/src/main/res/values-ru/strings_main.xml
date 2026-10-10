@@ -140,6 +140,7 @@
     <string name="action_back_to_notes">Назад к заметкам</string>
     <string name="find_in_note">Найти в заметке</string>
     <string name="action_edit_note">Редактировать заметку</string>
+    <string name="action_edit">Изменить</string>
     <string name="more_note_actions">Другие действия с заметкой</string>
     <string name="text_size_decrease">Уменьшить размер текста</string>
     <string name="text_size_increase">Увеличить размер текста</string>

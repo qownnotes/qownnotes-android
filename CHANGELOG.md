@@ -66,6 +66,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   stepped without closing the menu. The note title uses one line while editing.
 - The formatting toolbar sits at the bottom of the editor, right above the keyboard, with the
   toolbar hint just above it.
+- An **Edit** button at the bottom right of the note view replaces the pencil in the top bar.
+  It shrinks to its icon while scrolling down and grows again when scrolling up.
+- The note menu has icons and groups: text size (stepped without closing the menu) and a
+  **Load images** switch, then tags, moving, and renaming, then information, versions, Deck
+  cards, and retrying, with **Move to trash** last in red.
+- Tapping a note's tag line opens the tag editor.
 
 ### Fixed
 

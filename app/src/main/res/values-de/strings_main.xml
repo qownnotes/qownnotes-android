@@ -138,6 +138,7 @@
     <string name="action_back_to_notes">Zurück zu den Notizen</string>
     <string name="find_in_note">In Notiz suchen</string>
     <string name="action_edit_note">Notiz bearbeiten</string>
+    <string name="action_edit">Bearbeiten</string>
     <string name="more_note_actions">Weitere Notizaktionen</string>
     <string name="text_size_decrease">Schrift verkleinern</string>
     <string name="text_size_increase">Schrift vergrößern</string>
