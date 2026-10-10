@@ -3,20 +3,39 @@ package org.qownnotes.mobile
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddLink
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ViewKanban
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,11 +46,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
@@ -110,134 +134,182 @@ internal fun DeckCardBrowserDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.deck_cards)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                when {
-                    boardError != null -> Text(
-                        boardError.orEmpty(),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.testTag("deck-browser-boards-error")
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.deck_cards), modifier = Modifier.weight(1f))
+                IconButton(
+                    onClick = { boardsRequest++ },
+                    modifier = Modifier.testTag("deck-browser-refresh")
+                ) {
+                    Icon(
+                        Icons.Filled.Refresh,
+                        contentDescription = stringResource(R.string.deck_refresh)
                     )
-                    boards == null -> CircularProgressIndicator()
-                    stack == null -> Text(stringResource(R.string.deck_no_lists))
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                when {
+                    boardError != null -> DeckErrorPanel(
+                        message = boardError.orEmpty(),
+                        messageTag = "deck-browser-boards-error",
+                        onRetry = { boardsRequest++ },
+                        retryTag = "deck-browser-retry-boards"
+                    )
+                    boards == null -> DeckLoadingIndicator()
+                    stack == null -> DeckEmptyState(stringResource(R.string.deck_no_lists))
                     else -> {
                         Box {
-                            OutlinedButton(
+                            OutlinedCard(
                                 onClick = { choosingTarget = true },
                                 modifier = Modifier.fillMaxWidth().testTag("deck-browser-target")
                             ) {
-                                Text("${board.title} / ${stack.title}")
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.padding(
+                                        start = 16.dp,
+                                        end = 8.dp,
+                                        top = 10.dp,
+                                        bottom = 10.dp
+                                    )
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            board.title,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            stack.title,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+                                }
                             }
                             DropdownMenu(
                                 expanded = choosingTarget,
                                 onDismissRequest = { choosingTarget = false }
                             ) {
-                                boards.orEmpty().forEach { optionBoard ->
-                                    optionBoard.stacks.forEach { optionStack ->
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text("${optionBoard.title} / ${optionStack.title}")
-                                            },
-                                            onClick = {
-                                                boardId = optionBoard.id
-                                                stackId = optionStack.id
-                                                component.settings.setNextcloudDeckTarget(
-                                                    account.id,
-                                                    DeckStackTarget(optionBoard.id, optionStack.id)
-                                                )
-                                                choosingTarget = false
-                                            },
-                                            modifier = Modifier.testTag(
-                                                "deck-browser-target-${optionBoard.id}-${optionStack.id}"
+                                boards.orEmpty().filter { it.stacks.isNotEmpty() }
+                                    .forEachIndexed { index, optionBoard ->
+                                        if (index > 0) HorizontalDivider()
+                                        Text(
+                                            optionBoard.title,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(
+                                                start = 16.dp,
+                                                end = 16.dp,
+                                                top = 12.dp,
+                                                bottom = 4.dp
                                             )
                                         )
+                                        optionBoard.stacks.forEach { optionStack ->
+                                            val chosen = optionBoard.id == boardId &&
+                                                optionStack.id == stackId
+                                            DropdownMenuItem(
+                                                text = { Text(optionStack.title) },
+                                                trailingIcon = if (chosen) {
+                                                    {
+                                                        Icon(
+                                                            Icons.Filled.Check,
+                                                            contentDescription = null
+                                                        )
+                                                    }
+                                                } else {
+                                                    null
+                                                },
+                                                onClick = {
+                                                    boardId = optionBoard.id
+                                                    stackId = optionStack.id
+                                                    component.settings.setNextcloudDeckTarget(
+                                                        account.id,
+                                                        DeckStackTarget(
+                                                            optionBoard.id,
+                                                            optionStack.id
+                                                        )
+                                                    )
+                                                    choosingTarget = false
+                                                },
+                                                modifier = Modifier.testTag(
+                                                    "deck-browser-target-${optionBoard.id}-" +
+                                                        "${optionStack.id}"
+                                                )
+                                            )
+                                        }
                                     }
-                                }
                             }
                         }
                         OutlinedTextField(
                             value = query,
                             onValueChange = { query = it },
                             singleLine = true,
-                            label = { Text(stringResource(R.string.deck_search_cards)) },
+                            placeholder = { Text(stringResource(R.string.deck_search_cards)) },
+                            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                            trailingIcon = if (query.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { query = "" }) {
+                                        Icon(
+                                            Icons.Filled.Clear,
+                                            contentDescription = stringResource(
+                                                R.string.ui_clear_search
+                                            )
+                                        )
+                                    }
+                                }
+                            } else {
+                                null
+                            },
+                            shape = MaterialTheme.shapes.extraLarge,
                             modifier = Modifier.fillMaxWidth().testTag("deck-browser-search")
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth().toggleable(
-                                value = includeArchived,
-                                role = Role.Checkbox,
-                                onValueChange = { includeArchived = it }
-                            ).testTag("deck-browser-show-archived")
-                        ) {
-                            Checkbox(checked = includeArchived, onCheckedChange = null)
-                            Text(stringResource(R.string.deck_show_archived))
-                        }
-                        when {
-                            cardError != null -> {
-                                Text(
-                                    cardError.orEmpty(),
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.testTag("deck-browser-cards-error")
+                        FilterChip(
+                            selected = includeArchived,
+                            onClick = { includeArchived = !includeArchived },
+                            label = { Text(stringResource(R.string.deck_show_archived)) },
+                            leadingIcon = {
+                                Icon(
+                                    if (includeArchived) {
+                                        Icons.Filled.Check
+                                    } else {
+                                        Icons.Filled.Archive
+                                    },
+                                    contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize)
                                 )
-                                TextButton(onClick = { cardsRequest++ }) {
-                                    Text(stringResource(R.string.ui_retry))
-                                }
-                            }
-                            cards == null -> CircularProgressIndicator(
-                                modifier = Modifier.testTag("deck-browser-loading")
+                            },
+                            modifier = Modifier.testTag("deck-browser-show-archived")
+                        )
+                        when {
+                            cardError != null -> DeckErrorPanel(
+                                message = cardError.orEmpty(),
+                                messageTag = "deck-browser-cards-error",
+                                onRetry = { cardsRequest++ }
                             )
-                            filtered.isEmpty() -> Text(
+                            cards == null -> DeckLoadingIndicator("deck-browser-loading")
+                            filtered.isEmpty() -> DeckEmptyState(
                                 stringResource(R.string.deck_no_cards),
-                                modifier = Modifier.testTag("deck-browser-empty")
+                                Modifier.testTag("deck-browser-empty")
                             )
                             else -> LazyColumn(
-                                modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(vertical = 2.dp),
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp)
                             ) {
                                 items(filtered, key = DeckCardDetails::id) { card ->
-                                    TextButton(
-                                        onClick = { editingCardId = card.id },
-                                        modifier = Modifier.fillMaxWidth().testTag(
-                                            "deck-browser-card-${card.id}"
-                                        )
-                                    ) {
-                                        Column(modifier = Modifier.fillMaxWidth()) {
-                                            Text(card.title)
-                                            if (card.archived) {
-                                                Text(
-                                                    stringResource(R.string.deck_archived)
-                                                )
-                                            }
-                                            card.dueAtEpochSeconds?.let { dueAt ->
-                                                val overdue = dueAt < Instant.now().epochSecond
-                                                Text(
-                                                    Instant.ofEpochSecond(
-                                                        dueAt
-                                                    ).atZone(ZoneId.systemDefault())
-                                                        .format(
-                                                            DateTimeFormatter.ofLocalizedDateTime(
-                                                                FormatStyle.SHORT
-                                                            )
-                                                        ),
-                                                    color = if (overdue) {
-                                                        MaterialTheme.colorScheme.error
-                                                    } else {
-                                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                                    }
-                                                )
-                                                if (overdue) {
-                                                    Text(
-                                                        stringResource(R.string.deck_overdue),
-                                                        color = MaterialTheme.colorScheme.error
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                    if (onInsert != null) {
-                                        TextButton(
-                                            onClick = {
-                                                onInsert(
+                                    DeckCardListItem(
+                                        card = card,
+                                        onOpen = { editingCardId = card.id },
+                                        onInsert = onInsert?.let { insert ->
+                                            {
+                                                insert(
                                                     NextcloudDeck.cardMarkdownLink(
                                                         account.serverUrl,
                                                         DeckCard(
@@ -248,24 +320,13 @@ internal fun DeckCardBrowserDialog(
                                                         )
                                                     )
                                                 )
-                                            },
-                                            modifier = Modifier.testTag(
-                                                "deck-browser-insert-${card.id}"
-                                            )
-                                        ) {
-                                            Text(stringResource(R.string.deck_insert_existing_link))
+                                            }
                                         }
-                                    }
+                                    )
                                 }
                             }
                         }
                     }
-                }
-                TextButton(
-                    onClick = { boardsRequest++ },
-                    modifier = Modifier.testTag("deck-browser-refresh")
-                ) {
-                    Text(stringResource(R.string.deck_refresh))
                 }
             }
         },
@@ -288,5 +349,191 @@ internal fun DeckCardBrowserDialog(
                 cardsRequest++
             }
         )
+    }
+}
+
+@Composable
+private fun DeckCardListItem(card: DeckCardDetails, onOpen: () -> Unit, onInsert: (() -> Unit)?) {
+    Card(
+        onClick = onOpen,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        ),
+        modifier = Modifier.fillMaxWidth().testTag("deck-browser-card-${card.id}")
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(
+                start = 16.dp,
+                end = if (onInsert == null) 16.dp else 4.dp,
+                top = 12.dp,
+                bottom = 12.dp
+            )
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    card.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = if (card.archived) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val preview = card.description.lineSequence().map(String::trim)
+                    .filter(String::isNotEmpty).joinToString(" ")
+                if (preview.isNotEmpty()) {
+                    Text(
+                        preview,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (card.dueAtEpochSeconds != null || card.archived) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
+                        card.dueAtEpochSeconds?.let { dueAt ->
+                            val overdue = !card.archived && dueAt < Instant.now().epochSecond
+                            val date = Instant.ofEpochSecond(dueAt)
+                                .atZone(ZoneId.systemDefault())
+                                .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT))
+                            DeckBadge(
+                                icon = Icons.Filled.Schedule,
+                                text = if (overdue) {
+                                    "${stringResource(R.string.deck_overdue)} · $date"
+                                } else {
+                                    date
+                                },
+                                container = if (overdue) {
+                                    MaterialTheme.colorScheme.errorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                },
+                                content = if (overdue) {
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                }
+                            )
+                        }
+                        if (card.archived) {
+                            DeckBadge(
+                                icon = Icons.Filled.Archive,
+                                text = stringResource(R.string.deck_archived),
+                                container = MaterialTheme.colorScheme.surfaceVariant,
+                                content = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            if (onInsert != null) {
+                IconButton(
+                    onClick = onInsert,
+                    modifier = Modifier.testTag("deck-browser-insert-${card.id}")
+                ) {
+                    Icon(
+                        Icons.Filled.AddLink,
+                        contentDescription = stringResource(R.string.deck_insert_existing_link),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun DeckBadge(icon: ImageVector, text: String, container: Color, content: Color) {
+    Surface(color = container, contentColor = content, shape = MaterialTheme.shapes.small) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp))
+            Text(text, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+@Composable
+internal fun DeckLoadingIndicator(tag: String? = null) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+    ) {
+        CircularProgressIndicator(
+            modifier = if (tag == null) Modifier else Modifier.testTag(tag)
+        )
+    }
+}
+
+@Composable
+private fun DeckEmptyState(text: String, modifier: Modifier = Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+    ) {
+        Icon(
+            Icons.Filled.ViewKanban,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(32.dp)
+        )
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = modifier
+        )
+    }
+}
+
+/** An error message on a tinted panel with an optional recovery action below it. */
+@Composable
+internal fun DeckErrorPanel(
+    message: String,
+    messageTag: String,
+    onRetry: (() -> Unit)? = null,
+    retryTag: String? = null,
+    retryLabel: String = stringResource(R.string.ui_retry),
+    retryEnabled: Boolean = true
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp)) {
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(end = 8.dp, bottom = 4.dp).testTag(messageTag)
+            )
+            if (onRetry != null) {
+                TextButton(
+                    onClick = onRetry,
+                    enabled = retryEnabled,
+                    modifier = Modifier.align(Alignment.End)
+                        .then(if (retryTag == null) Modifier else Modifier.testTag(retryTag))
+                ) { Text(retryLabel) }
+            } else {
+                Box(modifier = Modifier.padding(bottom = 8.dp))
+            }
+        }
     }
 }
