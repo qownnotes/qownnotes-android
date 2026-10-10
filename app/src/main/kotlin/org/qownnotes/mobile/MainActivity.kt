@@ -82,6 +82,7 @@ import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
@@ -166,6 +167,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -1592,6 +1594,12 @@ private fun NoteListScreen(
                                         )
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.about)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.Info,
+                                                    contentDescription = null
+                                                )
+                                            },
                                             onClick = {
                                                 noteListMenuOpen = false
                                                 showAbout = true
@@ -2036,11 +2044,19 @@ private fun NoteListScreen(
         val repoUrl = "https://github.com/qownnotes/qownnotes-android"
         AlertDialog(
             onDismissRequest = { showAbout = false },
+            icon = {
+                Image(
+                    painterResource(R.drawable.qownnotes_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp)
+                )
+            },
             title = { Text(stringResource(R.string.about_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         stringResource(R.string.about_version, packageInfo.versionName.orEmpty()),
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable {
                             context.startActivity(
                                 Intent(
@@ -2052,6 +2068,7 @@ private fun NoteListScreen(
                     )
                     Text(
                         stringResource(R.string.about_commit, BuildConfig.GIT_COMMIT.take(7)),
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable {
                             context.startActivity(
                                 Intent(
@@ -2065,6 +2082,7 @@ private fun NoteListScreen(
                     Text(stringResource(R.string.about_license))
                     Text(
                         stringResource(R.string.about_view_source),
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable {
                             context.startActivity(
                                 Intent(
