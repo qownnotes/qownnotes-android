@@ -469,6 +469,19 @@ private fun NotesNavigation(
         // repository suspension cannot cancel it between accepting the tap and opening the note.
         scope.launch {
             when (request) {
+                is WidgetRequest.OpenNoteList -> {
+                    selectedAccountId = request.accountId.takeIf { requested ->
+                        availableAccounts.any { it.id == requested }
+                    } ?: availableAccounts.firstOrNull()?.id
+                    browsingBookmarks = false
+                    managingAccounts = false
+                    noteHistory = emptyList()
+                    selectedNoteId = null
+                    selectedHeading = null
+                    editOnOpenNoteId = null
+                    findOnOpen = null
+                    navigationRequest++
+                }
                 is WidgetRequest.OpenNote -> if (
                     component.noteRepository.get(request.localId) != null
                 ) {

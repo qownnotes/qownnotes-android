@@ -58,18 +58,23 @@ import org.qownnotes.mobile.core.NoteExcerpt
 import org.qownnotes.mobile.core.NoteListItem
 
 sealed interface WidgetRequest {
+    data class OpenNoteList(val accountId: String) : WidgetRequest
+
     data class OpenNote(val localId: String) : WidgetRequest
 
     data class CreateNote(val accountId: String) : WidgetRequest
 }
 
 internal object WidgetIntents {
+    const val ACTION_OPEN_NOTE_LIST = "org.qownnotes.mobile.widget.OPEN_NOTE_LIST"
     const val ACTION_OPEN_NOTE = "org.qownnotes.mobile.widget.OPEN_NOTE"
     const val ACTION_CREATE_NOTE = "org.qownnotes.mobile.widget.CREATE_NOTE"
     const val EXTRA_ACCOUNT_ID = "accountId"
     const val EXTRA_NOTE_ID = "noteId"
 
     fun request(intent: Intent?): WidgetRequest? = when (intent?.action) {
+        ACTION_OPEN_NOTE_LIST -> intent.getStringExtra(EXTRA_ACCOUNT_ID)
+            ?.takeIf(String::isNotBlank)?.let(WidgetRequest::OpenNoteList)
         ACTION_OPEN_NOTE -> noteId(intent)?.let(WidgetRequest::OpenNote)
         ACTION_CREATE_NOTE -> intent.getStringExtra(
             EXTRA_ACCOUNT_ID
@@ -91,6 +96,12 @@ internal object WidgetIntents {
             .setAction(ACTION_OPEN_NOTE)
             .putExtra(EXTRA_NOTE_ID, localId)
             .setData("qownnotes://widget/note/$localId".toUri())
+
+    fun openNoteList(context: Context, accountId: String): Intent =
+        Intent(context, WidgetActionActivity::class.java)
+            .setAction(ACTION_OPEN_NOTE_LIST)
+            .putExtra(EXTRA_ACCOUNT_ID, accountId)
+            .setData("qownnotes://widget/account/${Uri.encode(accountId)}/list".toUri())
 
     fun openNoteTemplate(context: Context): Intent =
         Intent(context, WidgetActionActivity::class.java).setAction(ACTION_OPEN_NOTE)
@@ -233,7 +244,13 @@ class NoteListWidgetProvider : AppWidgetProvider() {
 
     companion object {
         fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-            val accountId = WidgetPreferences.accountId(context, widgetId) ?: return
+            val views = remoteViews(context, widgetId) ?: return
+            manager.updateAppWidget(widgetId, views)
+            manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_note_list)
+        }
+
+        internal fun remoteViews(context: Context, widgetId: Int): RemoteViews? {
+            val accountId = WidgetPreferences.accountId(context, widgetId) ?: return null
             val views = RemoteViews(context.packageName, R.layout.widget_note_list)
             val appearance = WidgetPreferences.appearance(context, widgetId)
             WidgetAppearanceViews.applyContainer(views, appearance)
@@ -257,6 +274,15 @@ class NoteListWidgetProvider : AppWidgetProvider() {
                     .setData("qownnotes://widget/list/$widgetId".toUri())
             )
             views.setEmptyView(R.id.widget_note_list, R.id.widget_empty)
+            views.setOnClickPendingIntent(
+                R.id.widget_header,
+                PendingIntent.getActivity(
+                    context,
+                    widgetId,
+                    WidgetIntents.openNoteList(context, accountId),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
             views.setPendingIntentTemplate(
                 R.id.widget_note_list,
                 PendingIntent.getActivity(
@@ -284,8 +310,7 @@ class NoteListWidgetProvider : AppWidgetProvider() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
             )
-            manager.updateAppWidget(widgetId, views)
-            manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_note_list)
+            return views
         }
     }
 }

@@ -30,7 +30,9 @@ class NoteWidgetTest {
     fun widgetIntentsRetainTheirDestination() {
         val open = WidgetIntents.openNote(context, "local-note")
         val create = WidgetIntents.createNote(context, "account-id")
+        val list = WidgetIntents.openNoteList(context, "account-id")
 
+        assertEquals(WidgetRequest.OpenNoteList("account-id"), WidgetIntents.request(list))
         assertEquals(WidgetRequest.OpenNote("local-note"), WidgetIntents.request(open))
         assertEquals(WidgetRequest.CreateNote("account-id"), WidgetIntents.request(create))
         assertEquals(null, WidgetIntents.request(Intent(Intent.ACTION_MAIN)))

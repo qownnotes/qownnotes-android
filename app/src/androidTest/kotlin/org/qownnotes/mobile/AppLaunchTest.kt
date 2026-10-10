@@ -5,6 +5,8 @@ import android.content.Intent
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.View
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertIsDisplayed
@@ -1821,6 +1823,44 @@ class AppLaunchTest {
 
         composeRule.waitForTag("back-to-note-list")
         composeRule.waitForTag("markdown-view")
+    }
+
+    @Test
+    fun noteListWidgetHeaderOpensItsAccountInsteadOfThePreviouslyOpenNote() {
+        val alice = importAccount("alice", "Alice note", "etag-alice", 10)
+        val account = runBlocking {
+            application.component.accountRepository.observeAccounts().first().single()
+        }
+        importAccount("bob", "Bob note", "etag-bob", 10)
+        composeRule.onNodeWithText("Bob note").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        val widgetId = 401
+        val launchIntent = Intent(composeRule.activity.intent)
+        try {
+            WidgetPreferences.saveAccount(application, widgetId, account)
+            composeRule.runOnUiThread {
+                val views = NoteListWidgetProvider.remoteViews(application, widgetId)!!
+                    .apply(composeRule.activity, FrameLayout(composeRule.activity))
+                assertTrue(views.findViewById<View>(R.id.widget_camera).isClickable)
+                assertTrue(views.findViewById<View>(R.id.widget_create).isClickable)
+                assertTrue(views.findViewById<View>(R.id.widget_header).performClick())
+            }
+
+            composeRule.waitForTag("note-search")
+            composeRule.onNodeWithText("Alice note").assertIsDisplayed()
+            composeRule.onNodeWithText("Bob note").assertDoesNotExist()
+            composeRule.onNodeWithTag("markdown-view").assertDoesNotExist()
+            composeRule.onNodeWithTag("note-search").performTextInput("Alice")
+            composeRule.onNodeWithText("Alice note").assertIsDisplayed()
+            assertEquals(1, runBlocking { notesOf("alice") }.size)
+            assertEquals(alice.localAccountId(), account.id)
+        } finally {
+            // The trampoline delivers a new intent to the single-task activity. Restore the
+            // scenario's launch intent so its lifecycle monitor still recognizes teardown.
+            composeRule.runOnUiThread { composeRule.activity.intent = launchIntent }
+            WidgetPreferences.remove(application, widgetId)
+        }
     }
 
     /**

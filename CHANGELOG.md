@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Tap the note-list widget's title bar to open its account's notes in the app for browsing and
+  searching ([#28](https://github.com/qownnotes/qownnotes-android/issues/28)).
+
 ### Fixed
 
 - Note conflicts show a plain-language explanation instead of exception details. **Resolve

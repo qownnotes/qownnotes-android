@@ -1220,7 +1220,9 @@ Deck support follows the QOwnNotes desktop integration (`NextcloudDeckService` a
 - Widgets: account note-list, single-note, creation, and camera actions are implemented. The
   note-list widget follows the app's compact note-list setting, can be limited to one category
   (all, uncategorized, or a named category, defaulting to all), and shows a two-line header with
-  the listed scope above the account name. Each widget stores its own appearance: background
+  the listed scope above the account name. Tapping the title bar opens the widget's account in
+  the app's note list for browsing and searching, including when a note was already open (#28).
+  Each widget stores its own appearance: background
   color and opacity, header color, note-row color, and an optional frame. Colors come from a fixed
   palette with a "default" choice that keeps the day/night resource colors; text color is derived
   from the surface for contrast rather than chosen by the user (#15).
