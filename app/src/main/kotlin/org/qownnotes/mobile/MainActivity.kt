@@ -73,6 +73,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
@@ -98,6 +99,7 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.ViewKanban
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -3943,6 +3945,7 @@ private fun NoteDetailScreen(
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
+            icon = { Icon(Icons.Filled.DeleteOutline, contentDescription = null) },
             title = { Text(stringResource(R.string.delete_note_title)) },
             text = {
                 Text(
@@ -3960,6 +3963,9 @@ private fun NoteDetailScreen(
                             }
                         }
                     },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
                     modifier = Modifier.testTag("confirm-delete-note")
                 ) { Text(stringResource(R.string.action_move_to_trash)) }
             },
