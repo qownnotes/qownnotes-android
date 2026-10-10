@@ -64,6 +64,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   right, replacing the separate row of text-size, cancel, and finish icons. Text size, tags,
   note information, and the editor tools help are in the editing menu, where text size can be
   stepped without closing the menu. The note title uses one line while editing.
+- The formatting toolbar sits at the bottom of the editor, right above the keyboard, with the
+  toolbar hint just above it.
 
 ### Fixed
 

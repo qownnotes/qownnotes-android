@@ -2486,6 +2486,30 @@ class AppLaunchTest {
     }
 
     @Test
+    fun formattingToolbarSitsDirectlyAboveTheKeyboard() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click())
+
+        fun keyboardTop(): Int? = composeRule.runOnIdle {
+            val root = composeRule.activity.window.decorView
+            val ime = androidx.core.view.ViewCompat.getRootWindowInsets(root)
+                ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime())?.bottom ?: 0
+            if (ime > 0) root.height - ime else null
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) { keyboardTop() != null }
+        composeRule.waitForIdle()
+        val toolbarBottom = composeRule.onNodeWithTag("format-toolbar").fetchSemanticsNode()
+            .boundsInWindow.bottom
+        val expected = keyboardTop()!!.toFloat()
+        assertTrue(
+            "toolbar bottom $toolbarBottom, keyboard top $expected",
+            kotlin.math.abs(toolbarBottom - expected) <= 2f
+        )
+    }
+
+    @Test
     fun dismissedToolbarHintStaysHidden() {
         application.component.settings.setEditorToolbarHintDismissed(false)
         importAccount("alice", "Existing note", "etag-1", 10)

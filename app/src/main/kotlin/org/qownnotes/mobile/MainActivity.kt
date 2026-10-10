@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -3490,7 +3491,10 @@ private fun NoteDetailScreen(
         }
     ) { padding ->
         if (editing) {
-            Column(modifier = Modifier.fillMaxSize().padding(padding).imePadding()) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)
+                    .imePadding()
+            ) {
                 note?.lastSyncError?.let { message ->
                     val conflicted =
                         note?.syncState in setOf(SyncState.CONFLICT, SyncState.READ_ONLY_CONFLICT)
@@ -3542,96 +3546,6 @@ private fun NoteDetailScreen(
                         onClose = closeFind,
                         focusOnOpen = !findFromListSearch
                     )
-                } else {
-                    // Undo and redo stay first, so stepping back does not require scrolling.
-                    EditorToolbar(
-                        deckAvailable = nextcloudDeckAvailable,
-                        showLabels = showToolbarLabels,
-                        isEnabled = { tool ->
-                            when (tool) {
-                                EditorTool.UNDO -> canUndo
-                                EditorTool.REDO -> canRedo
-                                EditorTool.IMAGE -> !importingImage
-                                else -> true
-                            }
-                        },
-                        onTool = { tool ->
-                            fun format(action: MarkdownFormatAction) {
-                                editor?.applyFormat(action)
-                                // Tapping a Compose button moves focus away from the embedded
-                                // editor, which closes the keyboard. Hand focus back so
-                                // formatting does not interrupt typing.
-                                editor?.focusForInput()
-                            }
-                            when (tool) {
-                                // The framework editor's own undo buffer is only reachable
-                                // with a hardware keyboard, so phones need these controls.
-                                EditorTool.UNDO -> {
-                                    editorBinding?.undo()
-                                    editor?.focusForInput()
-                                }
-                                EditorTool.REDO -> {
-                                    editorBinding?.redo()
-                                    editor?.focusForInput()
-                                }
-                                EditorTool.HEADING -> format(MarkdownFormatAction.HEADING)
-                                EditorTool.BOLD -> format(MarkdownFormatAction.BOLD)
-                                EditorTool.ITALIC -> format(MarkdownFormatAction.ITALIC)
-                                EditorTool.STRIKETHROUGH ->
-                                    format(MarkdownFormatAction.STRIKETHROUGH)
-                                EditorTool.CODE -> format(MarkdownFormatAction.CODE)
-                                EditorTool.QUOTE -> format(MarkdownFormatAction.QUOTE)
-                                EditorTool.BULLET_LIST -> format(MarkdownFormatAction.BULLET)
-                                EditorTool.NUMBERED_LIST -> format(MarkdownFormatAction.NUMBERED)
-                                EditorTool.CHECKBOX_LIST -> format(MarkdownFormatAction.TASK)
-                                EditorTool.INDENT -> format(MarkdownFormatAction.INDENT)
-                                EditorTool.OUTDENT -> format(MarkdownFormatAction.OUTDENT)
-                                EditorTool.LINK -> {
-                                    val current = editor
-                                    val source = current?.text?.toString().orEmpty()
-                                    val start = (current?.selectionStart ?: 0)
-                                        .coerceIn(0, source.length)
-                                    val end = (current?.selectionEnd ?: start)
-                                        .coerceIn(0, source.length)
-                                    linkDialogTitle =
-                                        source.substring(minOf(start, end), maxOf(start, end))
-                                    linkDialogUrl = current?.clipboardWebUrl().orEmpty()
-                                }
-                                EditorTool.IMAGE -> imagePicker.launch("image/*")
-                                EditorTool.DATE -> {
-                                    editor?.insertText(
-                                        LocalDateTime.now()
-                                            .format(DateTimeFormatter.ISO_LOCAL_DATE)
-                                    )
-                                    editor?.focusForInput()
-                                }
-                                EditorTool.DATE_TIME -> {
-                                    editor?.insertText(
-                                        LocalDateTime.now().format(
-                                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                        )
-                                    )
-                                    editor?.focusForInput()
-                                }
-                                EditorTool.CREATE_DECK_CARD -> {
-                                    val current = editor
-                                    deckCardTitle = deckCardTitleFromSelection(
-                                        current?.text,
-                                        current?.selectionStart ?: 0,
-                                        current?.selectionEnd ?: 0
-                                    )
-                                }
-                                EditorTool.BROWSE_DECK_CARDS -> showNoteDeckBrowser = true
-                            }
-                        },
-                        onHelp = openToolbarHelp
-                    )
-                    if (!toolbarHintDismissed) {
-                        EditorToolbarHint(
-                            onShowHelp = openToolbarHelp,
-                            onDismiss = { component.settings.setEditorToolbarHintDismissed(true) }
-                        )
-                    }
                 }
                 if (
                     !largeNoteNoticeDismissed &&
@@ -3651,7 +3565,7 @@ private fun NoteDetailScreen(
                         }
                     )
                 }
-                Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f).padding(16.dp)) {
                     AndroidView(
                         factory = { context ->
                             MarkdownEditText(context).also { view ->
@@ -3719,6 +3633,106 @@ private fun NoteDetailScreen(
                         onScrollTo = { editor?.scrollVerticallyTo(it) },
                         modifier = Modifier.align(Alignment.CenterEnd)
                     )
+                }
+                // At the bottom, the toolbar sits right above the keyboard, within reach of the
+                // thumbs, and it does not push the note down while editing.
+                if (!finding) {
+                    if (!toolbarHintDismissed) {
+                        EditorToolbarHint(
+                            onShowHelp = openToolbarHelp,
+                            onDismiss = {
+                                component.settings.setEditorToolbarHintDismissed(true)
+                            }
+                        )
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+                        // Undo and redo stay first, so stepping back does not require scrolling.
+                        EditorToolbar(
+                            deckAvailable = nextcloudDeckAvailable,
+                            showLabels = showToolbarLabels,
+                            isEnabled = { tool ->
+                                when (tool) {
+                                    EditorTool.UNDO -> canUndo
+                                    EditorTool.REDO -> canRedo
+                                    EditorTool.IMAGE -> !importingImage
+                                    else -> true
+                                }
+                            },
+                            onTool = { tool ->
+                                fun format(action: MarkdownFormatAction) {
+                                    editor?.applyFormat(action)
+                                    // Tapping a Compose button moves focus away from the embedded
+                                    // editor, which closes the keyboard. Hand focus back so
+                                    // formatting does not interrupt typing.
+                                    editor?.focusForInput()
+                                }
+                                when (tool) {
+                                    // The framework editor's own undo buffer is only reachable
+                                    // with a hardware keyboard, so phones need these controls.
+                                    EditorTool.UNDO -> {
+                                        editorBinding?.undo()
+                                        editor?.focusForInput()
+                                    }
+                                    EditorTool.REDO -> {
+                                        editorBinding?.redo()
+                                        editor?.focusForInput()
+                                    }
+                                    EditorTool.HEADING -> format(MarkdownFormatAction.HEADING)
+                                    EditorTool.BOLD -> format(MarkdownFormatAction.BOLD)
+                                    EditorTool.ITALIC -> format(MarkdownFormatAction.ITALIC)
+                                    EditorTool.STRIKETHROUGH ->
+                                        format(MarkdownFormatAction.STRIKETHROUGH)
+                                    EditorTool.CODE -> format(MarkdownFormatAction.CODE)
+                                    EditorTool.QUOTE -> format(MarkdownFormatAction.QUOTE)
+                                    EditorTool.BULLET_LIST -> format(MarkdownFormatAction.BULLET)
+                                    EditorTool.NUMBERED_LIST -> format(
+                                        MarkdownFormatAction.NUMBERED
+                                    )
+                                    EditorTool.CHECKBOX_LIST -> format(MarkdownFormatAction.TASK)
+                                    EditorTool.INDENT -> format(MarkdownFormatAction.INDENT)
+                                    EditorTool.OUTDENT -> format(MarkdownFormatAction.OUTDENT)
+                                    EditorTool.LINK -> {
+                                        val current = editor
+                                        val source = current?.text?.toString().orEmpty()
+                                        val start = (current?.selectionStart ?: 0)
+                                            .coerceIn(0, source.length)
+                                        val end = (current?.selectionEnd ?: start)
+                                            .coerceIn(0, source.length)
+                                        linkDialogTitle =
+                                            source.substring(minOf(start, end), maxOf(start, end))
+                                        linkDialogUrl = current?.clipboardWebUrl().orEmpty()
+                                    }
+                                    EditorTool.IMAGE -> imagePicker.launch("image/*")
+                                    EditorTool.DATE -> {
+                                        editor?.insertText(
+                                            LocalDateTime.now()
+                                                .format(DateTimeFormatter.ISO_LOCAL_DATE)
+                                        )
+                                        editor?.focusForInput()
+                                    }
+                                    EditorTool.DATE_TIME -> {
+                                        editor?.insertText(
+                                            LocalDateTime.now().format(
+                                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                            )
+                                        )
+                                        editor?.focusForInput()
+                                    }
+                                    EditorTool.CREATE_DECK_CARD -> {
+                                        val current = editor
+                                        deckCardTitle = deckCardTitleFromSelection(
+                                            current?.text,
+                                            current?.selectionStart ?: 0,
+                                            current?.selectionEnd ?: 0
+                                        )
+                                    }
+                                    EditorTool.BROWSE_DECK_CARDS -> showNoteDeckBrowser = true
+                                }
+                            },
+                            onHelp = openToolbarHelp
+                        )
+                    }
                 }
             }
         } else {
