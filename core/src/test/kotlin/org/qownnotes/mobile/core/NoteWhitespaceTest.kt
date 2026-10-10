@@ -28,5 +28,27 @@ class NoteWhitespaceTest {
         assertEquals(clean(content), clean(clean(content)))
     }
 
-    private fun clean(content: String): String = NoteWhitespace.removeSingleTrailingSpaces(content)
+    @Test
+    fun preservesUntouchedLinesBetweenSeparateEditsAndAfterInsertions() {
+        val original = "first \nuntouched \nlast "
+        val edited = "inserted \nFIRST \nuntouched \nLAST "
+        assertEquals(
+            "inserted\nFIRST\nuntouched \nLAST",
+            NoteWhitespace.removeSingleTrailingSpaces(original, edited)
+        )
+    }
+
+    @Test
+    fun preservesMovedAndDuplicateOriginalLinesConservatively() {
+        val original = "one \ntwo \none "
+        val edited = "two \nnew \none \none "
+        assertEquals(
+            "two \nnew\none \none ",
+            NoteWhitespace.removeSingleTrailingSpaces(original, edited)
+        )
+        assertEquals(original, NoteWhitespace.removeSingleTrailingSpaces(original, original))
+    }
+
+    private fun clean(content: String): String =
+        NoteWhitespace.removeSingleTrailingSpaces("", content)
 }

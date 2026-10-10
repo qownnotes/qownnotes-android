@@ -73,6 +73,8 @@
     <string name="settings_ask_for_new_note_name">Ask for name of new notes</string>
     <string name="settings_ask_for_new_note_name_description">Suggest the automatic name and let you change it.</string>
     <string name="settings_show_toolbar_labels">Show toolbar labels</string>
+    <string name="settings_remove_edited_trailing_spaces">Clean trailing spaces on save</string>
+    <string name="settings_remove_edited_trailing_spaces_description">Remove single trailing spaces only from edited lines. Preserve untouched lines and Markdown hard breaks. Off by default.</string>
     <string name="settings_show_toolbar_labels_description">Show a short name below each editor toolbar icon.</string>
     <string name="settings_bookmarks_file">Bookmarks file</string>
     <string name="settings_bookmarks_file_invalid">Use a relative path ending in .md</string>

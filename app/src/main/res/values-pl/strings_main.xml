@@ -75,6 +75,8 @@
     <string name="settings_ask_for_new_note_name">Pytaj o nazwę nowych notatek</string>
     <string name="settings_ask_for_new_note_name_description">Proponuje automatyczną nazwę i pozwala ją zmienić.</string>
     <string name="settings_show_toolbar_labels">Pokazuj etykiety paska</string>
+    <string name="settings_remove_edited_trailing_spaces">Usuwaj końcowe spacje przy zapisie</string>
+    <string name="settings_remove_edited_trailing_spaces_description">Usuwaj pojedyncze końcowe spacje tylko ze zmienionych wierszy. Zachowuj niezmienione wiersze i podziały wierszy Markdown. Domyślnie wyłączone.</string>
     <string name="settings_show_toolbar_labels_description">Pokazuje krótką nazwę pod każdą ikoną paska narzędzi edytora.</string>
     <string name="settings_bookmarks_file">Plik zakładek</string>
     <string name="settings_bookmarks_file_invalid">Użyj ścieżki względnej zakończonej na .md</string>

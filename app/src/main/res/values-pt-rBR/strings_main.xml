@@ -74,6 +74,8 @@
     <string name="settings_ask_for_new_note_name">Pedir nome para novas notas</string>
     <string name="settings_ask_for_new_note_name_description">Sugere o nome automático e permite que você o altere.</string>
     <string name="settings_show_toolbar_labels">Mostrar rótulos da barra</string>
+    <string name="settings_remove_edited_trailing_spaces">Limpar espaços finais ao salvar</string>
+    <string name="settings_remove_edited_trailing_spaces_description">Remover espaços finais únicos apenas das linhas editadas. Preservar linhas não alteradas e quebras de linha do Markdown. Desativado por padrão.</string>
     <string name="settings_show_toolbar_labels_description">Mostra um nome curto abaixo de cada ícone da barra do editor.</string>
     <string name="settings_bookmarks_file">Arquivo de marcadores</string>
     <string name="settings_bookmarks_file_invalid">Use um caminho relativo terminado em .md</string>

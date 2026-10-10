@@ -34,6 +34,19 @@ class EditorDraftCacheTest {
     }
 
     @Test
+    fun editingBaselineSurvivesCheckpointsAndIsReplacedForANewSession() {
+        val cache = EditorDraftCache()
+        cache.beginEditing("note", "original ")
+        cache.cache("note", "edited ")
+        cache.markPersisted("note", "edited ")
+        assertEquals("original ", cache.original("note", "checkpoint"))
+        cache.beginEditing("note", "next session ")
+        assertEquals("next session ", cache.original("note", "checkpoint"))
+        cache.remove(listOf("note"))
+        assertEquals("fallback", cache.original("note", "fallback"))
+    }
+
+    @Test
     fun directReplacementSupersedesAnEditorDraft() {
         val cache = EditorDraftCache()
         cache.cache("note", "discarded edit")

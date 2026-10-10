@@ -95,6 +95,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         component.settings.setCompactNoteList(false)
         component.settings.setAskForNewNoteName(false)
         component.settings.setShowEditorToolbarLabels(false)
+        component.settings.setRemoveEditedTrailingSpaces(false)
         // The first-use hint would shift the editor below the toolbar in unrelated tests.
         component.settings.setEditorToolbarHintDismissed(true)
         component.settings.setAppearance(AppAppearance())

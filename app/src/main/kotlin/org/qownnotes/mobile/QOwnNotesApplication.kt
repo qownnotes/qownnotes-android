@@ -534,6 +534,7 @@ class ApplicationComponent(
             val note = if (reservation == null) {
                 val before = noteRepository.get(localId) ?: return@withLock null
                 noteRepository.beginEditing(localId)?.also { editable ->
+                    editorDrafts.beginEditing(localId, before.content)
                     editReservations[localId] =
                         EditReservation(before.content, editable.localRevision, before.syncState)
                 }
@@ -567,12 +568,13 @@ class ApplicationComponent(
                     return@withLock true
                 }
             }
-            // Closing the editor can save again after releasing an unchanged reservation.
-            // Checkpoints may already contain an edited draft, so keep the reservation check too.
-            val persistedContent = if (
-                reservation != null || noteRepository.get(localId)?.content != content
-            ) {
-                NoteWhitespace.removeSingleTrailingSpaces(content)
+            // Keep the editing baseline across saves and exact-text recovery checkpoints.
+            val persistedContent = if (settings.removeEditedTrailingSpaces.value) {
+                val original = editorDrafts.original(
+                    localId,
+                    noteRepository.get(localId)?.content ?: content
+                )
+                NoteWhitespace.removeSingleTrailingSpaces(original, content)
             } else {
                 content
             }

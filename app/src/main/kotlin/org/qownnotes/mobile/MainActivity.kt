@@ -1054,6 +1054,8 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val showEditorToolbarLabels by component.settings.showEditorToolbarLabels
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val removeEditedTrailingSpaces by component.settings.removeEditedTrailingSpaces
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     // Visibility is kept apart from the name because the field may report a last value change
     // while the dialog closes, which must not reopen it.
     var namingNewNote by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -1908,6 +1910,15 @@ private fun NoteListScreen(
                         checked = showEditorToolbarLabels,
                         onCheckedChange = component.settings::setShowEditorToolbarLabels,
                         testTag = "toggle-editor-toolbar-labels"
+                    )
+                    SettingsToggle(
+                        label = stringResource(R.string.settings_remove_edited_trailing_spaces),
+                        description = stringResource(
+                            R.string.settings_remove_edited_trailing_spaces_description
+                        ),
+                        checked = removeEditedTrailingSpaces,
+                        onCheckedChange = component.settings::setRemoveEditedTrailingSpaces,
+                        testTag = "toggle-remove-edited-trailing-spaces"
                     )
                     OutlinedTextField(
                         value = bookmarksPath,

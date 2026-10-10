@@ -6,6 +6,13 @@ internal class EditorDraftCache {
     private data class Draft(val content: String, val persisted: Boolean)
 
     private val drafts = ConcurrentHashMap<String, Draft>()
+    private val originals = ConcurrentHashMap<String, String>()
+
+    fun beginEditing(localId: String, content: String) {
+        originals[localId] = content
+    }
+
+    fun original(localId: String, fallback: String): String = originals[localId] ?: fallback
 
     fun cache(localId: String, content: String) {
         drafts[localId] = Draft(content, persisted = false)
@@ -29,5 +36,6 @@ internal class EditorDraftCache {
 
     fun remove(localIds: Collection<String>) {
         localIds.forEach(drafts::remove)
+        localIds.forEach(originals::remove)
     }
 }

@@ -73,6 +73,8 @@
     <string name="settings_ask_for_new_note_name">Nach Namen neuer Notizen fragen</string>
     <string name="settings_ask_for_new_note_name_description">Schlägt den automatischen Namen vor und lässt dich ihn ändern.</string>
     <string name="settings_show_toolbar_labels">Symbolleisten-Beschriftungen anzeigen</string>
+    <string name="settings_remove_edited_trailing_spaces">Leerzeichen beim Speichern bereinigen</string>
+    <string name="settings_remove_edited_trailing_spaces_description">Einzelne Leerzeichen am Zeilenende nur aus bearbeiteten Zeilen entfernen. Unveränderte Zeilen und Markdown-Zeilenumbrüche beibehalten. Standardmäßig deaktiviert.</string>
     <string name="settings_show_toolbar_labels_description">Zeigt unter jedem Symbol der Editor-Symbolleiste einen kurzen Namen.</string>
     <string name="settings_bookmarks_file">Lesezeichen-Datei</string>
     <string name="settings_bookmarks_file_invalid">Verwende einen relativen Pfad, der auf .md endet</string>

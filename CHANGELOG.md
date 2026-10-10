@@ -9,8 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Saving edited notes removes single trailing spaces from each line and the end of the note,
-  preserving two or more trailing spaces for Markdown hard line breaks.
+- The optional **Clean trailing spaces on save** setting (off by default) removes single
+  trailing spaces only from edited lines, preserving untouched lines and two or more trailing
+  spaces for Markdown hard line breaks.
 
 ## [1.3.0] - 2026-10-10
 

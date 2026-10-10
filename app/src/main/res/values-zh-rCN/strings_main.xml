@@ -72,6 +72,8 @@
     <string name="settings_ask_for_new_note_name">询问新笔记名称</string>
     <string name="settings_ask_for_new_note_name_description">建议自动生成的名称，并允许你修改。</string>
     <string name="settings_show_toolbar_labels">显示工具栏标签</string>
+    <string name="settings_remove_edited_trailing_spaces">保存时清理行尾空格</string>
+    <string name="settings_remove_edited_trailing_spaces_description">仅删除已编辑行末尾的单个空格。保留未改动的行和 Markdown 换行。默认关闭。</string>
     <string name="settings_show_toolbar_labels_description">在编辑器工具栏的每个图标下方显示简短名称。</string>
     <string name="settings_bookmarks_file">书签文件</string>
     <string name="settings_bookmarks_file_invalid">请使用以 .md 结尾的相对路径</string>

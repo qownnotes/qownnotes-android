@@ -118,6 +118,19 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         mutableShowEditorToolbarLabels.value = enabled
     }
 
+    private val mutableRemoveEditedTrailingSpaces =
+        MutableStateFlow(preferences.getBoolean(REMOVE_EDITED_TRAILING_SPACES, false))
+
+    /** Opt-in save cleanup, restricted to changed lines in the current editing session. */
+    val removeEditedTrailingSpaces: StateFlow<Boolean> =
+        mutableRemoveEditedTrailingSpaces.asStateFlow()
+
+    fun setRemoveEditedTrailingSpaces(enabled: Boolean) {
+        if (enabled == mutableRemoveEditedTrailingSpaces.value) return
+        preferences.edit().putBoolean(REMOVE_EDITED_TRAILING_SPACES, enabled).apply()
+        mutableRemoveEditedTrailingSpaces.value = enabled
+    }
+
     private val mutableEditorToolbarHintDismissed =
         MutableStateFlow(preferences.getBoolean(EDITOR_TOOLBAR_HINT_DISMISSED, false))
 
@@ -374,6 +387,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val ASK_FOR_NEW_NOTE_NAME = "askForNewNoteName"
         const val COMPACT_NOTE_LIST = "compactNoteList"
         const val SHOW_EDITOR_TOOLBAR_LABELS = "showEditorToolbarLabels"
+        const val REMOVE_EDITED_TRAILING_SPACES = "removeEditedTrailingSpaces"
         const val EDITOR_TOOLBAR_HINT_DISMISSED = "editorToolbarHintDismissed"
         const val HEADER_COLOR = "headerColor"
         const val NOTE_BACKGROUND_COLOR = "noteBackgroundColor"

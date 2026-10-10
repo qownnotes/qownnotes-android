@@ -3258,10 +3258,17 @@ class AppLaunchTest {
 
     @Test
     fun savingEditedNotesCleansSingleTrailingSpacesWithoutChangingLiveDrafts() {
-        importAccount("alice", "Existing note", "etag-1", 10)
+        application.component.settings.setRemoveEditedTrailingSpaces(true)
+        importAccount(
+            "alice",
+            "Existing note",
+            "etag-1",
+            10,
+            "# Existing note\r\nUntouched \r\nOriginal "
+        )
         val note = runBlocking { notesOf("alice").single() }
-        val draft = "# Edited \r\nHard break  \r\nLast "
-        val cleaned = "# Edited\r\nHard break  \r\nLast"
+        val draft = "# Edited \r\nUntouched \r\nHard break  \r\nLast "
+        val cleaned = "# Edited\r\nUntouched \r\nHard break  \r\nLast"
 
         runBlocking {
             application.component.beginEditing(note.localId)
@@ -3278,11 +3285,18 @@ class AppLaunchTest {
             assertTrue(application.component.saveDraft(note.localId, draft))
             assertEquals(cleaned, application.component.noteRepository.get(note.localId)?.content)
             assertEquals("$draft newer ", application.component.draft(note.localId, cleaned))
+            assertTrue(application.component.checkpointDraft(note.localId, "$draft newer "))
+            assertTrue(application.component.saveDraft(note.localId, "$draft newer "))
+            assertEquals(
+                "# Edited\r\nUntouched \r\nHard break  \r\nLast  newer",
+                application.component.noteRepository.get(note.localId)?.content
+            )
         }
     }
 
     @Test
     fun savingAnUnchangedNotePreservesItsTrailingSpaces() {
+        application.component.settings.setRemoveEditedTrailingSpaces(true)
         val content = "# Existing note \nOriginal "
         importAccount("alice", "Existing note", "etag-1", 10, content)
         val note = runBlocking { notesOf("alice").single() }
@@ -3298,6 +3312,48 @@ class AppLaunchTest {
                 application.component.noteRepository.get(note.localId)?.syncState
             )
         }
+    }
+
+    @Test
+    fun trailingSpaceCleanupIsOffByDefaultAndSettingIsPersisted() {
+        application.getSharedPreferences(
+            "trailing-space-setting-test",
+            android.content.Context.MODE_PRIVATE
+        )
+            .edit().clear().commit()
+        val settings = AppSettings(application, "trailing-space-setting-test")
+        assertFalse(
+            AppSettings(application, "trailing-space-setting-test").removeEditedTrailingSpaces.value
+        )
+        settings.setRemoveEditedTrailingSpaces(true)
+        assertTrue(
+            AppSettings(application, "trailing-space-setting-test").removeEditedTrailingSpaces.value
+        )
+        settings.setRemoveEditedTrailingSpaces(false)
+
+        importAccount("alice", "Existing note", "etag-1", 10)
+        val note = runBlocking { notesOf("alice").single() }
+        val draft = "# Edited \nLast "
+        runBlocking {
+            application.component.beginEditing(note.localId)
+            application.component.cacheDraft(note.localId, draft)
+            assertTrue(application.component.saveDraft(note.localId, draft))
+            assertEquals(draft, application.component.noteRepository.get(note.localId)?.content)
+        }
+    }
+
+    @Test
+    fun trailingSpaceCleanupCanBeEnabledInSettings() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-remove-edited-trailing-spaces")
+            .performScrollTo().assertIsOff().performClick().assertIsOn()
+        assertTrue(application.component.settings.removeEditedTrailingSpaces.value)
+        composeRule.onNodeWithTag("close-settings").performClick()
+        listAction("settings")
+        composeRule.onNodeWithTag("toggle-remove-edited-trailing-spaces")
+            .performScrollTo().assertIsOn().performClick().assertIsOff()
+        assertFalse(application.component.settings.removeEditedTrailingSpaces.value)
     }
 
     @Test

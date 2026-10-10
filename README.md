@@ -77,9 +77,10 @@ visible after restarting the app and stays queued if synchronization cannot reac
 connected-network WorkManager job retries transient failures with backoff, even after the app
 process is restarted. A later edit or manual refresh also requests synchronization.
 
-Saving edited notes removes single trailing spaces at line endings and at the end of the note.
-Two or more trailing spaces are preserved for Markdown hard line breaks. This cleanup does not
-change the text or cursor in the active editor; recovery checkpoints retain the exact draft.
+Enable **Clean trailing spaces on save** in Settings to remove single trailing spaces only from
+edited lines. It is off by default. Untouched lines and two or more trailing spaces for Markdown
+hard line breaks are preserved. Cleanup does not change the text or cursor in the active editor;
+recovery checkpoints retain the exact draft.
 
 Updates use the last known ETag. If the server copy changed in the meantime, the app keeps the
 local text and marks the note as conflicted instead of overwriting the server. Choose **Resolve
