@@ -20,6 +20,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Tap the note-list widget's title bar to open its account's notes in the app for browsing and
   searching ([#28](https://github.com/qownnotes/qownnotes-android/issues/28)).
 
+### Changed
+
+- The Deck cards, Deck card editor, and new Deck card dialogs have a refreshed layout: a
+  two-line board/list picker grouped by board, card tiles with due-date and archive badges,
+  rounded search, consistent spacing, tinted error panels, and icon buttons for due dates and
+  actions ([#27](https://github.com/qownnotes/qownnotes-android/issues/27)).
+- The bookmarks page shows each bookmark as a card with a site icon, shortened address,
+  description, and tag badges, with centered empty and error states. Links that cannot be
+  opened are dimmed.
+- The remote trash and note versions dialogs highlight the selected entry, show the preview on
+  a tinted panel, and have icons for restoring. Loading and error dialogs are centered and use
+  a tinted error panel.
+- Settings are grouped into **Note list**, **Notes**, and **More** sections, use switches
+  instead of checkboxes, and show **Appearance**, **Reset Deck link opening preferences**, and
+  **Debug diagnostics** as rows with icons.
+- The **Insert link** dialog has field icons, a refresh button inside the link text field to
+  fetch the page title again, and a compact title lookup status.
+- The **About** menu entry has an icon, and the About dialog shows the QOwnNotes logo with
+  links highlighted. The **Move note to trash?** confirmation shows a trash icon and a
+  warning-colored confirm button.
+
 ### Fixed
 
 - Deck menus have a board icon. Card loading accepts detailed Deck owner objects as well as
