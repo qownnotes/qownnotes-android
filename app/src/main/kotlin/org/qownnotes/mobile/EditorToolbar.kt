@@ -1,9 +1,13 @@
 package org.qownnotes.mobile
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,12 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatIndentDecrease
 import androidx.compose.material.icons.automirrored.filled.FormatIndentIncrease
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.AddPhotoAlternate
@@ -36,6 +42,8 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.ViewKanban
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,11 +53,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
@@ -58,8 +73,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
+import org.qownnotes.mobile.markdown.MAX_HEADING_LEVEL
 
 /** Related editor tools, shown together and separated from the other groups. */
 internal enum class EditorToolGroup(@StringRes val title: Int) {
@@ -251,6 +270,8 @@ internal fun EditorToolbar(
     showLabels: Boolean,
     isEnabled: (EditorTool) -> Boolean,
     onTool: (EditorTool) -> Unit,
+    /** Sets the heading level chosen from the heading button's long-press menu; 0 is plain text. */
+    onHeadingLevel: (Int) -> Unit,
     onHelp: () -> Unit
 ) {
     val tools = availableEditorTools(deckAvailable)
@@ -261,15 +282,24 @@ internal fun EditorToolbar(
     ) {
         tools.forEachIndexed { index, tool ->
             if (index > 0 && tools[index - 1].group != tool.group) ToolbarGroupDivider(showLabels)
-            EditorToolbarButton(
-                icon = tool.icon,
-                description = stringResource(tool.description),
-                label = stringResource(tool.label),
-                showLabel = showLabels,
-                enabled = isEnabled(tool),
-                testTag = tool.testTag,
-                onClick = { onTool(tool) }
-            )
+            if (tool == EditorTool.HEADING) {
+                HeadingToolButton(
+                    showLabel = showLabels,
+                    enabled = isEnabled(tool),
+                    onClick = { onTool(tool) },
+                    onLevel = onHeadingLevel
+                )
+            } else {
+                EditorToolbarButton(
+                    icon = tool.icon,
+                    description = stringResource(tool.description),
+                    label = stringResource(tool.label),
+                    showLabel = showLabels,
+                    enabled = isEnabled(tool),
+                    testTag = tool.testTag,
+                    onClick = { onTool(tool) }
+                )
+            }
         }
         ToolbarGroupDivider(showLabels)
         EditorToolbarButton(
@@ -292,7 +322,11 @@ private fun ToolbarGroupDivider(showLabels: Boolean) {
     )
 }
 
-/** An icon button whose name appears when it is long-pressed, and optionally below the icon. */
+/**
+ * An icon button whose name appears when it is long-pressed, and optionally below the icon. With
+ * [onLongClick], the long-press runs that instead, and a corner mark shows that it offers more.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EditorToolbarButton(
     icon: ImageVector,
@@ -301,24 +335,54 @@ private fun EditorToolbarButton(
     showLabel: Boolean,
     enabled: Boolean,
     testTag: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    longClickLabel: String? = null
 ) {
-    WithTooltip(description, above = true) {
+    val contentColor = LocalContentColor.current.let {
+        if (enabled) it else it.copy(alpha = DISABLED_CONTENT_ALPHA)
+    }
+    val iconModifier = if (onLongClick == null) {
+        Modifier
+    } else {
+        Modifier.drawWithContent {
+            drawContent()
+            val mark = 5.dp.toPx()
+            drawPath(
+                Path().apply {
+                    moveTo(size.width, size.height - mark)
+                    lineTo(size.width, size.height)
+                    lineTo(size.width - mark, size.height)
+                    close()
+                },
+                contentColor
+            )
+        }
+    }
+    val click = if (onLongClick == null) {
+        Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+    } else {
+        Modifier.combinedClickable(
+            enabled = enabled,
+            role = Role.Button,
+            onLongClickLabel = longClickLabel,
+            onLongClick = onLongClick,
+            onClick = onClick
+        )
+    }
+    val button: @Composable () -> Unit = {
         if (showLabel) {
-            val contentColor = LocalContentColor.current.let {
-                if (enabled) it else it.copy(alpha = DISABLED_CONTENT_ALPHA)
-            }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.widthIn(min = 56.dp)
                     .clip(MaterialTheme.shapes.small)
-                    .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                    .then(click)
                     // Screen readers announce the full name rather than the short label.
                     .semantics { contentDescription = description }
                     .padding(horizontal = 6.dp, vertical = 4.dp)
                     .testTag(testTag)
             ) {
-                Icon(icon, contentDescription = null, tint = contentColor)
+                Icon(icon, contentDescription = null, tint = contentColor, modifier = iconModifier)
                 Text(
                     label,
                     style = MaterialTheme.typography.labelSmall,
@@ -327,12 +391,104 @@ private fun EditorToolbarButton(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        } else if (onLongClick != null) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.minimumInteractiveComponentSize().size(40.dp)
+                    .clip(CircleShape)
+                    .then(click)
+                    .semantics { contentDescription = description }
+                    .testTag(testTag)
+            ) {
+                Icon(icon, contentDescription = null, tint = contentColor, modifier = iconModifier)
+            }
         } else {
             IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.testTag(testTag)) {
                 Icon(icon, contentDescription = description)
             }
         }
     }
+    if (onLongClick == null) WithTooltip(description, above = true, content = button) else button()
+}
+
+/** The heading button, whose long-press offers every heading level and normal text. */
+@Composable
+private fun HeadingToolButton(
+    showLabel: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    onLevel: (Int) -> Unit
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    // The menu does not take focus, so Back reaches the activity rather than the popup.
+    BackHandler(enabled = menuOpen) { menuOpen = false }
+    Box {
+        EditorToolbarButton(
+            icon = EditorTool.HEADING.icon,
+            description = stringResource(EditorTool.HEADING.description),
+            label = stringResource(EditorTool.HEADING.label),
+            showLabel = showLabel,
+            enabled = enabled,
+            testTag = EditorTool.HEADING.testTag,
+            onClick = onClick,
+            onLongClick = { menuOpen = true },
+            longClickLabel = stringResource(R.string.heading_choose_level)
+        )
+        DropdownMenu(
+            expanded = menuOpen,
+            onDismissRequest = { menuOpen = false },
+            // Not focusable, so choosing a level does not take the keyboard away from the note.
+            properties = PopupProperties(focusable = false),
+            modifier = Modifier.testTag("heading-level-menu")
+        ) {
+            (1..MAX_HEADING_LEVEL).forEach { level ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(R.string.heading_level, level),
+                            style = headingLevelStyle(level),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
+                    leadingIcon = {
+                        Text(
+                            "#".repeat(level),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.widthIn(min = 48.dp)
+                        )
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onLevel(level)
+                    },
+                    modifier = Modifier.testTag("heading-level-$level")
+                )
+            }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.heading_none)) },
+                leadingIcon = {
+                    Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = null)
+                },
+                onClick = {
+                    menuOpen = false
+                    onLevel(0)
+                },
+                modifier = Modifier.testTag("heading-level-0")
+            )
+        }
+    }
+}
+
+/** Menu entries hint at each level's size without letting the largest overwhelm the menu. */
+@Composable
+private fun headingLevelStyle(level: Int): TextStyle = when (level) {
+    1 -> MaterialTheme.typography.titleLarge
+    2 -> MaterialTheme.typography.titleMedium
+    3 -> MaterialTheme.typography.bodyLarge
+    4 -> MaterialTheme.typography.bodyMedium
+    else -> MaterialTheme.typography.bodySmall
 }
 
 /** A one-time hint explaining how to find out what the toolbar icons do. */

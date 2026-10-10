@@ -2450,6 +2450,45 @@ class AppLaunchTest {
     }
 
     @Test
+    fun longPressingHeadingChoosesTheHeadingLevel() {
+        importAccount("alice", "Existing note", "etag-1", 10, "# Title\n\nSection")
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click())
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(11)
+        }
+
+        composeRule.onNodeWithTag("format-heading").performScrollTo()
+            .performTouchInput { longClick() }
+        composeRule.waitForTag("heading-level-3")
+        composeRule.onNodeWithTag("heading-level-3").performClick()
+        awaitEditorText("# Title\n\n### Section")
+        composeRule.waitForTagToGo("heading-level-menu")
+        onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
+
+        // Choosing another level replaces the marker, and normal text removes it.
+        composeRule.onNodeWithTag("format-heading").performTouchInput { longClick() }
+        composeRule.waitForTag("heading-level-0")
+        composeRule.onNodeWithTag("heading-level-0").performClick()
+        awaitEditorText("# Title\n\nSection")
+        composeRule.onNodeWithTag("undo-edit").performScrollTo().performClick()
+        awaitEditorText("### Section")
+
+        // Back closes the menu without leaving the editor.
+        composeRule.onNodeWithTag("format-heading").performScrollTo()
+            .performTouchInput { longClick() }
+        composeRule.waitForTag("heading-level-menu")
+        composeRule.runOnUiThread {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
+        composeRule.waitForTagToGo("heading-level-menu")
+        composeRule.onNodeWithTag("markdown-editor").assertExists()
+    }
+
+    @Test
     fun toolbarHintOpensToolHelpWhereLabelsCanBeShown() {
         application.component.settings.setEditorToolbarHintDismissed(false)
         importAccount("alice", "Existing note", "etag-1", 10)

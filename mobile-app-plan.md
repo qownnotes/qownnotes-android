@@ -357,7 +357,9 @@ Editor requirements:
   toolbar with a help button that explains every tool, point to both once with a dismissible
   hint, and offer an optional setting that shows a short label under each icon. A single
   `EditorTool` list drives the toolbar, tooltips, labels, and help so they cannot disagree.
-  Keep the toolbar at the bottom of the editor, directly above the keyboard.
+  Keep the toolbar at the bottom of the editor, directly above the keyboard. Long-pressing the
+  heading button offers heading levels 1 to 6 and normal text, replacing an existing marker; a
+  corner mark on the icon shows that the button has this menu instead of a tooltip.
 - Keep the editor's vertical space for the note: cancelling and finishing live in the top bar
   (Cancel as the navigation icon, Done as the prominent action), and rarely used actions such as
   text size, tags, and information are in the editing menu. Actions that would conflict with the

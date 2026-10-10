@@ -202,7 +202,10 @@
     <string name="toolbar_label_help">Справка</string>
     <string name="toolbar_help_undo">Отменить последнее изменение.</string>
     <string name="toolbar_help_redo">Повторить только что отменённое изменение.</string>
-    <string name="toolbar_help_heading">Превратить текущую или выделенные строки в заголовок.</string>
+    <string name="toolbar_help_heading">Превратить текущую или выделенные строки в заголовок. Нажмите и удерживайте, чтобы выбрать уровень от 1 до 6 или вернуть обычный текст.</string>
+    <string name="heading_level">Заголовок %1$d</string>
+    <string name="heading_none">Обычный текст</string>
+    <string name="heading_choose_level">Выбрать уровень заголовка</string>
     <string name="toolbar_help_bold">Сделать выделенный текст жирным или начать жирный текст.</string>
     <string name="toolbar_help_italic">Сделать выделенный текст курсивом или начать текст курсивом.</string>
     <string name="toolbar_help_strikethrough">Зачеркнуть выделенный текст или начать зачёркнутый текст.</string>

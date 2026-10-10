@@ -36,6 +36,52 @@ class MarkdownFormattingTest {
     }
 
     @Test
+    fun headingLevelPrefixesTheCurrentLineAndKeepsTheCaretInItsText() {
+        val edit = applyMarkdownHeading("intro\ntitle\nrest", 8, 8, 3)
+
+        assertEquals("intro\n### title\nrest", edit.text)
+        assertEquals(12, edit.selectionStart)
+        assertEquals(12, edit.selectionEnd)
+    }
+
+    @Test
+    fun headingLevelReplacesAnExistingMarkerInsteadOfStackingIt() {
+        assertEquals("## Title", applyMarkdownHeading("# Title", 4, 4, 2).text)
+        assertEquals("###### Title", applyMarkdownHeading("  ## Title", 0, 0, 6).text)
+        assertEquals("# ", applyMarkdownHeading("###", 3, 3, 1).text)
+    }
+
+    @Test
+    fun headingLevelZeroTurnsHeadingsBackIntoText() {
+        val edit = applyMarkdownHeading("## One\nplain\n#### Three", 0, 23, 0)
+
+        assertEquals("One\nplain\nThree", edit.text)
+        assertEquals(0, edit.selectionStart)
+        assertEquals(edit.text.length, edit.selectionEnd)
+    }
+
+    @Test
+    fun headingLevelAppliesToEverySelectedLine() {
+        val edit = applyMarkdownHeading("a\n# b\nc", 0, 7, 2)
+
+        assertEquals("## a\n## b\n## c", edit.text)
+        assertEquals("## a\n## b\n## c".length, edit.selectionEnd)
+    }
+
+    @Test
+    fun headingLevelMovesACaretInsideTheOldMarkerBehindTheNewOne() {
+        val edit = applyMarkdownHeading("### Title", 1, 1, 1)
+
+        assertEquals("# Title", edit.text)
+        assertEquals(2, edit.selectionStart)
+    }
+
+    @Test
+    fun hashTagsAreNotMistakenForHeadings() {
+        assertEquals("# #tag", applyMarkdownHeading("#tag", 0, 0, 1).text)
+    }
+
+    @Test
     fun insertsLinkAndSelectsUrlPlaceholder() {
         val edit = applyMarkdownFormat("label", 0, 5, MarkdownFormatAction.LINK)
 

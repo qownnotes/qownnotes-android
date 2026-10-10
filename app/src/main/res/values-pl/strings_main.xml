@@ -202,7 +202,10 @@
     <string name="toolbar_label_help">Pomoc</string>
     <string name="toolbar_help_undo">Cofa ostatnią zmianę.</string>
     <string name="toolbar_help_redo">Ponawia właśnie cofniętą zmianę.</string>
-    <string name="toolbar_help_heading">Zamienia bieżący lub zaznaczone wiersze w nagłówek.</string>
+    <string name="toolbar_help_heading">Zamienia bieżący lub zaznaczone wiersze w nagłówek. Przytrzymaj, aby wybrać poziom od 1 do 6 lub przywrócić zwykły tekst.</string>
+    <string name="heading_level">Nagłówek %1$d</string>
+    <string name="heading_none">Zwykły tekst</string>
+    <string name="heading_choose_level">Wybierz poziom nagłówka</string>
     <string name="toolbar_help_bold">Pogrubia zaznaczony tekst lub rozpoczyna pogrubiony tekst.</string>
     <string name="toolbar_help_italic">Zmienia zaznaczony tekst na kursywę lub rozpoczyna tekst kursywą.</string>
     <string name="toolbar_help_strikethrough">Przekreśla zaznaczony tekst lub rozpoczyna przekreślony tekst.</string>

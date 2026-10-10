@@ -19,6 +19,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ([#27](https://github.com/qownnotes/qownnotes-android/issues/27)).
 - Tap the note-list widget's title bar to open its account's notes in the app for browsing and
   searching ([#28](https://github.com/qownnotes/qownnotes-android/issues/28)).
+- Long-pressing the editor's heading button opens a menu to choose heading level 1 to 6 or
+  normal text. Choosing a level replaces an existing heading marker instead of adding another,
+  and the keyboard stays open.
 - Long-press any editor toolbar icon to see its name. A **Help** button at the end of the toolbar
   lists every editor tool with its icon and what it does, a one-time hint points to both, and
   the optional **Show toolbar labels** setting shows a short name below each icon.

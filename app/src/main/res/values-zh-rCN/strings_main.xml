@@ -199,7 +199,10 @@
     <string name="toolbar_label_help">帮助</string>
     <string name="toolbar_help_undo">撤销你的上一次更改。</string>
     <string name="toolbar_help_redo">重做刚刚撤销的更改。</string>
-    <string name="toolbar_help_heading">将当前行或所选行变为标题。</string>
+    <string name="toolbar_help_heading">将当前行或所选行变为标题。长按可选择 1 到 6 级标题，或恢复为正文。</string>
+    <string name="heading_level">标题 %1$d</string>
+    <string name="heading_none">正文</string>
+    <string name="heading_choose_level">选择标题级别</string>
     <string name="toolbar_help_bold">将所选文本设为粗体，或开始输入粗体文本。</string>
     <string name="toolbar_help_italic">将所选文本设为斜体，或开始输入斜体文本。</string>
     <string name="toolbar_help_strikethrough">为所选文本添加删除线，或开始输入带删除线的文本。</string>

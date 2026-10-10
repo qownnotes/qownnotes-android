@@ -200,7 +200,10 @@
     <string name="toolbar_label_help">Help</string>
     <string name="toolbar_help_undo">Undo your last change.</string>
     <string name="toolbar_help_redo">Redo the change you just undid.</string>
-    <string name="toolbar_help_heading">Turn the current or selected lines into a heading.</string>
+    <string name="toolbar_help_heading">Turn the current or selected lines into a heading. Long-press to choose the level, from 1 to 6, or to turn it back into normal text.</string>
+    <string name="heading_level">Heading %1$d</string>
+    <string name="heading_none">Normal text</string>
+    <string name="heading_choose_level">Choose heading level</string>
     <string name="toolbar_help_bold">Make the selected text bold, or start bold text.</string>
     <string name="toolbar_help_italic">Make the selected text italic, or start italic text.</string>
     <string name="toolbar_help_strikethrough">Strike through the selected text, or start struck-through text.</string>

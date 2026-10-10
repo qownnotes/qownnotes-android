@@ -201,7 +201,10 @@
     <string name="toolbar_label_help">Ajuda</string>
     <string name="toolbar_help_undo">Desfaz sua última alteração.</string>
     <string name="toolbar_help_redo">Refaz a alteração que você acabou de desfazer.</string>
-    <string name="toolbar_help_heading">Transforma a linha atual ou as selecionadas em um título.</string>
+    <string name="toolbar_help_heading">Transforma a linha atual ou as selecionadas em um título. Toque e segure para escolher o nível, de 1 a 6, ou para voltar ao texto normal.</string>
+    <string name="heading_level">Título %1$d</string>
+    <string name="heading_none">Texto normal</string>
+    <string name="heading_choose_level">Escolher nível do título</string>
     <string name="toolbar_help_bold">Deixa o texto selecionado em negrito ou começa um texto em negrito.</string>
     <string name="toolbar_help_italic">Deixa o texto selecionado em itálico ou começa um texto em itálico.</string>
     <string name="toolbar_help_strikethrough">Risca o texto selecionado ou começa um texto tachado.</string>

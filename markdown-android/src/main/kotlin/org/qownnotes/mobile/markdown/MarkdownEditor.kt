@@ -110,6 +110,51 @@ fun applyMarkdownFormat(
     }
 }
 
+/**
+ * Makes the current or selected lines ATX headings of [level], replacing any heading marker they
+ * already have, so the level can be changed without stacking markers. Level 0 removes the marker.
+ */
+fun applyMarkdownHeading(
+    source: String,
+    selectionStart: Int,
+    selectionEnd: Int,
+    level: Int
+): MarkdownTextEdit {
+    require(level in 0..MAX_HEADING_LEVEL) { "Heading level $level is out of range" }
+    val start = minOf(selectionStart, selectionEnd).coerceIn(0, source.length)
+    val end = maxOf(selectionStart, selectionEnd).coerceIn(start, source.length)
+    val lineStart = source.lastIndexOf('\n', maxOf(0, start - 1)).let { if (it < 0) 0 else it + 1 }
+    val lastLineEnd = source.indexOf('\n', end).let { if (it < 0) source.length else it }
+    val lineStarts = buildList {
+        add(lineStart)
+        for (index in lineStart until lastLineEnd) {
+            if (source[index] == '\n' && index + 1 < lastLineEnd) add(index + 1)
+        }
+    }
+    val prefix = if (level == 0) "" else "#".repeat(level) + " "
+    val changes = lineStarts.map { offset ->
+        val lineEnd = source.indexOf('\n', offset).let { if (it < 0) source.length else it }
+        offset to (HEADING_MARKER.find(source.substring(offset, lineEnd))?.value?.length ?: 0)
+    }
+    val result = StringBuilder(source)
+    changes.asReversed().forEach { (offset, removed) ->
+        result.replace(offset, offset + removed, prefix)
+    }
+    // A position inside a replaced marker moves to the end of the new one.
+    fun adjusted(position: Int): Int = position + changes.sumOf { (offset, removed) ->
+        when {
+            position < offset -> 0
+            position >= offset + removed -> prefix.length - removed
+            else -> offset + prefix.length - position
+        }
+    }
+    return MarkdownTextEdit(result.toString(), adjusted(start), adjusted(end))
+}
+
+const val MAX_HEADING_LEVEL = 6
+
+private val HEADING_MARKER = Regex("^ {0,3}#{1,6}(?:[ \\t]+|$)")
+
 private fun String.indentLines(start: Int, end: Int, outdent: Boolean): MarkdownTextEdit {
     val lineStart = if (start == 0) 0 else lastIndexOf('\n', start - 1) + 1
     // A selection ending at the next line's start does not include that line.
@@ -418,6 +463,24 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
         )
         // Replace only the changed range so undo history, spans, and any in-progress input-method
         // composition outside that range survive the formatting action.
+        replaceChangedRange(editable, source, edit.text)
+        setSelection(
+            edit.selectionStart.coerceIn(0, editable.length),
+            edit.selectionEnd.coerceIn(0, editable.length)
+        )
+    }
+
+    /** Sets the heading level of the current or selected lines; 0 makes them normal text. */
+    fun applyHeading(level: Int) {
+        val editable = text ?: return
+        onEditBoundary?.invoke()
+        val source = editable.toString()
+        val edit = applyMarkdownHeading(
+            source,
+            selectionStart.coerceAtLeast(0),
+            selectionEnd.coerceAtLeast(0),
+            level
+        )
         replaceChangedRange(editable, source, edit.text)
         setSelection(
             edit.selectionStart.coerceIn(0, editable.length),

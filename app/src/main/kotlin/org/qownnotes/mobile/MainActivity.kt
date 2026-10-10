@@ -3764,6 +3764,10 @@ private fun NoteDetailScreen(
                                     EditorTool.BROWSE_DECK_CARDS -> showNoteDeckBrowser = true
                                 }
                             },
+                            onHeadingLevel = { level ->
+                                editor?.applyHeading(level)
+                                editor?.focusForInput()
+                            },
                             onHelp = openToolbarHelp
                         )
                     }

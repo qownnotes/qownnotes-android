@@ -201,7 +201,10 @@
     <string name="toolbar_label_help">Aide</string>
     <string name="toolbar_help_undo">Annule votre dernière modification.</string>
     <string name="toolbar_help_redo">Rétablit la modification que vous venez d\'annuler.</string>
-    <string name="toolbar_help_heading">Transforme la ligne actuelle ou les lignes sélectionnées en titre.</string>
+    <string name="toolbar_help_heading">Transforme la ligne actuelle ou les lignes sélectionnées en titre. Appuyez longuement pour choisir le niveau, de 1 à 6, ou pour revenir au texte normal.</string>
+    <string name="heading_level">Titre %1$d</string>
+    <string name="heading_none">Texte normal</string>
+    <string name="heading_choose_level">Choisir le niveau de titre</string>
     <string name="toolbar_help_bold">Met le texte sélectionné en gras ou commence un texte en gras.</string>
     <string name="toolbar_help_italic">Met le texte sélectionné en italique ou commence un texte en italique.</string>
     <string name="toolbar_help_strikethrough">Barre le texte sélectionné ou commence un texte barré.</string>

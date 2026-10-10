@@ -200,7 +200,10 @@
     <string name="toolbar_label_help">Hilfe</string>
     <string name="toolbar_help_undo">Macht deine letzte Änderung rückgängig.</string>
     <string name="toolbar_help_redo">Stellt die gerade rückgängig gemachte Änderung wieder her.</string>
-    <string name="toolbar_help_heading">Macht die aktuelle oder ausgewählte Zeilen zu einer Überschrift.</string>
+    <string name="toolbar_help_heading">Macht die aktuelle oder ausgewählte Zeilen zu einer Überschrift. Lange drücken, um die Ebene von 1 bis 6 zu wählen oder wieder normalen Text daraus zu machen.</string>
+    <string name="heading_level">Überschrift %1$d</string>
+    <string name="heading_none">Normaler Text</string>
+    <string name="heading_choose_level">Überschriftenebene wählen</string>
     <string name="toolbar_help_bold">Formatiert den ausgewählten Text fett oder beginnt fetten Text.</string>
     <string name="toolbar_help_italic">Formatiert den ausgewählten Text kursiv oder beginnt kursiven Text.</string>
     <string name="toolbar_help_strikethrough">Streicht den ausgewählten Text durch oder beginnt durchgestrichenen Text.</string>

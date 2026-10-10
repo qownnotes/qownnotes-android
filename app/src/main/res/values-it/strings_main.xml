@@ -201,7 +201,10 @@
     <string name="toolbar_label_help">Aiuto</string>
     <string name="toolbar_help_undo">Annulla l\'ultima modifica.</string>
     <string name="toolbar_help_redo">Ripete la modifica appena annullata.</string>
-    <string name="toolbar_help_heading">Trasforma la riga corrente o le righe selezionate in un titolo.</string>
+    <string name="toolbar_help_heading">Trasforma la riga corrente o le righe selezionate in un titolo. Tieni premuto per scegliere il livello, da 1 a 6, o per tornare al testo normale.</string>
+    <string name="heading_level">Titolo %1$d</string>
+    <string name="heading_none">Testo normale</string>
+    <string name="heading_choose_level">Scegli livello del titolo</string>
     <string name="toolbar_help_bold">Mette in grassetto il testo selezionato o inizia un testo in grassetto.</string>
     <string name="toolbar_help_italic">Mette in corsivo il testo selezionato o inizia un testo in corsivo.</string>
     <string name="toolbar_help_strikethrough">Barra il testo selezionato o inizia un testo barrato.</string>
