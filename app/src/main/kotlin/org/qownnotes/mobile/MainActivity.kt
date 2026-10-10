@@ -85,6 +85,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -2648,55 +2649,6 @@ private fun ArchiveErrorDialog(title: String, message: String, onDismiss: () -> 
     )
 }
 
-@Composable
-private fun NoteVersionsDialog(
-    versions: List<RemoteNoteVersion>,
-    restoreEnabled: Boolean,
-    onDismiss: () -> Unit,
-    onRestore: (RemoteNoteVersion) -> Unit
-) {
-    var selected by remember(versions) { mutableStateOf(versions.firstOrNull()) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.note_versions)) },
-        text = {
-            if (versions.isEmpty()) {
-                Text(stringResource(R.string.note_versions_empty))
-            } else {
-                Column(modifier = Modifier.heightIn(max = 520.dp)) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        versions.forEach { version ->
-                            TextButton(
-                                onClick = { selected = version },
-                                modifier = Modifier.fillMaxWidth()
-                                    .testTag("note-version-${version.timestamp}")
-                            ) { Text(version.displayTimestamp) }
-                        }
-                    }
-                    Text(
-                        selected?.content.orEmpty(),
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-                            .verticalScroll(rememberScrollState()).testTag("note-version-preview")
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { selected?.let(onRestore) },
-                enabled = restoreEnabled && selected != null,
-                modifier = Modifier.testTag("restore-note-version")
-            ) { Text(stringResource(R.string.action_restore)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        }
-    )
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NoteDetailScreen(
@@ -4334,6 +4286,7 @@ private fun NoteDetailScreen(
     versionToRestore?.let { version ->
         AlertDialog(
             onDismissRequest = { versionToRestore = null },
+            icon = { Icon(Icons.Filled.Restore, contentDescription = null) },
             title = { Text(stringResource(R.string.restore_version_title)) },
             text = {
                 Text(

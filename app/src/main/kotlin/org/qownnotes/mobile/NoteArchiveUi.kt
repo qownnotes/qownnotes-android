@@ -13,6 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
@@ -40,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.TrashedNote
 
 @Composable
@@ -65,7 +68,7 @@ internal fun TrashedNotesDialog(
         title = { Text(stringResource(R.string.remote_trash)) },
         text = {
             if (notes.isEmpty()) {
-                TrashEmptyState(Icons.Filled.DeleteOutline, stringResource(R.string.trash_empty))
+                ArchiveEmptyState(Icons.Filled.DeleteOutline, stringResource(R.string.trash_empty))
             } else {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -96,7 +99,7 @@ internal fun TrashedNotesDialog(
                         modifier = Modifier.fillMaxWidth().testTag("trash-search")
                     )
                     if (filteredNotes.isEmpty()) {
-                        TrashEmptyState(
+                        ArchiveEmptyState(
                             Icons.Filled.SearchOff,
                             stringResource(R.string.trash_search_empty)
                         )
@@ -107,27 +110,17 @@ internal fun TrashedNotesDialog(
                                 .verticalScroll(rememberScrollState())
                         ) {
                             filteredNotes.forEach { note ->
-                                TrashedNoteRow(
-                                    note = note,
+                                ArchiveEntryRow(
+                                    icon = Icons.AutoMirrored.Filled.Article,
+                                    title = note.name,
+                                    subtitle = note.displayTimestamp,
                                     selected = note == selected,
-                                    onClick = { selected = note }
+                                    onClick = { selected = note },
+                                    modifier = Modifier.testTag("trashed-note-${note.timestamp}")
                                 )
                             }
                         }
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                selected?.content.orEmpty(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(16.dp)
-                                    .testTag("trashed-note-preview")
-                            )
-                        }
+                        ArchivePreview(selected?.content.orEmpty(), "trashed-note-preview")
                     }
                 }
             }
@@ -137,17 +130,7 @@ internal fun TrashedNotesDialog(
                 onClick = { selected?.let(onRestore) },
                 enabled = selected != null,
                 modifier = Modifier.testTag("restore-trashed-note")
-            ) {
-                Icon(
-                    Icons.Filled.RestoreFromTrash,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    stringResource(R.string.action_restore),
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
+            ) { ArchiveRestoreLabel(Icons.Filled.RestoreFromTrash) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
@@ -156,7 +139,93 @@ internal fun TrashedNotesDialog(
 }
 
 @Composable
-private fun TrashedNoteRow(note: TrashedNote, selected: Boolean, onClick: () -> Unit) {
+internal fun NoteVersionsDialog(
+    versions: List<RemoteNoteVersion>,
+    restoreEnabled: Boolean,
+    onDismiss: () -> Unit,
+    onRestore: (RemoteNoteVersion) -> Unit
+) {
+    var selected by remember(versions) { mutableStateOf(versions.firstOrNull()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.note_versions)) },
+        text = {
+            if (versions.isEmpty()) {
+                ArchiveEmptyState(
+                    Icons.Filled.History,
+                    stringResource(R.string.note_versions_empty)
+                )
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.heightIn(max = 560.dp)
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        versions.forEach { version ->
+                            ArchiveEntryRow(
+                                icon = Icons.Filled.History,
+                                title = version.displayTimestamp,
+                                subtitle = null,
+                                selected = version == selected,
+                                onClick = { selected = version },
+                                modifier = Modifier.testTag("note-version-${version.timestamp}")
+                            )
+                        }
+                    }
+                    ArchivePreview(selected?.content.orEmpty(), "note-version-preview")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { selected?.let(onRestore) },
+                enabled = restoreEnabled && selected != null,
+                modifier = Modifier.testTag("restore-note-version")
+            ) { ArchiveRestoreLabel(Icons.Filled.Restore) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        }
+    )
+}
+
+@Composable
+private fun ArchiveRestoreLabel(icon: ImageVector) {
+    Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+    Text(stringResource(R.string.action_restore), modifier = Modifier.padding(start = 8.dp))
+}
+
+@Composable
+private fun ArchivePreview(content: String, tag: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            content,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+                .testTag(tag)
+        )
+    }
+}
+
+@Composable
+private fun ArchiveEntryRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String?,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier
+) {
     Surface(
         selected = selected,
         onClick = onClick,
@@ -167,7 +236,7 @@ private fun TrashedNoteRow(note: TrashedNote, selected: Boolean, onClick: () -> 
         } else {
             MaterialTheme.colorScheme.onSurface
         },
-        modifier = Modifier.fillMaxWidth().testTag("trashed-note-${note.timestamp}")
+        modifier = modifier.fillMaxWidth()
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -175,7 +244,7 @@ private fun TrashedNoteRow(note: TrashedNote, selected: Boolean, onClick: () -> 
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Icon(
-                Icons.AutoMirrored.Filled.Article,
+                icon,
                 contentDescription = null,
                 tint = if (selected) {
                     MaterialTheme.colorScheme.onSecondaryContainer
@@ -186,28 +255,30 @@ private fun TrashedNoteRow(note: TrashedNote, selected: Boolean, onClick: () -> 
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    note.name,
+                    title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    note.displayTimestamp,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun TrashEmptyState(icon: ImageVector, text: String) {
+private fun ArchiveEmptyState(icon: ImageVector, text: String) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
