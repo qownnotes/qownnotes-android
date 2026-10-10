@@ -2123,11 +2123,13 @@ class AppLaunchTest {
 
         composeRule.waitForTag("deck-card-target")
         composeRule.onNodeWithTag("deck-card-title").assertTextContains("Call Alice")
-        composeRule.onNodeWithTag("deck-card-target").assertTextContains("Work / To do")
+        composeRule.onNodeWithTag("deck-card-target").assertTextContains("Work")
+            .assertTextContains("To do")
         composeRule.onNodeWithTag("deck-card-target").performClick()
         composeRule.waitForTag("deck-target-3-31")
         composeRule.onNodeWithTag("deck-target-3-31").performClick()
-        composeRule.onNodeWithTag("deck-card-target").assertTextContains("Home / Inbox")
+        composeRule.onNodeWithTag("deck-card-target").assertTextContains("Home")
+            .assertTextContains("Inbox")
         composeRule.onNodeWithTag("deck-card-description").performTextInput("Ask about Q3")
         // A due date is optional and offered only once it is asked for.
         composeRule.onNodeWithTag("deck-card-due-toggle").assertIsOff().performClick()
@@ -2250,7 +2252,8 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("create-deck-card-link").performScrollTo().performClick()
         composeRule.waitForTag("deck-card-target")
         // The list that received the previous card is offered again.
-        composeRule.onNodeWithTag("deck-card-target").assertTextContains("Home / Inbox")
+        composeRule.onNodeWithTag("deck-card-target").assertTextContains("Home")
+            .assertTextContains("Inbox")
         composeRule.onNodeWithTag("create-deck-card").assertIsNotEnabled()
         composeRule.onNodeWithTag("deck-card-title").performTextInput("Buy milk")
         composeRule.onNodeWithTag("create-deck-card").performClick()

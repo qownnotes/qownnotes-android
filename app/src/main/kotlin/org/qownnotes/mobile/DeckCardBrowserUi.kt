@@ -89,7 +89,6 @@ internal fun DeckCardBrowserDialog(
     var stackId by rememberSaveable(account.id) { mutableStateOf<Long?>(null) }
     var query by rememberSaveable(account.id) { mutableStateOf("") }
     var includeArchived by rememberSaveable(account.id) { mutableStateOf(false) }
-    var choosingTarget by remember { mutableStateOf(false) }
     var editingCardId by rememberSaveable(account.id) { mutableStateOf<Long?>(null) }
     LaunchedEffect(account.id, boardsRequest) {
         boardError = null
@@ -160,93 +159,18 @@ internal fun DeckCardBrowserDialog(
                     boards == null -> DeckLoadingIndicator()
                     stack == null -> DeckEmptyState(stringResource(R.string.deck_no_lists))
                     else -> {
-                        Box {
-                            OutlinedCard(
-                                onClick = { choosingTarget = true },
-                                modifier = Modifier.fillMaxWidth().testTag("deck-browser-target")
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.padding(
-                                        start = 16.dp,
-                                        end = 8.dp,
-                                        top = 10.dp,
-                                        bottom = 10.dp
-                                    )
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            board.title,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Text(
-                                            stack.title,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
-                                }
+                        DeckTargetPicker(
+                            boards = boards.orEmpty(),
+                            boardId = boardId,
+                            stackId = stackId,
+                            fieldTag = "deck-browser-target",
+                            optionTagPrefix = "deck-browser-target",
+                            onSelect = { target ->
+                                boardId = target.boardId
+                                stackId = target.stackId
+                                component.settings.setNextcloudDeckTarget(account.id, target)
                             }
-                            DropdownMenu(
-                                expanded = choosingTarget,
-                                onDismissRequest = { choosingTarget = false }
-                            ) {
-                                boards.orEmpty().filter { it.stacks.isNotEmpty() }
-                                    .forEachIndexed { index, optionBoard ->
-                                        if (index > 0) HorizontalDivider()
-                                        Text(
-                                            optionBoard.title,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(
-                                                start = 16.dp,
-                                                end = 16.dp,
-                                                top = 12.dp,
-                                                bottom = 4.dp
-                                            )
-                                        )
-                                        optionBoard.stacks.forEach { optionStack ->
-                                            val chosen = optionBoard.id == boardId &&
-                                                optionStack.id == stackId
-                                            DropdownMenuItem(
-                                                text = { Text(optionStack.title) },
-                                                trailingIcon = if (chosen) {
-                                                    {
-                                                        Icon(
-                                                            Icons.Filled.Check,
-                                                            contentDescription = null
-                                                        )
-                                                    }
-                                                } else {
-                                                    null
-                                                },
-                                                onClick = {
-                                                    boardId = optionBoard.id
-                                                    stackId = optionStack.id
-                                                    component.settings.setNextcloudDeckTarget(
-                                                        account.id,
-                                                        DeckStackTarget(
-                                                            optionBoard.id,
-                                                            optionStack.id
-                                                        )
-                                                    )
-                                                    choosingTarget = false
-                                                },
-                                                modifier = Modifier.testTag(
-                                                    "deck-browser-target-${optionBoard.id}-" +
-                                                        "${optionStack.id}"
-                                                )
-                                            )
-                                        }
-                                    }
-                            }
-                        }
+                        )
                         OutlinedTextField(
                             value = query,
                             onValueChange = { query = it },
@@ -349,6 +273,86 @@ internal fun DeckCardBrowserDialog(
                 cardsRequest++
             }
         )
+    }
+}
+
+/** A board and list selector that groups each board's lists in its dropdown. */
+@Composable
+internal fun DeckTargetPicker(
+    boards: List<DeckBoard>,
+    boardId: Long?,
+    stackId: Long?,
+    fieldTag: String,
+    optionTagPrefix: String,
+    onSelect: (DeckStackTarget) -> Unit,
+    enabled: Boolean = true
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val board = boards.firstOrNull { it.id == boardId }
+    val stack = board?.stacks?.firstOrNull { it.id == stackId }
+    Box {
+        OutlinedCard(
+            onClick = { expanded = true },
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth().testTag(fieldTag)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        board?.title ?: stringResource(R.string.deck_board_and_list),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        stack?.title ?: stringResource(R.string.deck_choose_list),
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+            }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            boards.filter { it.stacks.isNotEmpty() }.forEachIndexed { index, optionBoard ->
+                if (index > 0) HorizontalDivider()
+                Text(
+                    optionBoard.title,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 12.dp,
+                        bottom = 4.dp
+                    )
+                )
+                optionBoard.stacks.forEach { optionStack ->
+                    val chosen = optionBoard.id == boardId && optionStack.id == stackId
+                    DropdownMenuItem(
+                        text = { Text(optionStack.title) },
+                        trailingIcon = if (chosen) {
+                            { Icon(Icons.Filled.Check, contentDescription = null) }
+                        } else {
+                            null
+                        },
+                        onClick = {
+                            expanded = false
+                            onSelect(DeckStackTarget(optionBoard.id, optionStack.id))
+                        },
+                        modifier = Modifier.testTag(
+                            "$optionTagPrefix-${optionBoard.id}-${optionStack.id}"
+                        )
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -480,7 +484,7 @@ internal fun DeckLoadingIndicator(tag: String? = null) {
 }
 
 @Composable
-private fun DeckEmptyState(text: String, modifier: Modifier = Modifier) {
+internal fun DeckEmptyState(text: String, modifier: Modifier = Modifier) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
