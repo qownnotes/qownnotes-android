@@ -85,6 +85,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -113,6 +114,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -2103,6 +2105,7 @@ private fun NoteListScreen(
     trashToRestore?.let { trashed ->
         AlertDialog(
             onDismissRequest = { trashToRestore = null },
+            icon = { Icon(Icons.Filled.RestoreFromTrash, contentDescription = null) },
             title = { Text(stringResource(R.string.trash_restore_title, trashed.name)) },
             text = { Text(stringResource(R.string.trash_restore_message)) },
             confirmButton = {
@@ -2606,7 +2609,14 @@ private fun ArchiveLoadingDialog(title: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
-        text = { CircularProgressIndicator(modifier = Modifier.testTag("archive-loading")) },
+        text = {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+            ) {
+                CircularProgressIndicator(modifier = Modifier.testTag("archive-loading"))
+            }
+        },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
@@ -2618,7 +2628,20 @@ private fun ArchiveErrorDialog(title: String, message: String, onDismiss: () -> 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
-        text = { Text(message, color = MaterialTheme.colorScheme.error) },
+        text = {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         }
@@ -2666,106 +2689,6 @@ private fun NoteVersionsDialog(
                 onClick = { selected?.let(onRestore) },
                 enabled = restoreEnabled && selected != null,
                 modifier = Modifier.testTag("restore-note-version")
-            ) { Text(stringResource(R.string.action_restore)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        }
-    )
-}
-
-@Composable
-private fun TrashedNotesDialog(
-    notes: List<TrashedNote>,
-    onDismiss: () -> Unit,
-    onRestore: (TrashedNote) -> Unit
-) {
-    var query by rememberSaveable { mutableStateOf("") }
-    val filteredNotes = remember(notes, query) {
-        val trimmed = query.trim()
-        if (trimmed.isEmpty()) {
-            notes
-        } else {
-            notes.filter {
-                it.name.contains(trimmed, ignoreCase = true)
-            }
-        }
-    }
-    var selected by remember(filteredNotes) { mutableStateOf(filteredNotes.firstOrNull()) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.remote_trash)) },
-        text = {
-            if (notes.isEmpty()) {
-                Text(stringResource(R.string.trash_empty))
-            } else {
-                Column(modifier = Modifier.heightIn(max = 520.dp)) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        label = { Text(stringResource(R.string.trash_search_note_name)) },
-                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                IconButton(
-                                    onClick = { query = "" },
-                                    modifier = Modifier.testTag("clear-trash-search")
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Close,
-                                        contentDescription = stringResource(
-                                            R.string.action_clear_search
-                                        )
-                                    )
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("trash-search")
-                    )
-                    if (filteredNotes.isEmpty()) {
-                        Text(
-                            stringResource(R.string.trash_search_empty),
-                            modifier = Modifier.padding(top = 12.dp)
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
-                                .verticalScroll(rememberScrollState()).padding(top = 8.dp)
-                        ) {
-                            filteredNotes.forEach { note ->
-                                TextButton(
-                                    onClick = { selected = note },
-                                    modifier = Modifier.fillMaxWidth()
-                                        .testTag("trashed-note-${note.timestamp}")
-                                ) {
-                                    Column(modifier = Modifier.fillMaxWidth()) {
-                                        Text(note.name)
-                                        Text(
-                                            note.displayTimestamp,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        Text(
-                            selected?.content.orEmpty(),
-                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-                                .verticalScroll(
-                                    rememberScrollState()
-                                ).testTag("trashed-note-preview")
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { selected?.let(onRestore) },
-                enabled = selected != null,
-                modifier = Modifier.testTag("restore-trashed-note")
             ) { Text(stringResource(R.string.action_restore)) }
         },
         dismissButton = {
