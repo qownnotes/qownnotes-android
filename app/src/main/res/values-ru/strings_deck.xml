@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="deck_open_card">Открыть карточку Deck</string>
+    <string name="deck_open_card_question">Где вы хотите редактировать эту карточку?</string>
+    <string name="deck_remember_choice">Запомнить выбор для этого аккаунта</string>
+    <string name="deck_edit_in_app">Редактировать в QOwnNotes</string>
+    <string name="deck_open_external">Открыть в Deck</string>
+    <string name="deck_reset_opening">Сбросить настройки открытия ссылок Deck</string>
+    <string name="deck_edit_card">Редактировать карточку Deck</string>
+    <string name="deck_read_only">Эту карточку можно просматривать, но нельзя редактировать.</string>
+    <string name="deck_archived">Архивная карточка</string>
+    <string name="deck_reload_card">Загрузить карточку заново</string>
+    <string name="deck_reload_discard">Отменить несохранённые изменения и загрузить последнюю версию с сервера?</string>
+    <string name="deck_card_changed">Карточка изменена на сервере. Ваш текст сохранён. Загрузите карточку заново перед дальнейшим редактированием.</string>
+    <string name="deck_card_missing">Эта карточка больше не существует или недоступна.</string>
+    <string name="deck_card_request_failed">Не удалось загрузить или сохранить карточку Deck</string>
+    <string name="deck_saving">Сохранение…</string>
+    <string name="deck_save">Сохранить</string>
+</resources>

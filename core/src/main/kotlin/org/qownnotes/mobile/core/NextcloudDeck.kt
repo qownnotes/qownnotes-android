@@ -19,6 +19,23 @@ data class DeckCardDraft(
 /** A card the server created. */
 data class DeckCard(val id: Long, val boardId: Long, val stackId: Long, val title: String)
 
+/** A server snapshot used to edit an existing card without resetting its other fields. */
+data class DeckCardDetails(
+    val id: Long,
+    val boardId: Long,
+    val stackId: Long,
+    val title: String,
+    val description: String,
+    val dueAtEpochSeconds: Long?,
+    val owner: String,
+    val order: Int,
+    val type: String,
+    val archived: Boolean,
+    val startDate: String? = null,
+    val etag: String? = null,
+    val editable: Boolean = false
+)
+
 /** Optional Nextcloud Deck access for linking notes to cards. */
 interface NoteDeckBackend {
     /**
@@ -35,6 +52,16 @@ interface NoteDeckBackend {
         target: DeckStackTarget,
         card: DeckCardDraft
     ): DeckCard
+
+    /** Resolves the current list, including archived cards, from a note's board/card link. */
+    suspend fun deckCard(account: Account, link: DeckCardLink): DeckCardDetails
+
+    /** Checks [original] against the server before updating. Deck has no atomic If-Match writes. */
+    suspend fun updateDeckCard(
+        account: Account,
+        original: DeckCardDetails,
+        draft: DeckCardDraft
+    ): DeckCardDetails
 }
 
 /**

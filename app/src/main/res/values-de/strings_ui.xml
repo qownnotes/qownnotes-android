@@ -79,6 +79,22 @@
     <string name="deck_create_card_failed">Die Deck-Karte konnte nicht erstellt werden</string>
     <string name="deck_creating">Wird erstellt</string>
     <string name="deck_create_and_link">Erstellen und verlinken</string>
+    <string name="deck_open_card">Deck-Karte öffnen</string>
+    <string name="deck_open_card_question">Wo möchtest du diese Karte bearbeiten?</string>
+    <string name="deck_remember_choice">Auswahl für dieses Konto merken</string>
+    <string name="deck_edit_in_app">In QOwnNotes bearbeiten</string>
+    <string name="deck_open_external">In Deck öffnen</string>
+    <string name="deck_reset_opening">Öffnungseinstellungen für Deck-Links zurücksetzen</string>
+    <string name="deck_edit_card">Deck-Karte bearbeiten</string>
+    <string name="deck_read_only">Du kannst diese Karte ansehen, aber nicht bearbeiten.</string>
+    <string name="deck_archived">Archivierte Karte</string>
+    <string name="deck_reload_card">Karte neu laden</string>
+    <string name="deck_reload_discard">Ungespeicherte Änderungen verwerfen und die aktuelle Serverversion laden?</string>
+    <string name="deck_card_changed">Diese Karte wurde auf dem Server geändert. Deine Eingabe bleibt erhalten. Lade die Karte vor dem weiteren Bearbeiten neu.</string>
+    <string name="deck_card_missing">Diese Karte existiert nicht mehr oder ist nicht mehr zugänglich.</string>
+    <string name="deck_card_request_failed">Die Deck-Karte konnte nicht geladen oder gespeichert werden</string>
+    <string name="deck_saving">Wird gespeichert…</string>
+    <string name="deck_save">Speichern</string>
 
     <!-- Note tags -->
     <string name="tags_filter_all">Tags: Alle</string>

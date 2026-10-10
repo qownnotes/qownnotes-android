@@ -1858,6 +1858,11 @@ private fun NoteListScreen(
                     ) {
                         Text(stringResource(R.string.appearance))
                     }
+                    TextButton(
+                        onClick = { component.settings.resetDeckLinkOpening() },
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                            .testTag("reset-deck-opening")
+                    ) { Text(stringResource(R.string.deck_reset_opening)) }
                     Button(
                         onClick = {
                             showSettings = false
@@ -2830,6 +2835,7 @@ private fun NoteDetailScreen(
     }
     // The selected text when the dialog opened, offered as the card title. Null hides the dialog.
     var deckCardTitle by rememberSaveable(localId) { mutableStateOf<String?>(null) }
+    var deckLinkUrl by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     val imagePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
@@ -3896,7 +3902,18 @@ private fun NoteDetailScreen(
                                         }
                                     },
                                     onExternalLink = { url ->
-                                        component.deckCardOpener.open(url, account)
+                                        val currentAccount = account
+                                        if (currentAccount != null &&
+                                            org.qownnotes.mobile.core.NextcloudDeck.parseCardLink(
+                                                url,
+                                                currentAccount.serverUrl
+                                            ) != null
+                                        ) {
+                                            deckLinkUrl = url
+                                            true
+                                        } else {
+                                            false
+                                        }
                                     },
                                     onTaskToggle = if (
                                         source != null &&
@@ -4220,6 +4237,12 @@ private fun NoteDetailScreen(
         )
     }
     val deckAccountId = account?.id
+    val pendingDeckLink = deckLinkUrl
+    if (pendingDeckLink != null && account != null) {
+        DeckCardLinkDialog(component, account, pendingDeckLink, onDismiss = {
+            deckLinkUrl = null
+        })
+    }
     val pendingDeckCardTitle = deckCardTitle
     if (pendingDeckCardTitle != null && editing && nextcloudDeckAvailable &&
         deckAccountId != null

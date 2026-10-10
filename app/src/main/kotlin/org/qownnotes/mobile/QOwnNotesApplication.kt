@@ -37,7 +37,9 @@ import org.qownnotes.mobile.backend.nextcloud.NextcloudBackend
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.DeckBoard
+import org.qownnotes.mobile.core.DeckCardDetails
 import org.qownnotes.mobile.core.DeckCardDraft
+import org.qownnotes.mobile.core.DeckCardLink
 import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.NextcloudDeck
 import org.qownnotes.mobile.core.Note
@@ -904,6 +906,20 @@ class ApplicationComponent(
         val created = requireDeckBackend().createDeckCard(account, target, card)
         settings.setNextcloudDeckTarget(accountId, target)
         return NextcloudDeck.cardMarkdownLink(account.serverUrl, created)
+    }
+
+    suspend fun deckCard(accountId: String, link: DeckCardLink): DeckCardDetails {
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        return requireDeckBackend().deckCard(account, link)
+    }
+
+    suspend fun updateDeckCard(
+        accountId: String,
+        original: DeckCardDetails,
+        draft: DeckCardDraft
+    ): DeckCardDetails {
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        return requireDeckBackend().updateDeckCard(account, original, draft)
     }
 
     private fun scheduleSync(accountId: String, delayMillis: Long = 1_500) {

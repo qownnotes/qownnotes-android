@@ -18,7 +18,9 @@ import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.DeckBoard
 import org.qownnotes.mobile.core.DeckCard
+import org.qownnotes.mobile.core.DeckCardDetails
 import org.qownnotes.mobile.core.DeckCardDraft
+import org.qownnotes.mobile.core.DeckCardLink
 import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
@@ -93,6 +95,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         component.settings.setCompactNoteList(false)
         component.settings.setAskForNewNoteName(false)
         component.settings.setAppearance(AppAppearance())
+        component.settings.resetDeckLinkOpening()
         fakeBackend.reset()
         fakeAccountImporter.reset()
         fakeSyncScheduler.reset()
@@ -228,6 +231,38 @@ class FakePullBackend :
     var deckBoardsFailure: Throwable? = null
     var createDeckCardFailure: Throwable? = null
     val createdDeckCards = mutableListOf<Pair<DeckStackTarget, DeckCardDraft>>()
+    val existingDeckCards = mutableMapOf<Long, DeckCardDetails>()
+    var loadDeckCardFailure: Throwable? = null
+    var updateDeckCardFailure: Throwable? = null
+    val updatedDeckCards = mutableListOf<DeckCardDraft>()
+
+    override suspend fun deckCard(account: Account, link: DeckCardLink): DeckCardDetails {
+        loadDeckCardFailure?.let {
+            loadDeckCardFailure = null
+            throw it
+        }
+        return existingDeckCards[link.cardId]?.takeIf { it.boardId == link.boardId }
+            ?: throw BackendException.RemoteMissing()
+    }
+
+    override suspend fun updateDeckCard(
+        account: Account,
+        original: DeckCardDetails,
+        draft: DeckCardDraft
+    ): DeckCardDetails {
+        updateDeckCardFailure?.let {
+            updateDeckCardFailure = null
+            throw it
+        }
+        if (!original.editable) throw BackendException.Permission()
+        if (existingDeckCards[original.id] != original) throw BackendException.Conflict()
+        updatedDeckCards += draft
+        return original.copy(
+            title = draft.title,
+            description = draft.description,
+            dueAtEpochSeconds = draft.dueAtEpochSeconds
+        ).also { existingDeckCards[it.id] = it }
+    }
 
     override suspend fun supportsDeck(account: Account): Boolean {
         deckSupportChecks += account.id
@@ -411,6 +446,10 @@ class FakePullBackend :
         deckBoardsFailure = null
         createDeckCardFailure = null
         createdDeckCards.clear()
+        existingDeckCards.clear()
+        loadDeckCardFailure = null
+        updateDeckCardFailure = null
+        updatedDeckCards.clear()
         nextDeckCardId = 500L
     }
 

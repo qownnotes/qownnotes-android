@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="deck_open_card">Apri scheda Deck</string>
+    <string name="deck_open_card_question">Dove vuoi modificare questa scheda?</string>
+    <string name="deck_remember_choice">Ricorda la scelta per questo account</string>
+    <string name="deck_edit_in_app">Modifica in QOwnNotes</string>
+    <string name="deck_open_external">Apri in Deck</string>
+    <string name="deck_reset_opening">Reimposta le preferenze dei collegamenti Deck</string>
+    <string name="deck_edit_card">Modifica scheda Deck</string>
+    <string name="deck_read_only">Puoi visualizzare questa scheda, ma non modificarla.</string>
+    <string name="deck_archived">Scheda archiviata</string>
+    <string name="deck_reload_card">Ricarica scheda</string>
+    <string name="deck_reload_discard">Scartare le modifiche non salvate e caricare la versione più recente dal server?</string>
+    <string name="deck_card_changed">Questa scheda è cambiata sul server. Il testo inserito viene conservato. Ricarica la scheda prima di modificarla di nuovo.</string>
+    <string name="deck_card_missing">Questa scheda non esiste più o non è più accessibile.</string>
+    <string name="deck_card_request_failed">Impossibile caricare o salvare la scheda Deck</string>
+    <string name="deck_saving">Salvataggio…</string>
+    <string name="deck_save">Salva</string>
+</resources>

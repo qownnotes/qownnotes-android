@@ -16,6 +16,7 @@ import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.DeckBoard
 import org.qownnotes.mobile.core.DeckCard
 import org.qownnotes.mobile.core.DeckCardDraft
+import org.qownnotes.mobile.core.DeckCardLink
 import org.qownnotes.mobile.core.DeckStack
 import org.qownnotes.mobile.core.DeckStackTarget
 import retrofit2.Retrofit
@@ -195,6 +196,109 @@ class DeckApiMockServerTest {
             createDeckCardWithApi(deckApi, DeckStackTarget(2, 11), DeckCardDraft(" \n "))
         }
         assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun resolvesTheCardsCurrentListAndLoadsItsDetails() {
+        enqueueCardLoad()
+        val card = loadDeckCardWithApi(deckApi, DeckCardLink(2, 42))
+        assertEquals(11L, card.stackId)
+        assertEquals("alice", card.owner)
+        assertEquals(7, card.order)
+        assertEquals(1_790_000_000L, card.dueAtEpochSeconds)
+        assertTrue(card.editable)
+        assertEquals("2026-09-20T10:00:00Z", card.startDate)
+        server.takeRequest()
+        server.takeRequest()
+        assertEquals(
+            "/index.php/apps/deck/api/v1.1/boards/2/stacks/11/cards/42",
+            server.takeRequest().path
+        )
+    }
+
+    @Test
+    fun findsArchivedCardsAndFailsClosedForUnknownPermissions() {
+        server.enqueue(jsonResponse("""{"id":2}"""))
+        server.enqueue(jsonResponse("[]"))
+        server.enqueue(jsonResponse("""[{"id":12,"cards":[{"id":42}]}]"""))
+        server.enqueue(
+            jsonResponse(
+                fullCard.replace(
+                    "\"stackId\":11",
+                    "\"stackId\":12"
+                ).replace("\"archived\":false", "\"archived\":true")
+            )
+        )
+        val card = loadDeckCardWithApi(deckApi, DeckCardLink(2, 42))
+        assertTrue(card.archived)
+        assertFalse(card.editable)
+        assertEquals(12L, card.stackId)
+        assertThrows(BackendException.Permission::class.java) {
+            updateDeckCardWithApi(deckApi, card, DeckCardDraft("No"))
+        }
+        assertEquals(4, server.requestCount)
+    }
+
+    @Test
+    fun updatingPreservesMetadataAndExplicitlyClearsDueDate() {
+        enqueueCardLoad()
+        val original = loadDeckCardWithApi(deckApi, DeckCardLink(2, 42))
+        repeat(3) { server.takeRequest() }
+        enqueueCardLoad()
+        server.enqueue(jsonResponse(fullCard))
+        updateDeckCardWithApi(deckApi, original, DeckCardDraft("Edited", "New description"))
+        repeat(3) { server.takeRequest() }
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/index.php/apps/deck/api/v1.1/boards/2/stacks/11/cards/42", request.path)
+        assertNull(request.getHeader("OCS-APIRequest"))
+        val body = JsonParser.parseString(request.body.readUtf8()).asJsonObject
+        assertEquals("Edited", body["title"].asString)
+        assertEquals("New description", body["description"].asString)
+        assertEquals("alice", body["owner"].asString)
+        assertEquals(7, body["order"].asInt)
+        assertEquals("plain", body["type"].asString)
+        assertFalse(body["archived"].asBoolean)
+        assertTrue(body["duedate"].isJsonNull)
+        assertEquals("2026-09-20T10:00:00Z", body["startdate"].asString)
+        assertFalse(body.has("done"))
+        assertFalse(body.has("labels"))
+    }
+
+    @Test
+    fun changedCardStopsBeforeWriting() {
+        enqueueCardLoad()
+        val original = loadDeckCardWithApi(deckApi, DeckCardLink(2, 42))
+        enqueueCardLoad(etag = "new-etag")
+        assertThrows(BackendException.Conflict::class.java) {
+            updateDeckCardWithApi(deckApi, original, DeckCardDraft("Edited"))
+        }
+        assertEquals(6, server.requestCount)
+    }
+
+    @Test
+    fun missingCardsAreNotRecreatedAndForbiddenIsNotReportedAsMissing() {
+        server.enqueue(jsonResponse("""{"id":2}"""))
+        server.enqueue(jsonResponse("[]"))
+        server.enqueue(jsonResponse("[]"))
+        assertThrows(BackendException.RemoteMissing::class.java) {
+            loadDeckCardWithApi(deckApi, DeckCardLink(2, 42))
+        }
+        server.enqueue(MockResponse().setResponseCode(403))
+        assertThrows(BackendException.Permission::class.java) {
+            loadDeckCardWithApi(deckApi, DeckCardLink(2, 42))
+        }
+    }
+
+    private val fullCard = """{"id":42,"stackId":11,"title":"Call Alice","description":"Report",
+        "owner":"alice","order":7,"type":"plain","archived":false,
+        "duedate":"2026-09-21T14:13:20Z","startdate":"2026-09-20T10:00:00Z"}
+    """.trimIndent()
+
+    private fun enqueueCardLoad(etag: String = "card-etag") {
+        server.enqueue(jsonResponse("""{"id":2,"permissions":{"PERMISSION_EDIT":true}}"""))
+        server.enqueue(jsonResponse("""[{"id":11,"cards":[{"id":42}]}]"""))
+        server.enqueue(jsonResponse(fullCard).setHeader("ETag", etag))
     }
 
     private fun jsonResponse(body: String) = MockResponse()

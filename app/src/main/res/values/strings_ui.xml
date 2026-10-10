@@ -78,6 +78,22 @@
     <string name="deck_create_card_failed">Could not create the Deck card</string>
     <string name="deck_creating">Creating</string>
     <string name="deck_create_and_link">Create and link</string>
+    <string name="deck_open_card">Open Deck card</string>
+    <string name="deck_open_card_question">Where would you like to edit this card?</string>
+    <string name="deck_remember_choice">Remember my choice for this account</string>
+    <string name="deck_edit_in_app">Edit in QOwnNotes</string>
+    <string name="deck_open_external">Open in Deck</string>
+    <string name="deck_reset_opening">Reset Deck link opening preferences</string>
+    <string name="deck_edit_card">Edit Deck card</string>
+    <string name="deck_read_only">You can view this card, but you cannot edit it.</string>
+    <string name="deck_archived">Archived card</string>
+    <string name="deck_reload_card">Reload card</string>
+    <string name="deck_reload_discard">Discard your unsaved card changes and load the latest server version?</string>
+    <string name="deck_card_changed">This card changed on the server. Your input is kept. Reload the card before editing again.</string>
+    <string name="deck_card_missing">This card no longer exists, or it is no longer accessible.</string>
+    <string name="deck_card_request_failed">Could not load or save the Deck card</string>
+    <string name="deck_saving">Saving…</string>
+    <string name="deck_save">Save</string>
 
     <!-- Note tags -->
     <string name="tags_filter_all">Tags: All</string>

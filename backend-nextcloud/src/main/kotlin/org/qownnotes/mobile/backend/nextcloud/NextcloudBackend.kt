@@ -31,7 +31,9 @@ import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.DeckBoard
 import org.qownnotes.mobile.core.DeckCard
+import org.qownnotes.mobile.core.DeckCardDetails
 import org.qownnotes.mobile.core.DeckCardDraft
+import org.qownnotes.mobile.core.DeckCardLink
 import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
@@ -266,6 +268,27 @@ class NextcloudBackend(context: Context) :
     ): DeckCard = withContext(Dispatchers.IO) {
         try {
             withDeckApi(account) { deckApi -> createDeckCardWithApi(deckApi, target, card) }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun deckCard(account: Account, link: DeckCardLink): DeckCardDetails =
+        withContext(Dispatchers.IO) {
+            try {
+                withDeckApi(account) { loadDeckCardWithApi(it, link) }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun updateDeckCard(
+        account: Account,
+        original: DeckCardDetails,
+        draft: DeckCardDraft
+    ): DeckCardDetails = withContext(Dispatchers.IO) {
+        try {
+            withDeckApi(account) { updateDeckCardWithApi(it, original, draft) }
         } catch (error: Throwable) {
             throw error.asBackendException()
         }

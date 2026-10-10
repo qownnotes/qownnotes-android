@@ -9,6 +9,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Tapping a Deck card link offers editing in QOwnNotes or opening in Deck, with an optional
+  remembered choice per account and a Settings action to reset all choices. The in-app editor
+  updates the existing card's title, description, and due date without changing the note link
+  ([#27](https://github.com/qownnotes/qownnotes-android/issues/27)).
 - Tap the note-list widget's title bar to open its account's notes in the app for browsing and
   searching ([#28](https://github.com/qownnotes/qownnotes-android/issues/28)).
 

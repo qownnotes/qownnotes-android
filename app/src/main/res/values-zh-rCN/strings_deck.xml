@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="deck_open_card">打开 Deck 卡片</string>
+    <string name="deck_open_card_question">你想在哪里编辑此卡片？</string>
+    <string name="deck_remember_choice">记住此账号的选择</string>
+    <string name="deck_edit_in_app">在 QOwnNotes 中编辑</string>
+    <string name="deck_open_external">在 Deck 中打开</string>
+    <string name="deck_reset_opening">重置 Deck 链接打开偏好</string>
+    <string name="deck_edit_card">编辑 Deck 卡片</string>
+    <string name="deck_read_only">你可以查看此卡片，但无法编辑。</string>
+    <string name="deck_archived">已归档卡片</string>
+    <string name="deck_reload_card">重新加载卡片</string>
+    <string name="deck_reload_discard">放弃未保存的更改并加载服务器上的最新版本？</string>
+    <string name="deck_card_changed">此卡片已在服务器上更改。你的输入已保留。请重新加载卡片后再编辑。</string>
+    <string name="deck_card_missing">此卡片已不存在或无法访问。</string>
+    <string name="deck_card_request_failed">无法加载或保存 Deck 卡片</string>
+    <string name="deck_saving">正在保存…</string>
+    <string name="deck_save">保存</string>
+</resources>

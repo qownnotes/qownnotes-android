@@ -20,7 +20,14 @@ the collection checkpoint.
 
 Nextcloud Deck is a second optional companion, exposed through the `NoteDeckBackend` contract.
 The app detects Deck from the server capabilities instead of an opt-in setting.
-The adapter lists boards and creates cards through the Deck REST API v1.1 on demand. Deck data is
+The adapter lists boards, creates cards, and loads/edits linked cards through the Deck REST API
+v1.1 on demand. Card links first offer the in-app editor or the external Deck app/browser, with
+an optional remembered choice per account and a global reset in Settings. Card updates preserve
+owner, order, type, archive state, and start date, and explicitly clear a removed due date. A fresh
+server snapshot is compared before updating; Deck's card update controller does not enforce
+`If-Match`, so this detects stale edits but cannot guarantee atomic protection against a
+simultaneous external write. Failed saves keep input; reloading explicitly confirms discarding it.
+Deck data is
 not cached in Room and Deck requests never read or write notes; only the card link inserted into
 the note's Markdown enters the normal note-write path.
 

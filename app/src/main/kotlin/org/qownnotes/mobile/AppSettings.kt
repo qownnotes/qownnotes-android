@@ -296,8 +296,26 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
             .remove("$NEXTCLOUD_DECK_AVAILABLE_PREFIX$accountId")
             .remove("$NEXTCLOUD_DECK_BOARD_PREFIX$accountId")
             .remove("$NEXTCLOUD_DECK_STACK_PREFIX$accountId")
+            .remove("$NEXTCLOUD_DECK_OPEN_PREFIX$accountId")
             .apply()
         mutableNextcloudDeckAvailable.remove(accountId)?.value = false
+    }
+
+    fun deckLinkOpening(accountId: String): DeckLinkOpening? =
+        preferences.getString("$NEXTCLOUD_DECK_OPEN_PREFIX$accountId", null)?.let { value ->
+            DeckLinkOpening.entries.firstOrNull { it.name == value }
+        }
+
+    fun setDeckLinkOpening(accountId: String, opening: DeckLinkOpening) {
+        preferences.edit().putString("$NEXTCLOUD_DECK_OPEN_PREFIX$accountId", opening.name).apply()
+    }
+
+    /** Clears opening choices for every account, without touching availability or target lists. */
+    fun resetDeckLinkOpening() {
+        val editor = preferences.edit()
+        preferences.all.keys.filter { it.startsWith(NEXTCLOUD_DECK_OPEN_PREFIX) }
+            .forEach(editor::remove)
+        editor.apply()
     }
 
     private fun mutableNextcloudDeckAvailable(accountId: String): MutableStateFlow<Boolean> =
@@ -347,8 +365,11 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val NEXTCLOUD_DECK_AVAILABLE_PREFIX = "nextcloudDeckAvailable."
         const val NEXTCLOUD_DECK_BOARD_PREFIX = "nextcloudDeckBoardId."
         const val NEXTCLOUD_DECK_STACK_PREFIX = "nextcloudDeckStackId."
+        const val NEXTCLOUD_DECK_OPEN_PREFIX = "nextcloudDeckOpen."
     }
 }
+
+enum class DeckLinkOpening { QOWNNOTES, DECK }
 
 /**
  * Note-list presentation choices. A `null` color follows the Material theme, including dark mode.

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="deck_open_card">Abrir tarjeta de Deck</string>
+    <string name="deck_open_card_question">¿Dónde quieres editar esta tarjeta?</string>
+    <string name="deck_remember_choice">Recordar mi elección para esta cuenta</string>
+    <string name="deck_edit_in_app">Editar en QOwnNotes</string>
+    <string name="deck_open_external">Abrir en Deck</string>
+    <string name="deck_reset_opening">Restablecer preferencias de enlaces de Deck</string>
+    <string name="deck_edit_card">Editar tarjeta de Deck</string>
+    <string name="deck_read_only">Puedes ver esta tarjeta, pero no editarla.</string>
+    <string name="deck_archived">Tarjeta archivada</string>
+    <string name="deck_reload_card">Recargar tarjeta</string>
+    <string name="deck_reload_discard">¿Descartar los cambios sin guardar y cargar la última versión del servidor?</string>
+    <string name="deck_card_changed">Esta tarjeta cambió en el servidor. Se conserva tu texto. Recarga la tarjeta antes de volver a editarla.</string>
+    <string name="deck_card_missing">Esta tarjeta ya no existe o no es accesible.</string>
+    <string name="deck_card_request_failed">No se pudo cargar o guardar la tarjeta de Deck</string>
+    <string name="deck_saving">Guardando…</string>
+    <string name="deck_save">Guardar</string>
+</resources>
