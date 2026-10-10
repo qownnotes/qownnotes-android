@@ -32,7 +32,9 @@ class DeckApiMockServerTest {
         server.start()
         deckApi = Retrofit.Builder()
             .baseUrl(server.url(DECK_ENDPOINT))
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(
+                GsonConverterFactory.create(com.google.gson.GsonBuilder().serializeNulls().create())
+            )
             .build()
             .create(DeckApi::class.java)
     }
@@ -370,6 +372,66 @@ class DeckApiMockServerTest {
         server.enqueue(jsonResponse("""{"id":2,"permissions":{"PERMISSION_EDIT":true}}"""))
         server.enqueue(jsonResponse("""[{"id":11,"cards":[{"id":42}]}]"""))
         server.enqueue(jsonResponse(fullCard).setHeader("ETag", etag))
+    }
+
+    @Test
+    fun detailedOwnerObjectsLoadAndUpdateUsingTheirUidNotTheirDisplayName() {
+        val detailed = fullCard.replace(
+            "\"owner\":\"alice\"",
+            """"owner":{"uid":"alice","primaryKey":"alice","displayname":"Alice Example"}"""
+        )
+        server.enqueue(jsonResponse("""{"id":2,"permissions":{"PERMISSION_EDIT":true}}"""))
+        server.enqueue(jsonResponse("""[{"id":11,"cards":[$detailed]}]"""))
+        assertEquals(
+            "alice",
+            loadDeckCardsWithApi(deckApi, DeckStackTarget(2, 11), false).single().owner
+        )
+        server.enqueue(jsonResponse("""{"id":2,"permissions":{"PERMISSION_EDIT":true}}"""))
+        server.enqueue(jsonResponse("""[{"id":11,"cards":[{"id":42}]}]"""))
+        server.enqueue(jsonResponse(detailed))
+        val original = loadDeckCardWithApi(deckApi, DeckCardLink(2, 42))
+        assertEquals("alice", original.owner)
+        repeat(5) { server.takeRequest() }
+        server.enqueue(jsonResponse("""{"id":2,"permissions":{"PERMISSION_EDIT":true}}"""))
+        server.enqueue(jsonResponse("""[{"id":11,"cards":[{"id":42}]}]"""))
+        server.enqueue(jsonResponse(detailed))
+        server.enqueue(jsonResponse(detailed))
+        updateDeckCardWithApi(deckApi, original, DeckCardDraft("Edited"))
+        repeat(3) { server.takeRequest() }
+        val body = JsonParser.parseString(server.takeRequest().body.readUtf8()).asJsonObject
+        assertEquals("alice", body["owner"].asString)
+        assertTrue(body["duedate"].isJsonNull)
+    }
+
+    @Test
+    fun ownerUidFallbackAndInvalidOwnerShapesAreHandledConservatively() {
+        assertEquals("alice", deckCardOwner(JsonParser.parseString("""{"primaryKey":"alice"}""")))
+        for (invalid in listOf("null", "42", "[]", "{}", """{"displayname":"Alice"}""")) {
+            assertThrows(BackendException.Protocol::class.java) {
+                deckCardOwner(JsonParser.parseString(invalid))
+            }
+        }
+    }
+
+    @Test
+    fun ssoWrappedParsingErrorsAreNotReportedAsFilesUnavailable() {
+        server.enqueue(
+            MockResponse().setResponseCode(900)
+                .setBody(
+                    "com.google.gson.JsonSyntaxException: Expected a string but was BEGIN_OBJECT"
+                )
+        )
+        val failure = assertThrows(BackendException.Protocol::class.java) {
+            loadDeckCardsWithApi(deckApi, DeckStackTarget(2, 11), false)
+        }
+        assertEquals("Nextcloud Deck returned malformed JSON", failure.message)
+        server.enqueue(
+            MockResponse().setResponseCode(900)
+                .setBody("com.nextcloud.android.sso.exceptions.NextcloudApiNotRespondingException")
+        )
+        assertThrows(BackendException.FilesAppUnavailable::class.java) {
+            loadDeckCardsWithApi(deckApi, DeckStackTarget(2, 11), false)
+        }
     }
 
     @Test

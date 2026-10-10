@@ -1,5 +1,6 @@
 package org.qownnotes.mobile.backend.nextcloud
 
+import com.google.gson.JsonElement
 import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
@@ -7,9 +8,6 @@ import com.nextcloud.android.sso.api.ParsedResponse
 import io.reactivex.Observable
 import java.net.HttpURLConnection
 import java.time.Instant
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.DeckBoard
 import org.qownnotes.mobile.core.DeckCard
@@ -74,7 +72,7 @@ internal interface DeckApi {
         @Path("boardId") boardId: Long,
         @Path("stackId") stackId: Long,
         @Path("cardId") cardId: Long,
-        @Body request: RequestBody
+        @Body request: JsonObject
     ): Call<DeckCardDto>
 
     @Headers("Accept: application/json", "Content-Type: application/json")
@@ -139,13 +137,13 @@ internal fun updateDeckCardWithApi(
                 ?: JsonNull.INSTANCE
         )
     }
-    // Gson's default converter omits JSON nulls even from a JsonObject. Explicit serialization
-    // makes removing a due date clear the server value instead of silently retaining it.
+    // Deck Gson uses serializeNulls for both standard Retrofit and SSO, which serializes @Body
+    // values directly through Gson. RequestBody would be serialized as an object by SSO.
     val response = deckApi.updateCard(
         current.boardId,
         current.stackId,
         current.id,
-        request.toString().toRequestBody("application/json".toMediaType())
+        request
     ).execute()
     return response.deckBody("card").details(
         current.boardId,
@@ -177,7 +175,7 @@ private fun DeckCardDto.details(
                 throw BackendException.Protocol("Deck returned an invalid due date", error)
             }
         },
-        owner = owner ?: throw BackendException.Protocol("Deck card is missing its owner"),
+        owner = deckCardOwner(owner),
         order = order ?: throw BackendException.Protocol("Deck card is missing its order"),
         type = type ?: throw BackendException.Protocol("Deck card is missing its type"),
         archived = archived,
@@ -185,6 +183,22 @@ private fun DeckCardDto.details(
         etag = etag ?: this.etag,
         editable = editable
     )
+}
+
+/** Detailed Deck responses resolve owners to user objects; older responses use a UID string. */
+internal fun deckCardOwner(owner: JsonElement?): String {
+    val uid = when {
+        owner == null || owner.isJsonNull -> null
+        owner.isJsonPrimitive && owner.asJsonPrimitive.isString -> owner.asString
+        owner.isJsonObject -> listOf("uid", "primaryKey").firstNotNullOfOrNull { key ->
+            owner.asJsonObject.get(key)
+                ?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }
+                ?.asString?.takeIf(String::isNotBlank)
+        }
+        else -> null
+    }
+    return uid?.takeIf(String::isNotBlank)
+        ?: throw BackendException.Protocol("Deck card is missing its owner UID")
 }
 
 internal fun loadDeckBoardsWithApi(
@@ -303,6 +317,18 @@ private fun <T> Response<T>.deckBody(
 ): T {
     if (!isSuccessful) {
         val status = code()
+        // SSO wraps JSON conversion errors as HTTP 900 too. Do not mislabel those as an
+        // unavailable Files app, or expose response content in the user-facing error.
+        if (status == 900) {
+            val detail = errorBody()?.string().orEmpty()
+            if (detail.contains(
+                    "JsonSyntaxException"
+                ) || detail.contains("MalformedJsonException") ||
+                detail.contains("JsonParseException") || detail.contains("Expected a string")
+            ) {
+                throw BackendException.Protocol("Nextcloud Deck returned malformed JSON")
+            }
+        }
         if (missingDeckIsUnavailable && status == HttpURLConnection.HTTP_NOT_FOUND) {
             throw BackendException.FeatureUnavailable(
                 "Install and enable the Deck app on Nextcloud"
@@ -354,7 +380,7 @@ internal data class DeckCardDto(
     val description: String? = null,
     val duedate: String? = null,
     val startdate: String? = null,
-    val owner: String? = null,
+    val owner: JsonElement? = null,
     val order: Int? = null,
     val type: String? = null,
     val archived: Boolean = false,

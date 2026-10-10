@@ -22,6 +22,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Deck menus have a board icon. Card loading accepts detailed Deck owner objects as well as
+  owner IDs, and JSON parsing failures are no longer reported as an unavailable Nextcloud Files
+  app. Card updates use SSO-compatible JSON serialization, including explicit date removal.
 - Note conflicts show a plain-language explanation instead of exception details. **Resolve
   conflict** is available while editing and saves the latest draft before opening the version
   comparison and recovery dialog.

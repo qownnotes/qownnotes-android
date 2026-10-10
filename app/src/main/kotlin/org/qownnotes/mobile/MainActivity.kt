@@ -1518,6 +1518,12 @@ private fun NoteListScreen(
                                                 text = {
                                                     Text(stringResource(R.string.deck_cards))
                                                 },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        Icons.Filled.ViewKanban,
+                                                        contentDescription = null
+                                                    )
+                                                },
                                                 onClick = {
                                                     noteListMenuOpen = false
                                                     showDeckBrowser = true
@@ -3328,6 +3334,12 @@ private fun NoteDetailScreen(
                                     if (nextcloudDeckAvailable) {
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.deck_cards)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.ViewKanban,
+                                                    contentDescription = null
+                                                )
+                                            },
                                             onClick = {
                                                 noteMenuOpen = false
                                                 showNoteDeckBrowser = true

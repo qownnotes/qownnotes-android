@@ -23,8 +23,13 @@ The app detects Deck from the server capabilities instead of an opt-in setting.
 The adapter lists boards, creates cards, and loads/edits linked cards through the Deck REST API
 v1.1 on demand. Card links first offer the in-app editor or the external Deck app/browser, with
 an optional remembered choice per account and a global reset in Settings. Card updates preserve
-owner, order, type, archive state, and start date, and explicitly clear a removed due date. A fresh
-server snapshot is compared before updating; Deck's card update controller does not enforce
+owner, order, type, archive state, and start date, and explicitly clear a removed due date.
+Deck-specific Gson serializer includes JSON nulls for date removal with both Retrofit and SSO;
+SSO serializes `@Body` values itself, so Deck update bodies are JSON objects, not `RequestBody`.
+Detailed card owners may be UID strings or resolved user objects; writes always preserve the UID.
+SSO-wrapped JSON conversion failures (HTTP 900) are classified as protocol errors for Deck,
+not as an unavailable Files app.
+A fresh server snapshot is compared before updating; Deck's card update controller does not enforce
 `If-Match`, so this detects stale edits but cannot guarantee atomic protection against a
 simultaneous external write. Failed saves keep input; reloading explicitly confirms discarding it.
 The Deck browser loads readable boards and list-scoped cards, optionally merging archived cards

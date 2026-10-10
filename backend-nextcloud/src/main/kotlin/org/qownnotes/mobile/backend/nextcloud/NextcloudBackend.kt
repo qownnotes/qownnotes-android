@@ -70,6 +70,7 @@ class NextcloudBackend(context: Context) :
     NoteDeckBackend {
     private val applicationContext = context.applicationContext
     private val gson = GsonBuilder().create()
+    private val deckGson = GsonBuilder().serializeNulls().create()
 
     override val capabilities =
         BackendCapabilities(
@@ -325,7 +326,7 @@ class NextcloudBackend(context: Context) :
     }
 
     private fun <T> withDeckApi(account: Account, block: (DeckApi) -> T): T =
-        withNextcloudApi(account) { api ->
+        withNextcloudApi(account, deckGson) { api ->
             block(NextcloudRetrofitApiBuilder(api, DECK_ENDPOINT).create(DeckApi::class.java))
         }
 
@@ -371,7 +372,11 @@ class NextcloudBackend(context: Context) :
             block(NextcloudWebDavRequestClient(api), webDavEndpoint(account, settings.notesPath))
         }
 
-    private fun <T> withNextcloudApi(account: Account, block: (NextcloudAPI) -> T): T {
+    private fun <T> withNextcloudApi(
+        account: Account,
+        requestGson: com.google.gson.Gson = gson,
+        block: (NextcloudAPI) -> T
+    ): T {
         if (AccountImporter.getAccountForName(applicationContext, account.ssoAccountName) == null) {
             throw BackendException.AccountRemoved()
         }
@@ -380,7 +385,7 @@ class NextcloudBackend(context: Context) :
         } catch (error: NextcloudFilesAppAccountNotFoundException) {
             throw BackendException.AuthorizationRequired(error)
         }
-        val api = NextcloudAPI(applicationContext, ssoAccount, gson)
+        val api = NextcloudAPI(applicationContext, ssoAccount, requestGson)
         return try {
             block(api)
         } finally {
