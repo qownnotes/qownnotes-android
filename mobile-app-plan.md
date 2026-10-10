@@ -357,6 +357,14 @@ Editor requirements:
   toolbar with a help button that explains every tool, point to both once with a dismissible
   hint, and offer an optional setting that shows a short label under each icon. A single
   `EditorTool` list drives the toolbar, tooltips, labels, and help so they cannot disagree.
+  Keep the toolbar at the bottom of the editor, directly above the keyboard.
+- Keep the editor's vertical space for the note: cancelling and finishing live in the top bar
+  (Cancel as the navigation icon, Done as the prominent action), and rarely used actions such as
+  text size, tags, and information are in the editing menu. Actions that would conflict with the
+  open draft, such as renaming, moving, or trashing, stay in the note view's menu.
+- In the note view, start editing from an extended Edit button that collapses while scrolling
+  down. Show note state (sync errors, conflicts, missing notes, read-only access) on tinted
+  panels with their recovery actions, and give every icon button a long-press tooltip.
 - Continue unordered, ordered, and task-list markers when Return starts a new item, and leave the
   list when Return is pressed on an empty item.
 - Remove a single trailing space before an inserted Return, preserving two or more spaces for

@@ -3658,7 +3658,7 @@ private fun NoteDetailScreen(
                             view.onVerticalScrollChanged = null
                             view.releaseInputFocus()
                         },
-                        modifier = Modifier.fillMaxSize().padding(end = 48.dp)
+                        modifier = Modifier.fillMaxSize().padding(end = FAST_SCROLLER_WIDTH)
                             .testTag("markdown-editor")
                     )
                     EditorFastScroller(
@@ -4017,7 +4017,7 @@ private fun NoteDetailScreen(
                             )
                             if (found != matches) matches = found
                         },
-                        modifier = Modifier.fillMaxWidth().padding(end = 48.dp)
+                        modifier = Modifier.fillMaxWidth().padding(end = FAST_SCROLLER_WIDTH)
                             .verticalScroll(scrollState).padding(20.dp)
                             // The end of the note can scroll out from under the edit button.
                             .padding(bottom = if (showEditButton) 72.dp else 0.dp)
@@ -4025,7 +4025,9 @@ private fun NoteDetailScreen(
                     )
                     NoteFastScroller(
                         scrollState = scrollState,
+                        // Keeps the thumb's end of the rail clear of the edit button.
                         modifier = Modifier.align(Alignment.CenterEnd)
+                            .padding(bottom = if (showEditButton) 80.dp else 0.dp)
                     )
                 }
             }
@@ -4940,6 +4942,8 @@ internal fun EditorFastScroller(
     )
 }
 
+private val FAST_SCROLLER_WIDTH = 24.dp
+
 @Composable
 private fun FastScroller(
     scrollValue: Int,
@@ -4951,7 +4955,7 @@ private fun FastScroller(
 ) {
     if (scrollRange <= 0) return
     BoxWithConstraints(
-        modifier = modifier.fillMaxHeight().width(48.dp)
+        modifier = modifier.fillMaxHeight().width(FAST_SCROLLER_WIDTH)
             .semantics { this.contentDescription = contentDescription }
             .testTag(testTag)
     ) {
@@ -4971,7 +4975,6 @@ private fun FastScroller(
         }
         Box(
             modifier = Modifier.fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35F))
                 .pointerInput(scrollRange, trackHeight, thumbHeight) {
                     detectVerticalDragGestures(
                         onDragStart = { scrollTo(it.y) },
@@ -4982,16 +4985,19 @@ private fun FastScroller(
                     )
                 }
         ) {
+            // A slim rail and thumb keep the text's full width readable. The whole strip still
+            // takes drags, so the thumb does not have to be hit exactly.
             Box(
-                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(4.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant)
+                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 2.dp)
+                    .fillMaxHeight().width(2.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant, CircleShape)
             )
             Box(
                 modifier = Modifier.align(Alignment.TopEnd)
                     .offset { IntOffset(0, thumbOffset.roundToInt()) }
-                    .width(12.dp)
+                    .width(6.dp)
                     .height(with(density) { thumbHeight.toDp() })
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
             )
         }
     }
@@ -5049,22 +5055,69 @@ private fun FindInNoteBar(
     val focusRequester = remember { FocusRequester() }
     // Opening the bar is a request to type, so take the focus instead of asking for a second tap.
     LaunchedEffect(Unit) { if (focusOnOpen) focusRequester.requestFocus() }
+    val findLabel = stringResource(R.string.find_in_note)
+    val status = findMatchStatus(query, matchCount, currentMatch)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(
+            start = 12.dp,
+            end = 4.dp,
+            top = 4.dp,
+            bottom = 4.dp
+        ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedTextField(
+        BasicTextField(
             value = query,
             onValueChange = onQueryChange,
-            label = { Text(stringResource(R.string.find_in_note)) },
             singleLine = true,
-            supportingText = {
-                Text(
-                    findMatchStatus(query, matchCount, currentMatch),
-                    modifier = Modifier.testTag("find-match-status")
-                )
-            },
-            modifier = Modifier.weight(1f).focusRequester(focusRequester).testTag("note-find-field")
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            modifier = Modifier.weight(1f).height(40.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+                .padding(horizontal = 12.dp)
+                .focusRequester(focusRequester)
+                .semantics { contentDescription = findLabel }
+                .testTag("note-find-field"),
+            decorationBox = { innerTextField ->
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Box(
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (query.isEmpty()) {
+                            Text(
+                                findLabel,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        innerTextField()
+                    }
+                    // Inside the field, the match count cannot shift the note as it appears.
+                    Text(
+                        status,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (query.isNotBlank() && matchCount == 0) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                        modifier = Modifier.testTag("find-match-status")
+                    )
+                }
+            }
         )
         ActionIconButton(
             icon = Icons.Filled.KeyboardArrowUp,
@@ -5090,10 +5143,6 @@ private fun FindInNoteBar(
     }
 }
 
-/**
- * The status is always present, even while it is empty, so that typing a query cannot make the
- * note jump by a text line.
- */
 @Composable
 private fun findMatchStatus(query: String, matchCount: Int, currentMatch: Int): String = when {
     query.isBlank() -> ""

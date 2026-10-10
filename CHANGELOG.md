@@ -72,6 +72,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **Load images** switch, then tags, moving, and renaming, then information, versions, Deck
   cards, and retrying, with **Move to trash** last in red.
 - Tapping a note's tag line opens the tag editor.
+- Find in note uses a compact rounded field with the match count inside it, saving a line in
+  the note view and the editor.
+- The fast scroller is a slim rail and thumb, giving the note text most of the width it used to
+  reserve, and it stays clear of the edit button.
 
 ### Fixed
 
