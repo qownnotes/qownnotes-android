@@ -2,12 +2,23 @@ package org.qownnotes.mobile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddLink
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -20,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -90,6 +102,7 @@ internal fun InsertLinkDialog(
                         if (!manualTitle) title = ""
                     },
                     label = { Text(stringResource(R.string.link_url)) },
+                    leadingIcon = { Icon(Icons.Filled.Link, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     singleLine = true,
                     isError = url.isNotBlank() && safeUrl == null,
@@ -107,31 +120,60 @@ internal fun InsertLinkDialog(
                         manualTitle = true
                     },
                     label = { Text(stringResource(R.string.link_text)) },
+                    leadingIcon = { Icon(Icons.Filled.Title, contentDescription = null) },
+                    trailingIcon = {
+                        if (loading) {
+                            CircularProgressIndicator(
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp).testTag("link-title-loading")
+                            )
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    manualTitle = false
+                                    title = ""
+                                    refreshRequest++
+                                },
+                                enabled = safeUrl != null,
+                                modifier = Modifier.testTag("link-fetch-title")
+                            ) {
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = stringResource(R.string.link_fetch_title)
+                                )
+                            }
+                        }
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("link-text")
                 )
                 if (loading) {
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth().testTag("link-title-loading")
+                    Text(
+                        stringResource(R.string.link_fetching_title),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
-                    Text(stringResource(R.string.link_fetching_title))
                 }
                 if (lookupFailed) {
-                    Text(
-                        stringResource(R.string.link_title_failed),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.testTag("link-title-error")
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp).testTag("link-title-error")
+                    ) {
+                        Icon(
+                            Icons.Filled.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            stringResource(R.string.link_title_failed),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
-                TextButton(
-                    onClick = {
-                        manualTitle = false
-                        title = ""
-                        refreshRequest++
-                    },
-                    enabled = safeUrl != null && !loading,
-                    modifier = Modifier.testTag("link-fetch-title")
-                ) { Text(stringResource(R.string.link_fetch_title)) }
             }
         },
         confirmButton = {
@@ -141,7 +183,17 @@ internal fun InsertLinkDialog(
                 },
                 enabled = safeUrl != null && (!loading || title.isNotBlank()),
                 modifier = Modifier.testTag("insert-link-confirm")
-            ) { Text(stringResource(R.string.link_insert)) }
+            ) {
+                Icon(
+                    Icons.Filled.AddLink,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    stringResource(R.string.link_insert),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
