@@ -12,6 +12,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The optional **Clean trailing spaces on save** setting (off by default) removes single
   trailing spaces only from edited lines, preserving untouched lines and two or more trailing
   spaces for Markdown hard line breaks.
+- Recovery checkpoints no longer reintroduce trailing spaces after save-time cleanup, including
+  when finishing editing releases the editor focus.
 
 ## [1.3.0] - 2026-10-10
 

@@ -630,6 +630,9 @@ class ApplicationComponent(
         editMutexes.getOrPut(localId, ::Mutex).withLock {
             // A checkpoint captured before a newer text callback must never overwrite that text.
             if (!editorDrafts.current(localId, content)) return@withLock true
+            // A completed save may have cleaned this exact editor snapshot. Focus-loss or
+            // periodic checkpoints must not put its raw trailing spaces back into storage.
+            if (editorDrafts.persisted(localId, content)) return@withLock true
             val note = noteRepository.get(localId) ?: return@withLock false
             if (note.readOnly && note.syncState != SyncState.READ_ONLY_CONFLICT) {
                 return@withLock false

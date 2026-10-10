@@ -21,6 +21,9 @@ internal class EditorDraftCache {
     fun current(localId: String, content: String): Boolean =
         drafts[localId]?.content?.let { it == content } ?: true
 
+    fun persisted(localId: String, content: String): Boolean =
+        drafts[localId]?.let { it.content == content && it.persisted } == true
+
     fun markPersisted(localId: String, content: String) {
         drafts.computeIfPresent(localId) { _, current ->
             if (current.content == content) current.copy(persisted = true) else current

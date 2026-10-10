@@ -76,7 +76,7 @@
     <string name="settings_ask_for_new_note_name_description">Предлагать автоматическое имя с возможностью его изменить.</string>
     <string name="settings_show_toolbar_labels">Подписи на панели инструментов</string>
     <string name="settings_remove_edited_trailing_spaces">Удалять конечные пробелы при сохранении</string>
-    <string name="settings_remove_edited_trailing_spaces_description">Удалять одиночные пробелы в конце только изменённых строк. Сохранять неизменённые строки и переносы строк Markdown. По умолчанию отключено.</string>
+    <string name="settings_remove_edited_trailing_spaces_description">Удалять одиночные пробелы в конце только изменённых строк. Сохранять неизменённые строки и переносы строк Markdown.</string>
     <string name="settings_show_toolbar_labels_description">Показывать короткое название под каждым значком панели редактора.</string>
     <string name="settings_bookmarks_file">Файл закладок</string>
     <string name="settings_bookmarks_file_invalid">Укажите относительный путь, оканчивающийся на .md</string>

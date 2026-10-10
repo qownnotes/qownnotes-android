@@ -16,7 +16,12 @@ class EditorDraftCacheTest {
 
         assertFalse(cache.current("note", "older"))
         assertTrue(cache.current("note", "newer"))
+        assertTrue(cache.persisted("note", "newer"))
+        assertFalse(cache.persisted("note", "older"))
         assertEquals("database value", cache.restore("note", "database value"))
+        cache.cache("note", "newer edit")
+        assertFalse(cache.persisted("note", "newer edit"))
+        assertEquals("newer edit", cache.restore("note", "database value"))
     }
 
     @Test

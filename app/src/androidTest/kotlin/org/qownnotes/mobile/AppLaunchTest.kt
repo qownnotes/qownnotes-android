@@ -3278,6 +3278,9 @@ class AppLaunchTest {
             assertTrue(application.component.saveDraft(note.localId, draft))
             assertEquals(cleaned, application.component.noteRepository.get(note.localId)?.content)
             assertEquals(cleaned, application.component.draft(note.localId, cleaned))
+            // Done releases focus after saving, which checkpoints the unmodified editor text.
+            assertTrue(application.component.checkpointDraft(note.localId, draft))
+            assertEquals(cleaned, application.component.noteRepository.get(note.localId)?.content)
 
             // The raw editor text remains the current snapshot, even after a cleaned save.
             assertTrue(application.component.saveDraft(note.localId, draft))
@@ -3340,6 +3343,31 @@ class AppLaunchTest {
             assertTrue(application.component.saveDraft(note.localId, draft))
             assertEquals(draft, application.component.noteRepository.get(note.localId)?.content)
         }
+    }
+
+    @Test
+    fun savingATypedFinalSpaceKeepsItRemovedAfterFocusLossAndReopening() {
+        application.component.settings.setRemoveEditedTrailingSpaces(true)
+        importAccount("alice", "Existing note", "etag-1", 10, "# Existing note\nUntouched \nLast")
+        val note = runBlocking { notesOf("alice").single() }
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click())
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<android.widget.EditText>(R.id.markdown_editor)
+                .let { it.setSelection(it.length()) }
+        }
+        onView(withId(R.id.markdown_editor)).perform(pressKey(KeyEvent.KEYCODE_SPACE))
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.waitForTag("markdown-view")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { application.component.noteRepository.get(note.localId)?.content } ==
+                "# Existing note\nUntouched \nLast"
+        }
+        composeRule.enterEditMode()
+        onView(
+            withId(R.id.markdown_editor)
+        ).check(matches(withText("# Existing note\nUntouched \nLast")))
     }
 
     @Test

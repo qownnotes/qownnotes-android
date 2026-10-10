@@ -75,7 +75,7 @@
     <string name="settings_ask_for_new_note_name_description">Suggerisce il nome automatico e ti permette di modificarlo.</string>
     <string name="settings_show_toolbar_labels">Mostra etichette della barra</string>
     <string name="settings_remove_edited_trailing_spaces">Rimuovi spazi finali al salvataggio</string>
-    <string name="settings_remove_edited_trailing_spaces_description">Rimuovi i singoli spazi finali solo dalle righe modificate. Mantieni le righe inalterate e le interruzioni di riga Markdown. Disattivato per impostazione predefinita.</string>
+    <string name="settings_remove_edited_trailing_spaces_description">Rimuovi i singoli spazi finali solo dalle righe modificate. Mantieni le righe inalterate e le interruzioni di riga Markdown.</string>
     <string name="settings_show_toolbar_labels_description">Mostra un nome breve sotto ogni icona della barra dell\'editor.</string>
     <string name="settings_bookmarks_file">File dei segnalibri</string>
     <string name="settings_bookmarks_file_invalid">Usa un percorso relativo che termina con .md</string>
