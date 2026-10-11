@@ -7,6 +7,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Widget photo notes save the note and picture locally before background synchronization,
+  instead of waiting on a blank screen for Nextcloud. Failed uploads retain the picture for
+  retry, and interrupted capture processing resumes after activity recreation
+  ([#29](https://github.com/qownnotes/qownnotes-android/issues/29)).
+
 ### Changed
 
 - The optional **Clean trailing spaces on save** setting (off by default) removes single

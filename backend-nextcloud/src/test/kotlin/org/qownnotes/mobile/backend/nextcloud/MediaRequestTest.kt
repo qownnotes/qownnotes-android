@@ -3,9 +3,30 @@ package org.qownnotes.mobile.backend.nextcloud
 import com.nextcloud.android.sso.aidl.NextcloudRequest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class MediaRequestTest {
+    @Test
+    fun uncertainUploadAcceptsOnlyIdenticalExistingImage() {
+        val client = object : MediaRequestClient {
+            override fun execute(request: NextcloudRequest): Int? =
+                if (request.method == "MKCOL") 405 else 412
+
+            override fun matches(url: String, content: ByteArray): Boolean {
+                assertEquals("/Notes/media/image.jpg", url)
+                return content.contentEquals(byteArrayOf(1, 2))
+            }
+        }
+        assertEquals(
+            "image.jpg",
+            uploadImageWithClient(client, "/Notes", "image.jpg", "image/jpeg", byteArrayOf(1, 2))
+        )
+        assertThrows(org.qownnotes.mobile.core.BackendException.Protocol::class.java) {
+            uploadImageWithClient(client, "/Notes", "image.jpg", "image/jpeg", byteArrayOf(3))
+        }
+    }
+
     @Test
     fun createsMediaFolderAndStreamsImageWithoutOverwriting() {
         val requests = mutableListOf<NextcloudRequest>()

@@ -882,9 +882,20 @@ internal interface NotesApi {
 internal fun interface MediaRequestClient {
     /** Returns an HTTP error status, or null after a successful request. */
     fun execute(request: NextcloudRequest): Int?
+
+    /** Confirm an uncertain previous PUT without overwriting a different server file. */
+    fun matches(url: String, content: ByteArray): Boolean = false
 }
 
 private class NextcloudMediaRequestClient(private val api: NextcloudAPI) : MediaRequestClient {
+    override fun matches(url: String, content: ByteArray): Boolean {
+        val request = NextcloudRequest.Builder().setMethod("GET").setUrl(url).build()
+        return api.performNetworkRequestV2(request).body?.use {
+            it.readBounded(content.size + 1, "The existing image is larger than the captured photo")
+                .contentEquals(content)
+        } ?: false
+    }
+
     override fun execute(request: NextcloudRequest): Int? = try {
         api.performNetworkRequestV2(request).body.use { }
         null
@@ -927,6 +938,9 @@ internal fun uploadImageWithClient(
             .setRequestBodyAsStream(content.inputStream())
             .build()
     )
+    if (uploadStatus == 412 && client.matches("$mediaEndpoint/$fileName", content)) {
+        return fileName
+    }
     if (uploadStatus != null) {
         throw backendExceptionForHttpStatus(uploadStatus, NotesHttpException(uploadStatus))
     }
@@ -963,7 +977,10 @@ private class NextcloudWebDavRequestClient(private val api: NextcloudAPI) : WebD
     }
 }
 
-private fun java.io.InputStream.readBounded(maxBytes: Int): ByteArray {
+private fun java.io.InputStream.readBounded(
+    maxBytes: Int,
+    overflowMessage: String = "notes.sqlite is larger than supported"
+): ByteArray {
     val output = java.io.ByteArrayOutputStream()
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
     while (true) {
@@ -971,7 +988,7 @@ private fun java.io.InputStream.readBounded(maxBytes: Int): ByteArray {
         if (read < 0) break
         output.write(buffer, 0, read)
         if (output.size() > maxBytes) {
-            throw BackendException.Protocol("notes.sqlite is larger than supported")
+            throw BackendException.Protocol(overflowMessage)
         }
     }
     return output.toByteArray()

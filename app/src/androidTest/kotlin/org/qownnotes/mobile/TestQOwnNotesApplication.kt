@@ -192,6 +192,7 @@ class FakePullBackend :
     NoteBackend,
     NoteArchiveBackend,
     NoteSettingsBackend,
+    org.qownnotes.mobile.core.NoteMediaBackend,
     org.qownnotes.mobile.core.NoteTagFileBackend,
     NoteDeckBackend {
     override val capabilities =
@@ -214,6 +215,20 @@ class FakePullBackend :
     val settingsUpdates = mutableListOf<Pair<String, NoteSettings>>()
     var validationGate: CompletableDeferred<Unit>? = null
     var createFailure: Throwable? = null
+    var imageUploadFailure: Throwable? = null
+    val uploadedImages = mutableListOf<Pair<String, ByteArray>>()
+
+    override suspend fun uploadImage(
+        account: Account,
+        notesPath: String,
+        fileName: String,
+        mimeType: String,
+        content: ByteArray
+    ): String {
+        imageUploadFailure?.let { throw it }
+        uploadedImages += fileName to content
+        return fileName
+    }
     var getFailure: Throwable? = null
     var updateFailure: Throwable? = null
     var nextCanonicalTitle: String? = null
@@ -465,6 +480,8 @@ class FakePullBackend :
         validationGate?.cancel()
         validationGate = null
         createFailure = null
+        imageUploadFailure = null
+        uploadedImages.clear()
         getFailure = null
         updateFailure = null
         nextCanonicalTitle = null

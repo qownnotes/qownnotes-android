@@ -76,6 +76,7 @@ import org.qownnotes.mobile.data.MIGRATION_5_6
 import org.qownnotes.mobile.data.MIGRATION_6_7
 import org.qownnotes.mobile.data.MIGRATION_7_8
 import org.qownnotes.mobile.data.MIGRATION_8_9
+import org.qownnotes.mobile.data.PendingCaptureStore
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 import org.qownnotes.mobile.data.RoomAccountRepository
 import org.qownnotes.mobile.data.RoomNoteRepository
@@ -157,6 +158,9 @@ class ApplicationComponent(
     private val deckChecks = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     private val pullStore = RoomPullStore(database)
     private val pushStore = RoomPushStore(database)
+    private val pendingCaptures = PendingCaptureStore(
+        java.io.File(application.filesDir, "pending-captures")
+    )
     private val noteTagRepository = RoomNoteTagRepository(database)
     private val tagSynchronizer = tagFileBackend?.let {
         NoteTagSynchronizer(noteTagRepository, it, java.io.File(application.filesDir, "note-tags"))
@@ -181,7 +185,24 @@ class ApplicationComponent(
             pushStore,
             backend,
             onNoteFailure = ::recordNoteSyncDiagnostic,
-            onNoteSuccess = ::clearNoteSyncDiagnostic,
+            onNoteSuccess = { localId ->
+                pendingCaptures.remove(localId)
+                clearNoteSyncDiagnostic(localId)
+            },
+            synchronizeImages = { account, note ->
+                val content = pendingCaptures.read(note.localId)
+                if (content != null) {
+                    val noteSettings = requireNoteSettingsBackend().settings(account)
+                    requireNoteMediaBackend().uploadImage(
+                        account,
+                        noteSettings.notesPath,
+                        pendingCaptures.fileName(note.localId),
+                        "image/jpeg",
+                        content
+                    )
+                    pendingCaptures.markUploaded(note.localId)
+                }
+            },
             synchronizeTags = { account -> tagSynchronizer?.synchronize(account) }
         )
 
@@ -323,6 +344,7 @@ class ApplicationComponent(
             val localNoteIds =
                 noteRepository.observeNotes(accountId).first().map { it.localId }
             accountRepository.remove(accountId)
+            localNoteIds.forEach { pendingCaptures.remove(it) }
             editorDrafts.remove(localNoteIds)
             localNoteIds.forEach(editReservations::remove)
             settings.removeShowCategory(accountId)
@@ -487,6 +509,30 @@ class ApplicationComponent(
 
     suspend fun createNote(accountId: String, category: String = ""): Note =
         persistNewNote(noteFactory.create(accountId, category))
+
+    /** No network or account sync lock: finish capture even while a refresh is blocked. */
+    internal suspend fun createCapturedNote(
+        accountId: String,
+        localId: String,
+        uri: android.net.Uri
+    ): Note = editMutexes.getOrPut(localId, ::Mutex).withLock {
+        noteRepository.get(localId)?.let {
+            scheduleSync(accountId, 0)
+            return@withLock it
+        }
+        check(accountRepository.get(accountId) != null) { "The account no longer exists" }
+        val fileName = pendingCaptures.save(localId) {
+            application.contentResolver.openInputStream(uri)
+                ?: error(application.getString(R.string.image_open_failed))
+        }
+        val note = noteFactory.create(accountId).let {
+            it.copy(
+                localId = localId,
+                content = "${it.content}![image](${mediaImagePath(it.category, fileName)})\n"
+            )
+        }
+        persistNewNote(note)
+    }
 
     /** The name a new note would get now, from the search text when it holds a usable name. */
     fun defaultNoteName(searchText: String? = null): String = noteFactory.defaultName(searchText)

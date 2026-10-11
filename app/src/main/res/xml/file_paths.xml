@@ -3,7 +3,7 @@
     <cache-path
         name="attachments"
         path="attachments/" />
-    <cache-path
+    <files-path
         name="camera"
         path="camera/" />
 </paths>
