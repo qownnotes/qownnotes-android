@@ -602,7 +602,11 @@ A standalone Nextcloud Login Flow v2 implementation can be added later if the ap
 
 ### API
 
-Use the Nextcloud Notes REST API under:
+Prefer the QOwnNotes for Nextcloud `qownnotes.api_base` capability when its `notes_api_version`
+advertises a supported 1.x version (at least 1.2). It supplies both Notes and QOwnNotes APIs,
+including attachment resolution. Persist it per account and refresh discovery on sync/reconnect;
+a change forces a full pull without clearing pending local work. In its absence, use the
+Nextcloud Notes REST API under:
 
 ```text
 /index.php/apps/notes/api/v1/

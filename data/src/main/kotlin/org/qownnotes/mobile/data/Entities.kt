@@ -23,7 +23,8 @@ data class AccountEntity(
     val apiVersion: String? = null,
     val collectionEtag: String? = null,
     val lastModifiedEpochSeconds: Long = 0,
-    val lastSyncError: String? = null
+    val lastSyncError: String? = null,
+    val apiBasePath: String? = null
 )
 
 @Entity(
@@ -331,7 +332,8 @@ fun AccountEntity.toDomain() = Account(
     apiVersion = apiVersion,
     collectionEtag = collectionEtag,
     lastModifiedEpochSeconds = lastModifiedEpochSeconds,
-    lastSyncError = lastSyncError
+    lastSyncError = lastSyncError,
+    apiBasePath = apiBasePath
 )
 
 fun Account.toEntity() = AccountEntity(
@@ -343,5 +345,6 @@ fun Account.toEntity() = AccountEntity(
     apiVersion = apiVersion,
     collectionEtag = collectionEtag,
     lastModifiedEpochSeconds = lastModifiedEpochSeconds,
-    lastSyncError = lastSyncError
+    lastSyncError = lastSyncError,
+    apiBasePath = apiBasePath
 )

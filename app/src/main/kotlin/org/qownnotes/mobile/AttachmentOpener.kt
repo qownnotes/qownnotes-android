@@ -18,9 +18,14 @@ internal class AttachmentOpener(
     private val context: Context,
     private val fetch: (String, String) -> InputStream?
 ) {
-    suspend fun open(remoteId: Long, path: String, accountName: String): AttachmentOpenResult {
+    suspend fun open(
+        remoteId: Long,
+        path: String,
+        accountName: String,
+        attachmentApiPath: String
+    ): AttachmentOpenResult {
         val file = withContext(Dispatchers.IO) {
-            cacheAttachment(remoteId, path, accountName)
+            cacheAttachment(remoteId, path, accountName, attachmentApiPath)
         } ?: return AttachmentOpenResult.FETCH_FAILED
         val uri = FileProvider.getUriForFile(
             context,
@@ -44,14 +49,21 @@ internal class AttachmentOpener(
         }
     }
 
-    private fun cacheAttachment(remoteId: Long, path: String, accountName: String): File? {
+    private fun cacheAttachment(
+        remoteId: Long,
+        path: String,
+        accountName: String,
+        attachmentApiPath: String
+    ): File? {
         return runCatching {
-            val requestPath = "/index.php/apps/notes/api/v1.4/attachment/$remoteId?path=" +
+            val requestPath = "$attachmentApiPath$remoteId?path=" +
                 URLEncoder.encode(path, StandardCharsets.UTF_8.name())
             val directory = File(context.cacheDir, "attachments").apply { mkdirs() }
             val originalName = path.substringAfterLast('/').safeFileName()
             val cacheKey = UUID.nameUUIDFromBytes(
-                "$accountName\u0000$remoteId\u0000$path".toByteArray(StandardCharsets.UTF_8)
+                "$accountName\u0000$attachmentApiPath\u0000$remoteId\u0000$path".toByteArray(
+                    StandardCharsets.UTF_8
+                )
             )
             val target = File(directory, "$cacheKey-$originalName")
             fetch(requestPath, accountName)?.use { input ->

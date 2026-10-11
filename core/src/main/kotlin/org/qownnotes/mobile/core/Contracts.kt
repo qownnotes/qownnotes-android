@@ -74,6 +74,10 @@ interface NoteBackend {
 
     suspend fun validateAccount(account: Account): String
 
+    /** Refresh server discovery without changing local content or pending writes. */
+    suspend fun discoverAccount(account: Account): Account =
+        account.copy(apiVersion = account.apiVersion ?: validateAccount(account))
+
     suspend fun pull(account: Account, checkpoint: PullCheckpoint): PullResult
 
     suspend fun get(account: Account, remoteId: Long): RemoteNote

@@ -105,6 +105,14 @@ class MarkdownRendererTest {
     @Test
     fun buildsVersionedNextcloudAttachmentDestinationForLocalMedia() {
         assertEquals(
+            "nextcloud-attachment:/index.php/apps/qownnotes/api/v1/attachment/42?path=..%2Fmedia%2Fimage.png",
+            nextcloudAttachmentDestination(
+                "../media/image.png",
+                42,
+                "/index.php/apps/qownnotes/api/v1/attachment/"
+            )
+        )
+        assertEquals(
             "nextcloud-attachment:/index.php/apps/notes/api/v1.4/attachment/42" +
                 "?path=media%2F972323754.png",
             nextcloudAttachmentDestination("media/972323754.png", 42)

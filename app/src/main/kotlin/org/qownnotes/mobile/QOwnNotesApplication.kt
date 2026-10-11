@@ -65,9 +65,11 @@ import org.qownnotes.mobile.core.SyncDiagnosticSource
 import org.qownnotes.mobile.core.SyncOutcome
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
+import org.qownnotes.mobile.core.attachmentApiPath
 import org.qownnotes.mobile.core.mediaImagePath
 import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.core.uniqueMediaImageFileName
+import org.qownnotes.mobile.core.withDiscoveredApi
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
@@ -76,6 +78,7 @@ import org.qownnotes.mobile.data.MIGRATION_5_6
 import org.qownnotes.mobile.data.MIGRATION_6_7
 import org.qownnotes.mobile.data.MIGRATION_7_8
 import org.qownnotes.mobile.data.MIGRATION_8_9
+import org.qownnotes.mobile.data.MIGRATION_9_10
 import org.qownnotes.mobile.data.PendingCaptureStore
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 import org.qownnotes.mobile.data.RoomAccountRepository
@@ -121,7 +124,8 @@ class ApplicationComponent(
                 MIGRATION_5_6,
                 MIGRATION_6_7,
                 MIGRATION_7_8,
-                MIGRATION_8_9
+                MIGRATION_8_9,
+                MIGRATION_9_10
             )
             .addCallback(QOwnNotesDatabase.CALLBACK)
             .build(),
@@ -320,7 +324,7 @@ class ApplicationComponent(
                 ssoAccountName = ssoAccount.name,
                 userId = ssoAccount.userId
             )
-        val account = candidate.copy(apiVersion = backend.validateAccount(candidate))
+        val account = candidate.withDiscoveredApi(backend.discoverAccount(candidate))
         accountRepository.save(account)
         mutableImportState.value = SyncUiState.Idle
         updateSyncState(id, SyncUiState.Idle)
@@ -505,7 +509,12 @@ class ApplicationComponent(
         remoteId: Long,
         path: String,
         accountName: String
-    ): AttachmentOpenResult = attachmentOpener.open(remoteId, path, accountName)
+    ): AttachmentOpenResult {
+        val account = accountRepository.observeAccounts().first()
+            .firstOrNull { it.ssoAccountName == accountName }
+            ?: return AttachmentOpenResult.FETCH_FAILED
+        return attachmentOpener.open(remoteId, path, accountName, account.attachmentApiPath())
+    }
 
     suspend fun createNote(accountId: String, category: String = ""): Note =
         persistNewNote(noteFactory.create(accountId, category))

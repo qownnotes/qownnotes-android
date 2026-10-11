@@ -324,6 +324,20 @@ class QOwnNotesDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationNineToTenPreservesConflictsAndUsesLegacyEndpoint() {
+        helper.createDatabase(DATABASE_NAME, 9).use { database ->
+            insertVersionSixConflict(database)
+        }
+        helper.runMigrationsAndValidate(DATABASE_NAME, 10, true, MIGRATION_9_10).use { database ->
+            assertConflictSnapshotPreserved(database)
+            database.query("SELECT apiBasePath FROM accounts WHERE id = 'account'").use { cursor ->
+                cursor.moveToFirst()
+                assertNull(cursor.getString(0))
+            }
+        }
+    }
+
     private fun insertVersionSixConflict(database: androidx.sqlite.db.SupportSQLiteDatabase) {
         insertAccountAndNote(database)
         insertConflict(database, includeBase = false)

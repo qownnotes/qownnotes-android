@@ -362,7 +362,7 @@ class DatabaseConverters {
         PendingTagOperationEntity::class,
         TagFileEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
@@ -598,6 +598,13 @@ val MIGRATION_7_8 =
                 )"""
             )
             db.execSQL(QOwnNotesDatabase.NOTE_TAG_RELINK_TRIGGER)
+        }
+    }
+
+val MIGRATION_9_10 =
+    object : Migration(9, 10) {
+        override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE accounts ADD COLUMN apiBasePath TEXT")
         }
     }
 

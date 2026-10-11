@@ -41,6 +41,7 @@ import org.qownnotes.mobile.data.MIGRATION_5_6
 import org.qownnotes.mobile.data.MIGRATION_6_7
 import org.qownnotes.mobile.data.MIGRATION_7_8
 import org.qownnotes.mobile.data.MIGRATION_8_9
+import org.qownnotes.mobile.data.MIGRATION_9_10
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 
 class TestQOwnNotesApplication : QOwnNotesApplication() {
@@ -59,7 +60,8 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
                     MIGRATION_5_6,
                     MIGRATION_6_7,
                     MIGRATION_7_8,
-                    MIGRATION_8_9
+                    MIGRATION_8_9,
+                    MIGRATION_9_10
                 )
                 .addCallback(QOwnNotesDatabase.CALLBACK)
                 .allowMainThreadQueries()

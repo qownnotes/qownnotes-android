@@ -92,6 +92,17 @@ class NextcloudBackend(context: Context) :
         }
     }
 
+    override suspend fun discoverAccount(account: Account): Account = withContext(Dispatchers.IO) {
+        try {
+            withApis(account) { capabilitiesApi, _, _ ->
+                val discovered = resolveCapabilities(capabilitiesApi.getCapabilities())
+                account.copy(apiVersion = discovered.version, apiBasePath = discovered.basePath)
+            }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
     override suspend fun pull(account: Account, checkpoint: PullCheckpoint): PullResult =
         withContext(Dispatchers.IO) {
             try {
@@ -346,8 +357,11 @@ class NextcloudBackend(context: Context) :
         return try {
             block(
                 NextcloudRetrofitApiBuilder(api, OCS_ENDPOINT).create(CapabilitiesApi::class.java),
-                NextcloudRetrofitApiBuilder(api, NOTES_ENDPOINT).create(NotesApi::class.java),
-                NextcloudRetrofitApiBuilder(api, QOWNNOTES_API_ENDPOINT)
+                NextcloudRetrofitApiBuilder(
+                    api,
+                    account.apiBasePath ?: NOTES_ENDPOINT
+                ).create(NotesApi::class.java),
+                NextcloudRetrofitApiBuilder(api, account.apiBasePath ?: QOWNNOTES_API_ENDPOINT)
                     .create(QOwnNotesApi::class.java)
             )
         } finally {
@@ -367,7 +381,10 @@ class NextcloudBackend(context: Context) :
     private fun <T> withWebDav(account: Account, block: (WebDavRequestClient, String) -> T): T =
         withNextcloudApi(account) { api ->
             val notesApi =
-                NextcloudRetrofitApiBuilder(api, NOTES_ENDPOINT).create(NotesApi::class.java)
+                NextcloudRetrofitApiBuilder(
+                    api,
+                    account.apiBasePath ?: NOTES_ENDPOINT
+                ).create(NotesApi::class.java)
             val settings = loadSettingsFromApi(notesApi)
             block(NextcloudWebDavRequestClient(api), webDavEndpoint(account, settings.notesPath))
         }
@@ -825,19 +842,43 @@ internal interface CapabilitiesApi {
     fun getCapabilities(): Observable<ParsedResponse<OcsResponse>>
 }
 
-internal fun validateCapabilities(observable: Observable<ParsedResponse<OcsResponse>>): String {
+internal data class DiscoveredNotesApi(val version: String, val basePath: String? = null)
+
+internal fun validateCapabilities(observable: Observable<ParsedResponse<OcsResponse>>): String =
+    resolveCapabilities(observable).version
+
+internal fun resolveCapabilities(
+    observable: Observable<ParsedResponse<OcsResponse>>
+): DiscoveredNotesApi {
     val response = observable.blockingSingle().response
         ?: throw BackendException.Protocol("Nextcloud returned an empty capabilities response")
     val capabilities = response.ocs?.data?.capabilities
         ?: throw BackendException.Protocol("Nextcloud returned a malformed capabilities response")
+    val qownnotes = capabilities.get("qownnotes")?.takeIf { it.isJsonObject }?.asJsonObject
+    if (qownnotes != null) {
+        val versions = NextcloudProtocol.parseVersions(qownnotes.get("notes_api_version"))
+        val version = NextcloudProtocol.selectSupportedVersion(versions)
+        if (version != null) {
+            val base = qownnotes.get("api_base")?.takeIf { it.isJsonPrimitive }?.asString
+            if (base == null ||
+                !Regex("^/(?:index\\.php/)?apps/qownnotes/api/v1/$").matches(base)
+            ) {
+                throw BackendException.Protocol("Nextcloud returned an unsafe QOwnNotes API base")
+            }
+            return DiscoveredNotesApi(version, base)
+        }
+        if (!capabilities.has("notes")) throw BackendException.UnsupportedApi(versions)
+    }
     val notesElement = capabilities.get("notes") ?: throw BackendException.NotesAppMissing()
     if (!notesElement.isJsonObject) {
         throw BackendException.Protocol("Nextcloud returned a malformed Notes capability")
     }
     val notes = notesElement.asJsonObject
     val versions = NextcloudProtocol.parseVersions(notes.get("api_version"))
-    return NextcloudProtocol.selectSupportedVersion(versions)
-        ?: throw BackendException.UnsupportedApi(versions)
+    return DiscoveredNotesApi(
+        NextcloudProtocol.selectSupportedVersion(versions)
+            ?: throw BackendException.UnsupportedApi(versions)
+    )
 }
 
 internal interface NotesApi {

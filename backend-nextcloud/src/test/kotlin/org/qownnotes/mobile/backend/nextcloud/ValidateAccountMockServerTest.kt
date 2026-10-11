@@ -24,6 +24,47 @@ class ValidateAccountMockServerTest {
     }
 
     @Test
+    fun discoversQOwnNotesWithoutNotesApp() {
+        val response = parseCapabilities(
+            """{"ocs":{"data":{"capabilities":{"qownnotes":{"notes_api_version":["1.4"],"api_base":"/index.php/apps/qownnotes/api/v1/"}}}}}"""
+        )
+        assertEquals(
+            DiscoveredNotesApi("1.4", "/index.php/apps/qownnotes/api/v1/"),
+            resolveCapabilities(Observable.just(response))
+        )
+    }
+
+    @Test
+    fun prefersQOwnNotesAndFallsBackWhenItsVersionIsUnsupported() {
+        for ((version, expected) in listOf(
+            "1.4" to "/index.php/apps/qownnotes/api/v1/",
+            "2.0" to null
+        )) {
+            val response = parseCapabilities(
+                """{"ocs":{"data":{"capabilities":{"notes":{"api_version":["1.3"]},"qownnotes":{"notes_api_version":["$version"],"api_base":"/index.php/apps/qownnotes/api/v1/"}}}}}"""
+            )
+            assertEquals(expected, resolveCapabilities(Observable.just(response)).basePath)
+        }
+    }
+
+    @Test
+    fun rejectsUnsafeQOwnNotesBases() {
+        for (base in listOf(
+            "https://evil.test/",
+            "//evil.test/",
+            "/../apps/qownnotes/api/v1/",
+            "/index.php/apps/qownnotes/api/v1/?token=secret"
+        )) {
+            val response = parseCapabilities(
+                """{"ocs":{"data":{"capabilities":{"qownnotes":{"notes_api_version":["1.4"],"api_base":"$base"}}}}}"""
+            )
+            assertThrows(BackendException.Protocol::class.java) {
+                resolveCapabilities(Observable.just(response))
+            }
+        }
+    }
+
+    @Test
     fun reportsNotesAppMissingWhenCapabilitiesAbsent() {
         val response = parseCapabilities("""{"ocs":{"data":{"capabilities":{}}}}""")
 

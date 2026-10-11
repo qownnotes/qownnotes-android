@@ -9,8 +9,25 @@ data class Account(
     val apiVersion: String? = null,
     val collectionEtag: String? = null,
     val lastModifiedEpochSeconds: Long = 0,
-    val lastSyncError: String? = null
+    val lastSyncError: String? = null,
+    /** Discovered server-app API path; null preserves the legacy Notes endpoint. */
+    val apiBasePath: String? = null
 )
+
+/** A different server app has independent collection ETags and incremental checkpoints. */
+fun Account.withDiscoveredApi(discovered: Account): Account = discovered.copy(
+    collectionEtag = if (apiBasePath == discovered.apiBasePath) collectionEtag else null,
+    lastModifiedEpochSeconds = if (apiBasePath ==
+        discovered.apiBasePath
+    ) {
+        lastModifiedEpochSeconds
+    } else {
+        0
+    }
+)
+
+fun Account.attachmentApiPath(): String =
+    apiBasePath?.let { "${it}attachment/" } ?: "/index.php/apps/notes/api/v1.4/attachment/"
 
 data class PullCheckpoint(
     val collectionEtag: String? = null,

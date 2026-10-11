@@ -240,6 +240,7 @@ import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
+import org.qownnotes.mobile.core.attachmentApiPath
 import org.qownnotes.mobile.core.findTextMatches
 import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.core.parseBookmarksSource
@@ -4021,7 +4022,9 @@ private fun NoteDetailScreen(
                                     },
                                     loadRemoteImages = loadImages,
                                     remoteId = source?.remoteId,
-                                    accountName = account?.ssoAccountName.orEmpty()
+                                    accountName = account?.ssoAccountName.orEmpty(),
+                                    attachmentApiPath = account?.attachmentApiPath()
+                                        ?: "/index.php/apps/notes/api/v1.4/attachment/"
                                 )
                             }
                             val found = highlightNoteSearchMatches(

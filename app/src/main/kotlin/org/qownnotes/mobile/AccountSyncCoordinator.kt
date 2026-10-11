@@ -13,6 +13,7 @@ import org.qownnotes.mobile.core.PushStore
 import org.qownnotes.mobile.core.SyncCoordinator
 import org.qownnotes.mobile.core.SyncOutcome
 import org.qownnotes.mobile.core.SyncState
+import org.qownnotes.mobile.core.withDiscoveredApi
 
 internal class AccountSyncCoordinator(
     private val accountRepository: AccountRepository,
@@ -29,8 +30,8 @@ internal class AccountSyncCoordinator(
     override suspend fun synchronize(accountId: String): SyncOutcome {
         var account = accountRepository.get(accountId) ?: return SyncOutcome.Success
         return try {
-            val apiVersion = account.apiVersion ?: backend.validateAccount(account)
-            account = account.copy(apiVersion = apiVersion, lastSyncError = null)
+            account = account.withDiscoveredApi(backend.discoverAccount(account))
+                .copy(lastSyncError = null)
             accountRepository.save(account)
             val result =
                 backend.pull(

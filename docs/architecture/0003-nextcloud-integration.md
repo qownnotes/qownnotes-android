@@ -10,6 +10,14 @@ The backend adapter owns SSO, Notes REST API, and optional QOwnNotesAPI details.
 
 The implementation uses Android Single Sign-On 1.3.4 and its Retrofit/Gson transport. The database stores only the SSO account name and public account metadata; credentials remain owned by the SSO library and Nextcloud Files app. Pulls use collection ETags, `pruneBefore`, and chunk cursors, and the local checkpoint advances only inside the transaction that applies a completed response.
 
+QOwnNotes for Nextcloud is preferred when its `qownnotes` capability advertises a supported Notes
+API version and a safe app-relative `api_base`. The resolved base is persisted per account and
+used for notes, settings, versions, trash, images and attachments. Without a compatible capability,
+the legacy Notes and QOwnNotesAPI endpoints remain unchanged. Discovery is refreshed during each
+sync and reconnect. A changed base clears only the collection ETag and incremental timestamp before
+the next pull; it does not discard local notes, edits, deletions or conflict snapshots. Tag sync
+continues to use WebDAV and does not opt in to server-side relinking.
+
 Account management reads and writes the per-user `notesPath` and `fileSuffix` through Notes API
 `/settings`. A folder change is serialized with synchronization, requires all local work to be
 synchronized, and transactionally clears the old synchronized cache and pull checkpoint before the

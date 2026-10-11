@@ -90,9 +90,10 @@ class MarkdownRenderer private constructor(
         onHeadingPositioned: (Int?) -> Unit = {},
         loadRemoteImages: Boolean = false,
         remoteId: Long? = null,
-        accountName: String = ""
+        accountName: String = "",
+        attachmentApiPath: String = "/index.php/apps/notes/api/v1.4/attachment/"
     ) {
-        attachmentDestinationProcessor.setNoteContext(remoteId)
+        attachmentDestinationProcessor.setNoteContext(remoteId, attachmentApiPath)
         attachmentSchemeHandler?.accountName = accountName
         linkHandlers[view] = LinkHandlers(
             resolveInternalLink,
@@ -240,18 +241,25 @@ class MarkdownRenderer private constructor(
 private class AttachmentDestinationProcessor : ImageDestinationProcessor() {
     @Volatile private var remoteId: Long? = null
 
-    fun setNoteContext(remoteId: Long?) {
+    @Volatile private var attachmentApiPath: String = "/index.php/apps/notes/api/v1.4/attachment/"
+
+    fun setNoteContext(remoteId: Long?, attachmentApiPath: String) {
         this.remoteId = remoteId
+        this.attachmentApiPath = attachmentApiPath
     }
 
     override fun process(destination: String): String {
         canonicalSafeImageDestination(destination)?.let { return it }
-        return nextcloudAttachmentDestination(destination, remoteId)
+        return nextcloudAttachmentDestination(destination, remoteId, attachmentApiPath)
             ?: BLOCKED_IMAGE_DESTINATION
     }
 }
 
-internal fun nextcloudAttachmentDestination(destination: String, remoteId: Long?): String? {
+internal fun nextcloudAttachmentDestination(
+    destination: String,
+    remoteId: Long?,
+    attachmentApiPath: String = "/index.php/apps/notes/api/v1.4/attachment/"
+): String? {
     if (remoteId == null || destination.isBlank() ||
         destination.startsWith("http://") ||
         destination.startsWith("https://") ||
@@ -260,7 +268,7 @@ internal fun nextcloudAttachmentDestination(destination: String, remoteId: Long?
     ) {
         return null
     }
-    return "$ATTACHMENT_SCHEME:/index.php/apps/notes/api/v1.4/attachment/$remoteId" +
+    return "$ATTACHMENT_SCHEME:$attachmentApiPath$remoteId" +
         "?path=" + URLEncoder.encode(destination, StandardCharsets.UTF_8.name())
 }
 

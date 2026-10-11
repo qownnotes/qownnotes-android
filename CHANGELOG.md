@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Discover QOwnNotes for Nextcloud through server capabilities and use its Notes, versions,
+  trash and attachment APIs, with automatic fallback to the existing Notes and QOwnNotesAPI apps.
+  The API base is remembered per account; changes force a full pull without discarding pending edits.
+
 ### Fixed
 
 - Widget photo notes save the note and picture locally before background synchronization,
