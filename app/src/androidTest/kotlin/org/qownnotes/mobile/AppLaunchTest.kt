@@ -585,6 +585,7 @@ class AppLaunchTest {
         runBlocking { application.component.refresh(account.localAccountId()) }
         composeRule.waitForText("Reconnect")
 
+        val discoveriesBeforeReconnect = application.fakeBackend.discoveredAccountIds.size
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(account, pull("Updated note", "etag-2", 20))
         composeRule.onNodeWithText("Reconnect").performClick()
@@ -594,7 +595,16 @@ class AppLaunchTest {
         val reconnectCheckpoint = application.fakeBackend.checkpoints.last().second
         assertEquals("etag-1", reconnectCheckpoint.collectionEtag)
         assertEquals(10L, reconnectCheckpoint.lastModifiedEpochSeconds)
-        assertEquals(2, application.fakeBackend.validatedAccountIds.size)
+        // Reconnect and its refresh both discover APIs; the default fake reuses the cached version.
+        assertEquals(
+            discoveriesBeforeReconnect + 2,
+            application.fakeBackend.discoveredAccountIds.size
+        )
+        assertEquals(
+            listOf(account.localAccountId(), account.localAccountId()),
+            application.fakeBackend.discoveredAccountIds.takeLast(2)
+        )
+        assertEquals(1, application.fakeBackend.validatedAccountIds.size)
     }
 
     @Test

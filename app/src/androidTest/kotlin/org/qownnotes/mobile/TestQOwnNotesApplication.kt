@@ -208,6 +208,7 @@ class FakePullBackend :
     private val pulls = mutableMapOf<String, ArrayDeque<Result<PullResult>>>()
     val checkpoints = mutableListOf<Pair<String, PullCheckpoint>>()
     val validatedAccountIds = mutableListOf<String>()
+    val discoveredAccountIds = mutableListOf<String>()
     val pushedNotes = mutableListOf<Note>()
     val deletedRemoteIds = mutableListOf<Long>()
     var noteVersions = emptyList<RemoteNoteVersion>()
@@ -372,6 +373,11 @@ class FakePullBackend :
         return "\"tags-$tagFileVersion\""
     }
 
+    override suspend fun discoverAccount(account: Account): Account {
+        discoveredAccountIds += account.id
+        return super<NoteBackend>.discoverAccount(account)
+    }
+
     override suspend fun validateAccount(account: Account): String {
         validatedAccountIds += account.id
         validationGate?.await()
@@ -474,6 +480,7 @@ class FakePullBackend :
         pulls.clear()
         checkpoints.clear()
         validatedAccountIds.clear()
+        discoveredAccountIds.clear()
         pushedNotes.clear()
         deletedRemoteIds.clear()
         noteVersions = emptyList()
