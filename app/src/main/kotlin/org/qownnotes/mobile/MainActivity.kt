@@ -2694,7 +2694,10 @@ private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
                 stringResource(R.string.sync_available_offline),
                 style = MaterialTheme.typography.labelMedium
             )
-            SyncUiState.Refreshing -> Text(stringResource(R.string.sync_refreshing))
+            SyncUiState.Refreshing -> Text(
+                stringResource(R.string.sync_refreshing),
+                style = MaterialTheme.typography.labelMedium
+            )
             is SyncUiState.Failed -> ExpandableSyncError(
                 message = state.message,
                 technicalDetails = state.diagnostic,

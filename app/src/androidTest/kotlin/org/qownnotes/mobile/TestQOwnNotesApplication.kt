@@ -218,6 +218,7 @@ class FakePullBackend :
     val settingsByAccount = mutableMapOf<String, NoteSettings>()
     val settingsUpdates = mutableListOf<Pair<String, NoteSettings>>()
     var validationGate: CompletableDeferred<Unit>? = null
+    var pullGate: CompletableDeferred<Unit>? = null
     var createFailure: Throwable? = null
     var imageUploadFailure: Throwable? = null
     val uploadedImages = mutableListOf<Pair<String, ByteArray>>()
@@ -386,6 +387,7 @@ class FakePullBackend :
 
     override suspend fun pull(account: Account, checkpoint: PullCheckpoint): PullResult {
         checkpoints += account.id to checkpoint
+        pullGate?.await()
         val result = pulls[account.id]?.pollFirst()
         return result?.getOrThrow()
             ?: PullResult(
@@ -491,6 +493,8 @@ class FakePullBackend :
         settingsUpdates.clear()
         validationGate?.cancel()
         validationGate = null
+        pullGate?.cancel()
+        pullGate = null
         createFailure = null
         imageUploadFailure = null
         uploadedImages.clear()

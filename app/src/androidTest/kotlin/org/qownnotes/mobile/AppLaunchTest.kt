@@ -790,6 +790,44 @@ class AppLaunchTest {
     }
 
     @Test
+    fun refreshingKeepsTheOfflineStatusHeightAndNoteListPosition() {
+        importAccount("alice", "Cached note", "etag-1", 10)
+        composeRule.waitForText("Available offline")
+        val offlineTextHeight = composeRule.onNodeWithText("Available offline")
+            .fetchSemanticsNode().boundsInRoot.height
+        val offlineStatusBounds = composeRule.onNodeWithTag("sync-status")
+            .fetchSemanticsNode().boundsInRoot
+        val offlineListBounds = composeRule.onNodeWithTag("note-list")
+            .fetchSemanticsNode().boundsInRoot
+        val pullGate = CompletableDeferred<Unit>()
+        application.fakeBackend.pullGate = pullGate
+
+        try {
+            composeRule.pullToRefresh()
+            composeRule.waitForText("Refreshing")
+            assertEquals(
+                offlineTextHeight,
+                composeRule.onNodeWithText("Refreshing").fetchSemanticsNode().boundsInRoot.height
+            )
+            assertEquals(
+                offlineStatusBounds,
+                composeRule.onNodeWithTag("sync-status").fetchSemanticsNode().boundsInRoot
+            )
+            assertEquals(
+                offlineListBounds,
+                composeRule.onNodeWithTag("note-list").fetchSemanticsNode().boundsInRoot
+            )
+        } finally {
+            pullGate.complete(Unit)
+        }
+        composeRule.waitForText("Available offline")
+        assertEquals(
+            offlineListBounds,
+            composeRule.onNodeWithTag("note-list").fetchSemanticsNode().boundsInRoot
+        )
+    }
+
+    @Test
     fun notesAreInsetCardsByDefaultAndFlatRowsPersist() {
         val account = importAccount("alice", "Card note", "etag-a", 10)
         val localId = runBlocking {
@@ -797,7 +835,7 @@ class AppLaunchTest {
                 .first().single().localId
         }
         fun itemBounds(): androidx.compose.ui.geometry.Rect {
-            // The taller "Refreshing" status of a running synchronization moves the list down.
+            // Compare bounds after synchronization has settled.
             composeRule.waitForText("Available offline")
             return composeRule.onNodeWithTag("swipe-note-$localId")
                 .fetchSemanticsNode().boundsInRoot

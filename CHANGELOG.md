@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep the **Refreshing** status as small as **Available offline**, without shifting the note list
+  during refresh ([#31](https://github.com/qownnotes/qownnotes-android/issues/31)).
+
 ## [1.4.0] - 2026-10-11
 
 ### Added
