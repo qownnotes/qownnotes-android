@@ -49,6 +49,7 @@ import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.TrashedNote
+import org.qownnotes.mobile.core.noteMediaFolder
 import retrofit2.Call
 import retrofit2.NextcloudRetrofitApiBuilder
 import retrofit2.Response
@@ -147,7 +148,7 @@ class NextcloudBackend(context: Context) :
         }
     }
 
-    override suspend fun uploadImage(
+    override suspend fun uploadMedia(
         account: Account,
         notesPath: String,
         fileName: String,
@@ -953,7 +954,7 @@ internal fun uploadImageWithClient(
     content: ByteArray
 ): String {
     require(fileName.isNotBlank() && '/' !in fileName && '\\' !in fileName)
-    val mediaEndpoint = "${endpoint.trimEnd('/')}/media"
+    val mediaEndpoint = "${endpoint.trimEnd('/')}/${noteMediaFolder(mimeType)}"
     val directoryStatus = client.execute(
         NextcloudRequest.Builder()
             .setMethod("MKCOL")

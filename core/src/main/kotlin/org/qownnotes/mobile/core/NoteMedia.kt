@@ -20,8 +20,16 @@ fun uniqueMediaImageFileName(
 }
 
 /** Returns a link from a note category to the account's top-level media folder. */
-fun mediaImagePath(category: String, fileName: String): String {
+fun mediaImagePath(category: String, fileName: String): String =
+    noteMediaPath(category, fileName, "image/jpeg")
+
+/** Images belong in media; audio and other attachments belong in attachments. */
+fun noteMediaFolder(mimeType: String): String =
+    if (mimeType.startsWith("image/", ignoreCase = true)) "media" else "attachments"
+
+/** Returns a category-relative link to the same top-level folder used for uploads. */
+fun noteMediaPath(category: String, fileName: String, mimeType: String): String {
     require(fileName.isNotBlank() && '/' !in fileName && '\\' !in fileName)
     val parentTraversal = "../".repeat(category.split('/').count(String::isNotBlank))
-    return "${parentTraversal}media/$fileName"
+    return "$parentTraversal${noteMediaFolder(mimeType)}/$fileName"
 }

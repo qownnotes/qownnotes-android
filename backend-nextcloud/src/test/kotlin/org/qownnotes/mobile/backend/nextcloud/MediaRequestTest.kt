@@ -8,6 +8,32 @@ import org.junit.Test
 
 class MediaRequestTest {
     @Test
+    fun audioUsesAttachmentsFolderAndAudioMimeTypeWithoutOverwriting() {
+        val requests = mutableListOf<NextcloudRequest>()
+        val client = MediaRequestClient { request ->
+            requests += request
+            null
+        }
+        assertEquals(
+            "audio-unique.m4a",
+            uploadImageWithClient(
+                client,
+                "/Notes",
+                "audio-unique.m4a",
+                "audio/mp4",
+                byteArrayOf(1, 2)
+            )
+        )
+        assertEquals(listOf("MKCOL", "PUT"), requests.map(NextcloudRequest::getMethod))
+        val upload = requests.last()
+        assertEquals("/Notes/attachments", requests.first().url)
+        assertEquals("/Notes/attachments/audio-unique.m4a", upload.url)
+        assertEquals(listOf("audio/mp4"), upload.header["Content-Type"])
+        assertEquals(listOf("*"), upload.header["If-None-Match"])
+        assertEquals(listOf<Byte>(1, 2), upload.bodyAsStream.readBytes().toList())
+    }
+
+    @Test
     fun uncertainUploadAcceptsOnlyIdenticalExistingImage() {
         val client = object : MediaRequestClient {
             override fun execute(request: NextcloudRequest): Int? =

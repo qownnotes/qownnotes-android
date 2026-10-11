@@ -95,6 +95,13 @@ class MarkdownLinksTest {
 
     @Test
     fun rejectsAttachmentLinksOutsideReservedTrees() {
+        assertEquals(
+            "../../attachments/audio.m4a",
+            parseRelativeAttachmentLink("../../attachments/audio.m4a", "Work/Meetings")
+        )
+        assertNull(parseRelativeAttachmentLink("../../attachments/audio.m4a", "Work"))
+        assertNull(parseRelativeAttachmentLink("../attachments/audio.m4a"))
+        assertNull(parseRelativeAttachmentLink("../attachments/../secret.m4a", "Work"))
         assertNull(parseRelativeAttachmentLink("document.pdf"))
         assertNull(parseRelativeAttachmentLink("https://example.com/attachments/document.pdf"))
         assertNull(parseRelativeAttachmentLink("/attachments/document.pdf"))

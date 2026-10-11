@@ -20,6 +20,13 @@ that account's local data but does not remove the Nextcloud account or delete it
 Browsing note versions and remote trash uses the selected Nextcloud server only when its optional
 QOwnNotesAPI app is installed.
 
+## Audio Notes
+
+Microphone access is requested only when recording an audio note. Recording stops when the
+recording screen is no longer visible. Audio is stored privately on the device and uploaded
+only to the selected Nextcloud account when the note is saved. Opening an audio attachment
+may hand a cached copy to an audio player chosen on the device.
+
 ## External Images
 
 Images are enabled by default whenever a note is opened. Viewing that note can send a request to

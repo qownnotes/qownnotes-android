@@ -73,7 +73,7 @@ fun parseMarkdownNoteLink(destination: String): InternalNoteLink? {
     )
 }
 
-fun parseRelativeAttachmentLink(destination: String): String? {
+fun parseRelativeAttachmentLink(destination: String, category: String = ""): String? {
     val uri = runCatching { URI(destination) }.getOrNull() ?: return null
     if (uri.isAbsolute || uri.rawAuthority != null || uri.rawQuery != null ||
         uri.rawFragment != null
@@ -82,7 +82,10 @@ fun parseRelativeAttachmentLink(destination: String): String? {
     }
     val path = uri.path?.removePrefix("./") ?: return null
     if (path.startsWith('/') || path.contains('\\') || path.contains('\u0000')) return null
-    val parts = path.split('/')
+    val allParts = path.split('/')
+    val parents = allParts.takeWhile { it == ".." }.size
+    if (parents > category.split('/').count(String::isNotBlank)) return null
+    val parts = allParts.drop(parents)
     if (parts.size < 2 || parts.any { it.isBlank() || it == "." || it == ".." }) return null
     if (parts.first().lowercase(Locale.ROOT) !in setOf("attachments", "media")) return null
     return path

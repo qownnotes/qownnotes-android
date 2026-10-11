@@ -9,6 +9,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Record audio notes from the app's note-list menu or home-screen note-list widget. Recordings
+  are saved locally before synchronization and linked as M4A files in `attachments/`, leaving
+  `media/` reserved for images
+  ([#30](https://github.com/qownnotes/qownnotes-android/issues/30)).
 - Discover QOwnNotes for Nextcloud through server capabilities and use its Notes, versions,
   trash and attachment APIs, with automatic fallback to the existing Notes and QOwnNotesAPI apps.
   The API base is remembered per account; changes force a full pull without discarding pending edits.

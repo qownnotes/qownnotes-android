@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="audio_note">Registra nota audio</string>
+    <string name="audio_recording">Registrazione audio</string>
+    <string name="audio_recording_active">Registrazione in corso…</string>
+    <string name="audio_record">Registra</string>
+    <string name="audio_stop">Interrompi registrazione</string>
+    <string name="audio_save">Salva nota audio</string>
+    <string name="audio_permission_required">È necessaria l\'autorizzazione al microfono per registrare una nota audio</string>
+    <string name="audio_record_failed">Impossibile registrare l\'audio. Riprova.</string>
+    <string name="audio_save_failed">Impossibile salvare la nota audio. La registrazione viene conservata; riprova.</string>
     <string name="widget_note_list">Elenco note</string>
     <string name="widget_note_list_description">Visualizza le note e crea rapidamente una nota</string>
     <string name="widget_single_note">Nota singola</string>

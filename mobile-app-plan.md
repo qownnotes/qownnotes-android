@@ -55,6 +55,12 @@ actions open notes, create an offline-first note, and capture a picture into a n
 existing authenticated media upload path. Widget content observes Room rather than network
 responses and remains available offline.
 
+Audio notes (#30) use a foreground-only microphone recording screen from the note-list menu
+or note-list widget. AAC/M4A recordings (limited to 10 MiB) are stored privately and saved as
+Markdown attachment links in the top-level `attachments/` folder, leaving `media/` for images,
+with the same durable media-before-note synchronization as photos.
+Leaving the recording screen stops the microphone; interrupted saves can be retried.
+
 An offline bookmark browser parses QOwnNotes Desktop-compatible list bookmarks from an
 account-scoped relative Markdown path, `Bookmarks.md` by default. It searches bookmark names, URLs,
 and descriptions, supports AND-style tag filtering, and opens only safe HTTP or HTTPS destinations.

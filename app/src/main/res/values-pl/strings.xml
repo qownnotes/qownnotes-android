@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="audio_note">Nagraj notatkę głosową</string>
+    <string name="audio_recording">Nagranie audio</string>
+    <string name="audio_recording_active">Nagrywanie…</string>
+    <string name="audio_record">Nagraj</string>
+    <string name="audio_stop">Zatrzymaj nagrywanie</string>
+    <string name="audio_save">Zapisz notatkę głosową</string>
+    <string name="audio_permission_required">Nagrywanie notatki głosowej wymaga uprawnienia do mikrofonu</string>
+    <string name="audio_record_failed">Nie udało się nagrać dźwięku. Spróbuj ponownie.</string>
+    <string name="audio_save_failed">Nie udało się zapisać notatki głosowej. Nagranie zostało zachowane; spróbuj ponownie.</string>
     <string name="widget_note_list">Lista notatek</string>
     <string name="widget_note_list_description">Przeglądaj notatki i szybko twórz nowe</string>
     <string name="widget_single_note">Pojedyncza notatka</string>

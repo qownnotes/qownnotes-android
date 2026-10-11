@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="audio_note">Записать аудиозаметку</string>
+    <string name="audio_recording">Аудиозапись</string>
+    <string name="audio_recording_active">Идёт запись…</string>
+    <string name="audio_record">Записать</string>
+    <string name="audio_stop">Остановить запись</string>
+    <string name="audio_save">Сохранить аудиозаметку</string>
+    <string name="audio_permission_required">Для записи аудиозаметки требуется разрешение на использование микрофона</string>
+    <string name="audio_record_failed">Не удалось записать звук. Попробуйте ещё раз.</string>
+    <string name="audio_save_failed">Не удалось сохранить аудиозаметку. Запись сохранена; попробуйте ещё раз.</string>
     <string name="widget_note_list">Список заметок</string>
     <string name="widget_note_list_description">Просмотр заметок и быстрое создание заметки</string>
     <string name="widget_single_note">Одна заметка</string>

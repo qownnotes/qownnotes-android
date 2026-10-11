@@ -14,6 +14,27 @@ class PendingCaptureStoreTest {
     @get:Rule val temporary = TemporaryFolder()
 
     @Test
+    fun audioAndUploadCheckpointSurviveRecreationAndAreRemovedTogether() = runBlocking {
+        val directory = temporary.newFolder()
+        val store = PendingCaptureStore(directory)
+        val content = byteArrayOf(4, 5, 6)
+        assertEquals(
+            "audio-local-note.m4a",
+            store.save("local-note", true) {
+                content.inputStream()
+            }
+        )
+        val recreated = PendingCaptureStore(directory)
+        assertEquals("audio/mp4", recreated.mimeType("local-note"))
+        assertArrayEquals(content, recreated.read("local-note"))
+        recreated.save("local-note", true) { throw IOException("Recording source is gone") }
+        recreated.markUploaded("local-note")
+        assertNull(PendingCaptureStore(directory).read("local-note"))
+        recreated.remove("local-note")
+        assertEquals(emptyList<String>(), directory.list()!!.toList())
+    }
+
+    @Test
     fun photoAndUploadCheckpointSurviveRecreation() = runBlocking {
         val directory = temporary.newFolder()
         val store = PendingCaptureStore(directory)

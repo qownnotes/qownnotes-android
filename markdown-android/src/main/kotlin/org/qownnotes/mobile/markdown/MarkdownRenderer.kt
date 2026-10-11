@@ -91,7 +91,8 @@ class MarkdownRenderer private constructor(
         loadRemoteImages: Boolean = false,
         remoteId: Long? = null,
         accountName: String = "",
-        attachmentApiPath: String = "/index.php/apps/notes/api/v1.4/attachment/"
+        attachmentApiPath: String = "/index.php/apps/notes/api/v1.4/attachment/",
+        category: String = ""
     ) {
         attachmentDestinationProcessor.setNoteContext(remoteId, attachmentApiPath)
         attachmentSchemeHandler?.accountName = accountName
@@ -99,7 +100,8 @@ class MarkdownRenderer private constructor(
             resolveInternalLink,
             onInternalLink,
             onAttachmentLink,
-            onExternalLink
+            onExternalLink,
+            category
         )
         // Reading a note includes taking text out of it, and copying needs a selection. This is
         // applied before the Markdown because `setTextIsSelectable` re-sets both the text and the
@@ -159,7 +161,12 @@ class MarkdownRenderer private constructor(
                                 parseMarkdownNoteLink(destination) != null -> {
                                     dispatchInternalLink(view, destination)
                                 }
-                                parseRelativeAttachmentLink(destination) != null -> {
+                                parseRelativeAttachmentLink(
+                                    destination,
+                                    (view as? AppCompatTextView)?.let {
+                                        linkHandlers[it]?.category
+                                    }.orEmpty()
+                                ) != null -> {
                                     dispatchAttachmentLink(view, destination)
                                 }
                                 isSafeExternalUrl(
@@ -201,7 +208,7 @@ class MarkdownRenderer private constructor(
     private fun dispatchAttachmentLink(view: android.view.View, destination: String) {
         val textView = view as? AppCompatTextView ?: return
         val handler = linkHandlers[textView] ?: return
-        parseRelativeAttachmentLink(destination)?.let(handler.openAttachment)
+        parseRelativeAttachmentLink(destination, handler.category)?.let(handler.openAttachment)
     }
 
     private fun dispatchExternalLink(view: android.view.View, destination: String) {
@@ -295,7 +302,8 @@ private data class LinkHandlers(
     val resolveInternal: (InternalNoteLink) -> ResolvedNoteLink?,
     val openInternal: (ResolvedNoteLink) -> Unit,
     val openAttachment: (String) -> Unit,
-    val openExternal: (String) -> Boolean
+    val openExternal: (String) -> Boolean,
+    val category: String
 )
 
 /**

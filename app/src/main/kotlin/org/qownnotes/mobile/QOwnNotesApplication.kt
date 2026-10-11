@@ -68,6 +68,7 @@ import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.core.attachmentApiPath
 import org.qownnotes.mobile.core.mediaImagePath
 import org.qownnotes.mobile.core.mergeNoteConflict
+import org.qownnotes.mobile.core.noteMediaPath
 import org.qownnotes.mobile.core.uniqueMediaImageFileName
 import org.qownnotes.mobile.core.withDiscoveredApi
 import org.qownnotes.mobile.data.MIGRATION_1_2
@@ -193,15 +194,15 @@ class ApplicationComponent(
                 pendingCaptures.remove(localId)
                 clearNoteSyncDiagnostic(localId)
             },
-            synchronizeImages = { account, note ->
+            synchronizeMedia = { account, note ->
                 val content = pendingCaptures.read(note.localId)
                 if (content != null) {
                     val noteSettings = requireNoteSettingsBackend().settings(account)
-                    requireNoteMediaBackend().uploadImage(
+                    requireNoteMediaBackend().uploadMedia(
                         account,
                         noteSettings.notesPath,
                         pendingCaptures.fileName(note.localId),
-                        "image/jpeg",
+                        pendingCaptures.mimeType(note.localId),
                         content
                     )
                     pendingCaptures.markUploaded(note.localId)
@@ -379,7 +380,7 @@ class ApplicationComponent(
             val account = accountRepository.get(note.accountId)
                 ?: error("The account no longer exists")
             val settings = requireNoteSettingsBackend().settings(account)
-            val uploadedName = requireNoteMediaBackend().uploadImage(
+            val uploadedName = requireNoteMediaBackend().uploadMedia(
                 account,
                 settings.notesPath,
                 fileName,
@@ -505,15 +506,30 @@ class ApplicationComponent(
         return changed
     }
 
-    internal suspend fun openAttachment(
-        remoteId: Long,
-        path: String,
-        accountName: String
-    ): AttachmentOpenResult {
-        val account = accountRepository.observeAccounts().first()
-            .firstOrNull { it.ssoAccountName == accountName }
+    internal suspend fun openAttachment(localId: String, path: String): AttachmentOpenResult {
+        val note = noteRepository.get(localId) ?: return AttachmentOpenResult.FETCH_FAILED
+        if (org.qownnotes.mobile.core.parseRelativeAttachmentLink(path, note.category) == null) {
+            return AttachmentOpenResult.FETCH_FAILED
+        }
+        val account = accountRepository.get(note.accountId)
             ?: return AttachmentOpenResult.FETCH_FAILED
-        return attachmentOpener.open(remoteId, path, accountName, account.attachmentApiPath())
+        if (path == noteMediaPath(
+                note.category,
+                pendingCaptures.fileName(localId),
+                pendingCaptures.mimeType(localId)
+            )
+        ) {
+            pendingCaptures.readAudio(localId)?.let {
+                return attachmentOpener.openAudio(localId, it)
+            }
+        }
+        val remoteId = note.remoteId ?: return AttachmentOpenResult.FETCH_FAILED
+        return attachmentOpener.open(
+            remoteId,
+            path,
+            account.ssoAccountName,
+            account.attachmentApiPath()
+        )
     }
 
     suspend fun createNote(accountId: String, category: String = ""): Note =
@@ -523,21 +539,29 @@ class ApplicationComponent(
     internal suspend fun createCapturedNote(
         accountId: String,
         localId: String,
-        uri: android.net.Uri
+        uri: android.net.Uri,
+        audio: Boolean = false,
+        category: String = ""
     ): Note = editMutexes.getOrPut(localId, ::Mutex).withLock {
         noteRepository.get(localId)?.let {
             scheduleSync(accountId, 0)
             return@withLock it
         }
         check(accountRepository.get(accountId) != null) { "The account no longer exists" }
-        val fileName = pendingCaptures.save(localId) {
+        val fileName = pendingCaptures.save(localId, audio) {
             application.contentResolver.openInputStream(uri)
                 ?: error(application.getString(R.string.image_open_failed))
         }
-        val note = noteFactory.create(accountId).let {
+        val note = noteFactory.create(accountId, category).let {
             it.copy(
                 localId = localId,
-                content = "${it.content}![image](${mediaImagePath(it.category, fileName)})\n"
+                content = it.content + if (audio) {
+                    "[${application.getString(
+                        R.string.audio_recording
+                    )}](${noteMediaPath(it.category, fileName, "audio/mp4")})\n"
+                } else {
+                    "![image](${mediaImagePath(it.category, fileName)})\n"
+                }
             )
         }
         persistNewNote(note)

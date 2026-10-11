@@ -27,6 +27,20 @@ class NoteWidgetTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @Test
+    fun audioCaptureIntentKeepsAccountAndWidgetIdentitySeparateFromCamera() {
+        val audio = AudioNoteActivity.intent(context, "account-id", 30)
+        assertEquals(AudioNoteActivity::class.java.name, audio.component?.className)
+        assertEquals("account-id", audio.getStringExtra(WidgetIntents.EXTRA_ACCOUNT_ID))
+        assertEquals("qownnotes://widget/audio/30", audio.data.toString())
+        assertTrue(audio.data != CaptureNoteActivity.intent(context, "account-id", 30).data)
+        val view = LayoutInflater.from(context).inflate(R.layout.widget_note_list, null)
+        assertEquals(
+            context.getString(R.string.audio_note),
+            view.findViewById<View>(R.id.widget_audio).contentDescription
+        )
+    }
+
+    @Test
     fun widgetIntentsRetainTheirDestination() {
         val open = WidgetIntents.openNote(context, "local-note")
         val create = WidgetIntents.createNote(context, "account-id")

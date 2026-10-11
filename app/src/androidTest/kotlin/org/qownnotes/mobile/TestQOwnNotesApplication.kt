@@ -219,8 +219,9 @@ class FakePullBackend :
     var createFailure: Throwable? = null
     var imageUploadFailure: Throwable? = null
     val uploadedImages = mutableListOf<Pair<String, ByteArray>>()
+    val uploadedMediaTypes = mutableListOf<String>()
 
-    override suspend fun uploadImage(
+    override suspend fun uploadMedia(
         account: Account,
         notesPath: String,
         fileName: String,
@@ -229,6 +230,7 @@ class FakePullBackend :
     ): String {
         imageUploadFailure?.let { throw it }
         uploadedImages += fileName to content
+        uploadedMediaTypes += mimeType
         return fileName
     }
     var getFailure: Throwable? = null
@@ -484,6 +486,7 @@ class FakePullBackend :
         createFailure = null
         imageUploadFailure = null
         uploadedImages.clear()
+        uploadedMediaTypes.clear()
         getFailure = null
         updateFailure = null
         nextCanonicalTitle = null

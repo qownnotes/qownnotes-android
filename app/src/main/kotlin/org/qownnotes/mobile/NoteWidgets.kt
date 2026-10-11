@@ -310,6 +310,15 @@ class NoteListWidgetProvider : AppWidgetProvider() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
             )
+            views.setOnClickPendingIntent(
+                R.id.widget_audio,
+                PendingIntent.getActivity(
+                    context,
+                    widgetId,
+                    AudioNoteActivity.intent(context, accountId, widgetId),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
             return views
         }
     }
@@ -479,6 +488,7 @@ internal object NoteListWidgetHeader {
         WidgetAppearanceViews.setPrimaryText(context, views, R.id.widget_title, header)
         WidgetAppearanceViews.setSecondaryText(context, views, R.id.widget_subtitle, header)
         WidgetAppearanceViews.setIconTint(views, R.id.widget_camera, header)
+        WidgetAppearanceViews.setIconTint(views, R.id.widget_audio, header)
         WidgetAppearanceViews.setIconTint(views, R.id.widget_create, header)
     }
 }

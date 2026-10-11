@@ -1,4 +1,13 @@
 <resources>
+    <string name="audio_note">Record audio note</string>
+    <string name="audio_recording">Audio recording</string>
+    <string name="audio_recording_active">Recording…</string>
+    <string name="audio_record">Record</string>
+    <string name="audio_stop">Stop recording</string>
+    <string name="audio_save">Save audio note</string>
+    <string name="audio_permission_required">Microphone permission is required to record an audio note</string>
+    <string name="audio_record_failed">Could not record audio. Please try again.</string>
+    <string name="audio_save_failed">Could not save the audio note. Your recording is kept; please retry.</string>
     <string name="widget_note_list">Note list</string>
     <string name="widget_note_list_description">View notes and quickly create a note</string>
     <string name="widget_single_note">Single note</string>

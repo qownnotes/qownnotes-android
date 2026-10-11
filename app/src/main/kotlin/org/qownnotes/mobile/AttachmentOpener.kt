@@ -27,14 +27,32 @@ internal class AttachmentOpener(
         val file = withContext(Dispatchers.IO) {
             cacheAttachment(remoteId, path, accountName, attachmentApiPath)
         } ?: return AttachmentOpenResult.FETCH_FAILED
+        return openFile(file)
+    }
+
+    suspend fun openAudio(localId: String, content: ByteArray): AttachmentOpenResult {
+        val file = withContext(Dispatchers.IO) {
+            runCatching {
+                File(context.cacheDir, "attachments").apply { mkdirs() }
+                    .resolve("audio-$localId.m4a").apply { writeBytes(content) }
+            }.getOrNull()
+        } ?: return AttachmentOpenResult.FETCH_FAILED
+        return openFile(file)
+    }
+
+    private fun openFile(file: File): AttachmentOpenResult {
         val uri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
             file
         )
-        val mimeType = MimeTypeMap.getSingleton()
-            .getMimeTypeFromExtension(file.extension.lowercase())
-            ?: "application/octet-stream"
+        val mimeType = if (file.extension.equals("m4a", ignoreCase = true)) {
+            // Android's extension table can label M4A as MPEG audio rather than an MP4 container.
+            "audio/mp4"
+        } else {
+            MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension.lowercase())
+                ?: "application/octet-stream"
+        }
         val intent = Intent(Intent.ACTION_VIEW)
             .setDataAndType(uri, mimeType)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)

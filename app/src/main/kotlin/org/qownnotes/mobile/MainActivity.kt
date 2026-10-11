@@ -1027,6 +1027,7 @@ private fun NoteListScreen(
     val account = accounts.first { it.id == accountId }
     val scope = rememberCoroutineScope { UiDispatcher }
     val focusManager = LocalFocusManager.current
+    val audioNoteContext = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
     val trashLoadFailedMessage = stringResource(R.string.trash_load_failed)
     val trashRestoreFailedMessage = stringResource(R.string.trash_restore_failed)
@@ -1536,6 +1537,20 @@ private fun NoteListScreen(
                                                 modifier = Modifier.testTag("tag-filter-selector")
                                             )
                                         }
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.audio_note)) },
+                                            onClick = {
+                                                noteListMenuOpen = false
+                                                audioNoteContext.startActivity(
+                                                    AudioNoteActivity.intent(
+                                                        audioNoteContext,
+                                                        accountId,
+                                                        category = folderScope.path.orEmpty()
+                                                    )
+                                                )
+                                            },
+                                            modifier = Modifier.testTag("create-audio-note")
+                                        )
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.bookmarks)) },
                                             leadingIcon = {
@@ -3931,14 +3946,12 @@ private fun NoteDetailScreen(
                                     },
                                     onInternalLink = onOpen,
                                     onAttachmentLink = { path ->
-                                        val remoteId = source?.remoteId
-                                        val accountName = account?.ssoAccountName
-                                        if (remoteId != null && !accountName.isNullOrBlank()) {
+                                        val localId = source?.localId
+                                        if (localId != null) {
                                             scope.launch {
                                                 val result = component.openAttachment(
-                                                    remoteId,
-                                                    path,
-                                                    accountName
+                                                    localId,
+                                                    path
                                                 )
                                                 val message = when (result) {
                                                     AttachmentOpenResult.OPENED -> null
@@ -4023,6 +4036,7 @@ private fun NoteDetailScreen(
                                     loadRemoteImages = loadImages,
                                     remoteId = source?.remoteId,
                                     accountName = account?.ssoAccountName.orEmpty(),
+                                    category = source?.category.orEmpty(),
                                     attachmentApiPath = account?.attachmentApiPath()
                                         ?: "/index.php/apps/notes/api/v1.4/attachment/"
                                 )

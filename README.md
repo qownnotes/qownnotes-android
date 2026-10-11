@@ -31,6 +31,9 @@ The initial F-Droid submission merge request is [fdroiddata!48269](https://gitla
 - Browse and search QOwnNotes-style bookmarks from an account-specific Markdown note, with
   `Bookmarks.md` used by default and optional tag filtering.
 - Create a note from text shared by another Android application.
+- Record audio notes from the note-list menu or home-screen note-list widget, with offline saving
+  and background upload of M4A attachments. Recording requires microphone permission and stops
+  when the recording screen is left; each recording is limited to 10 MiB.
 - Render CommonMark and GitHub Flavored Markdown, QOwnNotes task states, wiki links, legacy
   `note://` links, tables, fenced code, and safe remote images.
 - Edit highlighted Markdown source with formatting actions, undo and redo, cursor preservation, and

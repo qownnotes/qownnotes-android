@@ -30,6 +30,24 @@ class NoteMediaTest {
     }
 
     @Test
+    fun audioLinksToAttachmentsFromAnyCategoryWhileImagesStayInMedia() {
+        assertEquals("attachments/audio.m4a", noteMediaPath("", "audio.m4a", "audio/mp4"))
+        assertEquals(
+            "../attachments/audio.m4a",
+            noteMediaPath("Projects", "audio.m4a", "audio/mp4")
+        )
+        assertEquals(
+            "../../attachments/audio.m4a",
+            noteMediaPath("Projects/Android", "audio.m4a", "audio/mp4")
+        )
+        assertEquals("media", noteMediaFolder("image/png"))
+        assertEquals("attachments", noteMediaFolder("audio/mp4"))
+        assertThrows(IllegalArgumentException::class.java) {
+            noteMediaPath("", "nested/audio.m4a", "audio/mp4")
+        }
+    }
+
+    @Test
     fun rejectsAPathInPlaceOfAFileName() {
         assertThrows(IllegalArgumentException::class.java) {
             mediaImagePath("", "nested/photo.png")

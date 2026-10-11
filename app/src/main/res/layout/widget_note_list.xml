@@ -88,6 +88,15 @@
                     android:src="@drawable/ic_widget_camera" />
 
                 <ImageButton
+                    android:id="@+id/widget_audio"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="@string/audio_note"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_widget_mic" />
+
+                <ImageButton
                     android:id="@+id/widget_create"
                     android:layout_width="48dp"
                     android:layout_height="48dp"

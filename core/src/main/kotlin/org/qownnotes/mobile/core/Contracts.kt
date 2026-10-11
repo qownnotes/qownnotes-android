@@ -108,8 +108,8 @@ interface NoteSettingsBackend {
 }
 
 interface NoteMediaBackend {
-    /** Uploads an image to the top-level media folder and returns its unique file name. */
-    suspend fun uploadImage(
+    /** Uploads images to media and other files to attachments; returns the unique file name. */
+    suspend fun uploadMedia(
         account: Account,
         notesPath: String,
         fileName: String,

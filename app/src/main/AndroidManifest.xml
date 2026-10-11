@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Deck card links in notes open in the Nextcloud Deck app when it is installed. -->
@@ -56,6 +58,10 @@
         </activity>
         <activity
             android:name=".CaptureNoteActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QOwnNotes" />
+        <activity
+            android:name=".AudioNoteActivity"
             android:exported="false"
             android:theme="@style/Theme.QOwnNotes" />
         <activity

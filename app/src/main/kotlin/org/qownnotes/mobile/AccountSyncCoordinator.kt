@@ -23,7 +23,7 @@ internal class AccountSyncCoordinator(
     private val backend: NoteBackend,
     private val onNoteFailure: suspend (String, Throwable) -> Unit,
     private val onNoteSuccess: suspend (String) -> Unit,
-    private val synchronizeImages: suspend (Account, Note) -> Unit = { _, _ -> },
+    private val synchronizeMedia: suspend (Account, Note) -> Unit = { _, _ -> },
     /** Runs after notes were pushed, so tag operations refer to the names the server confirmed. */
     private val synchronizeTags: suspend (Account) -> Unit = {}
 ) : SyncCoordinator {
@@ -62,7 +62,7 @@ internal class AccountSyncCoordinator(
             // A failed photo upload is not an uncertain note creation. Keep the local note
             // pending, and never publish a note whose image has not been uploaded yet.
             try {
-                synchronizeImages(account, note)
+                synchronizeMedia(account, note)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {

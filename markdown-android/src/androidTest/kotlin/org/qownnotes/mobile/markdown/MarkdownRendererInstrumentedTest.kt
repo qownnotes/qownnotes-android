@@ -197,6 +197,34 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun nestedAudioLinkDispatchesOnlyWithinTheNotesFolder() {
+        var opened: String? = null
+        instrumentation.runOnMainSync {
+            val view = textView()
+            val renderer = MarkdownRenderer(view.context)
+            renderer.render(
+                view = view,
+                markdown = "[Audio](../../attachments/audio.m4a)",
+                category = "Work/Meetings",
+                onAttachmentLink = { opened = it }
+            )
+            val text = view.text as Spanned
+            text.getSpans(0, text.length, LinkSpan::class.java).single().onClick(view)
+            assertEquals("../../attachments/audio.m4a", opened)
+            opened = null
+            renderer.render(
+                view = view,
+                markdown = "[Audio](../../attachments/audio.m4a)",
+                category = "Work",
+                onAttachmentLink = { opened = it }
+            )
+            val unsafe = view.text as Spanned
+            unsafe.getSpans(0, unsafe.length, LinkSpan::class.java).single().onClick(view)
+        }
+        assertNull(opened)
+    }
+
+    @Test
     fun unsafeRelativeAttachmentLinkDoesNotDispatch() {
         var opened: String? = null
         lateinit var view: AppCompatTextView

@@ -60,6 +60,94 @@ class CapturedNoteTest {
     }
 
     @Test
+    fun pendingAudioCanBeOpenedOfflineWithReadOnlyContentUri() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        var opened = false
+        val monitor = object : Instrumentation.ActivityMonitor() {
+            override fun onStartActivity(intent: Intent): Instrumentation.ActivityResult? {
+                if (intent.action != Intent.ACTION_VIEW || intent.type != "audio/mp4") return null
+                assertEquals("content", intent.data!!.scheme)
+                assertTrue(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
+                assertTrue(intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION == 0)
+                assertArrayEquals(
+                    byteArrayOf(1, 2, 3),
+                    application.contentResolver
+                        .openInputStream(intent.data!!)!!.use { it.readBytes() }
+                )
+                opened = true
+                return Instrumentation.ActivityResult(Activity.RESULT_OK, null)
+            }
+        }
+        instrumentation.addMonitor(monitor)
+        try {
+            val id = UUID.randomUUID().toString()
+            application.component.createCapturedNote(
+                "camera-account",
+                id,
+                Uri.fromFile(source),
+                audio = true,
+                category = "Work"
+            )
+            assertEquals(
+                AttachmentOpenResult.OPENED,
+                application.component.openAttachment(
+                    id,
+                    "../attachments/audio-$id.m4a"
+                )
+            )
+            assertTrue(opened)
+            assertTrue(application.fakeBackend.uploadedImages.isEmpty())
+            assertEquals(
+                AttachmentOpenResult.FETCH_FAILED,
+                application.component.openAttachment(
+                    id,
+                    "../../attachments/audio-$id.m4a"
+                )
+            )
+        } finally {
+            instrumentation.removeMonitor(monitor)
+        }
+    }
+
+    @Test
+    fun audioNoteSavesOfflineAndRetriesMediaBeforeNoteWithCategoryRelativeLink() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        val uri = Uri.fromFile(source)
+        val component = application.component
+        val note = component.createCapturedNote(
+            "camera-account",
+            id,
+            uri,
+            audio = true,
+            category = "Work/Meetings"
+        )
+        assertEquals("Work/Meetings", note.category)
+        assertTrue(
+            note.content.contains(
+                "[${application.getString(
+                    R.string.audio_recording
+                )}](../../attachments/audio-$id.m4a)"
+            )
+        )
+        assertTrue(application.fakeBackend.uploadedImages.isEmpty())
+        source.delete()
+        assertEquals(note, component.createCapturedNote("camera-account", id, uri, audio = true))
+        application.fakeBackend.imageUploadFailure =
+            BackendException.Retryable(IOException("offline"))
+        component.refresh("camera-account")
+        assertTrue(application.fakeBackend.pushedNotes.isEmpty())
+        val pending = File(application.filesDir, "pending-captures/audio-$id.m4a")
+        assertArrayEquals(byteArrayOf(1, 2, 3), pending.readBytes())
+        application.fakeBackend.imageUploadFailure = null
+        component.refresh("camera-account")
+        assertEquals("audio-$id.m4a", application.fakeBackend.uploadedImages.single().first)
+        assertEquals("audio/mp4", application.fakeBackend.uploadedMediaTypes.single())
+        assertEquals(note.content, application.fakeBackend.pushedNotes.single().content)
+        assertTrue(!pending.exists())
+        assertTrue(!File(application.filesDir, "pending-captures/audio-$id.m4a.uploaded").exists())
+    }
+
+    @Test
     fun widgetCameraResultOpensLocallySavedNoteWithoutNetwork() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val monitor = object : Instrumentation.ActivityMonitor() {

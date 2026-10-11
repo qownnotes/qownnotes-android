@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="audio_note">Audionotiz aufnehmen</string>
+    <string name="audio_recording">Audioaufnahme</string>
+    <string name="audio_recording_active">Aufnahme läuft…</string>
+    <string name="audio_record">Aufnehmen</string>
+    <string name="audio_stop">Aufnahme stoppen</string>
+    <string name="audio_save">Audionotiz speichern</string>
+    <string name="audio_permission_required">Zum Aufnehmen einer Audionotiz ist die Mikrofonberechtigung erforderlich</string>
+    <string name="audio_record_failed">Audio konnte nicht aufgenommen werden. Bitte erneut versuchen.</string>
+    <string name="audio_save_failed">Audionotiz konnte nicht gespeichert werden. Die Aufnahme bleibt erhalten; bitte erneut versuchen.</string>
     <string name="widget_note_list">Notizliste</string>
     <string name="widget_note_list_description">Notizen anzeigen und schnell eine Notiz erstellen</string>
     <string name="widget_single_note">Einzelne Notiz</string>
