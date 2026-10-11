@@ -68,6 +68,7 @@ import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
@@ -92,6 +93,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PersonRemove
@@ -1539,6 +1541,12 @@ private fun NoteListScreen(
                                         }
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.audio_note)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.Mic,
+                                                    contentDescription = null
+                                                )
+                                            },
                                             onClick = {
                                                 noteListMenuOpen = false
                                                 audioNoteContext.startActivity(
@@ -1969,6 +1977,13 @@ private fun NoteListScreen(
                         label = stringResource(R.string.deck_reset_opening),
                         onClick = { component.settings.resetDeckLinkOpening() },
                         testTag = "reset-deck-opening",
+                        navigates = false
+                    )
+                    SettingsActionRow(
+                        icon = Icons.Filled.Audiotrack,
+                        label = stringResource(R.string.audio_reset_opening),
+                        onClick = { component.settings.resetAudioLinkOpening() },
+                        testTag = "reset-audio-opening",
                         navigates = false
                     )
                     SettingsActionRow(
@@ -2831,6 +2846,7 @@ private fun NoteDetailScreen(
     var deckCardTitle by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     var showNoteDeckBrowser by rememberSaveable(localId) { mutableStateOf(false) }
     var deckLinkUrl by rememberSaveable(localId) { mutableStateOf<String?>(null) }
+    var audioAttachmentPath by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     val imagePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
@@ -3947,31 +3963,14 @@ private fun NoteDetailScreen(
                                     onInternalLink = onOpen,
                                     onAttachmentLink = { path ->
                                         val localId = source?.localId
-                                        if (localId != null) {
+                                        if (localId != null && isAudioAttachment(path)) {
+                                            audioAttachmentPath = path
+                                        } else if (localId != null) {
                                             scope.launch {
-                                                val result = component.openAttachment(
-                                                    localId,
-                                                    path
+                                                showAttachmentResult(
+                                                    view.context,
+                                                    component.openAttachment(localId, path)
                                                 )
-                                                val message = when (result) {
-                                                    AttachmentOpenResult.OPENED -> null
-                                                    AttachmentOpenResult.FETCH_FAILED ->
-                                                        view.context.getString(
-                                                            R.string.attachment_download_failed
-                                                        )
-                                                    AttachmentOpenResult.NO_VIEWER ->
-                                                        view.context.getString(
-                                                            R.string.attachment_no_viewer
-                                                        )
-                                                }
-                                                message?.let {
-                                                    Toast.makeText(
-                                                        view.context,
-                                                        it,
-                                                        Toast.LENGTH_SHORT
-                                                    )
-                                                        .show()
-                                                }
                                             }
                                         }
                                     },
@@ -4367,6 +4366,12 @@ private fun NoteDetailScreen(
     if (pendingDeckLink != null && account != null) {
         DeckCardLinkDialog(component, account, pendingDeckLink, onDismiss = {
             deckLinkUrl = null
+        })
+    }
+    val pendingAudioAttachment = audioAttachmentPath
+    if (pendingAudioAttachment != null) {
+        AudioAttachmentDialog(component, localId, pendingAudioAttachment, onDismiss = {
+            audioAttachmentPath = null
         })
     }
     val pendingDeckCardTitle = deckCardTitle

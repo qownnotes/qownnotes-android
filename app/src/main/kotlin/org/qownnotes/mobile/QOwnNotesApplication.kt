@@ -507,12 +507,20 @@ class ApplicationComponent(
     }
 
     internal suspend fun openAttachment(localId: String, path: String): AttachmentOpenResult {
-        val note = noteRepository.get(localId) ?: return AttachmentOpenResult.FETCH_FAILED
+        val file = resolveAttachment(localId, path) ?: return AttachmentOpenResult.FETCH_FAILED
+        return attachmentOpener.openFile(file)
+    }
+
+    /**
+     * Returns a private cached copy of a note's attachment, using a pending audio recording that
+     * has not been uploaded yet when the link points to it.
+     */
+    internal suspend fun resolveAttachment(localId: String, path: String): java.io.File? {
+        val note = noteRepository.get(localId) ?: return null
         if (org.qownnotes.mobile.core.parseRelativeAttachmentLink(path, note.category) == null) {
-            return AttachmentOpenResult.FETCH_FAILED
+            return null
         }
-        val account = accountRepository.get(note.accountId)
-            ?: return AttachmentOpenResult.FETCH_FAILED
+        val account = accountRepository.get(note.accountId) ?: return null
         if (path == noteMediaPath(
                 note.category,
                 pendingCaptures.fileName(localId),
@@ -520,11 +528,11 @@ class ApplicationComponent(
             )
         ) {
             pendingCaptures.readAudio(localId)?.let {
-                return attachmentOpener.openAudio(localId, it)
+                return attachmentOpener.cacheAudio(localId, it)
             }
         }
-        val remoteId = note.remoteId ?: return AttachmentOpenResult.FETCH_FAILED
-        return attachmentOpener.open(
+        val remoteId = note.remoteId ?: return null
+        return attachmentOpener.fetch(
             remoteId,
             path,
             account.ssoAccountName,

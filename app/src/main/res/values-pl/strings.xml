@@ -9,6 +9,15 @@
     <string name="audio_permission_required">Nagrywanie notatki głosowej wymaga uprawnienia do mikrofonu</string>
     <string name="audio_record_failed">Nie udało się nagrać dźwięku. Spróbuj ponownie.</string>
     <string name="audio_save_failed">Nie udało się zapisać notatki głosowej. Nagranie zostało zachowane; spróbuj ponownie.</string>
+    <string name="audio_play">Odtwórz</string>
+    <string name="audio_pause">Pauza</string>
+    <string name="audio_play_failed">Nie można odtworzyć tego pliku audio</string>
+    <string name="audio_open_title">Otwórz załącznik audio</string>
+    <string name="audio_open_question">Jak chcesz odtworzyć ten plik audio?</string>
+    <string name="audio_remember_choice">Zapamiętaj wybór</string>
+    <string name="audio_play_internal">Odtwórz w QOwnNotes</string>
+    <string name="audio_open_external">Otwórz w innej aplikacji</string>
+    <string name="audio_reset_opening">Zresetuj preferencję otwierania odnośników audio</string>
     <string name="widget_note_list">Lista notatek</string>
     <string name="widget_note_list_description">Przeglądaj notatki i szybko twórz nowe</string>
     <string name="widget_single_note">Pojedyncza notatka</string>

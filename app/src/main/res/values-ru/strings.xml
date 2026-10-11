@@ -9,6 +9,15 @@
     <string name="audio_permission_required">Для записи аудиозаметки требуется разрешение на использование микрофона</string>
     <string name="audio_record_failed">Не удалось записать звук. Попробуйте ещё раз.</string>
     <string name="audio_save_failed">Не удалось сохранить аудиозаметку. Запись сохранена; попробуйте ещё раз.</string>
+    <string name="audio_play">Воспроизвести</string>
+    <string name="audio_pause">Пауза</string>
+    <string name="audio_play_failed">Не удалось воспроизвести этот аудиофайл</string>
+    <string name="audio_open_title">Открыть аудиовложение</string>
+    <string name="audio_open_question">Как воспроизвести этот аудиофайл?</string>
+    <string name="audio_remember_choice">Запомнить выбор</string>
+    <string name="audio_play_internal">Воспроизвести в QOwnNotes</string>
+    <string name="audio_open_external">Открыть в другом приложении</string>
+    <string name="audio_reset_opening">Сбросить настройку открытия аудиоссылок</string>
     <string name="widget_note_list">Список заметок</string>
     <string name="widget_note_list_description">Просмотр заметок и быстрое создание заметки</string>
     <string name="widget_single_note">Одна заметка</string>

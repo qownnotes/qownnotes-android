@@ -9,6 +9,15 @@
     <string name="audio_permission_required">Zum Aufnehmen einer Audionotiz ist die Mikrofonberechtigung erforderlich</string>
     <string name="audio_record_failed">Audio konnte nicht aufgenommen werden. Bitte erneut versuchen.</string>
     <string name="audio_save_failed">Audionotiz konnte nicht gespeichert werden. Die Aufnahme bleibt erhalten; bitte erneut versuchen.</string>
+    <string name="audio_play">Abspielen</string>
+    <string name="audio_pause">Pause</string>
+    <string name="audio_play_failed">Diese Audiodatei konnte nicht abgespielt werden</string>
+    <string name="audio_open_title">Audioanhang öffnen</string>
+    <string name="audio_open_question">Wie möchtest du diese Audiodatei abspielen?</string>
+    <string name="audio_remember_choice">Auswahl merken</string>
+    <string name="audio_play_internal">In QOwnNotes abspielen</string>
+    <string name="audio_open_external">Mit anderer App öffnen</string>
+    <string name="audio_reset_opening">Öffnungseinstellung für Audio-Links zurücksetzen</string>
     <string name="widget_note_list">Notizliste</string>
     <string name="widget_note_list_description">Notizen anzeigen und schnell eine Notiz erstellen</string>
     <string name="widget_single_note">Einzelne Notiz</string>

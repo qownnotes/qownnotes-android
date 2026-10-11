@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
@@ -81,6 +83,12 @@ class AudioNoteActivity : ComponentActivity() {
                                 stringResource(
                                     if (recording) R.string.audio_stop else R.string.audio_record
                                 )
+                            )
+                        }
+                        if (ready) {
+                            AudioPlayer(
+                                recordingFile(),
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                             )
                         }
                         Button(

@@ -9,6 +9,15 @@
     <string name="audio_permission_required">录制音频笔记需要麦克风权限</string>
     <string name="audio_record_failed">无法录制音频，请重试。</string>
     <string name="audio_save_failed">无法保存音频笔记。录音已保留，请重试。</string>
+    <string name="audio_play">播放</string>
+    <string name="audio_pause">暂停</string>
+    <string name="audio_play_failed">无法播放此音频文件</string>
+    <string name="audio_open_title">打开音频附件</string>
+    <string name="audio_open_question">你想如何播放此音频文件？</string>
+    <string name="audio_remember_choice">记住我的选择</string>
+    <string name="audio_play_internal">在 QOwnNotes 中播放</string>
+    <string name="audio_open_external">使用其他应用打开</string>
+    <string name="audio_reset_opening">重置音频链接打开偏好</string>
     <string name="widget_note_list">笔记列表</string>
     <string name="widget_note_list_description">查看笔记并快速新建笔记</string>
     <string name="widget_single_note">单条笔记</string>

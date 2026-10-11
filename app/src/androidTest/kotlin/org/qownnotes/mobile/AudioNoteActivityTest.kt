@@ -5,6 +5,7 @@ import android.app.Activity
 import android.os.SystemClock
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
@@ -65,7 +66,14 @@ class AudioNoteActivityTest {
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.RESUMED)
             compose.onNodeWithTag("audio-save").assertIsEnabled()
+            // The stopped recording can be previewed before it is saved.
+            compose.onNodeWithTag("audio-player").assertExists()
+            compose.onNodeWithTag("audio-play-pause").performClick()
+            compose.onNodeWithContentDescription("Pause").assertExists()
+            compose.onNodeWithTag("audio-play-pause").performClick()
+            compose.onNodeWithContentDescription("Play").assertExists()
             scenario.recreate()
+            compose.onNodeWithTag("audio-player").assertExists()
             compose.onNodeWithTag("audio-save").assertIsEnabled().performClick()
             val note = runBlocking {
                 withTimeout(5_000) {

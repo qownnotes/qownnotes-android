@@ -102,6 +102,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         component.settings.setEditorToolbarHintDismissed(true)
         component.settings.setAppearance(AppAppearance())
         component.settings.resetDeckLinkOpening()
+        component.settings.resetAudioLinkOpening()
         fakeBackend.reset()
         fakeAccountImporter.reset()
         fakeSyncScheduler.reset()

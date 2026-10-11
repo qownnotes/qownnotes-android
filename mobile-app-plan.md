@@ -60,6 +60,10 @@ or note-list widget. AAC/M4A recordings (limited to 10 MiB) are stored privately
 Markdown attachment links in the top-level `attachments/` folder, leaving `media/` for images,
 with the same durable media-before-note synchronization as photos.
 Leaving the recording screen stops the microphone; interrupted saves can be retried.
+A stopped recording can be played back on the recording screen before saving. Audio attachment
+links ask whether to play in an in-app `MediaPlayer` dialog or hand a read-only content URI to
+another app; the choice can be remembered device-wide and reset from Settings. Playback pauses
+when the screen stops.
 
 An offline bookmark browser parses QOwnNotes Desktop-compatible list bookmarks from an
 account-scoped relative Markdown path, `Bookmarks.md` by default. It searches bookmark names, URLs,

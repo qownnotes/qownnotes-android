@@ -356,6 +356,20 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         editor.apply()
     }
 
+    /** Remembered way to open audio attachment links, or `null` to ask each time. */
+    fun audioLinkOpening(): AudioLinkOpening? =
+        preferences.getString(AUDIO_LINK_OPENING, null)?.let { value ->
+            AudioLinkOpening.entries.firstOrNull { it.name == value }
+        }
+
+    fun setAudioLinkOpening(opening: AudioLinkOpening) {
+        preferences.edit().putString(AUDIO_LINK_OPENING, opening.name).apply()
+    }
+
+    fun resetAudioLinkOpening() {
+        preferences.edit().remove(AUDIO_LINK_OPENING).apply()
+    }
+
     private fun mutableNextcloudDeckAvailable(accountId: String): MutableStateFlow<Boolean> =
         mutableNextcloudDeckAvailable.getOrPut(accountId) {
             MutableStateFlow(
@@ -395,6 +409,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val CATEGORY_HIGHLIGHT_COLOR = "categoryHighlightColor"
         const val SHOW_LIST_HEADER = "showListHeader"
         const val NOTE_CARDS = "noteCards"
+        const val AUDIO_LINK_OPENING = "audioLinkOpening"
 
         // Legacy global key migrated to existing accounts when the application starts.
         const val SHOW_CATEGORY = "showCategory"
@@ -411,6 +426,8 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
 }
 
 enum class DeckLinkOpening { QOWNNOTES, DECK }
+
+enum class AudioLinkOpening { INTERNAL, EXTERNAL }
 
 /**
  * Note-list presentation choices. A `null` color follows the Material theme, including dark mode.

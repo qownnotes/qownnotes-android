@@ -18,29 +18,24 @@ internal class AttachmentOpener(
     private val context: Context,
     private val fetch: (String, String) -> InputStream?
 ) {
-    suspend fun open(
+    suspend fun fetch(
         remoteId: Long,
         path: String,
         accountName: String,
         attachmentApiPath: String
-    ): AttachmentOpenResult {
-        val file = withContext(Dispatchers.IO) {
-            cacheAttachment(remoteId, path, accountName, attachmentApiPath)
-        } ?: return AttachmentOpenResult.FETCH_FAILED
-        return openFile(file)
+    ): File? = withContext(Dispatchers.IO) {
+        cacheAttachment(remoteId, path, accountName, attachmentApiPath)
     }
 
-    suspend fun openAudio(localId: String, content: ByteArray): AttachmentOpenResult {
-        val file = withContext(Dispatchers.IO) {
+    suspend fun cacheAudio(localId: String, content: ByteArray): File? =
+        withContext(Dispatchers.IO) {
             runCatching {
                 File(context.cacheDir, "attachments").apply { mkdirs() }
                     .resolve("audio-$localId.m4a").apply { writeBytes(content) }
             }.getOrNull()
-        } ?: return AttachmentOpenResult.FETCH_FAILED
-        return openFile(file)
-    }
+        }
 
-    private fun openFile(file: File): AttachmentOpenResult {
+    fun openFile(file: File): AttachmentOpenResult {
         val uri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
@@ -98,6 +93,14 @@ private fun String.safeFileName(): String {
     }.joinToString("")
     return sanitized.take(120).ifBlank { "attachment" }
 }
+
+private val AUDIO_EXTENSIONS =
+    setOf("m4a", "mp3", "aac", "ogg", "oga", "opus", "wav", "flac", "3gp", "amr", "weba")
+
+/** Whether an attachment link points to an audio file, judged by its file extension. */
+internal fun isAudioAttachment(path: String): Boolean =
+    path.substringBefore('?').substringBefore('#').substringAfterLast('/')
+        .substringAfterLast('.', "").lowercase() in AUDIO_EXTENSIONS
 
 internal enum class AttachmentOpenResult {
     OPENED,

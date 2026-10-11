@@ -9,6 +9,15 @@
     <string name="audio_permission_required">È necessaria l\'autorizzazione al microfono per registrare una nota audio</string>
     <string name="audio_record_failed">Impossibile registrare l\'audio. Riprova.</string>
     <string name="audio_save_failed">Impossibile salvare la nota audio. La registrazione viene conservata; riprova.</string>
+    <string name="audio_play">Riproduci</string>
+    <string name="audio_pause">Pausa</string>
+    <string name="audio_play_failed">Impossibile riprodurre questo file audio</string>
+    <string name="audio_open_title">Apri allegato audio</string>
+    <string name="audio_open_question">Come vuoi riprodurre questo file audio?</string>
+    <string name="audio_remember_choice">Ricorda la scelta</string>
+    <string name="audio_play_internal">Riproduci in QOwnNotes</string>
+    <string name="audio_open_external">Apri con un\'altra app</string>
+    <string name="audio_reset_opening">Reimposta la preferenza dei collegamenti audio</string>
     <string name="widget_note_list">Elenco note</string>
     <string name="widget_note_list_description">Visualizza le note e crea rapidamente una nota</string>
     <string name="widget_single_note">Nota singola</string>

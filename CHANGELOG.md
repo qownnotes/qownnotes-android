@@ -13,6 +13,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   are saved locally before synchronization and linked as M4A files in `attachments/`, leaving
   `media/` reserved for images
   ([#30](https://github.com/qownnotes/qownnotes-android/issues/30)).
+- Listen to an audio recording on the recording screen before saving it, with play, pause, and
+  seeking. The **Record audio note** menu item now has a microphone icon
+  ([#30](https://github.com/qownnotes/qownnotes-android/issues/30)).
+- Tapping an audio attachment link in a note asks whether to play it in QOwnNotes or open it with
+  another app, with an optional remembered choice and a Settings action to reset it. The in-app
+  player also plays recordings that have not been uploaded yet
+  ([#30](https://github.com/qownnotes/qownnotes-android/issues/30)).
 - Discover QOwnNotes for Nextcloud through server capabilities and use its Notes, versions,
   trash and attachment APIs, with automatic fallback to the existing Notes and QOwnNotesAPI apps.
   The API base is remembered per account; changes force a full pull without discarding pending edits.

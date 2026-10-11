@@ -9,6 +9,15 @@
     <string name="audio_permission_required">É necessário permitir o uso do microfone para gravar uma nota de áudio</string>
     <string name="audio_record_failed">Não foi possível gravar o áudio. Tente novamente.</string>
     <string name="audio_save_failed">Não foi possível salvar a nota de áudio. A gravação foi mantida; tente novamente.</string>
+    <string name="audio_play">Reproduzir</string>
+    <string name="audio_pause">Pausar</string>
+    <string name="audio_play_failed">Não foi possível reproduzir este arquivo de áudio</string>
+    <string name="audio_open_title">Abrir anexo de áudio</string>
+    <string name="audio_open_question">Como você quer reproduzir este arquivo de áudio?</string>
+    <string name="audio_remember_choice">Lembrar minha escolha</string>
+    <string name="audio_play_internal">Reproduzir no QOwnNotes</string>
+    <string name="audio_open_external">Abrir com outro app</string>
+    <string name="audio_reset_opening">Redefinir preferência de links de áudio</string>
     <string name="widget_note_list">Lista de notas</string>
     <string name="widget_note_list_description">Veja as notas e crie uma nota rapidamente</string>
     <string name="widget_single_note">Nota única</string>

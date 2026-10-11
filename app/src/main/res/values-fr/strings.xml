@@ -9,6 +9,15 @@
     <string name="audio_permission_required">L\'autorisation du microphone est nécessaire pour enregistrer une note audio</string>
     <string name="audio_record_failed">Impossible d\'enregistrer le son. Veuillez réessayer.</string>
     <string name="audio_save_failed">Impossible de sauvegarder la note audio. Votre enregistrement est conservé ; veuillez réessayer.</string>
+    <string name="audio_play">Lire</string>
+    <string name="audio_pause">Pause</string>
+    <string name="audio_play_failed">Impossible de lire ce fichier audio</string>
+    <string name="audio_open_title">Ouvrir la pièce jointe audio</string>
+    <string name="audio_open_question">Comment souhaitez-vous lire ce fichier audio ?</string>
+    <string name="audio_remember_choice">Mémoriser mon choix</string>
+    <string name="audio_play_internal">Lire dans QOwnNotes</string>
+    <string name="audio_open_external">Ouvrir avec une autre application</string>
+    <string name="audio_reset_opening">Réinitialiser la préférence des liens audio</string>
     <string name="widget_note_list">Liste de notes</string>
     <string name="widget_note_list_description">Afficher les notes et créer rapidement une note</string>
     <string name="widget_single_note">Note unique</string>
