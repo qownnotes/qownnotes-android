@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-11
+
 ### Added
 
 - Record audio notes from the app's note-list menu or home-screen note-list widget. Recordings
@@ -577,7 +579,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.0.0...v1.1.0

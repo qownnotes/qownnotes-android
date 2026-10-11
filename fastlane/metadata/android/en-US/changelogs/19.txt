@@ -1,0 +1,5 @@
+• Record audio notes from the app or note-list widget and preview recordings before saving
+• Play audio attachments in QOwnNotes or another app, with an optional remembered choice
+• Discover QOwnNotes for Nextcloud APIs with automatic fallback to legacy apps
+• Save widget photo notes locally before background synchronization
+• Optional trailing-space cleanup affects only edited lines and preserves Markdown hard breaks
