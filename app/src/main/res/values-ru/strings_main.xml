@@ -10,7 +10,8 @@
 
     <!-- Onboarding -->
     <string name="onboarding_title">Ваши заметки Nextcloud — офлайн</string>
-    <string name="onboarding_description">Выберите аккаунт из приложения Nextcloud Files, чтобы загрузить и сохранить заметки на устройстве.</string>
+    <string name="onboarding_description">Установите и включите QOwnNotes или Notes на сервере Nextcloud. На Android установите Nextcloud Files и войдите в аккаунт, затем выберите его здесь, чтобы загрузить заметки для работы офлайн. Приложение Nextcloud Notes для Android не требуется.</string>
+    <string name="account_import_notes_app_missing">На сервере Nextcloud не найдено поддерживаемое приложение для заметок. Попросите администратора установить и включить QOwnNotes или Notes для вашего аккаунта, затем повторите попытку. Nextcloud Files на Android используется только для выбора и авторизации аккаунта.</string>
     <string name="onboarding_shared_text_waiting">Полученный текст сохранён и станет заметкой после добавления аккаунта.</string>
 
     <!-- Account management -->

@@ -653,7 +653,8 @@ private fun AccountOnboarding(
     onImportAccount: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp).testTag("onboarding"),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(32.dp).testTag("onboarding"),
         verticalArrangement = Arrangement.Center
     ) {
         Text(

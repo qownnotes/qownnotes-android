@@ -96,6 +96,25 @@ class AppLaunchTest {
     }
 
     @Test
+    fun onboardingExplainsServerAndAndroidAppRequirements() {
+        composeRule.onNodeWithText(
+            application.getString(R.string.onboarding_description)
+        ).assertIsDisplayed()
+
+        application.component.reportImportError(BackendException.NotesAppMissing())
+
+        val message = application.getString(R.string.account_import_notes_app_missing)
+        composeRule.waitForText(message)
+        composeRule.onNodeWithText(message).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("add-account").performScrollTo().assertIsDisplayed()
+        assertTrue(
+            runBlocking {
+                application.component.accountRepository.observeAccounts().first().isEmpty()
+            }
+        )
+    }
+
+    @Test
     fun onboardingImportsAccountAndDisplaysInitialPull() {
         val account = testAccount("alice")
         application.fakeAccountImporter.enqueue(account)

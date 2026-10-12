@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Clarify that account setup requires QOwnNotes or Notes on the Nextcloud server and Nextcloud
+  Files on Android, not the Nextcloud Notes Android app. Localize the missing-server-app error
+  and keep onboarding scrollable on smaller screens.
 - Keep the **Refreshing** status as small as **Available offline**, without shifting the note list
   during refresh ([#31](https://github.com/qownnotes/qownnotes-android/issues/31)).
 

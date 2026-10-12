@@ -1164,7 +1164,11 @@ class ApplicationComponent(
 
     fun reportImportError(error: Throwable) {
         mutableImportState.value = SyncUiState.Failed(
-            error.message ?: application.getString(R.string.account_import_failed)
+            if (error is BackendException.NotesAppMissing) {
+                application.getString(R.string.account_import_notes_app_missing)
+            } else {
+                error.message ?: application.getString(R.string.account_import_failed)
+            }
         )
     }
 

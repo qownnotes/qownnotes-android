@@ -70,7 +70,11 @@ sealed class BackendException(message: String, cause: Throwable? = null) :
 
     class Permission(cause: Throwable? = null) : BackendException("Permission denied", cause)
 
-    class NotesAppMissing : BackendException("The Nextcloud Notes app is not available")
+    class NotesAppMissing :
+        BackendException(
+            "No supported notes app was found on your Nextcloud server. " +
+                "Ask your administrator to install and enable QOwnNotes or Notes for your account."
+        )
 
     class UnsupportedApi(val versions: List<String>) :
         BackendException("Nextcloud Notes API 1.2 or newer is required")

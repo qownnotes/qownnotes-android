@@ -10,7 +10,8 @@
 
     <!-- Onboarding -->
     <string name="onboarding_title">离线使用你的 Nextcloud 笔记</string>
-    <string name="onboarding_description">从 Nextcloud Files 应用中选择一个账号，以下载并缓存你的笔记。</string>
+    <string name="onboarding_description">请在 Nextcloud 服务器上安装并启用 QOwnNotes 或 Notes。在 Android 上安装 Nextcloud Files 并登录，然后在此选择账号，下载笔记以供离线使用。无需安装 Nextcloud Notes Android 应用。</string>
+    <string name="account_import_notes_app_missing">你的 Nextcloud 服务器上未找到受支持的笔记应用。请联系管理员，为你的账号安装并启用 QOwnNotes 或 Notes，然后重试。Android 上的 Nextcloud Files 仅用于选择和授权账号。</string>
     <string name="onboarding_shared_text_waiting">分享的文本已保留，添加账号后将成为一条笔记。</string>
 
     <!-- Account management -->

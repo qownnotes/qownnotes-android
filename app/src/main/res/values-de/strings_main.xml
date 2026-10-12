@@ -10,7 +10,8 @@
 
     <!-- Onboarding -->
     <string name="onboarding_title">Deine Nextcloud-Notizen, offline</string>
-    <string name="onboarding_description">Wähle ein Konto aus der Nextcloud-Files-App, um deine Notizen herunterzuladen und zwischenzuspeichern.</string>
+    <string name="onboarding_description">Installiere und aktiviere QOwnNotes oder Notes auf deinem Nextcloud-Server. Installiere unter Android Nextcloud Files und melde dich an. Wähle dann hier ein Konto, um deine Notizen offline verfügbar zu machen. Die Nextcloud-Notes-Android-App ist nicht erforderlich.</string>
+    <string name="account_import_notes_app_missing">Auf deinem Nextcloud-Server wurde keine unterstützte Notizen-App gefunden. Bitte deinen Administrator, QOwnNotes oder Notes für dein Konto zu installieren und zu aktivieren. Versuche es danach erneut. Nextcloud Files unter Android dient nur zur Kontoauswahl und Autorisierung.</string>
     <string name="onboarding_shared_text_waiting">Der geteilte Text bleibt erhalten und wird zu einer Notiz, sobald ein Konto hinzugefügt wurde.</string>
 
     <!-- Account management -->
