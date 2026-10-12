@@ -540,6 +540,12 @@ class ApplicationComponent(
         )
     }
 
+    /** Image links the note view shows from local files, because they are not uploaded yet. */
+    internal fun pendingImages(note: Note): Map<String, java.io.File> {
+        val file = pendingCaptures.image(note.localId) ?: return emptyMap()
+        return mapOf(mediaImagePath(note.category, file.name) to file)
+    }
+
     suspend fun createNote(accountId: String, category: String = ""): Note =
         persistNewNote(noteFactory.create(accountId, category))
 

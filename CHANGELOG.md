@@ -14,6 +14,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and keep onboarding scrollable on smaller screens.
 - Keep the **Refreshing** status as small as **Available offline**, without shifting the note list
   during refresh ([#31](https://github.com/qownnotes/qownnotes-android/issues/31)).
+- Photo notes taken without a network connection show the captured picture from the device
+  until it has been uploaded, instead of a red placeholder square
+  ([#29](https://github.com/qownnotes/qownnotes-android/issues/29)).
 
 ## [1.4.0] - 2026-10-11
 

@@ -37,6 +37,9 @@ class PendingCaptureStore(private val directory: File) {
         file(localId, true).takeIf(File::exists)?.readBytes()
     }
 
+    /** The captured photo, kept until its note is synchronized, even after it was uploaded. */
+    fun image(localId: String): File? = file(localId, false).takeIf(File::isFile)
+
     suspend fun markUploaded(localId: String) = withContext(Dispatchers.IO) {
         check(uploaded(localId).createNewFile() || uploaded(localId).exists())
     }

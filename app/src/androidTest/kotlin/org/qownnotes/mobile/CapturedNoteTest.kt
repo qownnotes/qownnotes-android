@@ -259,6 +259,13 @@ class CapturedNoteTest {
         }
         assertEquals(SyncState.LOCALLY_CREATED, note.syncState)
         assertTrue(note.content.contains("media/image-$id.jpg"))
+        assertEquals(
+            mapOf(
+                "media/image-$id.jpg" to
+                    File(application.filesDir, "pending-captures/image-$id.jpg")
+            ),
+            application.component.pendingImages(note)
+        )
         assertTrue(application.fakeBackend.uploadedImages.isEmpty())
         source.delete()
         assertEquals(note, application.component.createCapturedNote("camera-account", id, uri))

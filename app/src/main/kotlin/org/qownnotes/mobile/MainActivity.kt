@@ -4041,7 +4041,8 @@ private fun NoteDetailScreen(
                                     accountName = account?.ssoAccountName.orEmpty(),
                                     category = source?.category.orEmpty(),
                                     attachmentApiPath = account?.attachmentApiPath()
-                                        ?: "/index.php/apps/notes/api/v1.4/attachment/"
+                                        ?: "/index.php/apps/notes/api/v1.4/attachment/",
+                                    localImages = source?.let(component::pendingImages).orEmpty()
                                 )
                             }
                             val found = highlightNoteSearchMatches(

@@ -1,6 +1,8 @@
 package org.qownnotes.mobile.markdown
 
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.SystemClock
@@ -20,6 +22,7 @@ import io.noties.markwon.ext.tasklist.TaskListSpan
 import io.noties.markwon.image.AsyncDrawableSpan
 import io.noties.markwon.image.ImageItem
 import io.noties.markwon.image.SchemeHandler
+import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -501,6 +504,42 @@ class MarkdownRendererInstrumentedTest {
         assertTrue(requested.await(5, TimeUnit.SECONDS))
         Thread.sleep(250)
         assertEquals(1, requestCount.get())
+    }
+
+    @Test
+    fun showsRegisteredLocalImageWithoutRemoteNoteAndBlocksOthers() {
+        val file = File(instrumentation.targetContext.cacheDir, "local-image-test.png")
+        Bitmap.createBitmap(4, 3, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(Color.GREEN)
+            file.outputStream().use { compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
+        lateinit var view: AppCompatTextView
+        try {
+            instrumentation.runOnMainSync {
+                view = textView()
+                MarkdownRenderer(view.context).render(
+                    view,
+                    "![photo](media/image-1.jpg) ![other](media/image-2.jpg)",
+                    loadRemoteImages = true,
+                    localImages = mapOf("media/image-1.jpg" to file)
+                )
+            }
+            val spans = (view.text as Spanned).let {
+                it.getSpans(0, it.length, AsyncDrawableSpan::class.java)
+                    .sortedBy(it::getSpanStart)
+            }
+            assertEquals(2, spans.size)
+            assertTrue(spans[0].drawable.destination.startsWith("$LOCAL_IMAGE_SCHEME:"))
+            assertFalse(spans[1].drawable.destination.startsWith("$LOCAL_IMAGE_SCHEME:"))
+            val deadline = SystemClock.uptimeMillis() + 5_000
+            while (!spans[0].drawable.hasResult() && SystemClock.uptimeMillis() < deadline) {
+                Thread.sleep(20)
+            }
+            assertTrue(spans[0].drawable.result is BitmapDrawable)
+            assertEquals(4, (spans[0].drawable.result as BitmapDrawable).bitmap.width)
+        } finally {
+            file.delete()
+        }
     }
 
     @Test

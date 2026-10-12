@@ -27,6 +27,7 @@ import io.noties.markwon.image.SchemeHandler
 import io.noties.markwon.image.destination.ImageDestinationProcessor
 import io.noties.markwon.linkify.LinkifyPlugin
 import io.noties.markwon.movement.MovementMethodPlugin
+import java.io.File
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Base64
@@ -67,7 +68,12 @@ class MarkdownRenderer private constructor(
 
     private val applicationContext = context.applicationContext
     private val linkHandlers = WeakHashMap<AppCompatTextView, LinkHandlers>()
-    private val attachmentDestinationProcessor = AttachmentDestinationProcessor()
+    private val localImageSchemeHandler = LocalImageSchemeHandler(
+        context.applicationContext.resources,
+        attachmentSchemeHandler
+    )
+    private val attachmentDestinationProcessor =
+        AttachmentDestinationProcessor(localImageSchemeHandler)
     private val textMarkwon = createMarkwon()
     private val imageMarkwon = createMarkwon(imageSchemeHandler)
 
@@ -92,9 +98,10 @@ class MarkdownRenderer private constructor(
         remoteId: Long? = null,
         accountName: String = "",
         attachmentApiPath: String = "/index.php/apps/notes/api/v1.4/attachment/",
-        category: String = ""
+        category: String = "",
+        localImages: Map<String, File> = emptyMap()
     ) {
-        attachmentDestinationProcessor.setNoteContext(remoteId, attachmentApiPath)
+        attachmentDestinationProcessor.setNoteContext(remoteId, attachmentApiPath, localImages)
         attachmentSchemeHandler?.accountName = accountName
         linkHandlers[view] = LinkHandlers(
             resolveInternalLink,
@@ -191,6 +198,7 @@ class MarkdownRenderer private constructor(
                     images.removeSchemeHandler("data")
                     images.addSchemeHandler(imageSchemeHandler)
                     attachmentSchemeHandler?.let { images.addSchemeHandler(it) }
+                    images.addSchemeHandler(localImageSchemeHandler)
                     images.executorService(IMAGE_EXECUTOR)
                     images.errorHandler { _, _ -> blockedImageDrawable() }
                 }
@@ -243,22 +251,30 @@ class MarkdownRenderer private constructor(
  *
  * HTTPS destinations pass through unchanged. Relative destinations (such as QOwnNotes `media/`
  * paths) are rewritten to `nextcloud-attachment:` URLs when a server URL and note ID are set,
- * allowing the [NextcloudAttachmentSchemeHandler] to fetch them via SSO authentication.
+ * allowing the [NextcloudAttachmentSchemeHandler] to fetch them via SSO authentication. Relative
+ * destinations the application has a local file for, such as a captured photo that has not been
+ * uploaded yet, are shown from that file instead.
  */
-private class AttachmentDestinationProcessor : ImageDestinationProcessor() {
+private class AttachmentDestinationProcessor(
+    private val localImageSchemeHandler: LocalImageSchemeHandler
+) : ImageDestinationProcessor() {
     @Volatile private var remoteId: Long? = null
 
     @Volatile private var attachmentApiPath: String = "/index.php/apps/notes/api/v1.4/attachment/"
 
-    fun setNoteContext(remoteId: Long?, attachmentApiPath: String) {
+    @Volatile private var localImages: Map<String, File> = emptyMap()
+
+    fun setNoteContext(remoteId: Long?, attachmentApiPath: String, localImages: Map<String, File>) {
         this.remoteId = remoteId
         this.attachmentApiPath = attachmentApiPath
+        this.localImages = localImages
     }
 
     override fun process(destination: String): String {
         canonicalSafeImageDestination(destination)?.let { return it }
-        return nextcloudAttachmentDestination(destination, remoteId, attachmentApiPath)
-            ?: BLOCKED_IMAGE_DESTINATION
+        val remote = nextcloudAttachmentDestination(destination, remoteId, attachmentApiPath)
+        localImages[destination]?.let { return localImageSchemeHandler.register(it, remote) }
+        return remote ?: BLOCKED_IMAGE_DESTINATION
     }
 }
 
