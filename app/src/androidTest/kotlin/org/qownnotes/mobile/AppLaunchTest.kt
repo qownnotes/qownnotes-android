@@ -1917,17 +1917,23 @@ class AppLaunchTest {
         composeRule.waitForTag("markdown-view")
 
         val widgetId = 401
-        val launchIntent = Intent(composeRule.activity.intent)
+        val activity = composeRule.activity
+        val launchIntent = Intent(activity.intent)
         try {
             WidgetPreferences.saveAccount(application, widgetId, account)
             composeRule.runOnUiThread {
                 val views = NoteListWidgetProvider.remoteViews(application, widgetId)!!
-                    .apply(composeRule.activity, FrameLayout(composeRule.activity))
+                    .apply(activity, FrameLayout(activity))
                 assertTrue(views.findViewById<View>(R.id.widget_camera).isClickable)
                 assertTrue(views.findViewById<View>(R.id.widget_create).isClickable)
                 assertTrue(views.findViewById<View>(R.id.widget_header).performClick())
             }
 
+            // The widget request updates Compose before the trampoline's startActivity intent
+            // necessarily arrives. Wait for delivery so it cannot overwrite cleanup's restore.
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                composeRule.runOnUiThread { !activity.intent.filterEquals(launchIntent) }
+            }
             composeRule.waitForTag("note-search")
             composeRule.onNodeWithText("Alice note").assertIsDisplayed()
             composeRule.onNodeWithText("Bob note").assertDoesNotExist()
@@ -1939,7 +1945,7 @@ class AppLaunchTest {
         } finally {
             // The trampoline delivers a new intent to the single-task activity. Restore the
             // scenario's launch intent so its lifecycle monitor still recognizes teardown.
-            composeRule.runOnUiThread { composeRule.activity.intent = launchIntent }
+            composeRule.runOnUiThread { activity.intent = launchIntent }
             WidgetPreferences.remove(application, widgetId)
         }
     }
