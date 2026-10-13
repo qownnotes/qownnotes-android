@@ -1,0 +1,5 @@
+• Rename notes while editing, with optional first-heading updates and preserved drafts and undo history
+• Keep scroll position when checking or unchecking tasks
+• Show captured photos offline before they are uploaded
+• Clarify required Nextcloud server and Android apps, and improve setup on smaller screens
+• Keep note-list status text stable during refresh
