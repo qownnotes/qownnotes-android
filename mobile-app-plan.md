@@ -335,6 +335,11 @@ Notes grow long, and the note list search only says which note contains a word, 
 
 Editing mode keeps the Markdown source visible and applies live syntax highlighting. It is not a WYSIWYG editor.
 
+The editor overflow menu also offers Rename (#32), using the same file-name dialog and optional
+first-heading replacement as viewing mode. The latest live draft and title are persisted together;
+heading changes update the active editor as one undoable change without leaving edit mode or
+allowing an older autosave checkpoint to restore the previous heading.
+
 Highlight at least:
 
 - ATX and Setext headings

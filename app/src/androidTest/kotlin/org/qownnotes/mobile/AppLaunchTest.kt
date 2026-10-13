@@ -73,6 +73,7 @@ import org.qownnotes.mobile.core.DeckStack
 import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteFolderScope
+import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.core.RemoteNoteVersion
@@ -2774,8 +2775,8 @@ class AppLaunchTest {
         composeRule.enterEditMode()
 
         composeRule.openNoteMenu()
-        // Actions that would conflict with the open draft are left for the note view.
-        composeRule.onNodeWithTag("rename-note").assertDoesNotExist()
+        composeRule.onNodeWithTag("rename-note").assertIsDisplayed()
+        // Destructive actions remain in the note view rather than competing with the live draft.
         composeRule.onNodeWithTag("delete-note").assertDoesNotExist()
         composeRule.onNodeWithTag("note-information").performClick()
         composeRule.waitForTag("note-information-dialog")
@@ -3055,6 +3056,113 @@ class AppLaunchTest {
             }
         }
         assertEquals(listOf("# Grocery list\n\nBody"), noteContents("alice"))
+    }
+
+    @Test
+    fun renamingANewNoteInTheEditorPreservesOfflineTyping() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        application.fakeSyncScheduler.pause()
+        composeRule.onNodeWithTag("create-note").performClick()
+        composeRule.waitForTag("markdown-editor")
+        typeAtEditorEnd("Draft body")
+        awaitEditorText("Draft body")
+        val localId =
+            runBlocking { notesOf("alice").single { it.title != "Existing note" }.localId }
+
+        renameNote("Meeting: Monday")
+
+        awaitEditorFocus(true)
+        val renamed = "# Meeting Monday\n\nDraft body"
+        awaitEditorState(renamed, renamed.length)
+        composeRule.onNodeWithTag("finish-editing").assertIsDisplayed()
+        onView(withId(R.id.markdown_editor)).perform(typeText(" continued"))
+        awaitEditorText("Draft body continued")
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.waitForTag("markdown-view")
+        val saved = runBlocking { application.component.noteRepository.get(localId)!! }
+        assertEquals("Meeting Monday", saved.title)
+        assertEquals("$renamed continued", saved.content)
+        assertEquals(localId, saved.localId)
+        assertEquals(SyncState.LOCALLY_CREATED, saved.syncState)
+    }
+
+    @Test
+    fun editorRenameWithoutHeadingKeepsSourceAndSelection() {
+        importAccount("alice", "Existing note", "etag-1", 10, content = "# Existing note\n\nBody")
+        application.fakeSyncScheduler.pause()
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        typeAtEditorEnd(" latest")
+        awaitEditorText("latest")
+        val source = composeRule.runOnIdle {
+            composeRule.activity.findViewById<TextView>(R.id.markdown_editor).text.toString()
+        }
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).setSelection(source.length - 3, source.length)
+        }
+
+        renameNote("Grocery list", updateHeading = false)
+
+        awaitEditorFocus(true)
+        awaitEditorState(source, source.length - 3)
+        onView(withId(R.id.markdown_editor)).check { view, _ ->
+            assertEquals(source.length, (view as TextView).selectionEnd)
+        }
+        assertEquals(source, noteContents("alice").single())
+        assertEquals("Grocery list", runBlocking { notesOf("alice").single().title })
+    }
+
+    @Test
+    fun editorHeadingRenameSurvivesStaleCheckpointsAndCanUndo() {
+        importAccount("alice", "Existing note", "etag-1", 10, content = "# Existing note\n\nBody")
+        application.fakeSyncScheduler.pause()
+        val localId = runBlocking { notesOf("alice").single().localId }
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        typeAtEditorEnd(" latest")
+        awaitEditorText("latest")
+        val source = composeRule.runOnIdle {
+            composeRule.activity.findViewById<TextView>(R.id.markdown_editor).text.toString()
+        }
+
+        renameNote("Grocery list")
+
+        awaitEditorFocus(true)
+        val renamed = NoteNames.replaceFirstHeading(source, "Grocery list")
+        awaitEditorText("# Grocery list")
+        runBlocking {
+            application.component.checkpointDraft(localId, source)
+            application.component.saveDraft(localId, source)
+            assertFalse(application.component.renameNote(localId, "Stale rename", true, source))
+        }
+        assertEquals(renamed, noteContents("alice").single())
+        composeRule.onNodeWithTag("undo-edit").performScrollTo().performClick()
+        awaitEditorText("# Existing note")
+        composeRule.onNodeWithTag("redo-edit").performScrollTo().performClick()
+        awaitEditorText("# Grocery list")
+        composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.waitForTag("markdown-view")
+        assertEquals(renamed, noteContents("alice").single())
+    }
+
+    @Test
+    fun dismissingEditorRenameRestoresInputFocusWithoutChanges() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("rename-note").performClick()
+        composeRule.waitForTag("note-name-field")
+        composeRule.onNodeWithTag("note-name-field").performTextReplacement("Discarded name")
+
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        awaitEditorFocus(true)
+        assertEquals("Existing note", runBlocking { notesOf("alice").single().title })
+        onView(withId(R.id.markdown_editor)).perform(typeText(" still editing"))
+        awaitEditorText("still editing")
     }
 
     /** Typing immediately replaces the selected current name instead of appending to it. */
@@ -3606,6 +3714,16 @@ class AppLaunchTest {
             composeRule.onNodeWithTag("update-heading-checkbox").assertIsOff()
         }
         composeRule.onNodeWithTag("confirm-rename-note").performClick()
+    }
+
+    private fun typeAtEditorEnd(value: String) {
+        onView(withId(R.id.markdown_editor)).perform(click())
+        composeRule.runOnUiThread {
+            composeRule.activity.findViewById<org.qownnotes.mobile.markdown.MarkdownEditText>(
+                R.id.markdown_editor
+            ).let { it.setSelection(it.length()) }
+        }
+        onView(withId(R.id.markdown_editor)).perform(typeText(value))
     }
 
     /** What the notes of an account hold, read from the repository rather than from the screen. */

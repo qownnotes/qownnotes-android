@@ -503,6 +503,15 @@ class MarkdownEditText @JvmOverloads constructor(context: Context, attrs: Attrib
         setSelection(edit.selectionStart)
     }
 
+    /** Applies a source replacement as one undoable change, preserving selection outside it. */
+    fun replaceSource(source: String) {
+        val editable = text ?: return
+        if (editable.toString() == source) return
+        onEditBoundary?.invoke()
+        replaceChangedRange(editable, editable.toString(), source)
+        resetInputMethod()
+    }
+
     /** Inserts at the caret, or replaces the selected source as one undoable action. */
     fun insertText(value: String) {
         val editable = text ?: return

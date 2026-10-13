@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Rename notes directly from the editor's menu without leaving edit mode, optionally updating
+  the first heading while preserving the latest draft and editor undo history
+  ([#32](https://github.com/qownnotes/qownnotes-android/issues/32)).
+
 ### Fixed
 
 - Clarify that account setup requires QOwnNotes or Notes on the Nextcloud server and Nextcloud

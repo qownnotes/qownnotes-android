@@ -747,19 +747,29 @@ class ApplicationComponent(
      * Renames the file holding the note. When [updateHeading] is true the first Markdown heading
      * in the content is replaced to match the new title. The server sanitizes the name once more
      * and may append a suffix when the folder already holds that name, which [pushPending] then
-     * adopts.
+     * adopts. An active editor supplies [draftContent] so the title and its latest source are
+     * persisted together, and older autosave checkpoints cannot undo a heading replacement.
      */
     suspend fun renameNote(
         localId: String,
         title: String,
-        updateHeading: Boolean = false
+        updateHeading: Boolean = false,
+        draftContent: String? = null
     ): Boolean = editMutexes.getOrPut(localId, ::Mutex).withLock {
         val note = noteRepository.get(localId) ?: return@withLock false
         if (note.readOnly) return@withLock false
+        if (draftContent != null && !editorDrafts.current(localId, draftContent)) {
+            return@withLock false
+        }
         val sanitized = NoteNames.sanitize(title)
         if (sanitized.isEmpty() || sanitized == note.title) return@withLock false
-        val renamed = if (updateHeading) {
-            val newContent = NoteNames.replaceFirstHeading(note.content, sanitized)
+        val source = draftContent ?: note.content
+        val newContent = if (updateHeading) {
+            NoteNames.replaceFirstHeading(source, sanitized)
+        } else {
+            source
+        }
+        val renamed = if (updateHeading || draftContent != null) {
             noteRepository.updateTitleAndContent(
                 localId,
                 sanitized,
@@ -769,7 +779,13 @@ class ApplicationComponent(
         } else {
             noteRepository.updateTitle(localId, sanitized, clock.instant().epochSecond)
         }
-        if (renamed) scheduleSync(note.accountId)
+        if (renamed) {
+            if (draftContent != null) {
+                editorDrafts.replaceWithPersisted(localId, newContent)
+                editReservations.remove(localId)
+            }
+            scheduleSync(note.accountId)
+        }
         renamed
     }
 

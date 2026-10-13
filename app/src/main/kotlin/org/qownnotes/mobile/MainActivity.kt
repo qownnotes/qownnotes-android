@@ -3529,6 +3529,24 @@ private fun NoteDetailScreen(
                                             modifier = Modifier.testTag("edit-note-tags")
                                         )
                                     }
+                                    if (canStartEditing && current != null) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.action_rename)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.DriveFileRenameOutline,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                noteName = current.title
+                                                updateHeading = true
+                                                renaming = true
+                                            },
+                                            modifier = Modifier.testTag("rename-note")
+                                        )
+                                    }
                                     if (current != null) {
                                         DropdownMenuItem(
                                             text = {
@@ -4401,18 +4419,43 @@ private fun NoteDetailScreen(
         )
     }
     if (renaming) {
+        var savingRename by remember { mutableStateOf(false) }
         RenameNoteDialog(
             name = noteName,
             onNameChange = { noteName = it },
             updateHeading = updateHeading,
             onUpdateHeadingChange = { updateHeading = it },
-            onDismiss = { renaming = false },
-            onConfirm = {
-                renaming = false
-                scope.launch {
-                    component.renameNote(localId, noteName, updateHeading)
+            enabled = !savingRename,
+            onDismiss = {
+                if (!savingRename) {
+                    renaming = false
+                    if (editing) editor?.focusForInput()
                 }
-                updateHeading = true
+            },
+            onConfirm = {
+                savingRename = true
+                val source = if (editing) draft else null
+                val title = NoteNames.sanitize(noteName)
+                val replaceHeading = updateHeading
+                scope.launch {
+                    try {
+                        if (component.renameNote(localId, title, replaceHeading, source) &&
+                            source != null
+                        ) {
+                            val renamedSource = if (replaceHeading) {
+                                NoteNames.replaceFirstHeading(source, title)
+                            } else {
+                                source
+                            }
+                            editor?.replaceSource(renamedSource)
+                            draft = renamedSource
+                        }
+                    } finally {
+                        savingRename = false
+                        renaming = false
+                        if (editing) editor?.focusForInput()
+                    }
+                }
             }
         )
     }
@@ -4687,6 +4730,7 @@ private fun RenameNoteDialog(
     onNameChange: (String) -> Unit,
     updateHeading: Boolean,
     onUpdateHeadingChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -4715,6 +4759,7 @@ private fun RenameNoteDialog(
                         onNameChange(it.text)
                     },
                     label = { Text(stringResource(R.string.rename_note_file_name)) },
+                    enabled = enabled,
                     singleLine = true,
                     supportingText = {
                         Text(stringResource(R.string.note_name_invalid_characters_hint))
@@ -4732,6 +4777,7 @@ private fun RenameNoteDialog(
                         .clip(MaterialTheme.shapes.small)
                         .toggleable(
                             value = updateHeading,
+                            enabled = enabled,
                             onValueChange = onUpdateHeadingChange,
                             role = Role.Checkbox
                         )
@@ -4746,12 +4792,14 @@ private fun RenameNoteDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                enabled = NoteNames.isValid(name),
+                enabled = enabled && NoteNames.isValid(name),
                 modifier = Modifier.testTag("confirm-rename-note")
             ) { Text(stringResource(R.string.action_rename)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            TextButton(onClick = onDismiss, enabled = enabled) {
+                Text(stringResource(R.string.action_cancel))
+            }
         }
     )
 }
