@@ -3154,6 +3154,9 @@ class AppLaunchTest {
         importAccount("alice", "Existing note", "etag-1", 10)
         composeRule.onNodeWithText("Existing note").performClick()
         composeRule.enterEditMode()
+        typeAtEditorEnd(" draft")
+        val source = "# Existing note draft"
+        awaitEditorState(source, source.length)
         composeRule.openNoteMenu()
         composeRule.onNodeWithTag("rename-note").performClick()
         composeRule.waitForTag("note-name-field")
@@ -3163,8 +3166,10 @@ class AppLaunchTest {
 
         awaitEditorFocus(true)
         assertEquals("Existing note", runBlocking { notesOf("alice").single().title })
+        awaitEditorState(source, source.length)
         onView(withId(R.id.markdown_editor)).perform(typeText(" still editing"))
-        awaitEditorText("still editing")
+        val continued = "$source still editing"
+        awaitEditorState(continued, continued.length)
     }
 
     /** Typing immediately replaces the selected current name instead of appending to it. */
