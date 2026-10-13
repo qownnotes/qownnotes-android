@@ -2,6 +2,8 @@ package org.qownnotes.mobile
 
 import android.content.ClipboardManager
 import android.content.Intent
+import android.text.Spanned
+import android.text.style.LeadingMarginSpan
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -3261,6 +3263,77 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("markdown-view").performTouchInput { swipeUp() }
 
         composeRule.waitUntil(timeoutMillis = 10_000) { screenTopOf(R.id.markdown_view) < before }
+    }
+
+    @Test
+    fun togglingRenderedCheckboxesKeepsTheScrolledNoteInPlace() {
+        val content = (1..120).joinToString("\n") { "- [ ] Task $it" }
+        importAccount("alice", "Long checklist", "etag-1", 10, content)
+        composeRule.onNodeWithText("Long checklist").performClick()
+        composeRule.waitForTag("markdown-view")
+        val initialTop = screenTopOf(R.id.markdown_view)
+        composeRule.onNodeWithTag("note-fast-scroll").performTouchInput { swipeDown() }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            screenTopOf(R.id.markdown_view) < initialTop - 1_000
+        }
+        composeRule.waitForIdle()
+        val scrolledTop = screenTopOf(R.id.markdown_view)
+        var taskNumber = 0
+        val tapCheckbox = GeneralClickAction(
+            Tap.SINGLE,
+            { view ->
+                val textView = view as TextView
+                val text = textView.text.toString()
+                val layout = textView.layout
+                val location = IntArray(2).also(view::getLocationOnScreen)
+                val centerY = composeRule.activity.window.decorView.height / 2
+                val task = Regex("Task (\\d+)").findAll(text)
+                    .first {
+                        val line = layout.getLineForOffset(it.range.first)
+                        val y = location[1] + textView.totalPaddingTop + layout.getLineTop(line)
+                        y in centerY..(centerY + 100)
+                    }
+                val start = task.range.first
+                taskNumber = task.groupValues[1].toInt()
+                val line = layout.getLineForOffset(start)
+                val textStart = layout.getPrimaryHorizontal(start)
+                val margin = (textView.text as Spanned)
+                    .getSpans(start, start + 1, LeadingMarginSpan::class.java)
+                    .sumOf { it.getLeadingMargin(true) }
+                floatArrayOf(
+                    location[0] + textView.totalPaddingLeft + textStart - margin / 2f,
+                    location[1] + textView.totalPaddingTop +
+                        (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f
+                )
+            },
+            Press.FINGER,
+            InputDevice.SOURCE_UNKNOWN,
+            MotionEvent.BUTTON_PRIMARY
+        )
+        // The TextView is taller than its viewport, so the normal 90%-visible click constraint
+        // does not apply. The coordinates above are explicitly inside the visible viewport.
+        val action = object : ViewAction {
+            override fun getConstraints() = withId(R.id.markdown_view)
+
+            override fun getDescription() = "tap a visible rendered checkbox"
+
+            override fun perform(uiController: androidx.test.espresso.UiController, view: View) {
+                tapCheckbox.perform(uiController, view)
+            }
+        }
+
+        for (marker in listOf("x", " ")) {
+            onView(withId(R.id.markdown_view)).perform(action)
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                noteContents("alice").single().contains("- [$marker] Task $taskNumber\n")
+            }
+            composeRule.waitForIdle()
+            assertEquals(
+                "toggling a checkbox must not scroll the note",
+                scrolledTop,
+                screenTopOf(R.id.markdown_view)
+            )
+        }
     }
 
     @Test

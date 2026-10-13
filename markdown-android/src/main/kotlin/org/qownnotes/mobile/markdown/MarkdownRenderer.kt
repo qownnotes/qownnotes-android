@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
+import android.text.Selection
 import android.text.Spannable
 import android.text.Spanned
 import android.text.TextPaint
@@ -101,6 +102,8 @@ class MarkdownRenderer private constructor(
         category: String = "",
         localImages: Map<String, File> = emptyMap()
     ) {
+        val selectionStart = view.selectionStart
+        val selectionEnd = view.selectionEnd
         attachmentDestinationProcessor.setNoteContext(remoteId, attachmentApiPath, localImages)
         attachmentSchemeHandler?.accountName = accountName
         linkHandlers[view] = LinkHandlers(
@@ -123,6 +126,21 @@ class MarkdownRenderer private constructor(
         }
         val markwon = if (loadRemoteImages) imageMarkwon else textMarkwon
         markwon.setMarkdown(view, safeMarkdown.withoutFrontmatter().withInternalLinks())
+        // Replacing the text reinitializes ArrowKeyMovementMethod's selection at offset zero.
+        // TextView then brings that offset into view on its next pre-draw, scrolling a focused
+        // checklist to the top. Keep the existing rendered offsets (not Markdown source offsets),
+        // including the absence of a selection, instead of creating a new caret at the start.
+        (view.text as? Spannable)?.let { text ->
+            if (selectionStart >= 0 && selectionEnd >= 0) {
+                Selection.setSelection(
+                    text,
+                    selectionStart.coerceAtMost(text.length),
+                    selectionEnd.coerceAtMost(text.length)
+                )
+            } else {
+                Selection.removeSelection(text)
+            }
+        }
         styleBrokenInternalLinks(view, resolveInternalLink)
         attachTaskToggleSpans(view, onTaskToggle)
         if (heading != null) {

@@ -15,6 +15,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Keep the note's scroll position when checking or unchecking a task in view mode.
 - Clarify that account setup requires QOwnNotes or Notes on the Nextcloud server and Nextcloud
   Files on Android, not the Nextcloud Notes Android app. Localize the missing-server-app error
   and keep onboarding scrollable on smaller screens.

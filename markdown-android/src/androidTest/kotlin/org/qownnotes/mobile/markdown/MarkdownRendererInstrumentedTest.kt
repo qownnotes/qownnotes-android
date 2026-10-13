@@ -325,6 +325,57 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun rerenderingATaskPreservesTheRenderedSelection() {
+        instrumentation.runOnMainSync {
+            val view = textView()
+            val renderer = MarkdownRenderer(view.context)
+            val markdown = "# Checklist\n\n- [ ] first\n- [ ] second"
+            renderer.render(view, markdown)
+            val start = view.text.indexOf("second")
+            Selection.setSelection(view.text as Spannable, start, start + 6)
+
+            renderer.render(view, toggleTaskListItem(markdown, 1)!!)
+
+            assertEquals(start, view.selectionStart)
+            assertEquals(start + 6, view.selectionEnd)
+            assertEquals(
+                "second",
+                view.text.subSequence(view.selectionStart, view.selectionEnd).toString()
+            )
+        }
+    }
+
+    @Test
+    fun rerenderingMarkdownDoesNotCreateASelection() {
+        instrumentation.runOnMainSync {
+            val view = textView()
+            val renderer = MarkdownRenderer(view.context)
+            renderer.render(view, "- [ ] task")
+            Selection.removeSelection(view.text as Spannable)
+
+            renderer.render(view, "- [x] task")
+
+            assertEquals(-1, view.selectionStart)
+            assertEquals(-1, view.selectionEnd)
+        }
+    }
+
+    @Test
+    fun rerenderingShorterMarkdownClampsTheRenderedSelection() {
+        instrumentation.runOnMainSync {
+            val view = textView()
+            val renderer = MarkdownRenderer(view.context)
+            renderer.render(view, "A longer note")
+            Selection.setSelection(view.text as Spannable, 5, view.length())
+
+            renderer.render(view, "Short")
+
+            assertEquals(view.length(), view.selectionStart)
+            assertEquals(view.length(), view.selectionEnd)
+        }
+    }
+
+    @Test
     fun tappingARenderedCheckboxDispatchesItsTaskIndex() {
         var toggledTask = -1
         lateinit var view: AppCompatTextView
