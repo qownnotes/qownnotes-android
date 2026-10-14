@@ -48,6 +48,14 @@ Deck data is
 not cached in Room and Deck requests never read or write notes; only the card link inserted into
 the note's Markdown enters the normal note-write path.
 
+Public note links are a third optional capability, exposed through the `NoteShareBackend`
+contract and implemented with the OCS Share API v1 (JSON) on demand. The note file is addressed by
+the Notes API `internalPath`; share state is not cached in Room and sharing requests never read or
+write notes. Creation reuses an existing public link of the note so that retries do not duplicate
+links. OCS rejections are classified as `BackendException.Rejected` with the server's
+`ocs.meta.message`; SSO delivers that body after an exception name, so only the parsed message is
+shown. Share passwords are sent only in request bodies and are never stored.
+
 ## Consequences
 
 - Initial account setup requires Nextcloud Files for Android.

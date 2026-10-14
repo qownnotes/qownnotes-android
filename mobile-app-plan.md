@@ -84,6 +84,9 @@ the pull stays unfiltered. See the Phase 5 section below.
 Optional Nextcloud Deck support, enabled per account in Settings, adds a note-editor action that
 creates a Deck card and links it into the note (#16). See "Implemented Nextcloud Deck Links" below.
 
+Notes can be shared through a public Nextcloud link, optionally password protected, like the
+desktop share dialog (#43). See "Implemented Note Sharing" below.
+
 Conflict handling now persists the exact remote version while the note row retains the local and
 common-base versions. The resolution dialog compares all three, supports conservative three-way
 merging of independent field and line changes, and rejects actions if the reviewed local or remote
@@ -1253,6 +1256,32 @@ Deck support follows the QOwnNotes desktop integration (`NextcloudDeckService` a
   existing links as an undoable edit. Archiving asks for confirmation, keeps note links, and
   uses the REST archive endpoint with a fresh-snapshot check. Refreshes never mix list results.
 - Open: deleting existing cards, unarchiving, and board/list management.
+
+### Implemented Note Sharing
+
+Sharing follows the QOwnNotes desktop `ShareDialog` and `CloudService::shareNote` (#43):
+
+- The note-view menu offers **Share note** for synced notes when the account backend implements
+  the optional `NoteShareBackend` contract. Requests are on-demand through the OCS Share API
+  (`/ocs/v2.php/apps/files_sharing/api/v1/shares`, JSON) and, like Deck, do not take the account's
+  synchronization lock. Share state is not cached in Room.
+- The note file is addressed by the `internalPath` from `GET notes/{id}`, so the share always uses
+  the server's current path. The first public link (`share_type` 3) for that path is shown.
+- Creating a link sends `shareType=3`, the path, and an optional password. An existing link is
+  reused instead of creating a second one, and receives the requested password, so a retry after
+  a lost response is never less protected than requested.
+- Unlike the desktop dialog, the password can also be set, changed, or removed later (`PUT
+  shares/{id}` with `password`; an empty value removes it). "Allow editing" toggles the update
+  permission bit as on desktop. Stopping sharing asks for confirmation; deleting an already
+  missing link succeeds.
+- The `files_sharing` capability decides whether public links are enabled and whether passwords
+  are enforced; `password_policy.minLength` sets the client-side minimum. The server remains
+  authoritative: an OCS rejection shows its `ocs.meta.message`, and a rejected unprotected link
+  opens the password field, matching the desktop hint. Passwords are never persisted or saved in
+  UI state, and a generated password covers all character classes.
+- The link can be copied, sent through the Android share sheet, or opened in a browser. A notice
+  explains that unsynced local changes appear through the link only after the next sync.
+- Open: expiration date editing, labels, hiding downloads, and a share indicator in the note list.
 
 ### Phase 6: Local-Only Folder Backend
 

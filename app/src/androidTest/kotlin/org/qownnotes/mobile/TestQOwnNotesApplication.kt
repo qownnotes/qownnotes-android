@@ -28,6 +28,12 @@ import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteDeckBackend
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
+import org.qownnotes.mobile.core.NoteShare
+import org.qownnotes.mobile.core.NoteShareBackend
+import org.qownnotes.mobile.core.NoteShareChange
+import org.qownnotes.mobile.core.NoteShareStatus
+import org.qownnotes.mobile.core.NoteSharing
+import org.qownnotes.mobile.core.NoteSharingPolicy
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
@@ -197,7 +203,8 @@ class FakePullBackend :
     NoteSettingsBackend,
     org.qownnotes.mobile.core.NoteMediaBackend,
     org.qownnotes.mobile.core.NoteTagFileBackend,
-    NoteDeckBackend {
+    NoteDeckBackend,
+    NoteShareBackend {
     override val capabilities =
         BackendCapabilities(
             categories = true,
@@ -264,6 +271,54 @@ class FakePullBackend :
     var archiveDeckCardFailure: Throwable? = null
     val archivedDeckCards = mutableListOf<Long>()
     val deckCardListRequests = mutableListOf<Pair<DeckStackTarget, Boolean>>()
+
+    var sharingPolicy = NoteSharingPolicy(linkSharingEnabled = true)
+    val noteShares = mutableMapOf<Long, NoteShare>()
+    val sharePasswords = mutableMapOf<String, String?>()
+    var createShareFailure: Throwable? = null
+    private var nextShareId = 40
+
+    override suspend fun noteShare(account: Account, note: Note): NoteShareStatus =
+        NoteShareStatus(sharingPolicy, noteShares[requireNotNull(note.remoteId)])
+
+    override suspend fun createNoteShare(
+        account: Account,
+        note: Note,
+        password: String?
+    ): NoteShare {
+        createShareFailure?.let {
+            createShareFailure = null
+            throw it
+        }
+        val id = (nextShareId++).toString()
+        sharePasswords[id] = password
+        return NoteShare(id, "https://cloud.example/s/share$id", 17, password != null)
+            .also { noteShares[requireNotNull(note.remoteId)] = it }
+    }
+
+    override suspend fun updateNoteShare(
+        account: Account,
+        share: NoteShare,
+        change: NoteShareChange
+    ): NoteShare {
+        val entry = noteShares.entries.firstOrNull { it.value.id == share.id }
+            ?: throw BackendException.RemoteMissing()
+        val updated = when (change) {
+            is NoteShareChange.EditAllowed -> share.copy(
+                permissions = NoteSharing.permissionsWithEdit(share.permissions, change.allowed)
+            )
+            is NoteShareChange.Password -> share.copy(passwordProtected = true)
+                .also { sharePasswords[share.id] = change.password }
+            NoteShareChange.RemovePassword -> share.copy(passwordProtected = false)
+                .also { sharePasswords[share.id] = null }
+        }
+        noteShares[entry.key] = updated
+        return updated
+    }
+
+    override suspend fun deleteNoteShare(account: Account, share: NoteShare) {
+        noteShares.entries.removeAll { it.value.id == share.id }
+    }
 
     override suspend fun deckBrowseBoards(account: Account): List<DeckBoard> = deckBoards(account)
 
@@ -520,6 +575,11 @@ class FakePullBackend :
         archivedDeckCards.clear()
         deckCardListRequests.clear()
         nextDeckCardId = 500L
+        sharingPolicy = NoteSharingPolicy(linkSharingEnabled = true)
+        noteShares.clear()
+        sharePasswords.clear()
+        createShareFailure = null
+        nextShareId = 40
     }
 
     private fun queue(account: SingleSignOnAccount) =

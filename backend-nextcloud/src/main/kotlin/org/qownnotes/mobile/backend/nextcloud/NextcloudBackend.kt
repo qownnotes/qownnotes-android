@@ -42,6 +42,10 @@ import org.qownnotes.mobile.core.NoteDeckBackend
 import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
+import org.qownnotes.mobile.core.NoteShare
+import org.qownnotes.mobile.core.NoteShareBackend
+import org.qownnotes.mobile.core.NoteShareChange
+import org.qownnotes.mobile.core.NoteShareStatus
 import org.qownnotes.mobile.core.NoteTagFileBackend
 import org.qownnotes.mobile.core.NoteTagFileDownload
 import org.qownnotes.mobile.core.PullCheckpoint
@@ -68,7 +72,8 @@ class NextcloudBackend(context: Context) :
     NoteMediaBackend,
     NoteSettingsBackend,
     NoteTagFileBackend,
-    NoteDeckBackend {
+    NoteDeckBackend,
+    NoteShareBackend {
     private val applicationContext = context.applicationContext
     private val gson = GsonBuilder().create()
     private val deckGson = GsonBuilder().serializeNulls().create()
@@ -335,6 +340,66 @@ class NextcloudBackend(context: Context) :
         } catch (error: Throwable) {
             throw error.asBackendException()
         }
+    }
+
+    override suspend fun noteShare(account: Account, note: Note): NoteShareStatus =
+        withContext(Dispatchers.IO) {
+            try {
+                withShareApis(account) { capabilitiesApi, notesApi, shareApi ->
+                    loadNoteShareWithApis(capabilitiesApi, notesApi, shareApi, note)
+                }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun createNoteShare(
+        account: Account,
+        note: Note,
+        password: String?
+    ): NoteShare = withContext(Dispatchers.IO) {
+        try {
+            withShareApis(account) { _, notesApi, shareApi ->
+                createNoteShareWithApis(notesApi, shareApi, note, password)
+            }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun updateNoteShare(
+        account: Account,
+        share: NoteShare,
+        change: NoteShareChange
+    ): NoteShare = withContext(Dispatchers.IO) {
+        try {
+            withShareApis(account) { _, _, shareApi ->
+                updateNoteShareWithApi(shareApi, share, change)
+            }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun deleteNoteShare(account: Account, share: NoteShare) =
+        withContext(Dispatchers.IO) {
+            try {
+                withShareApis(account) { _, _, shareApi -> deleteNoteShareWithApi(shareApi, share) }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    private fun <T> withShareApis(
+        account: Account,
+        block: (CapabilitiesApi, NotesApi, ShareApi) -> T
+    ): T = withNextcloudApi(account) { api ->
+        block(
+            NextcloudRetrofitApiBuilder(api, OCS_ENDPOINT).create(CapabilitiesApi::class.java),
+            NextcloudRetrofitApiBuilder(api, account.apiBasePath ?: NOTES_ENDPOINT)
+                .create(NotesApi::class.java),
+            NextcloudRetrofitApiBuilder(api, SHARE_ENDPOINT).create(ShareApi::class.java)
+        )
     }
 
     private fun <T> withDeckApi(account: Account, block: (DeckApi) -> T): T =

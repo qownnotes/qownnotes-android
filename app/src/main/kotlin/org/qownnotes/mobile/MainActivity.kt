@@ -102,6 +102,7 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tag
@@ -2827,6 +2828,7 @@ private fun NoteDetailScreen(
         noteTagKey?.let(noteTagState::tagsOf).orEmpty()
     }
     var showingInformation by rememberSaveable(localId) { mutableStateOf(false) }
+    var sharingNote by rememberSaveable(localId) { mutableStateOf(false) }
     var noteMenuOpen by rememberSaveable(localId) { mutableStateOf(false) }
     var noteName by rememberSaveable(localId) { mutableStateOf("") }
     var updateHeading by rememberSaveable(localId) { mutableStateOf(true) }
@@ -3430,6 +3432,21 @@ private fun NoteDetailScreen(
                                                 showVersions()
                                             },
                                             modifier = Modifier.testTag("note-versions")
+                                        )
+                                    }
+                                    if (current?.remoteId != null &&
+                                        component.supportsNoteSharing
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.share_note)) },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.Share, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                sharingNote = true
+                                            },
+                                            modifier = Modifier.testTag("share-note")
                                         )
                                     }
                                     if (nextcloudDeckAvailable) {
@@ -4487,6 +4504,11 @@ private fun NoteDetailScreen(
             },
             onDismiss = { editingTags = false }
         )
+    }
+    if (sharingNote) {
+        note?.let { current ->
+            NoteShareDialog(component, current, onDismiss = { sharingNote = false })
+        }
     }
     if (showingInformation) {
         note?.let { current ->

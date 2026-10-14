@@ -7,6 +7,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Share a note through a public Nextcloud link, as in the desktop app, from **Share note** in the
+  note menu. Links can be password protected, allow editing, and be copied, sent, or opened, and
+  the password can be changed or removed later
+  ([#43](https://github.com/qownnotes/qownnotes-android/issues/43)).
+
 ## [1.5.0] - 2026-10-13
 
 ### Added

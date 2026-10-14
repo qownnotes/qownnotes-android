@@ -95,5 +95,12 @@ sealed class BackendException(message: String, cause: Throwable? = null) :
 
     class FeatureUnavailable(message: String) : BackendException(message)
 
+    /**
+     * The server understood the request but refused it, for example because of a sharing policy.
+     * [serverMessage] is the server's own explanation when it gave one.
+     */
+    class Rejected(val serverMessage: String?, cause: Throwable? = null) :
+        BackendException(serverMessage ?: "The server rejected the request", cause)
+
     class Protocol(message: String, cause: Throwable? = null) : BackendException(message, cause)
 }

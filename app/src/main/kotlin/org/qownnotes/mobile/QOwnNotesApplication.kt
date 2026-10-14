@@ -53,6 +53,10 @@ import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
+import org.qownnotes.mobile.core.NoteShare
+import org.qownnotes.mobile.core.NoteShareBackend
+import org.qownnotes.mobile.core.NoteShareChange
+import org.qownnotes.mobile.core.NoteShareStatus
 import org.qownnotes.mobile.core.NoteTagFileBackend
 import org.qownnotes.mobile.core.NoteTagState
 import org.qownnotes.mobile.core.NoteTags
@@ -136,6 +140,7 @@ class ApplicationComponent(
     private val noteSettingsBackend: NoteSettingsBackend? = backend as? NoteSettingsBackend,
     private val tagFileBackend: NoteTagFileBackend? = backend as? NoteTagFileBackend,
     private val deckBackend: NoteDeckBackend? = backend as? NoteDeckBackend,
+    private val shareBackend: NoteShareBackend? = backend as? NoteShareBackend,
     val settings: AppSettings = AppSettings(application),
     private val syncScheduler: SyncScheduler = WorkManagerSyncScheduler(application),
     internal val draftCheckpointIntervalMillis: Long = 5_000,
@@ -1077,6 +1082,49 @@ class ApplicationComponent(
         return requireDeckBackend().updateDeckCard(account, original, draft)
     }
 
+    /** Whether the account backend can create public links to notes. */
+    val supportsNoteSharing: Boolean
+        get() = shareBackend != null
+
+    // Like Deck requests, sharing requests never read or write note content, so they do not wait
+    // for the account's synchronization lock.
+    suspend fun noteShare(localId: String): NoteShareStatus = withSharedNote(localId) { a, n ->
+        requireShareBackend().noteShare(a, n)
+    }
+
+    suspend fun createNoteShare(localId: String, password: String?): NoteShare =
+        withSharedNote(localId) { account, note ->
+            requireShareBackend().createNoteShare(account, note, password)
+        }
+
+    suspend fun updateNoteShare(
+        localId: String,
+        share: NoteShare,
+        change: NoteShareChange
+    ): NoteShare = withSharedNote(localId) { account, _ ->
+        requireShareBackend().updateNoteShare(account, share, change)
+    }
+
+    suspend fun deleteNoteShare(localId: String, share: NoteShare) =
+        withSharedNote(localId) { account, _ ->
+            requireShareBackend().deleteNoteShare(account, share)
+        }
+
+    private suspend fun <T> withSharedNote(
+        localId: String,
+        block: suspend (Account, Note) -> T
+    ): T {
+        val note = noteRepository.get(localId) ?: error("The note no longer exists")
+        if (note.remoteId == null) {
+            throw BackendException.FeatureUnavailable(
+                application.getString(R.string.share_note_not_synced)
+            )
+        }
+        val account = accountRepository.get(note.accountId)
+            ?: error("The account no longer exists")
+        return block(account, note)
+    }
+
     private fun scheduleSync(accountId: String, delayMillis: Long = 1_500) {
         syncScheduler.schedule(accountId, delayMillis)
     }
@@ -1228,6 +1276,11 @@ class ApplicationComponent(
     private fun requireDeckBackend(): NoteDeckBackend = deckBackend
         ?: throw BackendException.FeatureUnavailable(
             application.getString(R.string.backend_no_deck)
+        )
+
+    private fun requireShareBackend(): NoteShareBackend = shareBackend
+        ?: throw BackendException.FeatureUnavailable(
+            application.getString(R.string.backend_no_sharing)
         )
 }
 
