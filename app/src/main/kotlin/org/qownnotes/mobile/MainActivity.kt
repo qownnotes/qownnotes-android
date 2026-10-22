@@ -969,6 +969,11 @@ private fun NoteListScreen(
     var accountMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var noteListMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
     var selectionMenuOpen by rememberSaveable(accountId) { mutableStateOf(false) }
+    var transferIds by rememberSaveable(accountId) { mutableStateOf<List<String>?>(null) }
+    var copyingNotes by rememberSaveable(accountId) { mutableStateOf(false) }
+    var transferFailure by rememberSaveable(accountId) {
+        mutableStateOf<NoteTransferFailure?>(null)
+    }
     var trashConfirmationIds by rememberSaveable(accountId) {
         mutableStateOf<List<String>?>(null)
     }
@@ -1420,6 +1425,47 @@ private fun NoteListScreen(
                                         expanded = selectionMenuOpen,
                                         onDismissRequest = { selectionMenuOpen = false }
                                     ) {
+                                        if (useSubfolders) {
+                                            listOf(false, true).forEach { copy ->
+                                                val icon = if (copy) {
+                                                    Icons.Filled.ContentCopy
+                                                } else {
+                                                    Icons.AutoMirrored.Filled.DriveFileMove
+                                                }
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            stringResource(
+                                                                if (copy) {
+                                                                    R.string.copy_to_category
+                                                                } else {
+                                                                    R.string.change_category
+                                                                }
+                                                            )
+                                                        )
+                                                    },
+                                                    leadingIcon = {
+                                                        Icon(
+                                                            icon,
+                                                            contentDescription = null
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        selectionMenuOpen = false
+                                                        copyingNotes = copy
+                                                        transferIds = selectedNoteIds
+                                                    },
+                                                    modifier = Modifier.testTag(
+                                                        if (copy) {
+                                                            "copy-notes-to-category"
+                                                        } else {
+                                                            "move-notes-to-category"
+                                                        }
+                                                    )
+                                                )
+                                            }
+                                            HorizontalDivider()
+                                        }
                                         DropdownMenuItem(
                                             text = {
                                                 Text(stringResource(R.string.action_move_to_trash))
@@ -2131,6 +2177,42 @@ private fun NoteListScreen(
             modifier = Modifier.testTag("diagnostics-dialog")
         )
     }
+    if (useSubfolders) {
+        transferIds?.let { ids ->
+            val categories = allNotes.orEmpty()
+                .filter { it.localId in ids }
+                .map { it.category }
+                .distinctBy(NoteFolders::key)
+            ChangeNoteCategoryDialog(
+                currentCategory = categories.singleOrNull(),
+                folders = folderTree.flatten(),
+                copy = copyingNotes,
+                noteCount = ids.size,
+                onDismiss = { transferIds = null },
+                onConfirm = { category ->
+                    val copy = copyingNotes
+                    transferIds = null
+                    scope.launch {
+                        try {
+                            val changed = component.transferNotes(accountId, ids, category, copy)
+                            if (changed > 0) {
+                                selectedNoteIds = emptyList()
+                            } else {
+                                transferFailure = NoteTransferFailure.of(copy, rejected = true)
+                            }
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            transferFailure = NoteTransferFailure.of(copy, rejected = false)
+                        }
+                    }
+                }
+            )
+        }
+    }
+    transferFailure?.let { failure ->
+        NoteTransferFailureDialog(failure) { transferFailure = null }
+    }
     trashConfirmationIds?.let { ids ->
         AlertDialog(
             onDismissRequest = { trashConfirmationIds = null },
@@ -2817,6 +2899,10 @@ private fun NoteDetailScreen(
     }
     var renaming by rememberSaveable(localId) { mutableStateOf(false) }
     var changingCategory by rememberSaveable(localId) { mutableStateOf(false) }
+    var copyingNote by rememberSaveable(localId) { mutableStateOf(false) }
+    var transferFailure by rememberSaveable(localId) {
+        mutableStateOf<NoteTransferFailure?>(null)
+    }
     var editingTags by rememberSaveable(localId) { mutableStateOf(false) }
     val noteTagStateFlow = remember(note?.accountId) {
         note?.accountId?.let(component::observeNoteTags) ?: flowOf(NoteTagState())
@@ -3377,6 +3463,24 @@ private fun NoteDetailScreen(
                                                 changingCategory = true
                                             },
                                             modifier = Modifier.testTag("change-note-category")
+                                        )
+                                    }
+                                    if (current != null && useSubfolders) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.copy_to_category))
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.ContentCopy,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                noteMenuOpen = false
+                                                copyingNote = true
+                                            },
+                                            modifier = Modifier.testTag("copy-note-to-category")
                                         )
                                     }
                                     if (writable && current != null) {
@@ -4476,24 +4580,49 @@ private fun NoteDetailScreen(
             }
         )
     }
-    if (changingCategory) {
+    if ((changingCategory || copyingNote) && useSubfolders) {
         val current = note
         if (current != null) {
             ChangeNoteCategoryDialog(
                 currentCategory = current.category,
+                copy = copyingNote,
                 folders = remember(accountNotes) {
                     NoteFolders.tree(
                         accountNotes.map(NoteListItem::category),
                         component.nestedFolders
                     ).flatten()
                 },
-                onDismiss = { changingCategory = false },
-                onConfirm = { category ->
+                onDismiss = {
                     changingCategory = false
-                    scope.launch { component.moveNoteToCategory(localId, category) }
+                    copyingNote = false
+                },
+                onConfirm = { category ->
+                    val copy = copyingNote
+                    changingCategory = false
+                    copyingNote = false
+                    scope.launch {
+                        try {
+                            val changed = component.transferNotes(
+                                current.accountId,
+                                listOf(localId),
+                                category,
+                                copy
+                            )
+                            if (changed == 0) {
+                                transferFailure = NoteTransferFailure.of(copy, rejected = true)
+                            }
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            transferFailure = NoteTransferFailure.of(copy, rejected = false)
+                        }
+                    }
                 }
             )
         }
+    }
+    transferFailure?.let { failure ->
+        NoteTransferFailureDialog(failure) { transferFailure = null }
     }
     if (editingTags) {
         NoteTagsDialog(
@@ -4885,37 +5014,88 @@ private fun NewNoteNameDialog(
     )
 }
 
+/**
+ * Chooses the subfolder notes are moved or copied to. [currentCategory] is the folder all notes
+ * are in, or `null` when they come from several folders.
+ */
 @Composable
 private fun ChangeNoteCategoryDialog(
-    currentCategory: String,
+    currentCategory: String?,
     /** Existing folders in tree order, including intermediate folders without notes. */
     folders: List<NoteFolder>,
+    copy: Boolean = false,
+    noteCount: Int = 1,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
-    var selectedCategory by rememberSaveable(currentCategory) { mutableStateOf(currentCategory) }
-    var newCategory by rememberSaveable(currentCategory) { mutableStateOf("") }
-    var creatingCategory by rememberSaveable(currentCategory) { mutableStateOf(false) }
+    // Moving to the folder the notes are already in does nothing, so only a copy starts there.
+    var selectedCategory by rememberSaveable(currentCategory, copy, noteCount) {
+        mutableStateOf(currentCategory.takeIf { copy })
+    }
+    var newCategory by rememberSaveable(currentCategory, copy, noteCount) { mutableStateOf("") }
+    var creatingCategory by rememberSaveable(currentCategory, copy, noteCount) {
+        mutableStateOf(false)
+    }
+    val newCategoryFocus = remember { FocusRequester() }
     val normalizedNewCategory = NoteCategories.normalize(newCategory)
+    val reservedNewCategory = NoteCategories.isInternal(normalizedNewCategory)
     val destination = if (creatingCategory) normalizedNewCategory else selectedCategory
-    val validDestination = destination != currentCategory &&
+    fun isCurrent(path: String) =
+        currentCategory != null && NoteFolders.key(path) == NoteFolders.key(currentCategory)
+    val validDestination = destination != null &&
+        (copy || !isCurrent(destination)) &&
         (!creatingCategory || normalizedNewCategory.isNotEmpty()) &&
         !NoteCategories.isInternal(destination)
+    val currentLabel = stringResource(R.string.category_current)
+    fun isSelected(path: String) = !creatingCategory &&
+        selectedCategory?.let { NoteFolders.key(it) == NoteFolders.key(path) } == true
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) },
-        title = { Text(stringResource(R.string.change_category)) },
+        icon = {
+            Icon(
+                if (copy) Icons.Filled.ContentCopy else Icons.AutoMirrored.Filled.DriveFileMove,
+                contentDescription = null
+            )
+        },
+        title = {
+            Text(
+                when {
+                    noteCount > 1 && copy ->
+                        pluralStringResource(R.plurals.copy_notes_title, noteCount, noteCount)
+                    noteCount > 1 ->
+                        pluralStringResource(R.plurals.move_notes_title, noteCount, noteCount)
+                    copy -> stringResource(R.string.copy_to_category)
+                    else -> stringResource(R.string.change_category)
+                },
+                textAlign = TextAlign.Center
+            )
+        },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+                if (copy) {
+                    Text(
+                        stringResource(
+                            if (noteCount > 1) {
+                                R.string.copy_notes_description
+                            } else {
+                                R.string.copy_note_description
+                            }
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
                 CategoryDestinationRow(
                     label = stringResource(R.string.category_undefined_root),
-                    selected = !creatingCategory && selectedCategory.isEmpty(),
+                    selected = isSelected(""),
                     icon = Icons.Filled.Home,
+                    detail = currentLabel.takeIf { isCurrent("") },
                     testTag = "note-category-root",
                     onClick = {
                         creatingCategory = false
@@ -4925,8 +5105,8 @@ private fun ChangeNoteCategoryDialog(
                 folders.forEach { folder ->
                     CategoryDestinationRow(
                         label = folder.name,
-                        selected = !creatingCategory &&
-                            NoteFolders.key(selectedCategory) == NoteFolders.key(folder.path),
+                        selected = isSelected(folder.path),
+                        detail = currentLabel.takeIf { isCurrent(folder.path) },
                         testTag = "note-category-${folder.path}",
                         depth = folder.depth + 1,
                         onClick = {
@@ -4942,30 +5122,102 @@ private fun ChangeNoteCategoryDialog(
                     testTag = "note-category-new",
                     onClick = { creatingCategory = true }
                 )
-                OutlinedTextField(
-                    value = newCategory,
-                    onValueChange = {
-                        newCategory = it
-                        creatingCategory = true
-                    },
-                    label = { Text(stringResource(R.string.category_new_path)) },
-                    supportingText = { Text(stringResource(R.string.category_new_path_hint)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                        .testTag("new-note-category-field")
-                )
+                if (creatingCategory) {
+                    LaunchedEffect(Unit) { newCategoryFocus.requestFocus() }
+                    OutlinedTextField(
+                        value = newCategory,
+                        onValueChange = { newCategory = it },
+                        label = { Text(stringResource(R.string.category_new_path)) },
+                        supportingText = {
+                            Text(
+                                when {
+                                    reservedNewCategory ->
+                                        stringResource(R.string.category_new_path_reserved)
+                                    normalizedNewCategory.isNotEmpty() &&
+                                        normalizedNewCategory != newCategory.trim() ->
+                                        stringResource(
+                                            R.string.category_new_path_normalized,
+                                            normalizedNewCategory
+                                        )
+                                    else -> stringResource(R.string.category_new_path_hint)
+                                }
+                            )
+                        },
+                        isError = reservedNewCategory,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                            .focusRequester(newCategoryFocus)
+                            .testTag("new-note-category-field")
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(destination) },
+                onClick = { destination?.let(onConfirm) },
                 enabled = validDestination,
                 modifier = Modifier.testTag("confirm-note-category")
-            ) { Text(stringResource(R.string.action_move)) }
+            ) {
+                Text(stringResource(if (copy) R.string.action_copy_note else R.string.action_move))
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        }
+        },
+        modifier = Modifier.testTag("note-category-dialog")
+    )
+}
+
+/** Why a move or copy changed nothing, which decides how the failure is explained. */
+private enum class NoteTransferFailure(val copy: Boolean, val rejected: Boolean) {
+    MOVE_REJECTED(copy = false, rejected = true),
+    COPY_REJECTED(copy = true, rejected = true),
+    MOVE_FAILED(copy = false, rejected = false),
+    COPY_FAILED(copy = true, rejected = false);
+
+    companion object {
+        fun of(copy: Boolean, rejected: Boolean) =
+            entries.first { it.copy == copy && it.rejected == rejected }
+    }
+}
+
+@Composable
+private fun NoteTransferFailureDialog(failure: NoteTransferFailure, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                Icons.Filled.ErrorOutline,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        },
+        title = {
+            Text(
+                stringResource(
+                    if (failure.copy) R.string.note_copy_failed else R.string.note_move_failed
+                ),
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Text(
+                stringResource(
+                    when (failure) {
+                        NoteTransferFailure.MOVE_REJECTED -> R.string.note_move_rejected
+                        NoteTransferFailure.COPY_REJECTED -> R.string.note_copy_rejected
+                        else -> R.string.note_transfer_storage_failed
+                    }
+                )
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("close-note-transfer-failure")
+            ) { Text(stringResource(R.string.action_close)) }
+        },
+        modifier = Modifier.testTag("note-transfer-failure")
     )
 }
 
@@ -4977,6 +5229,8 @@ private fun CategoryDestinationRow(
     /** Nesting level, indenting folders below the root. */
     depth: Int = 0,
     icon: ImageVector = Icons.Filled.Folder,
+    /** Short note after the label, such as marking the folder the notes are in. */
+    detail: String? = null,
     onClick: () -> Unit
 ) {
     Row(
@@ -5013,6 +5267,18 @@ private fun CategoryDestinationRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+        if (detail != null) {
+            Text(
+                detail,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1
+            )
+        }
         if (selected) {
             Icon(
                 Icons.Filled.Check,

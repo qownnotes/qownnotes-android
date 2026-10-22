@@ -10,7 +10,9 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.Upsert
 import androidx.room.migration.Migration
+import java.util.UUID
 import kotlinx.coroutines.flow.Flow
+import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.SyncDiagnosticSource
 import org.qownnotes.mobile.core.SyncState
 
@@ -186,6 +188,66 @@ interface NoteDao {
              AND category != :category"""
     )
     suspend fun updateCategory(localId: String, category: String): Int
+
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM notes WHERE accountId = :accountId " +
+            "AND category = :category COLLATE NOCASE AND title = :title COLLATE NOCASE)"
+    )
+    suspend fun titleExists(accountId: String, category: String, title: String): Boolean
+
+    @Transaction
+    suspend fun transferNotes(
+        accountId: String,
+        localIds: List<String>,
+        category: String,
+        copy: Boolean,
+        modifiedAtEpochSeconds: Long
+    ): Int {
+        val notes = localIds.map { get(it) ?: return 0 }
+        if (notes.any {
+                it.accountId != accountId || it.syncState == SyncState.PENDING_DELETION ||
+                    (
+                        !copy && (
+                            it.readOnly || it.syncState in setOf(
+                                SyncState.CONFLICT,
+                                SyncState.REMOTE_MISSING,
+                                SyncState.READ_ONLY_CONFLICT
+                            ) || (it.syncState == SyncState.FAILED && it.remoteId == null)
+                            )
+                        )
+            }
+        ) {
+            return 0
+        }
+        var changed = 0
+        for (source in notes) {
+            if (copy) {
+                var title = source.title
+                var suffix = 2
+                while (titleExists(accountId, category, title)) {
+                    val ending = " (${suffix++})"
+                    title = source.title.take(120 - ending.length).trimEnd() + ending
+                }
+                // Construct a fresh note: no server identity, conflict base, or failure state.
+                upsert(
+                    Note(
+                        localId = UUID.randomUUID().toString(),
+                        accountId = accountId,
+                        title = title,
+                        content = source.content,
+                        category = category,
+                        modifiedAtEpochSeconds = modifiedAtEpochSeconds,
+                        favorite = source.favorite,
+                        syncState = SyncState.LOCALLY_CREATED
+                    ).toEntity()
+                )
+                changed++
+            } else {
+                changed += updateCategory(source.localId, category)
+            }
+        }
+        return changed
+    }
 
     @Query(
         """UPDATE notes SET

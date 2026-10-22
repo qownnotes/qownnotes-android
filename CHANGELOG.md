@@ -9,6 +9,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Copy notes to an existing or new subfolder, or duplicate them in the same folder. Move and copy
+  are also available for multiple selected notes; both folder actions are shown only when
+  **Use subfolders** is enabled for the account
+  ([#35](https://github.com/qownnotes/qownnotes-android/issues/35)).
 - Share a note through a public Nextcloud link, as in the desktop app, from **Share note** in the
   note menu. Links can be password protected, allow editing, and be copied, sent, or opened, and
   the password can be changed or removed later

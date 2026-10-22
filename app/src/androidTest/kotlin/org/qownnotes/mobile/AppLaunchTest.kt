@@ -1241,6 +1241,8 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("note-second-local").performClick()
         composeRule.onNodeWithText("2 selected").assertIsDisplayed()
         composeRule.onNodeWithTag("note-selection-menu").performClick()
+        composeRule.onNodeWithTag("move-notes-to-category").assertDoesNotExist()
+        composeRule.onNodeWithTag("copy-notes-to-category").assertDoesNotExist()
         composeRule.onNodeWithTag("move-notes-to-trash").performClick()
         composeRule.onNodeWithText("Move 2 notes to trash?").assertIsDisplayed()
         // Nothing is removed before the move is confirmed.
@@ -2871,6 +2873,7 @@ class AppLaunchTest {
     @Test
     fun readOnlyNoteCannotEnterEditingMode() {
         val account = testAccount("alice")
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
         application.fakeAccountImporter.enqueue(account)
         application.fakeBackend.enqueue(
             account,
@@ -2900,6 +2903,7 @@ class AppLaunchTest {
         composeRule.openNoteMenu()
         composeRule.onNodeWithTag("rename-note").assertDoesNotExist()
         composeRule.onNodeWithTag("change-note-category").assertDoesNotExist()
+        composeRule.onNodeWithTag("copy-note-to-category").assertIsDisplayed()
     }
 
     @Test
@@ -2911,6 +2915,7 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("note-information").assertIsDisplayed()
         composeRule.onNodeWithTag("rename-note").assertIsDisplayed()
         composeRule.onNodeWithTag("change-note-category").assertDoesNotExist()
+        composeRule.onNodeWithTag("copy-note-to-category").assertDoesNotExist()
         composeRule.onNodeWithTag("delete-note").assertIsDisplayed()
     }
 
@@ -2978,6 +2983,7 @@ class AppLaunchTest {
 
         composeRule.openNoteMenu()
         composeRule.onNodeWithTag("change-note-category").performClick()
+        composeRule.onNodeWithTag("note-category-new").performClick()
         composeRule.onNodeWithTag("new-note-category-field")
             .performTextInput(" Projects / Android? ")
         composeRule.onNodeWithTag("confirm-note-category").performClick()
@@ -2987,6 +2993,208 @@ class AppLaunchTest {
         }
         composeRule.waitUntil(timeoutMillis = 10_000) {
             application.fakeBackend.pushedNotes.any { it.category == "Projects/Android" }
+        }
+    }
+
+    @Test
+    fun noteCanBeCopiedOfflineWithoutChangingTheOriginal() {
+        val account = importAccount(
+            "alice",
+            "Existing note",
+            "etag-1",
+            10,
+            content = "# Existing note\n\nExact markdown  \n"
+        )
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
+        application.fakeSyncScheduler.pause()
+        val original = runBlocking { notesOf("alice").single() }
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("copy-note-to-category").performClick()
+        composeRule.onNodeWithTag("note-category-new").performClick()
+        composeRule.onNodeWithTag("new-note-category-field").performTextInput("Work/Projects")
+        composeRule.onNodeWithTag("confirm-note-category").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) { runBlocking { notesOf("alice").size == 2 } }
+        val copy = runBlocking { notesOf("alice").single { it.localId != original.localId } }
+        assertEquals(
+            original,
+            runBlocking {
+                application.component.noteRepository.get(original.localId)
+            }
+        )
+        assertEquals(original.content, copy.content)
+        assertEquals("Work/Projects", copy.category)
+        assertEquals(SyncState.LOCALLY_CREATED, copy.syncState)
+        assertEquals(null, copy.remoteId)
+        assertEquals(null, copy.remoteEtag)
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForTag("markdown-view")
+        assertEquals(2, runBlocking { notesOf("alice").size })
+    }
+
+    @Test
+    fun noteCanBeDuplicatedInTheSameFolder() {
+        val account = importAccount("alice", "Existing note", "etag-1", 10)
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
+        application.fakeSyncScheduler.pause()
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("copy-note-to-category").performClick()
+        composeRule.onNodeWithTag("confirm-note-category").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                notesOf("alice").any {
+                    it.title == "Existing note (2)" &&
+                        it.category.isEmpty()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun multiSelectionCanCopyThenMoveNotesOffline() {
+        val account = importAccount("alice", "First note", "etag-1", 10)
+        val accountId = account.localAccountId()
+        application.component.settings.setUseSubfolders(accountId, true)
+        application.fakeSyncScheduler.pause()
+        val first = runBlocking { notesOf("alice").single() }
+        val second = first.copy(
+            localId = "second-local",
+            remoteId = 43,
+            title = "Second note",
+            content = "# Second note",
+            remoteEtag = "etag-2"
+        )
+        runBlocking { application.component.noteRepository.save(second) }
+        composeRule.waitForText("Second note")
+
+        fun selectOriginals() {
+            composeRule.onNodeWithTag("note-${first.localId}").performTouchInput { longClick() }
+            composeRule.onNodeWithTag("note-second-local").performClick()
+            composeRule.onNodeWithTag("note-selection-menu").performClick()
+        }
+        selectOriginals()
+        composeRule.onNodeWithTag("move-notes-to-category").assertIsDisplayed()
+        composeRule.onNodeWithTag("copy-notes-to-category").performClick()
+        composeRule.onNodeWithText("Copy 2 notes").assertIsDisplayed()
+        composeRule.onNodeWithText("Current").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-category-new").performClick()
+        composeRule.onNodeWithTag("new-note-category-field").performTextInput(" Copies / Nested? ")
+        composeRule.onNodeWithText("Will be saved as Copies/Nested").assertIsDisplayed()
+        assertEquals(2, runBlocking { notesOf("alice").size })
+        composeRule.onNodeWithTag("confirm-note-category").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) { runBlocking { notesOf("alice").size == 4 } }
+        assertEquals(first, runBlocking { application.component.noteRepository.get(first.localId) })
+        assertEquals(
+            second,
+            runBlocking {
+                application.component.noteRepository.get(second.localId)
+            }
+        )
+        composeRule.waitForTag("note-list-menu")
+
+        selectOriginals()
+        composeRule.onNodeWithTag("move-notes-to-category").performClick()
+        composeRule.onNodeWithText("Move 2 notes").assertIsDisplayed()
+        // The notes are already in the root folder, so a move starts without a destination.
+        composeRule.onNodeWithText("Current").assertIsDisplayed()
+        composeRule.onNodeWithTag("confirm-note-category").assertIsNotEnabled()
+        composeRule.onNodeWithTag("note-category-root").performClick()
+        composeRule.onNodeWithTag("confirm-note-category").assertIsNotEnabled()
+        composeRule.onNodeWithTag("note-category-new").performClick()
+        composeRule.onNodeWithTag("new-note-category-field").performTextInput("media/x")
+        composeRule.onNodeWithText("media and attachments are reserved for note files.")
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag("confirm-note-category").assertIsNotEnabled()
+        composeRule.onNodeWithTag("note-category-Copies/Nested").performClick()
+        composeRule.onNodeWithTag("confirm-note-category").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").all { it.category == "Copies/Nested" } }
+        }
+        val moved = runBlocking { application.component.noteRepository.get(first.localId)!! }
+        assertEquals(first.remoteId, moved.remoteId)
+        assertEquals(first.remoteEtag, moved.remoteEtag)
+        assertEquals(first.content, moved.content)
+        assertEquals(SyncState.LOCALLY_MODIFIED, moved.syncState)
+    }
+
+    @Test
+    fun multiSelectionWithReadOnlyNoteRejectsMoveButAllowsCopy() {
+        val account = importAccount("alice", "First note", "etag-1", 10)
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
+        application.fakeSyncScheduler.pause()
+        val first = runBlocking { notesOf("alice").single() }
+        val readOnly = first.copy(
+            localId = "read-only-local",
+            remoteId = 43,
+            title = "Shared note",
+            readOnly = true
+        )
+        runBlocking { application.component.noteRepository.save(readOnly) }
+        composeRule.waitForText("Shared note")
+        composeRule.onNodeWithTag("note-${first.localId}").performTouchInput { longClick() }
+        composeRule.onNodeWithTag("note-read-only-local").performClick()
+        composeRule.onNodeWithTag("note-selection-menu").performClick()
+        composeRule.onNodeWithTag("move-notes-to-category").performClick()
+        composeRule.onNodeWithTag("note-category-new").performClick()
+        composeRule.onNodeWithTag("new-note-category-field").performTextInput("Work")
+        composeRule.onNodeWithTag("confirm-note-category").performClick()
+        composeRule.waitForTag("note-transfer-failure")
+        composeRule.onNodeWithText("Couldn't move notes").assertIsDisplayed()
+        composeRule.onNodeWithText("You can copy them instead.", substring = true)
+            .assertIsDisplayed()
+        assertEquals(first, runBlocking { application.component.noteRepository.get(first.localId) })
+        assertEquals(
+            readOnly,
+            runBlocking {
+                application.component.noteRepository.get(readOnly.localId)
+            }
+        )
+        composeRule.onNodeWithTag("close-note-transfer-failure").performClick()
+
+        composeRule.onNodeWithText("2 selected").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-selection-menu").performClick()
+        composeRule.onNodeWithTag("copy-notes-to-category").performClick()
+        composeRule.onNodeWithTag("confirm-note-category").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) { runBlocking { notesOf("alice").size == 4 } }
+        val copies = runBlocking { notesOf("alice").filter { it.remoteId == null } }
+        assertEquals(2, copies.size)
+        assertTrue(copies.none { it.readOnly })
+    }
+
+    @Test
+    fun moveDialogPreselectsNothingForNotesFromSeveralFolders() {
+        val account = importAccount("alice", "First note", "etag-1", 10)
+        application.component.settings.setUseSubfolders(account.localAccountId(), true)
+        application.fakeSyncScheduler.pause()
+        val first = runBlocking { notesOf("alice").single() }
+        val work = first.copy(
+            localId = "work-local",
+            remoteId = 43,
+            title = "Work note",
+            category = "Work"
+        )
+        runBlocking { application.component.noteRepository.save(work) }
+        listAction("category-selector")
+        composeRule.waitForTag("folder-show-subfolders")
+        composeRule.onNodeWithTag("folder-show-subfolders").performClick()
+        composeRule.onNodeWithTag("folder-root").performClick()
+        composeRule.waitForText("Work note")
+        composeRule.onNodeWithTag("note-${first.localId}").performTouchInput { longClick() }
+        composeRule.onNodeWithTag("note-work-local").performClick()
+        composeRule.onNodeWithTag("note-selection-menu").performClick()
+        composeRule.onNodeWithTag("move-notes-to-category").performClick()
+
+        composeRule.onNodeWithTag("note-category-dialog").assertIsDisplayed()
+        composeRule.onNodeWithText("Current").assertDoesNotExist()
+        composeRule.onNodeWithTag("new-note-category-field").assertDoesNotExist()
+        composeRule.onNodeWithTag("confirm-note-category").assertIsNotEnabled()
+        composeRule.onNodeWithTag("note-category-root").performClick()
+        composeRule.onNodeWithTag("confirm-note-category").assertIsEnabled().performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").all { it.category.isEmpty() } }
         }
     }
 

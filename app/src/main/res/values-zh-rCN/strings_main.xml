@@ -149,6 +149,24 @@
     <string name="note_menu_tags">标签</string>
     <string name="note_menu_information">信息</string>
     <string name="change_category">移动到子文件夹</string>
+    <string name="copy_to_category">复制到子文件夹</string>
+    <string name="action_copy_note">复制</string>
+    <plurals name="move_notes_title">
+        <item quantity="other">移动 %1$d 条笔记</item>
+    </plurals>
+    <plurals name="copy_notes_title">
+        <item quantity="other">复制 %1$d 条笔记</item>
+    </plurals>
+    <string name="copy_note_description">副本会保留笔记的文本和星标。在同一子文件夹中，副本会获得带编号的名称。</string>
+    <string name="copy_notes_description">副本会保留笔记的文本和星标。在同一子文件夹中，副本会获得带编号的名称。</string>
+    <string name="category_current">当前</string>
+    <string name="category_new_path_normalized">将保存为 %1$s</string>
+    <string name="category_new_path_reserved">media 和 attachments 是保留给笔记文件的文件夹。</string>
+    <string name="note_move_failed">无法移动笔记</string>
+    <string name="note_copy_failed">无法复制笔记</string>
+    <string name="note_move_rejected">未移动任何内容。只读笔记、存在未解决冲突的笔记以及期间已被删除的笔记无法移动。你可以改为复制它们。</string>
+    <string name="note_copy_rejected">未复制任何内容。部分笔记在此期间已被删除。</string>
+    <string name="note_transfer_storage_failed">未更改任何内容，因为无法在此设备上保存笔记。请重试。</string>
     <string name="action_rename">重命名</string>
     <string name="retry_sync">重试同步</string>
     <string name="note_text_size_decrease">减小笔记字号</string>

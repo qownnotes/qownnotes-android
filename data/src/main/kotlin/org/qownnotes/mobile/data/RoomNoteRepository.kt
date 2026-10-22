@@ -2,6 +2,7 @@ package org.qownnotes.mobile.data
 
 import kotlinx.coroutines.flow.map
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.core.NoteFolders
 import org.qownnotes.mobile.core.NoteRepository
@@ -87,6 +88,24 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
 
     override suspend fun updateCategory(localId: String, category: String): Boolean =
         noteDao.updateCategory(localId, category) > 0
+
+    override suspend fun transferNotes(
+        accountId: String,
+        localIds: List<String>,
+        category: String,
+        copy: Boolean,
+        modifiedAtEpochSeconds: Long
+    ): Int {
+        val normalized = NoteCategories.normalize(category)
+        if (NoteCategories.isInternal(normalized)) return 0
+        return noteDao.transferNotes(
+            accountId,
+            localIds.distinct(),
+            normalized,
+            copy,
+            modifiedAtEpochSeconds
+        )
+    }
 
     override suspend fun retry(localId: String): Boolean = noteDao.retry(localId) > 0
 

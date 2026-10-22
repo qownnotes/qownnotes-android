@@ -150,6 +150,26 @@
     <string name="note_menu_tags">Tags</string>
     <string name="note_menu_information">Informationen</string>
     <string name="change_category">In Unterordner verschieben</string>
+    <string name="copy_to_category">In Unterordner kopieren</string>
+    <string name="action_copy_note">Kopieren</string>
+    <plurals name="move_notes_title">
+        <item quantity="one">%1$d Notiz verschieben</item>
+        <item quantity="other">%1$d Notizen verschieben</item>
+    </plurals>
+    <plurals name="copy_notes_title">
+        <item quantity="one">%1$d Notiz kopieren</item>
+        <item quantity="other">%1$d Notizen kopieren</item>
+    </plurals>
+    <string name="copy_note_description">Die Kopie behält Text und Stern der Notiz. Im selben Unterordner erhält sie einen nummerierten Namen.</string>
+    <string name="copy_notes_description">Jede Kopie behält Text und Stern der Notiz. Im selben Unterordner erhalten Kopien nummerierte Namen.</string>
+    <string name="category_current">Aktuell</string>
+    <string name="category_new_path_normalized">Wird gespeichert als %1$s</string>
+    <string name="category_new_path_reserved">media und attachments sind für Notizdateien reserviert.</string>
+    <string name="note_move_failed">Notizen konnten nicht verschoben werden</string>
+    <string name="note_copy_failed">Notizen konnten nicht kopiert werden</string>
+    <string name="note_move_rejected">Es wurde nichts verschoben. Schreibgeschützte Notizen, Notizen mit ungelöstem Konflikt und zwischenzeitlich gelöschte Notizen können nicht verschoben werden. Du kannst sie stattdessen kopieren.</string>
+    <string name="note_copy_rejected">Es wurde nichts kopiert. Einige Notizen wurden zwischenzeitlich gelöscht.</string>
+    <string name="note_transfer_storage_failed">Es wurde nichts geändert, weil die Notizen nicht auf diesem Gerät gespeichert werden konnten. Bitte versuche es erneut.</string>
     <string name="action_rename">Umbenennen</string>
     <string name="retry_sync">Synchronisierung wiederholen</string>
     <string name="note_text_size_decrease">Notizschrift verkleinern</string>

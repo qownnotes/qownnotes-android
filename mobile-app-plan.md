@@ -81,6 +81,12 @@ categories and offers it in a drawer with note counts and a per-account "show no
 subfolders" switch. Note creation, search, and the move dialog follow the selected folder, while
 the pull stays unfiltered. See the Phase 5 section below.
 
+Move and copy folder actions (#35) are available in the note view and for multi-selected notes,
+only when the account uses subfolders. A selection is persisted transactionally before sync;
+copying creates fresh writable local notes without server identity or conflict state, preserving
+Markdown and favorites. Copies can stay in the source folder, with unique local names. Moving
+retains local identities and ETags and refuses read-only or unresolved-conflict selections.
+
 Optional Nextcloud Deck support, enabled per account in Settings, adds a note-editor action that
 creates a Deck card and links it into the note (#16). See "Implemented Nextcloud Deck Links" below.
 

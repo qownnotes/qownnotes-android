@@ -62,6 +62,20 @@ interface NoteRepository {
 
     suspend fun updateCategory(localId: String, category: String): Boolean
 
+    /**
+     * Atomically moves or copies a selection within one account; returns the affected count.
+     * Missing, deleted, or cross-account notes reject the entire selection. Moving also rejects
+     * read-only notes, unresolved conflicts, and uncertain creates. Copies preserve content and
+     * favorites, but have new identities and no remote metadata. No-op moves return zero.
+     */
+    suspend fun transferNotes(
+        accountId: String,
+        localIds: List<String>,
+        category: String,
+        copy: Boolean,
+        modifiedAtEpochSeconds: Long
+    ): Int
+
     suspend fun retry(localId: String): Boolean
 
     suspend fun moveToTrash(accountId: String, localIds: List<String>)

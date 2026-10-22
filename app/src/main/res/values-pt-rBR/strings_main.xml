@@ -151,6 +151,28 @@
     <string name="note_menu_tags">Etiquetas</string>
     <string name="note_menu_information">Informações</string>
     <string name="change_category">Mover para subpasta</string>
+    <string name="copy_to_category">Copiar para subpasta</string>
+    <string name="action_copy_note">Copiar</string>
+    <plurals name="move_notes_title">
+        <item quantity="one">Mover %1$d nota</item>
+        <item quantity="many">Mover %1$d notas</item>
+        <item quantity="other">Mover %1$d notas</item>
+    </plurals>
+    <plurals name="copy_notes_title">
+        <item quantity="one">Copiar %1$d nota</item>
+        <item quantity="many">Copiar %1$d notas</item>
+        <item quantity="other">Copiar %1$d notas</item>
+    </plurals>
+    <string name="copy_note_description">A cópia mantém o texto e a estrela da nota. Na mesma subpasta, ela recebe um nome numerado.</string>
+    <string name="copy_notes_description">Cada cópia mantém o texto e a estrela da nota. Na mesma subpasta, as cópias recebem nomes numerados.</string>
+    <string name="category_current">Atual</string>
+    <string name="category_new_path_normalized">Será salvo como %1$s</string>
+    <string name="category_new_path_reserved">media e attachments são reservadas para arquivos de notas.</string>
+    <string name="note_move_failed">Não foi possível mover as notas</string>
+    <string name="note_copy_failed">Não foi possível copiar as notas</string>
+    <string name="note_move_rejected">Nada foi movido. Notas somente leitura, notas com um conflito não resolvido e notas excluídas nesse meio-tempo não podem ser movidas. Você pode copiá-las em vez disso.</string>
+    <string name="note_copy_rejected">Nada foi copiado. Algumas notas foram excluídas nesse meio-tempo.</string>
+    <string name="note_transfer_storage_failed">Nada foi alterado porque as notas não puderam ser salvas neste dispositivo. Tente novamente.</string>
     <string name="action_rename">Renomear</string>
     <string name="retry_sync">Tentar sincronizar novamente</string>
     <string name="note_text_size_decrease">Diminuir tamanho do texto da nota</string>

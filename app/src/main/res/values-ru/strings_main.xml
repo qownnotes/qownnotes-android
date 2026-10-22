@@ -152,6 +152,30 @@
     <string name="note_menu_tags">Теги</string>
     <string name="note_menu_information">Информация</string>
     <string name="change_category">Переместить в подпапку</string>
+    <string name="copy_to_category">Копировать в подпапку</string>
+    <string name="action_copy_note">Копировать</string>
+    <plurals name="move_notes_title">
+        <item quantity="one">Переместить %1$d заметку</item>
+        <item quantity="few">Переместить %1$d заметки</item>
+        <item quantity="many">Переместить %1$d заметок</item>
+        <item quantity="other">Переместить %1$d заметки</item>
+    </plurals>
+    <plurals name="copy_notes_title">
+        <item quantity="one">Копировать %1$d заметку</item>
+        <item quantity="few">Копировать %1$d заметки</item>
+        <item quantity="many">Копировать %1$d заметок</item>
+        <item quantity="other">Копировать %1$d заметки</item>
+    </plurals>
+    <string name="copy_note_description">Копия сохраняет текст и звёздочку заметки. В той же подпапке она получает имя с номером.</string>
+    <string name="copy_notes_description">Копии сохраняют текст и звёздочку заметки. В той же подпапке копии получают имена с номером.</string>
+    <string name="category_current">Текущая</string>
+    <string name="category_new_path_normalized">Будет сохранено как %1$s</string>
+    <string name="category_new_path_reserved">media и attachments зарезервированы для файлов заметок.</string>
+    <string name="note_move_failed">Не удалось переместить заметки</string>
+    <string name="note_copy_failed">Не удалось скопировать заметки</string>
+    <string name="note_move_rejected">Ничего не перемещено. Заметки только для чтения, заметки с неразрешённым конфликтом и заметки, удалённые за это время, нельзя переместить. Вместо этого их можно скопировать.</string>
+    <string name="note_copy_rejected">Ничего не скопировано. Некоторые заметки были удалены за это время.</string>
+    <string name="note_transfer_storage_failed">Ничего не изменено, так как заметки не удалось сохранить на этом устройстве. Попробуйте ещё раз.</string>
     <string name="action_rename">Переименовать</string>
     <string name="retry_sync">Повторить синхронизацию</string>
     <string name="note_text_size_decrease">Уменьшить размер текста заметки</string>

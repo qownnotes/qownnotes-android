@@ -45,7 +45,6 @@ import org.qownnotes.mobile.core.NextcloudDeck
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
-import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteConflict
 import org.qownnotes.mobile.core.NoteDeckBackend
 import org.qownnotes.mobile.core.NoteFactory
@@ -802,16 +801,25 @@ class ApplicationComponent(
             changed
         }
 
-    suspend fun moveNoteToCategory(localId: String, category: String): Boolean =
-        editMutexes.getOrPut(localId, ::Mutex).withLock {
-            val note = noteRepository.get(localId) ?: return@withLock false
-            if (note.readOnly || note.syncState == SyncState.CONFLICT) return@withLock false
-            val normalized = NoteCategories.normalize(category)
-            if (NoteCategories.isInternal(normalized)) return@withLock false
-            val changed = noteRepository.updateCategory(localId, normalized)
-            if (changed) scheduleSync(note.accountId)
-            changed
+    suspend fun transferNotes(
+        accountId: String,
+        localIds: List<String>,
+        category: String,
+        copy: Boolean
+    ): Int {
+        if (!settings.useSubfolders(accountId).value || localIds.isEmpty()) return 0
+        val changed = accountMutex(accountId).withLock {
+            noteRepository.transferNotes(
+                accountId,
+                localIds,
+                category,
+                copy,
+                clock.instant().epochSecond
+            )
         }
+        if (changed > 0) scheduleSync(accountId)
+        return changed
+    }
 
     fun cacheDraft(localId: String, content: String) {
         editorDrafts.cache(localId, content)

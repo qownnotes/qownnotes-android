@@ -150,6 +150,26 @@
     <string name="note_menu_tags">Tags</string>
     <string name="note_menu_information">Information</string>
     <string name="change_category">Move to subfolder</string>
+    <string name="copy_to_category">Copy to subfolder</string>
+    <string name="action_copy_note">Copy</string>
+    <plurals name="move_notes_title">
+        <item quantity="one">Move %1$d note</item>
+        <item quantity="other">Move %1$d notes</item>
+    </plurals>
+    <plurals name="copy_notes_title">
+        <item quantity="one">Copy %1$d note</item>
+        <item quantity="other">Copy %1$d notes</item>
+    </plurals>
+    <string name="copy_note_description">The copy keeps the note\'s text and star. In the same subfolder, it gets a numbered name.</string>
+    <string name="copy_notes_description">Each copy keeps the note\'s text and star. In the same subfolder, copies get numbered names.</string>
+    <string name="category_current">Current</string>
+    <string name="category_new_path_normalized">Will be saved as %1$s</string>
+    <string name="category_new_path_reserved">media and attachments are reserved for note files.</string>
+    <string name="note_move_failed">Couldn\'t move notes</string>
+    <string name="note_copy_failed">Couldn\'t copy notes</string>
+    <string name="note_move_rejected">Nothing was moved. Read-only notes, notes with an unresolved conflict, and notes deleted in the meantime can\'t be moved. You can copy them instead.</string>
+    <string name="note_copy_rejected">Nothing was copied. Some of the notes were deleted in the meantime.</string>
+    <string name="note_transfer_storage_failed">Nothing was changed because the notes couldn\'t be saved on this device. Please try again.</string>
     <string name="action_rename">Rename</string>
     <string name="retry_sync">Retry sync</string>
     <string name="note_text_size_decrease">Decrease note text size</string>

@@ -124,6 +124,7 @@ class UiDispatcherConventionTest {
             "createNote",
             "createSharedNote",
             "moveNotesToTrash",
+            "transferNotes",
             "noteVersions",
             "refresh",
             "removeLocalData",

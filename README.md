@@ -23,6 +23,8 @@ The initial F-Droid submission merge request is [fdroiddata!48269](https://gitla
 - Synchronize with Nextcloud Notes API 1.2 or newer using incremental pulls, ETags, conflict-safe
   updates, and durable pending changes.
 - Long-press notes to select several and move them to the Nextcloud trash bin together.
+- Move or copy individual or selected notes to existing or new subfolders when **Use subfolders**
+  is enabled, including duplicating notes in the same folder.
 - Browse and restore server note versions and remotely trashed notes when the Nextcloud
   QOwnNotesAPI app is installed.
 - Favorite notes with a star and keep them above other notes, including while offline.

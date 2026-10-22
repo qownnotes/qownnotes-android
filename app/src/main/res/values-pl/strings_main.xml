@@ -152,6 +152,30 @@
     <string name="note_menu_tags">Tagi</string>
     <string name="note_menu_information">Informacje</string>
     <string name="change_category">Przenieś do podfolderu</string>
+    <string name="copy_to_category">Kopiuj do podfolderu</string>
+    <string name="action_copy_note">Kopiuj</string>
+    <plurals name="move_notes_title">
+        <item quantity="one">Przenieś %1$d notatkę</item>
+        <item quantity="few">Przenieś %1$d notatki</item>
+        <item quantity="many">Przenieś %1$d notatek</item>
+        <item quantity="other">Przenieś %1$d notatki</item>
+    </plurals>
+    <plurals name="copy_notes_title">
+        <item quantity="one">Kopiuj %1$d notatkę</item>
+        <item quantity="few">Kopiuj %1$d notatki</item>
+        <item quantity="many">Kopiuj %1$d notatek</item>
+        <item quantity="other">Kopiuj %1$d notatki</item>
+    </plurals>
+    <string name="copy_note_description">Kopia zachowuje tekst i gwiazdkę notatki. W tym samym podfolderze otrzymuje numerowaną nazwę.</string>
+    <string name="copy_notes_description">Kopie zachowują tekst i gwiazdkę notatki. W tym samym podfolderze kopie otrzymują numerowane nazwy.</string>
+    <string name="category_current">Bieżący</string>
+    <string name="category_new_path_normalized">Zostanie zapisany jako %1$s</string>
+    <string name="category_new_path_reserved">media i attachments są zarezerwowane dla plików notatek.</string>
+    <string name="note_move_failed">Nie udało się przenieść notatek</string>
+    <string name="note_copy_failed">Nie udało się skopiować notatek</string>
+    <string name="note_move_rejected">Nic nie zostało przeniesione. Notatek tylko do odczytu, notatek z nierozwiązanym konfliktem i notatek usuniętych w międzyczasie nie można przenieść. Zamiast tego możesz je skopiować.</string>
+    <string name="note_copy_rejected">Nic nie zostało skopiowane. Niektóre notatki zostały w międzyczasie usunięte.</string>
+    <string name="note_transfer_storage_failed">Nic nie zostało zmienione, ponieważ nie udało się zapisać notatek na tym urządzeniu. Spróbuj ponownie.</string>
     <string name="action_rename">Zmień nazwę</string>
     <string name="retry_sync">Ponów synchronizację</string>
     <string name="note_text_size_decrease">Zmniejsz rozmiar tekstu notatki</string>

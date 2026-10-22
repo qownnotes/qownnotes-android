@@ -151,6 +151,28 @@
     <string name="note_menu_tags">Etichette</string>
     <string name="note_menu_information">Informazioni</string>
     <string name="change_category">Sposta in sottocartella</string>
+    <string name="copy_to_category">Copia in sottocartella</string>
+    <string name="action_copy_note">Copia</string>
+    <plurals name="move_notes_title">
+        <item quantity="one">Sposta %1$d nota</item>
+        <item quantity="many">Sposta %1$d note</item>
+        <item quantity="other">Sposta %1$d note</item>
+    </plurals>
+    <plurals name="copy_notes_title">
+        <item quantity="one">Copia %1$d nota</item>
+        <item quantity="many">Copia %1$d note</item>
+        <item quantity="other">Copia %1$d note</item>
+    </plurals>
+    <string name="copy_note_description">La copia mantiene il testo e la stella della nota. Nella stessa sottocartella riceve un nome numerato.</string>
+    <string name="copy_notes_description">Ogni copia mantiene il testo e la stella della nota. Nella stessa sottocartella le copie ricevono nomi numerati.</string>
+    <string name="category_current">Attuale</string>
+    <string name="category_new_path_normalized">Verrà salvata come %1$s</string>
+    <string name="category_new_path_reserved">media e attachments sono riservate ai file delle note.</string>
+    <string name="note_move_failed">Impossibile spostare le note</string>
+    <string name="note_copy_failed">Impossibile copiare le note</string>
+    <string name="note_move_rejected">Non è stato spostato nulla. Le note di sola lettura, le note con un conflitto non risolto e le note eliminate nel frattempo non possono essere spostate. Puoi invece copiarle.</string>
+    <string name="note_copy_rejected">Non è stato copiato nulla. Alcune note sono state eliminate nel frattempo.</string>
+    <string name="note_transfer_storage_failed">Non è stato modificato nulla perché non è stato possibile salvare le note su questo dispositivo. Riprova.</string>
     <string name="action_rename">Rinomina</string>
     <string name="retry_sync">Riprova sincronizzazione</string>
     <string name="note_text_size_decrease">Riduci dimensione testo della nota</string>

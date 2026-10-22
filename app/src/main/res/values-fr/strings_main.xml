@@ -151,6 +151,28 @@
     <string name="note_menu_tags">Étiquettes</string>
     <string name="note_menu_information">Informations</string>
     <string name="change_category">Déplacer vers un sous-dossier</string>
+    <string name="copy_to_category">Copier vers un sous-dossier</string>
+    <string name="action_copy_note">Copier</string>
+    <plurals name="move_notes_title">
+        <item quantity="one">Déplacer %1$d note</item>
+        <item quantity="many">Déplacer %1$d notes</item>
+        <item quantity="other">Déplacer %1$d notes</item>
+    </plurals>
+    <plurals name="copy_notes_title">
+        <item quantity="one">Copier %1$d note</item>
+        <item quantity="many">Copier %1$d notes</item>
+        <item quantity="other">Copier %1$d notes</item>
+    </plurals>
+    <string name="copy_note_description">La copie conserve le texte et l\'étoile de la note. Dans le même sous-dossier, elle reçoit un nom numéroté.</string>
+    <string name="copy_notes_description">Chaque copie conserve le texte et l\'étoile de la note. Dans le même sous-dossier, les copies reçoivent des noms numérotés.</string>
+    <string name="category_current">Actuel</string>
+    <string name="category_new_path_normalized">Sera enregistré sous %1$s</string>
+    <string name="category_new_path_reserved">media et attachments sont réservés aux fichiers des notes.</string>
+    <string name="note_move_failed">Impossible de déplacer les notes</string>
+    <string name="note_copy_failed">Impossible de copier les notes</string>
+    <string name="note_move_rejected">Rien n\'a été déplacé. Les notes en lecture seule, les notes avec un conflit non résolu et les notes supprimées entre-temps ne peuvent pas être déplacées. Vous pouvez les copier à la place.</string>
+    <string name="note_copy_rejected">Rien n\'a été copié. Certaines notes ont été supprimées entre-temps.</string>
+    <string name="note_transfer_storage_failed">Rien n\'a été modifié, car les notes n\'ont pas pu être enregistrées sur cet appareil. Veuillez réessayer.</string>
     <string name="action_rename">Renommer</string>
     <string name="retry_sync">Réessayer la synchronisation</string>
     <string name="note_text_size_decrease">Réduire la taille du texte de la note</string>
