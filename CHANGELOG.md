@@ -19,6 +19,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   note menu. Links can be password protected, allow editing, and be copied, sent, or opened, and
   the password can be changed or removed later
   ([#43](https://github.com/qownnotes/qownnotes-android/issues/43)).
+- Reorder checkbox list items in the note preview by dragging the grip handle at the end of each
+  item. Nested items move along with their parent, items move only within their own list, and
+  the note scrolls automatically while dragging near its top or bottom.
 
 ## [1.5.0] - 2026-10-13
 

@@ -41,8 +41,11 @@ import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.ViewAction
+import androidx.test.espresso.action.CoordinatesProvider
 import androidx.test.espresso.action.GeneralClickAction
+import androidx.test.espresso.action.GeneralSwipeAction
 import androidx.test.espresso.action.Press
+import androidx.test.espresso.action.Swipe
 import androidx.test.espresso.action.Tap
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.pressKey
@@ -3546,6 +3549,41 @@ class AppLaunchTest {
                 scrolledTop,
                 screenTopOf(R.id.markdown_view)
             )
+        }
+    }
+
+    @Test
+    fun draggingATaskHandleMovesTheTaskWithItsNestedItems() {
+        importAccount(
+            "alice",
+            "Checklist",
+            "etag-1",
+            10,
+            "- [ ] One\n  - [x] One child\n- [ ] Two\n- [ ] Three\n"
+        )
+        composeRule.onNodeWithText("Checklist").performClick()
+        composeRule.waitForTag("markdown-view")
+        composeRule.waitForIdle()
+        fun handleOf(task: String, linesBelow: Float = 0f) = CoordinatesProvider { view ->
+            val textView = view as TextView
+            val layout = textView.layout
+            val location = IntArray(2).also(view::getLocationOnScreen)
+            val line = layout.getLineForOffset(textView.text.indexOf(task))
+            val height = layout.getLineBottom(line) - layout.getLineTop(line)
+            floatArrayOf(
+                location[0] + view.width - textView.paddingEnd / 2f,
+                location[1] + textView.totalPaddingTop + layout.getLineTop(line) +
+                    height * (0.5f + linesBelow)
+            )
+        }
+
+        onView(withId(R.id.markdown_view)).perform(
+            GeneralSwipeAction(Swipe.SLOW, handleOf("One"), handleOf("Three", 1f), Press.FINGER)
+        )
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            noteContents("alice").single() ==
+                "- [ ] Two\n- [ ] Three\n- [ ] One\n  - [x] One child\n"
         }
     }
 

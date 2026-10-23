@@ -69,6 +69,7 @@ class MarkdownRenderer private constructor(
 
     private val applicationContext = context.applicationContext
     private val linkHandlers = WeakHashMap<AppCompatTextView, LinkHandlers>()
+    private val taskDragControllers = WeakHashMap<AppCompatTextView, TaskDragController>()
     private val localImageSchemeHandler = LocalImageSchemeHandler(
         context.applicationContext.resources,
         attachmentSchemeHandler
@@ -93,6 +94,9 @@ class MarkdownRenderer private constructor(
         onAttachmentLink: (String) -> Unit = {},
         onExternalLink: (String) -> Boolean = { false },
         onTaskToggle: ((Int) -> Unit)? = null,
+        onTaskMove: ((taskIndex: Int, targetTaskIndex: Int) -> Unit)? = null,
+        taskDragColors: TaskDragColors? = null,
+        taskDragAutoScroll: TaskDragAutoScroll? = null,
         heading: String? = null,
         onHeadingPositioned: (Int?) -> Unit = {},
         loadRemoteImages: Boolean = false,
@@ -143,6 +147,14 @@ class MarkdownRenderer private constructor(
         }
         styleBrokenInternalLinks(view, resolveInternalLink)
         attachTaskToggleSpans(view, onTaskToggle)
+        if (onTaskMove != null || taskDragControllers.containsKey(view)) {
+            taskDragControllers.getOrPut(view) { TaskDragController(view) }.attach(
+                markdown = markdown.takeIf { encryption.blockCount == 0 },
+                onMove = onTaskMove,
+                colors = taskDragColors ?: view.defaultTaskDragColors(),
+                autoScroll = taskDragAutoScroll
+            )
+        }
         if (heading != null) {
             view.post { onHeadingPositioned(findHeadingTop(view, heading)) }
         }
@@ -392,9 +404,18 @@ private fun parseInternalLink(destination: String): InternalNoteLink? =
         parseLegacyNoteLink(destination) ?: parseMarkdownNoteLink(destination)
     }
 
-private fun AppCompatTextView.brokenLinkColor(): Int {
+private fun AppCompatTextView.brokenLinkColor(): Int =
+    themeColor(android.R.attr.colorError, Color.RED)
+
+private fun AppCompatTextView.defaultTaskDragColors() = TaskDragColors(
+    handle = currentTextColor,
+    accent = themeColor(android.R.attr.colorAccent, currentTextColor),
+    surface = themeColor(android.R.attr.colorBackground, Color.WHITE)
+)
+
+private fun AppCompatTextView.themeColor(attribute: Int, fallback: Int): Int {
     val value = TypedValue()
-    if (!context.theme.resolveAttribute(android.R.attr.colorError, value, true)) return Color.RED
+    if (!context.theme.resolveAttribute(attribute, value, true)) return fallback
     return if (value.resourceId != 0) context.getColor(value.resourceId) else value.data
 }
 
@@ -499,7 +520,7 @@ private class InternalLinkPreprocessor {
     }
 }
 
-private fun String.fenceMarker(): Pair<Char, Int>? {
+internal fun String.fenceMarker(): Pair<Char, Int>? {
     val trimmed = dropWhile { it == ' ' }.takeIf { length - it.length <= 3 } ?: return null
     val marker = trimmed.firstOrNull()?.takeIf { it == '`' || it == '~' } ?: return null
     val length = trimmed.countRun(0, marker)
@@ -594,11 +615,11 @@ fun toggleTaskListItem(markdown: String, taskIndex: Int): String? {
     return null
 }
 
-private fun String.bodyStartAfterFrontmatter(): Int {
+internal fun String.bodyStartAfterFrontmatter(): Int {
     if (!startsWith("---\n")) return 0
     val end = indexOf("\n---\n", startIndex = 4)
     return if (end < 0) 0 else end + 5
 }
 
-private val TASK_LIST_MARKER =
+internal val TASK_LIST_MARKER =
     Regex("^(?: {0,3}>[ \\t]?)*[ \\t]*(?:[-+*]|\\d+[.)])[ \\t]+\\[([ xX-])]")

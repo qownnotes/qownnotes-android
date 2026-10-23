@@ -1302,7 +1302,11 @@ Sharing follows the QOwnNotes desktop `ShareDialog` and `CloudService::shareNote
 
 ### Phase 7: Extended Features
 
-- Interactive task checkboxes
+- Interactive task checkboxes: tapping toggles a task, and dragging the grip handle at the end of
+  a task's first line reorders it, with its nested items and continuation lines, among the
+  sibling tasks of its list. Only the order of the sibling task blocks changes in the Markdown
+  source; blank lines and non-task items stay in place, ordered lists keep their numbering, and
+  dragging is not offered when rendered and source tasks cannot be matched with certainty.
 - Image sharing and general attachments
 - Sharing
 - Widgets: account note-list, single-note, creation, and camera actions are implemented. The

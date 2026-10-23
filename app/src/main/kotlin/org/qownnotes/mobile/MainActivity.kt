@@ -174,6 +174,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -253,7 +254,10 @@ import org.qownnotes.mobile.markdown.MarkdownEditorBinding
 import org.qownnotes.mobile.markdown.MarkdownFormatAction
 import org.qownnotes.mobile.markdown.MarkdownRenderer
 import org.qownnotes.mobile.markdown.NoteSearchColors
+import org.qownnotes.mobile.markdown.TaskDragAutoScroll
+import org.qownnotes.mobile.markdown.TaskDragColors
 import org.qownnotes.mobile.markdown.highlightNoteSearchMatches
+import org.qownnotes.mobile.markdown.moveTaskListItem
 import org.qownnotes.mobile.markdown.noteSearchMatchTop
 import org.qownnotes.mobile.markdown.supportsMarkdownSourceHighlighting
 import org.qownnotes.mobile.markdown.toggleTaskListItem
@@ -3042,6 +3046,13 @@ private fun NoteDetailScreen(
         currentBackground = MaterialTheme.colorScheme.primary.toArgb(),
         currentText = MaterialTheme.colorScheme.onPrimary.toArgb()
     )
+    val taskDragColors = TaskDragColors(
+        handle = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
+        accent = MaterialTheme.colorScheme.primary.toArgb(),
+        surface = MaterialTheme.colorScheme.surfaceContainerHigh.toArgb()
+    )
+    // Read only while a task is dragged, so it is kept outside of Compose state.
+    val previewViewport = remember { android.graphics.Rect() }
     val noteTextSizeSp by component.settings.noteTextSizeSp
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val showToolbarLabels by component.settings.showEditorToolbarLabels
@@ -4064,7 +4075,17 @@ private fun NoteDetailScreen(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                     )
                 }
-                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f).onPlaced { coordinates ->
+                        val bounds = coordinates.boundsInWindow()
+                        previewViewport.set(
+                            bounds.left.toInt(),
+                            bounds.top.toInt(),
+                            bounds.right.toInt(),
+                            bounds.bottom.toInt()
+                        )
+                    }
+                ) {
                     AndroidView(
                         factory = { context ->
                             AppCompatTextView(context).also {
@@ -4079,6 +4100,12 @@ private fun NoteDetailScreen(
                         onRelease = { renderedView = null },
                         update = { view ->
                             val source = note
+                            val tasksEditable = source != null && !source.readOnly &&
+                                source.syncState !in setOf(
+                                    SyncState.CONFLICT,
+                                    SyncState.REMOTE_MISSING,
+                                    SyncState.READ_ONLY_CONFLICT
+                                )
                             if (view.currentTextColor != editorTextColor) {
                                 view.setTextColor(editorTextColor)
                             }
@@ -4131,16 +4158,7 @@ private fun NoteDetailScreen(
                                             false
                                         }
                                     },
-                                    onTaskToggle = if (
-                                        source != null &&
-                                        !source.readOnly &&
-                                        source.syncState !in
-                                        setOf(
-                                            SyncState.CONFLICT,
-                                            SyncState.REMOTE_MISSING,
-                                            SyncState.READ_ONLY_CONFLICT
-                                        )
-                                    ) {
+                                    onTaskToggle = if (source != null && tasksEditable) {
                                         { taskIndex ->
                                             if (!togglingTask) {
                                                 toggleTaskListItem(source.content, taskIndex)?.let {
@@ -4158,6 +4176,35 @@ private fun NoteDetailScreen(
                                     } else {
                                         null
                                     },
+                                    onTaskMove = if (source != null && tasksEditable) {
+                                        { taskIndex, targetTaskIndex ->
+                                            if (!togglingTask) {
+                                                moveTaskListItem(
+                                                    source.content,
+                                                    taskIndex,
+                                                    targetTaskIndex
+                                                )?.let {
+                                                    togglingTask = true
+                                                    scope.launch {
+                                                        component.replaceNoteContent(
+                                                            localId,
+                                                            it
+                                                        )
+                                                        togglingTask = false
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        null
+                                    },
+                                    taskDragColors = taskDragColors,
+                                    taskDragAutoScroll = TaskDragAutoScroll(
+                                        viewportInWindow = {
+                                            previewViewport.takeUnless { it.isEmpty }
+                                        },
+                                        scrollBy = scrollState::dispatchRawDelta
+                                    ),
                                     heading = if (source != null) pendingHeading else null,
                                     onHeadingPositioned = { top ->
                                         if (pendingHeading != null) {
