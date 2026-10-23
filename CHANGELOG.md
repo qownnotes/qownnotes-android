@@ -7,6 +7,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Checkbox list items can be reordered by dragging in notes that also contain checkbox-like lines
+  which are not shown as checkboxes, such as an empty `- [ ]` item or one inside an HTML comment
+  or code block. Such lines previously hid the drag handles of the whole note.
+- Tapping a checkbox in such a note now always toggles that checkbox instead of possibly toggling
+  another item.
+
 ## [1.6.0] - 2026-10-23
 
 ### Added

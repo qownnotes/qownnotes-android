@@ -86,6 +86,35 @@ class TaskListMoveTest {
     }
 
     @Test
+    fun skipsListItemsThatAreNotRenderedAsTasks() {
+        val markdown = "- [ ]\n- [ ] \n- [ ]text\n-     [ ] code\n- [ ] a\n- [x] b"
+
+        assertEquals(2, taskListStructure(markdown).taskCount)
+        assertEquals(listOf(4, 5), taskListStructure(markdown).taskLines)
+        assertEquals(markdown.replace("- [ ] a", "- [x] a"), toggleTaskListItem(markdown, 0))
+        assertEquals(
+            "- [ ]\n- [ ] \n- [ ]text\n-     [ ] code\n- [x] b\n- [ ] a",
+            moveTaskListItem(markdown, 1, 0)
+        )
+    }
+
+    @Test
+    fun ignoresTasksInsideHtmlBlocks() {
+        val markdown = "<!--\n- [ ] hidden\n-->\n<div>\n- [ ] raw\n</div>\n\n- [ ] a\n- [ ] b"
+
+        assertEquals(listOf(7, 8), taskListStructure(markdown).taskLines)
+        assertEquals(listOf(listOf(0, 1)), taskListStructure(markdown).groups)
+        assertEquals(markdown.replace("- [ ] a", "- [x] a"), toggleTaskListItem(markdown, 0))
+    }
+
+    @Test
+    fun endsATaskBeforeAnHtmlBlock() {
+        val markdown = "- [ ] a\n- [ ] b\n<!-- note -->"
+
+        assertEquals("- [ ] b\n- [ ] a\n<!-- note -->", moveTaskListItem(markdown, 0, 1))
+    }
+
+    @Test
     fun keepsLazyContinuationLinesWithTheirTask() {
         val markdown = "- [ ] a\nlazy\n- [ ] b"
 

@@ -7,13 +7,19 @@ package org.qownnotes.mobile.markdown
  * the rendered task spans do. Each group holds the indices of tasks that are siblings in one list;
  * only groups with at least two tasks are reported.
  */
-internal class TaskListStructure(val taskCount: Int, val groups: List<List<Int>>)
+internal class TaskListStructure(
+    val taskCount: Int,
+    val groups: List<List<Int>>,
+    /** The body line, after any frontmatter, that each task starts on. */
+    val taskLines: List<Int>
+)
 
 internal fun taskListStructure(markdown: String): TaskListStructure {
     val parsed = parseTaskList(markdown)
     return TaskListStructure(
         parsed.taskCount,
-        parsed.groups.map { group -> group.map(SourceTask::index) }
+        parsed.groups.map { group -> group.map(SourceTask::index) },
+        parsed.taskLines
     )
 }
 
@@ -54,7 +60,8 @@ private class ParsedTaskList(
     val bodyStart: Int,
     val lines: List<String>,
     val taskCount: Int,
-    val groups: List<List<SourceTask>>
+    val groups: List<List<SourceTask>>,
+    val taskLines: List<Int>
 )
 
 private class ListItemLine(val indent: Int, val contentIndent: Int, val kind: String)
@@ -66,10 +73,14 @@ private fun parseTaskList(markdown: String): ParsedTaskList {
     val taskAtLine = HashMap<Int, Int>()
     var fenceCharacter: Char? = null
     var fenceLength = 0
-    // This mirrors `toggleTaskListItem` so that both agree on every task's index.
+    var html: HtmlBlock? = null
     lines.forEachIndexed { index, line ->
         val fence = line.fenceMarker()
-        if (fenceCharacter != null) {
+        val openHtml = html
+        if (openHtml != null) {
+            code[index] = true
+            if (openHtml.endsAt(line)) html = null
+        } else if (fenceCharacter != null) {
             code[index] = true
             if (fence != null && fence.first == fenceCharacter && fence.second >= fenceLength &&
                 line.dropWhile { it == ' ' }.drop(fence.second).isBlank()
@@ -83,6 +94,13 @@ private fun parseTaskList(markdown: String): ParsedTaskList {
             fenceLength = fence.second
         } else if (TASK_LIST_MARKER.containsMatchIn(line)) {
             taskAtLine[index] = taskAtLine.size
+        } else {
+            val started = htmlBlockStartingAt(line)
+            if (started != null) {
+                code[index] = true
+                // The end condition may already be met on the opening line itself.
+                if (!started.endsAt(line, opening = true)) html = started
+            }
         }
     }
 
@@ -107,7 +125,7 @@ private fun parseTaskList(markdown: String): ParsedTaskList {
         group.forEach { grouped += it.line }
         if (group.size > 1) groups += group
     }
-    return ParsedTaskList(bodyStart, lines, taskAtLine.size, groups)
+    return ParsedTaskList(bodyStart, lines, taskAtLine.size, groups, taskAtLine.keys.sorted())
 }
 
 /** The exclusive end line of the list item starting at [start], without trailing blank lines. */
@@ -129,8 +147,8 @@ private fun List<String>.blockEnd(start: Int, contentIndent: Int, code: BooleanA
     return last + 1
 }
 
-private fun String.isLazyContinuation(): Boolean =
-    listItem() == null && fenceMarker() == null && !BLOCK_START.containsMatchIn(this)
+private fun String.isLazyContinuation(): Boolean = listItem() == null && fenceMarker() == null &&
+    !BLOCK_START.containsMatchIn(this) && !HTML_BLOCK_START.containsMatchIn(this)
 
 private fun String.listItem(): ListItemLine? {
     if (BLOCK_START.containsMatchIn(this)) return null
@@ -184,4 +202,41 @@ private fun String.leadingColumnsAfter(start: Int): Int {
 private const val TAB_WIDTH = 4
 private val LIST_ITEM = Regex("^([ \\t]*)([-+*]|\\d{1,9}[.)])([ \\t]+|$)")
 private val ORDERED_NUMBER = Regex("^[ \\t]*(\\d{1,9})[.)]")
+
+/**
+ * A CommonMark HTML block, whose lines are raw HTML rather than Markdown. Blocks that start with a
+ * known tag end at a blank line; the others end at their closing sequence.
+ */
+private class HtmlBlock(private val end: Regex?) {
+    fun endsAt(line: String, opening: Boolean = false): Boolean {
+        if (end == null) return !opening && line.isBlank()
+        val searched = if (opening) line.trimStart().drop(1) else line
+        return end.containsMatchIn(searched)
+    }
+}
+
+private fun htmlBlockStartingAt(line: String): HtmlBlock? {
+    val start = HTML_BLOCK_START.find(line) ?: return null
+    val tag = start.value.trimStart().drop(1).lowercase()
+    return HtmlBlock(
+        when {
+            tag.startsWith("!--") -> Regex("-->")
+            tag.startsWith("?") -> Regex("\\?>")
+            tag.startsWith("![cdata[") -> Regex("]]>")
+            tag.startsWith("!") -> Regex(">")
+            RAW_HTML_TAG.containsMatchIn(tag) ->
+                Regex("</(?:script|pre|style|textarea)>", RegexOption.IGNORE_CASE)
+            else -> null
+        }
+    )
+}
+
+private val RAW_HTML_TAG = Regex("^(?:script|pre|style|textarea)(?:[\\s>]|$)")
+private val HTML_BLOCK_START = Regex(
+    "^[ \\t]*<(?:!--|\\?|![A-Za-z]|!\\[CDATA\\[|(?:script|pre|style|textarea)(?:[\\s>]|$)|" +
+        "/?(?:address|article|aside|blockquote|details|dialog|div|dl|fieldset|figcaption|" +
+        "figure|footer|form|h[1-6]|header|hr|li|main|nav|ol|p|section|summary|table|ul)" +
+        "(?:[\\s>]|/>|$))",
+    RegexOption.IGNORE_CASE
+)
 private val BLOCK_START = Regex("^ {0,3}(?:#|>|=+[ \\t]*$|([-*_])(?:[ \\t]*\\1){2,}[ \\t]*$)")

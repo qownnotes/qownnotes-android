@@ -17,7 +17,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.widget.AppCompatTextView
-import io.noties.markwon.ext.tasklist.TaskListSpan
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -61,7 +60,7 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
     private val density = view.resources.displayMetrics.density
     private val stripWidth = (36 * density).roundToInt()
     private val overlay = TaskDragOverlay()
-    private var tasks: List<RenderedTask> = emptyList()
+    private var tasks: Map<Int, RenderedTask> = emptyMap()
     private var groupOf: Map<Int, List<Int>> = emptyMap()
     private var onMove: ((Int, Int) -> Unit)? = null
     private var autoScroll: TaskDragAutoScroll? = null
@@ -86,7 +85,8 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
     }
 
     fun attach(
-        markdown: String?,
+        markdown: String,
+        sources: RenderedTaskSources?,
         onMove: ((Int, Int) -> Unit)?,
         colors: TaskDragColors,
         autoScroll: TaskDragAutoScroll?
@@ -96,27 +96,29 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
         this.colors = colors
         this.autoScroll = autoScroll
         val text = view.text as? Spanned
-        val structure = markdown?.takeIf {
-            onMove != null && text != null
-        }?.let(::taskListStructure)
-        val spans = text?.getSpans(0, text.length, TaskListSpan::class.java)
-            ?.sortedWith(compareBy({ text.getSpanStart(it) }, { text.getSpanEnd(it) }))
-            .orEmpty()
-        // Rendered and source tasks are matched by their order. Should the two ever disagree, a
-        // move could pick up the wrong lines, so dragging is then not offered at all.
-        if (structure == null || text == null || structure.taskCount != spans.size) {
-            tasks = emptyList()
+        val spans = text?.renderedTaskSpans().orEmpty()
+        if (onMove == null || sources == null || text == null ||
+            spans.size != sources.sourceIndices.size
+        ) {
+            tasks = emptyMap()
             groupOf = emptyMap()
         } else {
-            tasks = spans.mapIndexed { index, span ->
-                RenderedTask(
-                    index,
-                    text.getSpanStart(span),
-                    text.getSpanEnd(span),
-                    span.getLeadingMargin(true)
-                )
-            }
-            groupOf = structure.groups.flatMap { group -> group.map { it to group } }.toMap()
+            tasks = spans.mapIndexedNotNull { renderedIndex, span ->
+                sources.sourceIndices[renderedIndex]?.let { index ->
+                    RenderedTask(
+                        index,
+                        text.getSpanStart(span),
+                        text.getSpanEnd(span),
+                        span.getLeadingMargin(true)
+                    )
+                }
+            }.associateBy(RenderedTask::index)
+            // A list is offered for reordering only when the lines that would be moved are
+            // exactly the tasks the renderer shows as siblings of that list.
+            groupOf = taskListStructure(markdown).groups
+                .filter { it in sources.siblingGroups }
+                .flatMap { group -> group.map { it to group } }
+                .toMap()
         }
         view.setOnTouchListener(if (groupOf.isEmpty()) null else this)
         val endPadding = if (groupOf.isEmpty()) 0 else stripWidth
@@ -251,7 +253,7 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
         val center = bounds.centerY() + fingerOffsetOf(current)
         val others = current.group.filter { it != current.task.index }
         val position = others.count { other ->
-            blockBounds(tasks[other], layout).centerY() < center
+            blockBounds(tasks.getValue(other), layout).centerY() < center
         }
         val target = current.group[position]
         if (target != current.target) {
@@ -270,7 +272,7 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
         }
         if (!inStrip) return null
         val reach = 24 * density
-        return groupOf.keys.map(tasks::get)
+        return groupOf.keys.map(tasks::getValue)
             .map { it to handleCenterY(it, layout) }
             .filter { (task, center) ->
                 val line = layout.getLineForOffset(task.start)
@@ -336,7 +338,11 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
             val layout = view.layout ?: return
             val current = drag
             groupOf.keys.forEach { index ->
-                if (index != current?.task?.index) drawHandle(canvas, tasks[index], layout, false)
+                if (index !=
+                    current?.task?.index
+                ) {
+                    drawHandle(canvas, tasks.getValue(index), layout, false)
+                }
             }
             if (current != null) drawDrag(canvas, current, layout)
         }
@@ -397,7 +403,7 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
             origin: RectF,
             layout: Layout
         ) {
-            val target = blockBounds(tasks[drag.target], layout)
+            val target = blockBounds(tasks.getValue(drag.target), layout)
             val movesDown = drag.group.indexOf(drag.target) > drag.group.indexOf(drag.task.index)
             val gap = 2 * density
             val y = if (movesDown) target.bottom + gap else target.top - gap

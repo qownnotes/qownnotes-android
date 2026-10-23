@@ -146,10 +146,18 @@ class MarkdownRenderer private constructor(
             }
         }
         styleBrokenInternalLinks(view, resolveInternalLink)
-        attachTaskToggleSpans(view, onTaskToggle)
+        val taskSources = if (encryption.blockCount == 0 &&
+            (onTaskToggle != null || onTaskMove != null)
+        ) {
+            markwon.renderedTaskSources(encryption.markdown)
+        } else {
+            null
+        }
+        attachTaskToggleSpans(view, onTaskToggle, taskSources)
         if (onTaskMove != null || taskDragControllers.containsKey(view)) {
             taskDragControllers.getOrPut(view) { TaskDragController(view) }.attach(
-                markdown = markdown.takeIf { encryption.blockCount == 0 },
+                markdown = encryption.markdown,
+                sources = taskSources,
                 onMove = onTaskMove,
                 colors = taskDragColors ?: view.defaultTaskDragColors(),
                 autoScroll = taskDragAutoScroll
@@ -325,21 +333,34 @@ internal fun nextcloudAttachmentDestination(
         "?path=" + URLEncoder.encode(destination, StandardCharsets.UTF_8.name())
 }
 
+internal fun Spanned.renderedTaskSpans(): List<TaskListSpan> =
+    getSpans(0, length, TaskListSpan::class.java)
+        .sortedWith(compareBy({ getSpanStart(it) }, { getSpanEnd(it) }))
+
 internal class TaskToggleSpan(val index: Int, val leadingMargin: Int, val toggle: (Int) -> Unit)
 
-private fun attachTaskToggleSpans(view: AppCompatTextView, onTaskToggle: ((Int) -> Unit)?) {
-    if (onTaskToggle == null) return
+/**
+ * Makes every rendered checkbox whose source line is known toggle that line. A checkbox is left
+ * alone rather than risk toggling another task when the rendered tasks cannot be matched up.
+ */
+private fun attachTaskToggleSpans(
+    view: AppCompatTextView,
+    onTaskToggle: ((Int) -> Unit)?,
+    sources: RenderedTaskSources?
+) {
+    if (onTaskToggle == null || sources == null) return
     val text = view.text as? Spannable ?: return
-    text.getSpans(0, text.length, TaskListSpan::class.java)
-        .sortedWith(compareBy({ text.getSpanStart(it) }, { text.getSpanEnd(it) }))
-        .forEachIndexed { index, task ->
-            text.setSpan(
-                TaskToggleSpan(index, task.getLeadingMargin(true), onTaskToggle),
-                text.getSpanStart(task),
-                text.getSpanEnd(task),
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-        }
+    val tasks = text.renderedTaskSpans()
+    if (tasks.size != sources.sourceIndices.size) return
+    tasks.forEachIndexed { renderedIndex, task ->
+        val index = sources.sourceIndices[renderedIndex] ?: return@forEachIndexed
+        text.setSpan(
+            TaskToggleSpan(index, task.getLeadingMargin(true), onTaskToggle),
+            text.getSpanStart(task),
+            text.getSpanEnd(task),
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+    }
 }
 
 private const val BLOCKED_IMAGE_DESTINATION = "qon-blocked-image:blocked"
@@ -572,47 +593,14 @@ internal fun String.withoutFrontmatter(): String {
 }
 
 fun toggleTaskListItem(markdown: String, taskIndex: Int): String? {
-    if (taskIndex < 0) return null
-    var index = 0
+    val line = taskListStructure(markdown).taskLines.getOrNull(taskIndex) ?: return null
     var lineStart = markdown.bodyStartAfterFrontmatter()
-    var fenceCharacter: Char? = null
-    var fenceLength = 0
-    while (lineStart < markdown.length) {
-        val newline = markdown.indexOf('\n', lineStart)
-        val lineEnd = if (newline < 0) markdown.length else newline
-        val line = markdown.substring(lineStart, lineEnd)
-        val fence = line.fenceMarker()
-        if (fenceCharacter != null) {
-            if (fence != null && fence.first == fenceCharacter && fence.second >= fenceLength &&
-                line.dropWhile { it == ' ' }.drop(fence.second).isBlank()
-            ) {
-                fenceCharacter = null
-                fenceLength = 0
-            }
-        } else if (fence != null) {
-            fenceCharacter = fence.first
-            fenceLength = fence.second
-        } else {
-            val task = TASK_LIST_MARKER.find(line)
-            if (task != null) {
-                if (index == taskIndex) {
-                    val marker = lineStart + task.groups[1]!!.range.first
-                    val toggled = if (markdown[marker] == 'x' ||
-                        markdown[marker] == 'X'
-                    ) {
-                        ' '
-                    } else {
-                        'x'
-                    }
-                    return markdown.replaceRange(marker, marker + 1, toggled.toString())
-                }
-                index++
-            }
-        }
-        if (newline < 0) break
-        lineStart = newline + 1
-    }
-    return null
+    repeat(line) { lineStart = markdown.indexOf('\n', lineStart) + 1 }
+    val lineEnd = markdown.indexOf('\n', lineStart).takeIf { it >= 0 } ?: markdown.length
+    val task = TASK_LIST_MARKER.find(markdown.substring(lineStart, lineEnd)) ?: return null
+    val marker = lineStart + task.groups[1]!!.range.first
+    val toggled = if (markdown[marker] == 'x' || markdown[marker] == 'X') ' ' else 'x'
+    return markdown.replaceRange(marker, marker + 1, toggled.toString())
 }
 
 internal fun String.bodyStartAfterFrontmatter(): Int {
@@ -621,5 +609,9 @@ internal fun String.bodyStartAfterFrontmatter(): Int {
     return if (end < 0) 0 else end + 5
 }
 
+/**
+ * A task as the renderer sees it: at most four spaces before the box, which is followed by
+ * whitespace and content. An empty `- [ ]` and `- [ ]text` are plain list items.
+ */
 internal val TASK_LIST_MARKER =
-    Regex("^(?: {0,3}>[ \\t]?)*[ \\t]*(?:[-+*]|\\d+[.)])[ \\t]+\\[([ xX-])]")
+    Regex("^(?: {0,3}>[ \\t]?)*[ \\t]*(?:[-+*]|\\d+[.)])(?: {1,4}|\\t)\\[([ xX-])](?=[ \\t]+\\S)")

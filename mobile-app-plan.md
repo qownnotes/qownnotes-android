@@ -1305,8 +1305,10 @@ Sharing follows the QOwnNotes desktop `ShareDialog` and `CloudService::shareNote
 - Interactive task checkboxes: tapping toggles a task, and dragging the grip handle at the end of
   a task's first line reorders it, with its nested items and continuation lines, among the
   sibling tasks of its list. Only the order of the sibling task blocks changes in the Markdown
-  source; blank lines and non-task items stay in place, ordered lists keep their numbering, and
-  dragging is not offered when rendered and source tasks cannot be matched with certainty.
+  source; blank lines and non-task items stay in place, and ordered lists keep their numbering.
+  Rendered checkboxes are matched to their source lines by parsing a copy of the note, tagged per
+  task-like line, with the renderer's own Markwon parser; a checkbox or list whose source cannot
+  be identified this way is neither toggled nor offered for dragging.
 - Image sharing and general attachments
 - Sharing
 - Widgets: account note-list, single-note, creation, and camera actions are implemented. The
