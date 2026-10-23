@@ -1,0 +1,2 @@
+• Checklist items can be dragged in notes that also contain checkbox-like lines that are not shown as checkboxes, such as an empty "- [ ]" item or one inside an HTML comment or code block
+• Tapping a checkbox in such notes now always toggles that checkbox
