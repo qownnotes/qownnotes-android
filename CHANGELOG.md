@@ -9,6 +9,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- QOwnNotes Mobile is now available to download from
+  [F-Droid](https://f-droid.org/en/packages/org.qownnotes.mobile/).
 - Copy notes to an existing or new subfolder, or duplicate them in the same folder. Move and copy
   are also available for multiple selected notes; both folder actions are shown only when
   **Use subfolders** is enabled for the account
