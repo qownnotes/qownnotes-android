@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-23
+
 ### Added
 
 - QOwnNotes Mobile is now available to download from
@@ -615,7 +617,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.2.0...v1.3.0

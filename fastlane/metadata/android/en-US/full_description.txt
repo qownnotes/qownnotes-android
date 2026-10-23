@@ -12,6 +12,9 @@ Features include:
 * Conflict-safe synchronization using ETags and durable pending changes
 * CommonMark and GitHub Flavored Markdown rendering and source editing
 * QOwnNotes wiki links, task states, note naming, subfolders, and favorites
+* Move or copy notes between subfolders and duplicate notes
+* Share notes through public Nextcloud links with password protection and optional editing
+* Reorder checklist items and their nested items by dragging in the note preview
 * Note tags shared with QOwnNotes desktop, with tag filtering in the note list
 * Create, browse, search, edit, and archive Nextcloud Deck cards and insert card links
 * Safe remote images and authenticated Nextcloud note attachments

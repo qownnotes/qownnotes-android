@@ -1,0 +1,4 @@
+• Copy or duplicate notes, and move or copy multiple selected notes between subfolders
+• Share notes through public Nextcloud links, with password protection and optional editing
+• Drag checklist items in the preview to reorder them together with nested items
+• QOwnNotes Mobile is now available on F-Droid
