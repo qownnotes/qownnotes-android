@@ -308,6 +308,21 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
         }
     }
 
+    /** The part of [block] that holds the text of the task and its nested items. */
+    private fun contentBounds(task: RenderedTask, layout: Layout, block: RectF): RectF {
+        val firstLine = layout.getLineForOffset(task.start)
+        val lastLine = layout.getLineForOffset(maxOf(task.start, task.end - 1))
+        val padding = 12 * density
+        return if (isRtl()) {
+            val left = (firstLine..lastLine).minOf(layout::getLineLeft) + view.totalPaddingLeft
+            RectF(maxOf(stripWidth.toFloat(), left - padding), block.top, block.right, block.bottom)
+        } else {
+            val right = (firstLine..lastLine).maxOf(layout::getLineRight) + view.totalPaddingLeft
+            val limit = view.width - stripWidth.toFloat()
+            RectF(block.left, block.top, minOf(limit, right + padding), block.bottom)
+        }
+    }
+
     private inner class TaskDragOverlay : Drawable() {
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
         private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
@@ -339,11 +354,10 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
             canvas.drawRoundRect(place, radius, radius, dashed)
 
             val offset = offsetOf(drag, layout)
-            if (drag.target != drag.task.index && offset == fingerOffsetOf(drag)) {
-                drawDropIndicator(canvas, drag, origin, layout)
-            }
-            val card = RectF(origin).apply {
-                inset(-4 * density, -4 * density)
+            // The card only covers the task's own text, so that the drop indicator stays visible
+            // beside it, and the grip keeps following the finger in the handle column.
+            val card = contentBounds(drag.task, layout, origin).apply {
+                inset(-6 * density, -4 * density)
                 offset(0F, offset)
             }
             val scale = 1F + 0.02F * lift
@@ -368,14 +382,13 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
             canvas.translate(view.totalPaddingLeft.toFloat(), view.totalPaddingTop + offset)
             layout.draw(canvas)
             canvas.restore()
+            canvas.restore()
+            canvas.save()
             canvas.translate(0F, offset)
             drawHandle(canvas, drag.task, layout, true)
             canvas.restore()
-            // At the note's edge the lifted task can cover the place it is dropped into, so the
-            // indicator is then drawn over it rather than beneath.
-            if (drag.target != drag.task.index && offset != fingerOffsetOf(drag)) {
-                drawDropIndicator(canvas, drag, origin, layout)
-            }
+            // Drawn last, so the lifted task can never hide where it is going to be placed.
+            if (drag.target != drag.task.index) drawDropIndicator(canvas, drag, origin, layout)
         }
 
         private fun drawDropIndicator(
@@ -386,17 +399,26 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
         ) {
             val target = blockBounds(tasks[drag.target], layout)
             val movesDown = drag.group.indexOf(drag.target) > drag.group.indexOf(drag.task.index)
-            val gap = 3 * density
+            val gap = 2 * density
             val y = if (movesDown) target.bottom + gap else target.top - gap
-            val dot = 4.5F * density
+            val dot = 5F * density
             val start = if (isRtl()) origin.right - dot - gap else origin.left + dot + gap
-            val end = if (isRtl()) stripWidth.toFloat() else view.width - stripWidth.toFloat()
-            stroke.color = colors.accent
-            stroke.strokeWidth = 3 * density
+            val end = if (isRtl()) stripWidth / 2F else view.width - stripWidth / 2F
+            val lineStart = if (isRtl()) start - dot else start + dot
             stroke.strokeCap = Paint.Cap.ROUND
-            canvas.drawLine(if (isRtl()) start - dot else start + dot, y, end, y, stroke)
-            stroke.strokeWidth = 2.5F * density
-            canvas.drawCircle(start, y, dot, stroke)
+            // A halo in the background color separates the indicator from the text it crosses.
+            stroke.color = withAlpha(colors.surface, 230)
+            stroke.strokeWidth = 8 * density
+            canvas.drawLine(lineStart, y, end, y, stroke)
+            fill.color = withAlpha(colors.surface, 230)
+            canvas.drawCircle(start, y, dot + 2 * density, fill)
+            stroke.color = colors.accent
+            stroke.strokeWidth = 4 * density
+            canvas.drawLine(lineStart, y, end, y, stroke)
+            fill.color = colors.surface
+            canvas.drawCircle(start, y, dot, fill)
+            stroke.strokeWidth = 3 * density
+            canvas.drawCircle(start, y, dot - 0.5F * density, stroke)
         }
 
         /**
