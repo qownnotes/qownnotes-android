@@ -54,6 +54,21 @@ fun moveTaskListItem(markdown: String, taskIndex: Int, targetTaskIndex: Int): St
     return markdown.substring(0, parsed.bodyStart) + output.joinToString("\n")
 }
 
+/**
+ * Deletes a task and its nested items and continuation lines, leaving surrounding text intact.
+ * Indices match [toggleTaskListItem]. Returns `null` for missing or unsupported (quoted) items.
+ * Callers acting on a preview must first match the rendered task to its source index.
+ */
+fun deleteTaskListItem(markdown: String, taskIndex: Int): String? {
+    val parsed = parseTaskList(markdown)
+    val task = parsed.blocks.firstOrNull { it.index == taskIndex } ?: return null
+    val remaining = parsed.lines.toMutableList().apply { subList(task.line, task.end).clear() }
+    return markdown.substring(0, parsed.bodyStart) + remaining.joinToString("\n")
+}
+
+internal fun deletableTaskIndices(markdown: String): Set<Int> =
+    parseTaskList(markdown).blocks.map { it.index }.toSet()
+
 private class SourceTask(val index: Int, val line: Int, val end: Int)
 
 private class ParsedTaskList(
@@ -61,7 +76,8 @@ private class ParsedTaskList(
     val lines: List<String>,
     val taskCount: Int,
     val groups: List<List<SourceTask>>,
-    val taskLines: List<Int>
+    val taskLines: List<Int>,
+    val blocks: List<SourceTask>
 )
 
 private class ListItemLine(val indent: Int, val contentIndent: Int, val kind: String)
@@ -125,7 +141,18 @@ private fun parseTaskList(markdown: String): ParsedTaskList {
         group.forEach { grouped += it.line }
         if (group.size > 1) groups += group
     }
-    return ParsedTaskList(bodyStart, lines, taskAtLine.size, groups, taskAtLine.keys.sorted())
+    val blocks = taskAtLine.mapNotNull { (line, index) ->
+        val item = lines[line].listItem() ?: return@mapNotNull null
+        SourceTask(index, line, lines.blockEnd(line, item.contentIndent, code))
+    }
+    return ParsedTaskList(
+        bodyStart,
+        lines,
+        taskAtLine.size,
+        groups,
+        taskAtLine.keys.sorted(),
+        blocks
+    )
 }
 
 /** The exclusive end line of the list item starting at [start], without trailing blank lines. */

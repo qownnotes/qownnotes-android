@@ -1,0 +1,5 @@
+<resources>
+    <string name="delete_task_title">Supprimer le bloc de la case à cocher ?</string>
+    <string name="delete_task_confirm">Supprimer le bloc</string>
+    <string name="delete_task_message">Cela supprime la case à cocher, tous les éléments imbriqués et le texte de continuation. Le reste de la note est conservé.</string>
+</resources>

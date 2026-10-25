@@ -39,6 +39,8 @@ local, Nextcloud, and remote-image data are handled.
   local draft persistence.
 - Insert web links from a clipboard-prefilled dialog with automatic page titles and editable labels.
 - Find text inside an open note, select and copy rendered text, and adjust the note text size.
+- Reorder checkbox blocks by dragging their handles, or long-press a block to delete it together
+  with nested items and continuation text after confirmation.
 - Detect read-only and QOwnNotes-encrypted notes and fail closed for unsafe HTML, links, images, and
   filesystem access.
 - Use light and dark themes on Android 9 and newer.

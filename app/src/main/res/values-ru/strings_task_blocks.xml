@@ -1,0 +1,5 @@
+<resources>
+    <string name="delete_task_title">Удалить блок с флажком?</string>
+    <string name="delete_task_confirm">Удалить блок</string>
+    <string name="delete_task_message">Будут удалены пункт с флажком, все вложенные пункты и текст продолжения. Остальная часть заметки сохранится.</string>
+</resources>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="delete_task_title">Eliminare il blocco della casella?</string>
+    <string name="delete_task_confirm">Elimina blocco</string>
+    <string name="delete_task_message">Verranno rimossi la voce con casella, tutti gli elementi annidati e il testo di continuazione. Il resto della nota verrà conservato.</string>
+</resources>

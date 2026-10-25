@@ -1,0 +1,5 @@
+<resources>
+    <string name="delete_task_title">删除复选框块？</string>
+    <string name="delete_task_confirm">删除块</string>
+    <string name="delete_task_message">这将移除该复选框项、所有嵌套项及后续文本。笔记的其余部分将保留。</string>
+</resources>

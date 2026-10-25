@@ -1,6 +1,7 @@
 package org.qownnotes.mobile.markdown
 
 import android.animation.ValueAnimator
+import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.DashPathEffect
@@ -9,13 +10,20 @@ import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.text.Layout
 import android.text.Spanned
+import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
+import android.widget.LinearLayout
+import android.widget.PopupWindow
+import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatTextView
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -27,7 +35,8 @@ data class TaskDragColors(
     /** The active handle, the drop indicator, and the outline of the lifted task. */
     val accent: Int,
     /** The opaque background of the lifted task. */
-    val surface: Int
+    val surface: Int,
+    val destructive: Int = accent
 )
 
 /**
@@ -63,6 +72,12 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
     private var tasks: Map<Int, RenderedTask> = emptyMap()
     private var groupOf: Map<Int, List<Int>> = emptyMap()
     private var onMove: ((Int, Int) -> Unit)? = null
+    private var onDelete: ((Int) -> Unit)? = null
+    private var deletable = emptySet<Int>()
+    private var downX = 0F
+    private var downY = 0F
+    private var selected: RenderedTask? = null
+    private var actions: PopupWindow? = null
     private var autoScroll: TaskDragAutoScroll? = null
     private var colors = TaskDragColors(0, 0, 0)
     private var drag: TaskDrag? = null
@@ -82,22 +97,33 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
         view.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
             overlay.setBounds(0, 0, right - left, bottom - top)
         }
+        view.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) = Unit
+            override fun onViewDetachedFromWindow(v: View) {
+                actions?.dismiss()
+                cancelDrag()
+            }
+        })
     }
 
     fun attach(
         markdown: String,
         sources: RenderedTaskSources?,
         onMove: ((Int, Int) -> Unit)?,
+        onDelete: ((Int) -> Unit)?,
         colors: TaskDragColors,
         autoScroll: TaskDragAutoScroll?
     ) {
         cancelDrag()
+        actions?.dismiss()
         this.onMove = onMove
+        this.onDelete = onDelete
+        deletable = if (onDelete == null) emptySet() else deletableTaskIndices(markdown)
         this.colors = colors
         this.autoScroll = autoScroll
         val text = view.text as? Spanned
         val spans = text?.renderedTaskSpans().orEmpty()
-        if (onMove == null || sources == null || text == null ||
+        if ((onMove == null && onDelete == null) || sources == null || text == null ||
             spans.size != sources.sourceIndices.size
         ) {
             tasks = emptyMap()
@@ -116,11 +142,28 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
             // A list is offered for reordering only when the lines that would be moved are
             // exactly the tasks the renderer shows as siblings of that list.
             groupOf = taskListStructure(markdown).groups
+                .filter { onMove != null }
                 .filter { it in sources.siblingGroups }
                 .flatMap { group -> group.map { it to group } }
                 .toMap()
         }
-        view.setOnTouchListener(if (groupOf.isEmpty()) null else this)
+        view.setOnTouchListener(if (tasks.isEmpty()) null else this)
+        view.setOnLongClickListener(
+            if (onDelete == null ||
+                tasks.isEmpty()
+            ) {
+                null
+            } else {
+                View.OnLongClickListener {
+                    val layout = view.layout ?: return@OnLongClickListener false
+                    val task = tasks.values.filter { it.index in deletable }
+                        .filter { blockBounds(it, layout).contains(downX, downY) }
+                        .maxByOrNull { it.start } ?: return@OnLongClickListener false
+                    showActions(task)
+                    true
+                }
+            }
+        )
         val endPadding = if (groupOf.isEmpty()) 0 else stripWidth
         if (view.paddingEnd != endPadding) {
             view.setPaddingRelative(
@@ -136,6 +179,8 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
     override fun onTouch(view: View, event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                downX = event.x
+                downY = event.y
                 val task = handleAt(event.x, event.y) ?: return false
                 val group = groupOf[task.index] ?: return false
                 drag = TaskDrag(
@@ -186,6 +231,95 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
         }
         return drag != null
     }
+
+    private fun showActions(task: RenderedTask) {
+        if (!view.isAttachedToWindow) return
+        actions?.dismiss()
+        selected = task
+        overlay.invalidateSelf()
+        val row = LinearLayout(view.context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(4), dp(4), dp(4), dp(4))
+            background = GradientDrawable().apply {
+                setColor(this@TaskDragController.colors.surface)
+                cornerRadius = 20 * density
+                setStroke(dp(1), withAlpha(this@TaskDragController.colors.accent, 55))
+            }
+        }
+        val popup = PopupWindow(
+            row,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            setBackgroundDrawable(row.background)
+            row.background = null
+            elevation = 8 * density
+            isOutsideTouchable = true
+            setOnDismissListener {
+                selected = null
+                actions = null
+                overlay.invalidateSelf()
+            }
+        }
+        fun button(label: Int, color: Int, action: () -> Unit) {
+            row.addView(
+                AppCompatButton(view.context).apply {
+                    text = view.context.getString(label)
+                    isAllCaps = false
+                    textSize = 14F
+                    setTextColor(color)
+                    if (label == R.string.task_delete_block) {
+                        setCompoundDrawablesRelativeWithIntrinsicBounds(
+                            R.drawable.ic_task_delete,
+                            0,
+                            0,
+                            0
+                        )
+                        compoundDrawableTintList = ColorStateList.valueOf(color)
+                        compoundDrawablePadding = dp(8)
+                    }
+                    minWidth = dp(48)
+                    minimumWidth = dp(48)
+                    minHeight = dp(48)
+                    minimumHeight = dp(48)
+                    setPadding(dp(16), 0, dp(16), 0)
+                    background =
+                        RippleDrawable(
+                            ColorStateList.valueOf(withAlpha(color, 35)),
+                            GradientDrawable().apply {
+                                setColor(withAlpha(color, 12))
+                                cornerRadius = 16 * density
+                            },
+                            null
+                        )
+                    setOnClickListener {
+                        popup.dismiss()
+                        action()
+                    }
+                },
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)).apply {
+                    marginStart = dp(2)
+                    marginEnd = dp(2)
+                }
+            )
+        }
+        button(R.string.task_delete_block, colors.destructive) { onDelete?.invoke(task.index) }
+        button(R.string.task_cancel, colors.accent) { }
+        row.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+        val visible = Rect().also(view::getWindowVisibleDisplayFrame)
+        val location = IntArray(2).also(view::getLocationOnScreen)
+        val bounds = blockBounds(task, view.layout)
+        val x = (location[0] + bounds.centerX() - row.measuredWidth / 2).roundToInt()
+            .coerceIn(visible.left, maxOf(visible.left, visible.right - row.measuredWidth))
+        val above = location[1] + downY.toInt() - row.measuredHeight - dp(12)
+        val y = (if (above >= visible.top) above else location[1] + downY.toInt() + dp(12))
+            .coerceIn(visible.top, maxOf(visible.top, visible.bottom - row.measuredHeight))
+        actions = popup
+        popup.showAtLocation(view, Gravity.TOP or Gravity.LEFT, x, y)
+    }
+
+    private fun dp(value: Int) = (value * density).roundToInt()
 
     private fun cancelDrag() {
         if (drag != null) finishDrag()
@@ -336,6 +470,14 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
 
         override fun draw(canvas: Canvas) {
             val layout = view.layout ?: return
+            selected?.let { task ->
+                val bounds = blockBounds(task, layout).apply { inset(2 * density, 0F) }
+                fill.color = withAlpha(colors.accent, 24)
+                canvas.drawRoundRect(bounds, 10 * density, 10 * density, fill)
+                stroke.color = withAlpha(colors.accent, 130)
+                stroke.strokeWidth = density
+                canvas.drawRoundRect(bounds, 10 * density, 10 * density, stroke)
+            }
             val current = drag
             groupOf.keys.forEach { index ->
                 if (index !=

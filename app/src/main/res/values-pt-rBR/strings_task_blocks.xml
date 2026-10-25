@@ -1,0 +1,5 @@
+<resources>
+    <string name="delete_task_title">Excluir o bloco da caixa de seleção?</string>
+    <string name="delete_task_confirm">Excluir bloco</string>
+    <string name="delete_task_message">Isso remove o item com caixa de seleção, todos os itens aninhados e o texto de continuação. O restante da nota será mantido.</string>
+</resources>

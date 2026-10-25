@@ -1309,6 +1309,9 @@ Sharing follows the QOwnNotes desktop `ShareDialog` and `CloudService::shareNote
   Rendered checkboxes are matched to their source lines by parsing a copy of the note, tagged per
   task-like line, with the renderer's own Markwon parser; a checkbox or list whose source cannot
   be identified this way is neither toggled nor offered for dragging.
+  Long-pressing an identifiable, writable task block shows a themed floating delete/cancel row
+  and highlights the block. Confirmed deletion removes the task, its nested items, and continuation
+  lines through the existing offline-first content replacement path; single-item lists are supported.
 - Image sharing and general attachments
 - Sharing
 - Widgets: account note-list, single-note, creation, and camera actions are implemented. The

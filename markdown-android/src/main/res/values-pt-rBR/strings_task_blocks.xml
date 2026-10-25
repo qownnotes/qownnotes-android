@@ -1,0 +1,4 @@
+<resources>
+    <string name="task_delete_block">Excluir bloco</string>
+    <string name="task_cancel">Cancelar</string>
+</resources>

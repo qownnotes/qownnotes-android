@@ -1,0 +1,5 @@
+<resources>
+    <string name="delete_task_title">Kontrollkästchen-Block löschen?</string>
+    <string name="delete_task_confirm">Block löschen</string>
+    <string name="delete_task_message">Der Eintrag mit Kontrollkästchen, alle untergeordneten Einträge und der zugehörige Fortsetzungstext werden entfernt. Der Rest der Notiz bleibt erhalten.</string>
+</resources>

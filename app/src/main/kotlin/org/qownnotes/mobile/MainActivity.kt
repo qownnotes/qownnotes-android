@@ -256,6 +256,7 @@ import org.qownnotes.mobile.markdown.MarkdownRenderer
 import org.qownnotes.mobile.markdown.NoteSearchColors
 import org.qownnotes.mobile.markdown.TaskDragAutoScroll
 import org.qownnotes.mobile.markdown.TaskDragColors
+import org.qownnotes.mobile.markdown.deleteTaskListItem
 import org.qownnotes.mobile.markdown.highlightNoteSearchMatches
 import org.qownnotes.mobile.markdown.moveTaskListItem
 import org.qownnotes.mobile.markdown.noteSearchMatchTop
@@ -3014,6 +3015,7 @@ private fun NoteDetailScreen(
     // that made the note appear in the list are highlighted and the first one is scrolled to.
     var finding by rememberSaveable(localId) { mutableStateOf(initialFindQuery != null) }
     var togglingTask by remember(localId) { mutableStateOf(false) }
+    var taskToDelete by remember(localId) { mutableStateOf<Pair<String, Int>?>(null) }
     var findQuery by rememberSaveable(localId) { mutableStateOf(initialFindQuery.orEmpty()) }
     // Find opened for the list search was not a request to type, so it must not raise the keyboard.
     var findFromListSearch by rememberSaveable(localId) {
@@ -3049,7 +3051,8 @@ private fun NoteDetailScreen(
     val taskDragColors = TaskDragColors(
         handle = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
         accent = MaterialTheme.colorScheme.primary.toArgb(),
-        surface = MaterialTheme.colorScheme.surfaceContainerHigh.toArgb()
+        surface = MaterialTheme.colorScheme.surfaceContainerHigh.toArgb(),
+        destructive = MaterialTheme.colorScheme.error.toArgb()
     )
     // Read only while a task is dragged, so it is kept outside of Compose state.
     val previewViewport = remember { android.graphics.Rect() }
@@ -4199,6 +4202,16 @@ private fun NoteDetailScreen(
                                         null
                                     },
                                     taskDragColors = taskDragColors,
+                                    onTaskDelete = if (source != null && tasksEditable) {
+                                        { taskIndex ->
+                                            if (!togglingTask) {
+                                                taskToDelete =
+                                                    source.content to taskIndex
+                                            }
+                                        }
+                                    } else {
+                                        null
+                                    },
                                     taskDragAutoScroll = TaskDragAutoScroll(
                                         viewportInWindow = {
                                             previewViewport.takeUnless { it.isEmpty }
@@ -4254,6 +4267,49 @@ private fun NoteDetailScreen(
                 }
             }
         }
+    }
+    taskToDelete?.let { (content, taskIndex) ->
+        val canDelete = note?.content == content && note?.readOnly == false &&
+            note?.syncState !in setOf(
+                SyncState.CONFLICT,
+                SyncState.REMOTE_MISSING,
+                SyncState.READ_ONLY_CONFLICT
+            ) && !togglingTask && !editing
+        AlertDialog(
+            onDismissRequest = { taskToDelete = null },
+            icon = { Icon(Icons.Filled.DeleteOutline, contentDescription = null) },
+            title = { Text(stringResource(R.string.delete_task_title)) },
+            text = { Text(stringResource(R.string.delete_task_message)) },
+            confirmButton = {
+                TextButton(
+                    enabled = canDelete,
+                    onClick = {
+                        taskToDelete = null
+                        if (canDelete) {
+                            deleteTaskListItem(content, taskIndex)?.let { updated ->
+                                togglingTask = true
+                                scope.launch {
+                                    try {
+                                        component.replaceNoteContent(localId, updated)
+                                    } finally {
+                                        togglingTask = false
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.testTag("confirm-delete-task")
+                ) { Text(stringResource(R.string.delete_task_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { taskToDelete = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
     }
     if (showDiscardConfirmation) {
         AlertDialog(

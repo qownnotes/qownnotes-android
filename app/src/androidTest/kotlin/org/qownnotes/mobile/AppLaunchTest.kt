@@ -3588,6 +3588,57 @@ class AppLaunchTest {
     }
 
     @Test
+    fun longPressingATaskDeletesItsBlockOnlyAfterConfirmation() {
+        val content = "- [ ] Parent\n  - [x] Child\n    - [ ] Grandchild\n- [ ] Keep\n\nAfter\n"
+        importAccount("alice", "Checklist", "etag-1", 10, content)
+        composeRule.onNodeWithText("Checklist").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        onView(withText("Cancel")).perform(click())
+        assertEquals(listOf(content), noteContents("alice"))
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        onView(withText("Delete block")).perform(click())
+        composeRule.onNodeWithText("Delete checkbox block?").assertIsDisplayed()
+        assertEquals(listOf(content), noteContents("alice"))
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.waitForIdle()
+        assertEquals(listOf(content), noteContents("alice"))
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        onView(withText("Delete block")).perform(click())
+        composeRule.onNodeWithTag("confirm-delete-task").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            noteContents("alice").single() == "- [ ] Keep\n\nAfter\n"
+        }
+    }
+
+    @Test
+    fun deletingASingleNestedTaskKeepsItsParentAndSurroundingText() {
+        importAccount(
+            "alice",
+            "Checklist",
+            "etag-1",
+            10,
+            "- [ ] Parent\n  - [ ] Child\n    - [x] Grandchild\n\nAfter\n"
+        )
+        composeRule.onNodeWithText("Checklist").performClick()
+        composeRule.waitForTag("markdown-view")
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Child"))
+        onView(withText("Delete block")).perform(click())
+        composeRule.onNodeWithTag("confirm-delete-task").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            noteContents("alice").single() == "- [ ] Parent\n\nAfter\n"
+        }
+        // A lone remaining task has no drag handle, but still offers block deletion.
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        onView(withText("Delete block")).perform(click())
+        composeRule.onNodeWithTag("confirm-delete-task").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            noteContents("alice").single() == "\nAfter\n"
+        }
+    }
+
+    @Test
     fun longRenderedNoteHasAFastScroller() {
         importAccount(
             "alice",
@@ -4164,6 +4215,25 @@ class AppLaunchTest {
             ?.toString()
             .orEmpty()
     }
+
+    private fun longPressRenderedTask(label: String): ViewAction = GeneralClickAction(
+        Tap.LONG,
+        { view ->
+            val text = view as TextView
+            val offset = text.text.indexOf(label) + 2
+            val layout = text.layout
+            val line = layout.getLineForOffset(offset)
+            val location = IntArray(2).also(view::getLocationOnScreen)
+            floatArrayOf(
+                location[0] + text.totalPaddingLeft + layout.getPrimaryHorizontal(offset),
+                location[1] + text.totalPaddingTop +
+                    (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f
+            )
+        },
+        Press.FINGER,
+        InputDevice.SOURCE_UNKNOWN,
+        MotionEvent.BUTTON_PRIMARY
+    )
 
     /**
      * Presses in the middle of a rendered line instead of in the middle of the view, because the

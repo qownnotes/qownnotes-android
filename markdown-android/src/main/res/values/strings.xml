@@ -1,4 +1,6 @@
 <resources>
+    <string name="task_delete_block">Delete block</string>
+    <string name="task_cancel">Cancel</string>
     <string name="encrypted_content_locked">Encrypted content is locked on this device.</string>
     <string name="paste_as_markdown_link">Paste as Markdown link</string>
     <string name="paste_markdown_link_failed">Could not fetch the page title</string>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="task_delete_block">删除块</string>
+    <string name="task_cancel">取消</string>
+</resources>

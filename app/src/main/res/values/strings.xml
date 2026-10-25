@@ -1,4 +1,7 @@
 <resources>
+    <string name="delete_task_title">Delete checkbox block?</string>
+    <string name="delete_task_confirm">Delete block</string>
+    <string name="delete_task_message">This removes the checkbox item, all nested items, and any continuation text. The rest of the note is kept.</string>
     <string name="audio_note">Record audio note</string>
     <string name="audio_recording">Audio recording</string>
     <string name="audio_recording_active">Recording…</string>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="delete_task_title">Usunąć blok z polem wyboru?</string>
+    <string name="delete_task_confirm">Usuń blok</string>
+    <string name="delete_task_message">Usunięte zostaną element z polem wyboru, wszystkie elementy zagnieżdżone i tekst kontynuacji. Reszta notatki zostanie zachowana.</string>
+</resources>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="task_delete_block">Удалить блок</string>
+    <string name="task_cancel">Отмена</string>
+</resources>

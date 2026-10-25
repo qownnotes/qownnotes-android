@@ -95,6 +95,7 @@ class MarkdownRenderer private constructor(
         onExternalLink: (String) -> Boolean = { false },
         onTaskToggle: ((Int) -> Unit)? = null,
         onTaskMove: ((taskIndex: Int, targetTaskIndex: Int) -> Unit)? = null,
+        onTaskDelete: ((Int) -> Unit)? = null,
         taskDragColors: TaskDragColors? = null,
         taskDragAutoScroll: TaskDragAutoScroll? = null,
         heading: String? = null,
@@ -147,18 +148,19 @@ class MarkdownRenderer private constructor(
         }
         styleBrokenInternalLinks(view, resolveInternalLink)
         val taskSources = if (encryption.blockCount == 0 &&
-            (onTaskToggle != null || onTaskMove != null)
+            (onTaskToggle != null || onTaskMove != null || onTaskDelete != null)
         ) {
             markwon.renderedTaskSources(encryption.markdown)
         } else {
             null
         }
         attachTaskToggleSpans(view, onTaskToggle, taskSources)
-        if (onTaskMove != null || taskDragControllers.containsKey(view)) {
+        if (onTaskMove != null || onTaskDelete != null || taskDragControllers.containsKey(view)) {
             taskDragControllers.getOrPut(view) { TaskDragController(view) }.attach(
                 markdown = encryption.markdown,
                 sources = taskSources,
                 onMove = onTaskMove,
+                onDelete = onTaskDelete,
                 colors = taskDragColors ?: view.defaultTaskDragColors(),
                 autoScroll = taskDragAutoScroll
             )

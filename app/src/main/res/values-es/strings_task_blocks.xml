@@ -1,0 +1,5 @@
+<resources>
+    <string name="delete_task_title">¿Eliminar el bloque de la casilla?</string>
+    <string name="delete_task_confirm">Eliminar bloque</string>
+    <string name="delete_task_message">Se eliminarán el elemento con casilla, todos los elementos anidados y el texto de continuación. El resto de la nota se conservará.</string>
+</resources>

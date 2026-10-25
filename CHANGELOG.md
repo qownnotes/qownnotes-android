@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Long-press a checkbox block in the note preview to show a compact action row. Delete the item
+  together with all nested items and continuation text after confirmation; the selected block is
+  highlighted, and read-only or conflicted notes stay protected.
+
 ## [1.6.1] - 2026-10-23
 
 ### Fixed
