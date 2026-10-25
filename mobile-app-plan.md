@@ -1191,6 +1191,9 @@ The mobile browser sorts by name, searches names, URLs, and descriptions with ca
 tokens, and combines selected tags with AND semantics. Parsing remains Desktop-compatible, while
 opening follows the mobile Markdown safety policy and permits only HTTP and HTTPS URLs with a host.
 The source lookup and displayed content come from Room rather than a direct network request.
+Each bookmark card offers deletion after confirmation for writable, non-conflicted source notes.
+Deletion removes all entries for the exact merged URL while preserving unrelated Markdown and
+line endings, saves locally before scheduling sync, and rejects a changed source snapshot.
 
 ### Implemented Note Tags
 

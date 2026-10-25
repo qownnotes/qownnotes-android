@@ -6,6 +6,29 @@ import org.junit.Test
 
 class BookmarksTest {
     @Test
+    fun removesAllExactDuplicatesAndPreservesOtherMarkdown() {
+        val source = "# Links\r\n\r\n  - [One](https://example.com) #work\r\n" +
+            "Text with [inline](https://example.com)  \r\n" +
+            "* [Duplicate](https://example.com) Description\r\n" +
+            "- [Different case](HTTPS://example.com)\r\n" +
+            "- [Keep](https://other.example)"
+        assertEquals(
+            "# Links\r\n\r\nText with [inline](https://example.com)  \r\n" +
+                "- [Different case](HTTPS://example.com)\r\n" +
+                "- [Keep](https://other.example)",
+            removeBookmark(source, "https://example.com")
+        )
+    }
+
+    @Test
+    fun removesFinalEntryWithoutTrailingNewlineAndLeavesMissingUrlsAlone() {
+        val source = "# Links\n- [One](https://example.com)"
+        assertEquals("# Links\n", removeBookmark(source, "https://example.com"))
+        assertEquals(source, removeBookmark(source, "https://missing.example"))
+        assertEquals("", removeBookmark("- [One](https://example.com)\n", "https://example.com"))
+    }
+
+    @Test
     fun parsesDesktopListBookmarksWithTagsAndDescriptions() {
         assertEquals(
             listOf(

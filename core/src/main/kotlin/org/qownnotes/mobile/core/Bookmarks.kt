@@ -44,6 +44,22 @@ fun parseBookmarks(markdown: String): List<Bookmark> {
     return bookmarks
 }
 
+/** Removes every entry for a merged, exact URL without rewriting unrelated Markdown. */
+fun removeBookmark(markdown: String, url: String): String {
+    var result = markdown
+    bookmarkPattern.findAll(markdown).filter { it.groupValues[2] == url }
+        .toList().asReversed().forEach { match ->
+            val lineStart = markdown.lastIndexOf('\n', match.range.first - 1) + 1
+            val standalone = markdown.substring(lineStart, match.range.first).isBlank()
+            val start = if (standalone) lineStart else match.range.first
+            var end = match.range.last + 1
+            if (standalone && end < markdown.length && markdown[end] == '\r') end++
+            if (standalone && end < markdown.length && markdown[end] == '\n') end++
+            result = result.removeRange(start, end)
+        }
+    return result
+}
+
 fun parseBookmarksSource(path: String): BookmarksSource? {
     val normalized = path.trim()
     if (normalized.isEmpty() || normalized.startsWith('/') || normalized.contains('\\')) {

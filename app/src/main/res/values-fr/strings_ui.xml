@@ -96,6 +96,12 @@
     <string name="tags_add_tag">Ajouter une étiquette</string>
 
     <!-- Bookmarks -->
+    <string name="bookmarks_delete_named">Supprimer le favori : %1$s</string>
+    <string name="bookmarks_delete_title">Supprimer le favori ?</string>
+    <string name="bookmarks_delete_confirm">Supprimer le favori</string>
+    <string name="bookmarks_delete_message">Le favori sera supprimé de votre note Markdown, y compris les doublons de cette URL. Les autres favoris et le texte seront conservés.</string>
+    <string name="bookmarks_deleted">Favori supprimé</string>
+    <string name="bookmarks_delete_failed">Impossible de supprimer le favori. La note a peut-être changé ou ne peut plus être modifiée. Veuillez réessayer.</string>
     <string name="bookmarks_title">Signets</string>
     <string name="bookmarks_open_source">Ouvrir la note des signets</string>
     <string name="bookmarks_search">Rechercher des signets</string>

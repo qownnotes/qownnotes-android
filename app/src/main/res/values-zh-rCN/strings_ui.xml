@@ -96,6 +96,12 @@
     <string name="tags_add_tag">添加标签</string>
 
     <!-- Bookmarks -->
+    <string name="bookmarks_delete_named">删除书签：%1$s</string>
+    <string name="bookmarks_delete_title">删除书签？</string>
+    <string name="bookmarks_delete_confirm">删除书签</string>
+    <string name="bookmarks_delete_message">这将从 Markdown 笔记中移除此书签，包括此网址的所有重复条目。其他书签和文本将保留。</string>
+    <string name="bookmarks_deleted">书签已删除</string>
+    <string name="bookmarks_delete_failed">无法删除书签。笔记可能已更改或无法再编辑。请重试。</string>
     <string name="bookmarks_title">书签</string>
     <string name="bookmarks_open_source">打开书签笔记</string>
     <string name="bookmarks_search">搜索书签</string>

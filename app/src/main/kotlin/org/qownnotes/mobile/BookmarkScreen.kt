@@ -25,12 +25,14 @@ import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,13 +44,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -65,9 +71,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.qownnotes.mobile.core.Bookmark
 import org.qownnotes.mobile.core.BookmarksSource
 import org.qownnotes.mobile.core.Note
+import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.filterBookmarks
 import org.qownnotes.mobile.core.isSafeExternalUrl
 import org.qownnotes.mobile.core.parseBookmarks
@@ -122,8 +130,91 @@ fun BookmarkScreen(
     val visibleBookmarks = remember(bookmarks, query, selectedTags) {
         filterBookmarks(bookmarks, query, selectedTags.toSet())
     }
+    var pendingDeletion by remember(accountId) { mutableStateOf<Pair<Note, Bookmark>?>(null) }
+    var deleting by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+    val deleteError = stringResource(R.string.bookmarks_delete_failed)
+    val deleteSuccess = stringResource(R.string.bookmarks_deleted)
+    val canDelete = sourceNote != null && !sourceNote.readOnly && !encrypted &&
+        sourceNote.syncState in setOf(
+            SyncState.SYNCHRONIZED,
+            SyncState.LOCALLY_CREATED,
+            SyncState.LOCALLY_MODIFIED
+        )
+    pendingDeletion?.let { (note, bookmark) ->
+        AlertDialog(
+            onDismissRequest = { if (!deleting) pendingDeletion = null },
+            icon = {
+                Icon(
+                    Icons.Filled.DeleteOutline,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text(stringResource(R.string.bookmarks_delete_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.bookmarks_delete_message))
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                bookmark.name.ifBlank { bookmark.url },
+                                style = MaterialTheme.typography.titleSmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                bookmark.url,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !deleting,
+                    modifier = Modifier.testTag("bookmark-delete-confirm"),
+                    onClick = {
+                        deleting = true
+                        scope.launch {
+                            val saved = try {
+                                component.deleteBookmark(note.localId, note.content, bookmark.url)
+                            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                throw cancelled
+                            } catch (_: Exception) {
+                                false
+                            } finally {
+                                deleting = false
+                                pendingDeletion = null
+                            }
+                            snackbar.showSnackbar(if (saved) deleteSuccess else deleteError)
+                        }
+                    }
+                ) {
+                    Text(
+                        stringResource(R.string.bookmarks_delete_confirm),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !deleting, onClick = { pendingDeletion = null }) {
+                    Text(stringResource(R.string.ui_cancel))
+                }
+            }
+        )
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize().testTag("bookmarks-page"),
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.bookmarks_title)) },
@@ -213,7 +304,12 @@ fun BookmarkScreen(
                 encrypted = encrypted,
                 bookmarks = bookmarks,
                 visibleBookmarks = visibleBookmarks,
-                hasFilters = query.isNotBlank() || selectedTags.isNotEmpty()
+                hasFilters = query.isNotBlank() || selectedTags.isNotEmpty(),
+                onDelete = if (canDelete) {
+                    { bookmark -> pendingDeletion = sourceNote to bookmark }
+                } else {
+                    null
+                }
             )
         }
     }
@@ -225,7 +321,8 @@ private fun BookmarkContent(
     encrypted: Boolean,
     bookmarks: List<Bookmark>,
     visibleBookmarks: List<Bookmark>,
-    hasFilters: Boolean
+    hasFilters: Boolean,
+    onDelete: ((Bookmark) -> Unit)?
 ) {
     when {
         sourceState is BookmarkSourceState.Loading -> BookmarkMessage(
@@ -265,7 +362,11 @@ private fun BookmarkContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(visibleBookmarks, key = Bookmark::url) { bookmark ->
-                    BookmarkRow(bookmark, onOpen = { openSafeExternalUrl(context, bookmark.url) })
+                    BookmarkRow(
+                        bookmark,
+                        onOpen = { openSafeExternalUrl(context, bookmark.url) },
+                        onDelete = onDelete?.let { { it(bookmark) } }
+                    )
                 }
             }
         }
@@ -301,11 +402,10 @@ private fun BookmarkMessage(message: String, icon: ImageVector?) {
 }
 
 @Composable
-private fun BookmarkRow(bookmark: Bookmark, onOpen: () -> Unit) {
+private fun BookmarkRow(bookmark: Bookmark, onOpen: () -> Unit, onDelete: (() -> Unit)?) {
     val safe = isSafeExternalUrl(bookmark.url)
     Card(
         onClick = onOpen,
-        enabled = safe,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -391,6 +491,21 @@ private fun BookmarkRow(bookmark: Bookmark, onOpen: () -> Unit) {
                             }
                         }
                     }
+                }
+            }
+            if (onDelete != null) {
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.testTag("bookmark-delete-${bookmark.url}")
+                ) {
+                    Icon(
+                        Icons.Filled.DeleteOutline,
+                        contentDescription = stringResource(
+                            R.string.bookmarks_delete_named,
+                            bookmark.name.ifBlank { bookmark.url }
+                        ),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

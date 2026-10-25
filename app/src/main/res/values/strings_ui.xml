@@ -129,6 +129,12 @@
     <string name="bookmarks_encrypted">Encrypted bookmark notes cannot be displayed.</string>
     <string name="bookmarks_none">No bookmarks were found in this note.</string>
     <string name="bookmarks_no_matches">No matching bookmarks.</string>
+    <string name="bookmarks_delete_named">Delete bookmark: %1$s</string>
+    <string name="bookmarks_delete_title">Delete bookmark?</string>
+    <string name="bookmarks_delete_confirm">Delete bookmark</string>
+    <string name="bookmarks_delete_message">This removes the bookmark from your Markdown note, including any duplicate entries for this URL. Other bookmarks and text are kept.</string>
+    <string name="bookmarks_deleted">Bookmark deleted</string>
+    <string name="bookmarks_delete_failed">Could not delete the bookmark. The note may have changed or may no longer be editable. Please try again.</string>
 
     <!-- Images -->
     <string name="image_unsupported_type">Choose a JPEG, PNG, or WebP image</string>

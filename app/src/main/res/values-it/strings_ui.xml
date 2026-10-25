@@ -96,6 +96,12 @@
     <string name="tags_add_tag">Aggiungi etichetta</string>
 
     <!-- Bookmarks -->
+    <string name="bookmarks_delete_named">Elimina segnalibro: %1$s</string>
+    <string name="bookmarks_delete_title">Eliminare il segnalibro?</string>
+    <string name="bookmarks_delete_confirm">Elimina segnalibro</string>
+    <string name="bookmarks_delete_message">Il segnalibro verrà rimosso dalla nota Markdown, inclusi i duplicati di questo URL. Gli altri segnalibri e il testo verranno conservati.</string>
+    <string name="bookmarks_deleted">Segnalibro eliminato</string>
+    <string name="bookmarks_delete_failed">Impossibile eliminare il segnalibro. La nota potrebbe essere cambiata o non essere più modificabile. Riprova.</string>
     <string name="bookmarks_title">Segnalibri</string>
     <string name="bookmarks_open_source">Apri la nota dei segnalibri</string>
     <string name="bookmarks_search">Cerca segnalibri</string>

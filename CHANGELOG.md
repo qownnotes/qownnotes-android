@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Delete bookmarks directly from the bookmark browser with a confirmation dialog and clear
+  feedback. Changes are saved offline to the source Markdown note; unrelated text is preserved,
+  and read-only or conflicted notes are protected.
 - Long-press a checkbox block in the note preview to show a compact action row. Delete the item
   together with all nested items and continuation text after confirmation; the selected block is
   highlighted, and read-only or conflicted notes stay protected.

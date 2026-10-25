@@ -189,6 +189,46 @@ class AppLaunchTest {
     }
 
     @Test
+    fun deletesBookmarksOnlyAfterConfirmationAndPreservesTheSourceNote() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        val content = "# Bookmarks\n- [Alpha](https://a.example) #docs\n" +
+            "- [Duplicate](https://a.example)\n- [Zulu](https://z.example)\nKeep this text.\n"
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(RemoteNote(42, "etag", "Bookmarks", content, "", 10)),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 10
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Bookmarks")
+        listAction("bookmarks-menu")
+        composeRule.waitForTag("bookmarks-page")
+        composeRule.onNodeWithTag("bookmark-delete-https://a.example").performClick()
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithText("Duplicate").assertIsDisplayed()
+        composeRule.onNodeWithTag("bookmark-delete-https://a.example").performClick()
+        composeRule.onNodeWithTag("bookmark-delete-confirm").performClick()
+        composeRule.waitForTextToGo("Duplicate")
+        composeRule.onNodeWithText("Zulu").assertIsDisplayed()
+        val note = runBlocking {
+            application.component.noteRepository.observeNoteAt(
+                account.localAccountId(),
+                "",
+                "Bookmarks"
+            ).first()
+        }!!
+        assertEquals("# Bookmarks\n- [Zulu](https://z.example)\nKeep this text.\n", note.content)
+        assertFalse(
+            runBlocking {
+                application.component.deleteBookmark(note.localId, content, "https://z.example")
+            }
+        )
+    }
+
+    @Test
     fun configuresABookmarksFileInANestedCategory() {
         val account = testAccount("alice")
         application.fakeAccountImporter.enqueue(account)

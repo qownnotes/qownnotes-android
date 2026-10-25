@@ -96,6 +96,12 @@
     <string name="tags_add_tag">Добавить тег</string>
 
     <!-- Bookmarks -->
+    <string name="bookmarks_delete_named">Удалить закладку: %1$s</string>
+    <string name="bookmarks_delete_title">Удалить закладку?</string>
+    <string name="bookmarks_delete_confirm">Удалить закладку</string>
+    <string name="bookmarks_delete_message">Закладка будет удалена из заметки Markdown вместе с дубликатами этого URL. Остальные закладки и текст будут сохранены.</string>
+    <string name="bookmarks_deleted">Закладка удалена</string>
+    <string name="bookmarks_delete_failed">Не удалось удалить закладку. Возможно, заметка изменилась или больше недоступна для редактирования. Повторите попытку.</string>
     <string name="bookmarks_title">Закладки</string>
     <string name="bookmarks_open_source">Открыть заметку с закладками</string>
     <string name="bookmarks_search">Поиск закладок</string>

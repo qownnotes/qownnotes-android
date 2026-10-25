@@ -96,6 +96,12 @@
     <string name="tags_add_tag">Dodaj tag</string>
 
     <!-- Bookmarks -->
+    <string name="bookmarks_delete_named">Usuń zakładkę: %1$s</string>
+    <string name="bookmarks_delete_title">Usunąć zakładkę?</string>
+    <string name="bookmarks_delete_confirm">Usuń zakładkę</string>
+    <string name="bookmarks_delete_message">Zakładka zostanie usunięta z notatki Markdown wraz z duplikatami tego adresu URL. Pozostałe zakładki i tekst zostaną zachowane.</string>
+    <string name="bookmarks_deleted">Zakładka usunięta</string>
+    <string name="bookmarks_delete_failed">Nie udało się usunąć zakładki. Notatka mogła się zmienić lub nie można jej już edytować. Spróbuj ponownie.</string>
     <string name="bookmarks_title">Zakładki</string>
     <string name="bookmarks_open_source">Otwórz notatkę z zakładkami</string>
     <string name="bookmarks_search">Szukaj zakładek</string>

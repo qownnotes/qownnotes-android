@@ -96,6 +96,12 @@
     <string name="tags_add_tag">Añadir etiqueta</string>
 
     <!-- Bookmarks -->
+    <string name="bookmarks_delete_named">Eliminar marcador: %1$s</string>
+    <string name="bookmarks_delete_title">¿Eliminar marcador?</string>
+    <string name="bookmarks_delete_confirm">Eliminar marcador</string>
+    <string name="bookmarks_delete_message">Se eliminará el marcador de tu nota Markdown, incluidos los duplicados de esta URL. Los demás marcadores y el texto se conservarán.</string>
+    <string name="bookmarks_deleted">Marcador eliminado</string>
+    <string name="bookmarks_delete_failed">No se pudo eliminar el marcador. Es posible que la nota haya cambiado o ya no sea editable. Inténtalo de nuevo.</string>
     <string name="bookmarks_title">Marcadores</string>
     <string name="bookmarks_open_source">Abrir nota de marcadores</string>
     <string name="bookmarks_search">Buscar marcadores</string>

@@ -96,6 +96,12 @@
     <string name="tags_add_tag">Adicionar etiqueta</string>
 
     <!-- Bookmarks -->
+    <string name="bookmarks_delete_named">Excluir favorito: %1$s</string>
+    <string name="bookmarks_delete_title">Excluir favorito?</string>
+    <string name="bookmarks_delete_confirm">Excluir favorito</string>
+    <string name="bookmarks_delete_message">O favorito será removido da nota Markdown, incluindo as entradas duplicadas desta URL. Os outros favoritos e o texto serão mantidos.</string>
+    <string name="bookmarks_deleted">Favorito excluído</string>
+    <string name="bookmarks_delete_failed">Não foi possível excluir o favorito. A nota pode ter sido alterada ou não ser mais editável. Tente novamente.</string>
     <string name="bookmarks_title">Marcadores</string>
     <string name="bookmarks_open_source">Abrir nota de marcadores</string>
     <string name="bookmarks_search">Pesquisar marcadores</string>
