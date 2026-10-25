@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-25
+
 ### Added
 
 - Edit bookmark names, URLs, tags, and descriptions directly from the bookmark browser, with
@@ -639,7 +641,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/qownnotes/qownnotes-android/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.4.0...v1.5.0

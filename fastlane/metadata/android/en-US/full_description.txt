@@ -14,12 +14,12 @@ Features include:
 * QOwnNotes wiki links, task states, note naming, subfolders, and favorites
 * Move or copy notes between subfolders and duplicate notes
 * Share notes through public Nextcloud links with password protection and optional editing
-* Reorder checklist items and their nested items by dragging in the note preview
+* Reorder checklist blocks by dragging, or delete them with confirmation in the note preview
 * Note tags shared with QOwnNotes desktop, with tag filtering in the note list
 * Create, browse, search, edit, and archive Nextcloud Deck cards and insert card links
 * Safe remote images and authenticated Nextcloud note attachments
 * Home-screen widgets for note lists and selected notes
-* Offline bookmark browsing and image insertion while editing
+* Browse, edit, and delete bookmarks offline, and insert images while editing notes
 * Record audio notes from the app or widget and play audio attachments in the app
 * Light and dark themes on Android 9 and newer
 * Optional note version and remote trash access through QOwnNotes for Nextcloud or QOwnNotesAPI

@@ -1,0 +1,4 @@
+• Edit bookmark names, URLs, tags, and descriptions directly in the bookmark browser
+• Delete bookmarks with confirmation while preserving unrelated note text
+• Long-press a checklist block in the note preview to delete it together with nested items and continuation text
+• Changes save offline and protect read-only, conflicted, or changed notes
