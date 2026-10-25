@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Edit bookmark names, URLs, tags, and descriptions directly from the bookmark browser, with
+  a polished dialog, offline saving, and protection against overwriting changed, read-only, or
+  conflicted notes.
 - Delete bookmarks directly from the bookmark browser with a confirmation dialog and clear
   feedback. Changes are saved offline to the source Markdown note; unrelated text is preserved,
   and read-only or conflicted notes are protected.

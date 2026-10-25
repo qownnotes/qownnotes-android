@@ -27,7 +27,8 @@ local, Nextcloud, and remote-image data are handled.
 - Browse nested Nextcloud categories as a folder tree with note counts and an optional
   subfolder view, with per-account selections and folder-scoped search that work offline.
 - Browse and search QOwnNotes-style bookmarks from an account-specific Markdown note, with
-  `Bookmarks.md` used by default and optional tag filtering.
+  `Bookmarks.md` used by default and optional tag filtering. Edit or delete bookmarks directly,
+  including while offline.
 - Create a note from text shared by another Android application.
 - Record audio notes from the note-list menu or home-screen note-list widget, with offline saving
   and background upload of M4A attachments. Recording requires microphone permission and stops

@@ -120,6 +120,17 @@
     <string name="tags_add_tag">Add tag</string>
 
     <!-- Bookmarks -->
+    <string name="bookmarks_edit_named">Edit bookmark: %1$s</string>
+    <string name="bookmarks_edit_title">Edit bookmark</string>
+    <string name="bookmarks_edit_message">Changes update the Markdown note, including duplicate entries for this URL.</string>
+    <string name="bookmarks_edit_name">Name</string>
+    <string name="bookmarks_edit_url">URL</string>
+    <string name="bookmarks_edit_tags">Tags (space-separated)</string>
+    <string name="bookmarks_edit_description">Description</string>
+    <string name="bookmarks_edit_save">Save bookmark</string>
+    <string name="bookmarks_edit_invalid">Enter a name and a scheme:// URL not used by another bookmark. Fields must fit on one Markdown line; names cannot contain brackets and descriptions cannot contain #tags.</string>
+    <string name="bookmarks_edited">Bookmark updated</string>
+    <string name="bookmarks_edit_failed">Could not update the bookmark. The note may have changed or may no longer be editable. Your changes are kept in this dialog; reopen it to load the latest note.</string>
     <string name="bookmarks_title">Bookmarks</string>
     <string name="bookmarks_open_source">Open bookmarks note</string>
     <string name="bookmarks_search">Search bookmarks</string>

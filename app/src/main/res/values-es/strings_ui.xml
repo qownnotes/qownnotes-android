@@ -134,4 +134,15 @@
     <string name="backend_no_note_settings">El backend de esta cuenta no ofrece ajustes de carpeta de notas</string>
     <string name="backend_no_image_uploads">El backend de esta cuenta no admite la subida de imágenes</string>
     <string name="backend_no_deck">El backend de esta cuenta no admite Nextcloud Deck</string>
+    <string name="bookmarks_edit_named">Editar marcador: %1$s</string>
+    <string name="bookmarks_edit_title">Editar marcador</string>
+    <string name="bookmarks_edit_message">Los cambios actualizan la nota Markdown, incluidas las entradas duplicadas de esta URL.</string>
+    <string name="bookmarks_edit_name">Nombre</string>
+    <string name="bookmarks_edit_url">URL</string>
+    <string name="bookmarks_edit_tags">Etiquetas (separadas por espacios)</string>
+    <string name="bookmarks_edit_description">Descripción</string>
+    <string name="bookmarks_edit_save">Guardar marcador</string>
+    <string name="bookmarks_edit_invalid">Introduce un nombre y una URL esquema:// que no use otro marcador. Los campos deben caber en una línea Markdown; los nombres no pueden contener corchetes ni las descripciones #etiquetas.</string>
+    <string name="bookmarks_edited">Marcador actualizado</string>
+    <string name="bookmarks_edit_failed">No se pudo actualizar el marcador. Es posible que la nota haya cambiado o ya no sea editable. Tus cambios se conservan en este diálogo; vuelve a abrirlo para cargar la nota más reciente.</string>
 </resources>

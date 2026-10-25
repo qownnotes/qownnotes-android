@@ -684,7 +684,25 @@ class ApplicationComponent(
             }
         }
 
-    suspend fun deleteBookmark(localId: String, expectedContent: String, url: String): Boolean {
+    suspend fun deleteBookmark(localId: String, expectedContent: String, url: String): Boolean =
+        changeBookmark(localId, expectedContent) {
+            org.qownnotes.mobile.core.removeBookmark(it, url)
+        }
+
+    suspend fun editBookmark(
+        localId: String,
+        expectedContent: String,
+        url: String,
+        replacement: org.qownnotes.mobile.core.Bookmark
+    ): Boolean = changeBookmark(localId, expectedContent) {
+        org.qownnotes.mobile.core.editBookmark(it, url, replacement)
+    }
+
+    private suspend fun changeBookmark(
+        localId: String,
+        expectedContent: String,
+        transform: (String) -> String?
+    ): Boolean {
         val accountId = noteRepository.get(localId)?.accountId ?: return false
         return accountMutex(accountId).withLock {
             editMutexes.getOrPut(localId, ::Mutex).withLock edit@{
@@ -699,7 +717,7 @@ class ApplicationComponent(
                 ) {
                     return@edit false
                 }
-                val content = org.qownnotes.mobile.core.removeBookmark(note.content, url)
+                val content = transform(note.content) ?: return@edit false
                 if (content == note.content) return@edit false
                 saveDraftLocked(localId, content).also { saved ->
                     if (saved) {

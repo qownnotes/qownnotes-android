@@ -134,4 +134,15 @@
     <string name="backend_no_note_settings">此账号后端不提供笔记文件夹设置</string>
     <string name="backend_no_image_uploads">此账号后端不支持上传图片</string>
     <string name="backend_no_deck">此账号后端不支持 Nextcloud Deck</string>
+    <string name="bookmarks_edit_named">编辑书签：%1$s</string>
+    <string name="bookmarks_edit_title">编辑书签</string>
+    <string name="bookmarks_edit_message">更改将更新 Markdown 笔记，包括此 URL 的重复条目。</string>
+    <string name="bookmarks_edit_name">名称</string>
+    <string name="bookmarks_edit_url">URL</string>
+    <string name="bookmarks_edit_tags">标签（以空格分隔）</string>
+    <string name="bookmarks_edit_description">描述</string>
+    <string name="bookmarks_edit_save">保存书签</string>
+    <string name="bookmarks_edit_invalid">请输入名称和未被其他书签使用的 scheme:// URL。字段必须位于同一行 Markdown 中；名称不能包含方括号，描述不能包含 #标签。</string>
+    <string name="bookmarks_edited">书签已更新</string>
+    <string name="bookmarks_edit_failed">无法更新书签。笔记可能已更改或无法再编辑。您的更改将保留在此对话框中；请重新打开以加载最新笔记。</string>
 </resources>

@@ -189,6 +189,69 @@ class AppLaunchTest {
     }
 
     @Test
+    fun editsBookmarksOnlyOnSaveAndRejectsStaleEdits() {
+        val account = testAccount("alice")
+        application.fakeAccountImporter.enqueue(account)
+        val content = "# Bookmarks\n- [Alpha](https://a.example) #docs\n" +
+            "- [Zulu](https://z.example)\nKeep this text.\n"
+        application.fakeBackend.enqueue(
+            account,
+            PullResult(
+                notes = listOf(RemoteNote(42, "etag", "Bookmarks", content, "", 10)),
+                collectionEtag = "collection-etag",
+                lastModifiedEpochSeconds = 10
+            )
+        )
+        accountAction("add-account")
+        composeRule.waitForText("Bookmarks")
+        listAction("bookmarks-menu")
+        composeRule.waitForTag("bookmarks-page")
+        composeRule.onNodeWithTag("bookmark-edit-https://a.example").performClick()
+        composeRule.onNodeWithTag("bookmark-edit-name").performTextReplacement("Cancelled")
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithText("Alpha").assertIsDisplayed()
+        composeRule.onNodeWithTag("bookmark-edit-https://a.example").performClick()
+        composeRule.onNodeWithTag("bookmark-edit-name").performTextReplacement("Updated")
+        composeRule.onNodeWithTag("bookmark-edit-url").performTextReplacement("https://z.example")
+        composeRule.onNodeWithTag("bookmark-edit-save").assertIsNotEnabled()
+        composeRule.onNodeWithTag("bookmark-edit-validation").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(
+            "bookmark-edit-url"
+        ).performScrollTo().performTextReplacement("https://new.example")
+        composeRule.onNodeWithTag(
+            "bookmark-edit-tags"
+        ).performScrollTo().performTextReplacement("#work #reference")
+        composeRule.onNodeWithTag(
+            "bookmark-edit-description"
+        ).performScrollTo().performTextReplacement("Useful link")
+        composeRule.onNodeWithTag("bookmark-edit-save").performClick()
+        composeRule.waitForText("Updated")
+        composeRule.onNodeWithText("Zulu").assertIsDisplayed()
+        val note = runBlocking {
+            application.component.noteRepository.observeNoteAt(
+                account.localAccountId(),
+                "",
+                "Bookmarks"
+            ).first()
+        }!!
+        assertEquals(
+            "# Bookmarks\n- [Updated](https://new.example) #work #reference Useful link\n" +
+                "- [Zulu](https://z.example)\nKeep this text.\n",
+            note.content
+        )
+        assertFalse(
+            runBlocking {
+                application.component.editBookmark(
+                    note.localId,
+                    content,
+                    "https://z.example",
+                    org.qownnotes.mobile.core.Bookmark("https://changed.example", "Stale")
+                )
+            }
+        )
+    }
+
+    @Test
     fun deletesBookmarksOnlyAfterConfirmationAndPreservesTheSourceNote() {
         val account = testAccount("alice")
         application.fakeAccountImporter.enqueue(account)

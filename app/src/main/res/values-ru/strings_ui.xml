@@ -134,4 +134,15 @@
     <string name="backend_no_note_settings">Бэкенд этого аккаунта не поддерживает настройки папки заметок</string>
     <string name="backend_no_image_uploads">Бэкенд этого аккаунта не поддерживает загрузку изображений</string>
     <string name="backend_no_deck">Бэкенд этого аккаунта не поддерживает Nextcloud Deck</string>
+    <string name="bookmarks_edit_named">Изменить закладку: %1$s</string>
+    <string name="bookmarks_edit_title">Изменить закладку</string>
+    <string name="bookmarks_edit_message">Изменения обновляют заметку Markdown, включая повторяющиеся записи с этим URL.</string>
+    <string name="bookmarks_edit_name">Название</string>
+    <string name="bookmarks_edit_url">URL</string>
+    <string name="bookmarks_edit_tags">Метки (через пробел)</string>
+    <string name="bookmarks_edit_description">Описание</string>
+    <string name="bookmarks_edit_save">Сохранить закладку</string>
+    <string name="bookmarks_edit_invalid">Введите название и URL вида схема://, не используемый другой закладкой. Поля должны помещаться в одну строку Markdown; названия не могут содержать квадратные скобки, а описания — #метки.</string>
+    <string name="bookmarks_edited">Закладка обновлена</string>
+    <string name="bookmarks_edit_failed">Не удалось обновить закладку. Возможно, заметка изменилась или больше недоступна для редактирования. Изменения сохранены в этом диалоге; откройте его заново, чтобы загрузить последнюю версию заметки.</string>
 </resources>

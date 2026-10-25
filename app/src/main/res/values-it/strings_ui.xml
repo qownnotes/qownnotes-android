@@ -134,4 +134,15 @@
     <string name="backend_no_note_settings">Il backend di questo account non fornisce impostazioni della cartella delle note</string>
     <string name="backend_no_image_uploads">Il backend di questo account non supporta il caricamento di immagini</string>
     <string name="backend_no_deck">Il backend di questo account non supporta Nextcloud Deck</string>
+    <string name="bookmarks_edit_named">Modifica segnalibro: %1$s</string>
+    <string name="bookmarks_edit_title">Modifica segnalibro</string>
+    <string name="bookmarks_edit_message">Le modifiche aggiornano la nota Markdown, incluse le voci duplicate per questo URL.</string>
+    <string name="bookmarks_edit_name">Nome</string>
+    <string name="bookmarks_edit_url">URL</string>
+    <string name="bookmarks_edit_tags">Etichette (separate da spazi)</string>
+    <string name="bookmarks_edit_description">Descrizione</string>
+    <string name="bookmarks_edit_save">Salva segnalibro</string>
+    <string name="bookmarks_edit_invalid">Inserisci un nome e un URL schema:// non usato da un altro segnalibro. I campi devono stare su una riga Markdown; i nomi non possono contenere parentesi quadre e le descrizioni non possono contenere #etichette.</string>
+    <string name="bookmarks_edited">Segnalibro aggiornato</string>
+    <string name="bookmarks_edit_failed">Impossibile aggiornare il segnalibro. La nota potrebbe essere cambiata o non essere più modificabile. Le modifiche restano in questa finestra; riaprila per caricare la nota più recente.</string>
 </resources>

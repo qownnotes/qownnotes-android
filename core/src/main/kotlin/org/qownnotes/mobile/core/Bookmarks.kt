@@ -60,6 +60,44 @@ fun removeBookmark(markdown: String, url: String): String {
     return result
 }
 
+/** Updates all entries for an exact URL, preserving surrounding Markdown and line endings.
+ * Returns null for unrepresentable fields, missing entries, or a URL belonging to another bookmark.
+ */
+fun editBookmark(markdown: String, url: String, replacement: Bookmark): String? {
+    val fields =
+        listOf(replacement.name, replacement.url, replacement.description) + replacement.tags
+    if (fields.any { field -> field.any { it.isISOControl() } }) return null
+    if (replacement.name.isBlank() || replacement.url.isBlank() ||
+        replacement.url.any { it.isWhitespace() } ||
+        replacement.tags.any {
+            it.isBlank() || it.any { char -> char.isWhitespace() || char == '#' }
+        }
+    ) {
+        return null
+    }
+    val line = buildString {
+        append("- [${replacement.name}](${replacement.url})")
+        replacement.tags.forEach { append(" #$it") }
+        if (replacement.description.isNotBlank()) append(" ${replacement.description}")
+    }
+    val parsed = parseBookmarks(line).singleOrNull() ?: return null
+    if (parsed.copy(markdown = "") != replacement.copy(markdown = "")) return null
+    val existing = parseBookmarks(markdown)
+    if (existing.none { it.url == url } ||
+        (replacement.url != url && existing.any { it.url == replacement.url })
+    ) {
+        return null
+    }
+    return bookmarkPattern.replace(markdown) { match ->
+        if (match.groupValues[2] == url) {
+            // Keep the original list marker; indentation lives outside the match.
+            match.value.first() + line.drop(1)
+        } else {
+            match.value
+        }
+    }
+}
+
 fun parseBookmarksSource(path: String): BookmarksSource? {
     val normalized = path.trim()
     if (normalized.isEmpty() || normalized.startsWith('/') || normalized.contains('\\')) {

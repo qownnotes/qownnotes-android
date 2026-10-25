@@ -1194,6 +1194,9 @@ The source lookup and displayed content come from Room rather than a direct netw
 Each bookmark card offers deletion after confirmation for writable, non-conflicted source notes.
 Deletion removes all entries for the exact merged URL while preserving unrelated Markdown and
 line endings, saves locally before scheduling sync, and rejects a changed source snapshot.
+Cards also offer an edit dialog for names, URLs, tags, and descriptions with the same save guards.
+Editing updates every duplicate exact URL, preserving list markers and surrounding Markdown. Invalid
+or unrepresentable fields and URL collisions with another bookmark are rejected before saving.
 
 ### Implemented Note Tags
 

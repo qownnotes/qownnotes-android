@@ -159,4 +159,15 @@
     <string name="backend_no_note_settings">Das Backend dieses Kontos bietet keine Notizordner-Einstellungen</string>
     <string name="backend_no_image_uploads">Das Backend dieses Kontos unterstützt keine Bild-Uploads</string>
     <string name="backend_no_deck">Das Backend dieses Kontos unterstützt Nextcloud Deck nicht</string>
+    <string name="bookmarks_edit_named">Lesezeichen bearbeiten: %1$s</string>
+    <string name="bookmarks_edit_title">Lesezeichen bearbeiten</string>
+    <string name="bookmarks_edit_message">Änderungen aktualisieren die Markdown-Notiz einschließlich doppelter Einträge für diese URL.</string>
+    <string name="bookmarks_edit_name">Name</string>
+    <string name="bookmarks_edit_url">URL</string>
+    <string name="bookmarks_edit_tags">Schlagwörter (durch Leerzeichen getrennt)</string>
+    <string name="bookmarks_edit_description">Beschreibung</string>
+    <string name="bookmarks_edit_save">Lesezeichen speichern</string>
+    <string name="bookmarks_edit_invalid">Gib einen Namen und eine noch nicht verwendete schema://-URL ein. Felder müssen in eine Markdown-Zeile passen; Namen dürfen keine Klammern und Beschreibungen keine #Schlagwörter enthalten.</string>
+    <string name="bookmarks_edited">Lesezeichen aktualisiert</string>
+    <string name="bookmarks_edit_failed">Das Lesezeichen konnte nicht aktualisiert werden. Die Notiz wurde möglicherweise geändert oder ist nicht mehr bearbeitbar. Deine Änderungen bleiben in diesem Dialog erhalten; öffne ihn erneut, um die aktuelle Notiz zu laden.</string>
 </resources>

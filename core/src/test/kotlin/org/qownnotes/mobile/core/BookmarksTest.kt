@@ -6,6 +6,52 @@ import org.junit.Test
 
 class BookmarksTest {
     @Test
+    fun editsAllExactDuplicatesAndPreservesSurroundingsAndLineEndings() {
+        val source = "# Links\r\n  * [One](https://one.example) #old\r\n" +
+            "Text with [inline](https://one.example)\r\n" +
+            "- [Duplicate](https://one.example) Old description\r\n" +
+            "- [Keep](https://other.example)"
+        val replacement = Bookmark("https://new.example", "New name", listOf("work"), "Reference")
+        assertEquals(
+            "# Links\r\n  * [New name](https://new.example) #work Reference\r\n" +
+                "Text with [inline](https://one.example)\r\n" +
+                "- [New name](https://new.example) #work Reference\r\n" +
+                "- [Keep](https://other.example)",
+            editBookmark(source, "https://one.example", replacement)
+        )
+    }
+
+    @Test
+    fun rejectsMissingUrlsCollisionsAndFieldsThatCannotRoundTrip() {
+        val source = "- [One](https://one.example)\n- [Two](https://two.example)"
+        val valid = Bookmark("https://new.example", "New", listOf("work"), "Reference")
+        assertNull(editBookmark(source, "https://missing.example", valid))
+        listOf(
+            valid.copy(url = "https://two.example"),
+            valid.copy(url = "not a URL"),
+            valid.copy(url = "https://new.example) #tag"),
+            valid.copy(name = ""),
+            valid.copy(name = "[Nested]"),
+            valid.copy(description = "Injected\n- [Note](https://bad.example)"),
+            valid.copy(description = "Has #tag"),
+            valid.copy(tags = listOf("two words")),
+            valid.copy(tags = listOf("#tag"))
+        ).forEach { assertNull(it.toString(), editBookmark(source, "https://one.example", it)) }
+    }
+
+    @Test
+    fun editsFinalEntryWithoutAddingANewline() {
+        assertEquals(
+            "- [New](https://new.example)",
+            editBookmark(
+                "- [Old](https://old.example)",
+                "https://old.example",
+                Bookmark("https://new.example", "New")
+            )
+        )
+    }
+
+    @Test
     fun removesAllExactDuplicatesAndPreservesOtherMarkdown() {
         val source = "# Links\r\n\r\n  - [One](https://example.com) #work\r\n" +
             "Text with [inline](https://example.com)  \r\n" +

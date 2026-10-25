@@ -134,4 +134,15 @@
     <string name="backend_no_note_settings">Le backend de ce compte ne fournit pas de paramètres de dossier de notes</string>
     <string name="backend_no_image_uploads">Le backend de ce compte ne prend pas en charge l\'envoi d\'images</string>
     <string name="backend_no_deck">Le backend de ce compte ne prend pas en charge Nextcloud Deck</string>
+    <string name="bookmarks_edit_named">Modifier le favori : %1$s</string>
+    <string name="bookmarks_edit_title">Modifier le favori</string>
+    <string name="bookmarks_edit_message">Les modifications mettent à jour la note Markdown, y compris les entrées en double pour cette URL.</string>
+    <string name="bookmarks_edit_name">Nom</string>
+    <string name="bookmarks_edit_url">URL</string>
+    <string name="bookmarks_edit_tags">Étiquettes (séparées par des espaces)</string>
+    <string name="bookmarks_edit_description">Description</string>
+    <string name="bookmarks_edit_save">Enregistrer le favori</string>
+    <string name="bookmarks_edit_invalid">Saisissez un nom et une URL schéma:// non utilisée par un autre favori. Les champs doivent tenir sur une ligne Markdown ; les noms ne peuvent pas contenir de crochets ni les descriptions de #étiquettes.</string>
+    <string name="bookmarks_edited">Favori mis à jour</string>
+    <string name="bookmarks_edit_failed">Impossible de mettre à jour le favori. La note a peut-être changé ou ne peut plus être modifiée. Vos modifications sont conservées dans cette boîte de dialogue ; rouvrez-la pour charger la dernière version.</string>
 </resources>

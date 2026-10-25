@@ -134,4 +134,15 @@
     <string name="backend_no_note_settings">Backend tego konta nie udostępnia ustawień folderu notatek</string>
     <string name="backend_no_image_uploads">Backend tego konta nie obsługuje przesyłania obrazów</string>
     <string name="backend_no_deck">Backend tego konta nie obsługuje Nextcloud Deck</string>
+    <string name="bookmarks_edit_named">Edytuj zakładkę: %1$s</string>
+    <string name="bookmarks_edit_title">Edytuj zakładkę</string>
+    <string name="bookmarks_edit_message">Zmiany aktualizują notatkę Markdown, w tym zduplikowane wpisy dla tego adresu URL.</string>
+    <string name="bookmarks_edit_name">Nazwa</string>
+    <string name="bookmarks_edit_url">URL</string>
+    <string name="bookmarks_edit_tags">Tagi (oddzielone spacjami)</string>
+    <string name="bookmarks_edit_description">Opis</string>
+    <string name="bookmarks_edit_save">Zapisz zakładkę</string>
+    <string name="bookmarks_edit_invalid">Podaj nazwę i adres schemat:// nieużywany przez inną zakładkę. Pola muszą mieścić się w jednym wierszu Markdown; nazwy nie mogą zawierać nawiasów kwadratowych, a opisy #tagów.</string>
+    <string name="bookmarks_edited">Zakładka zaktualizowana</string>
+    <string name="bookmarks_edit_failed">Nie udało się zaktualizować zakładki. Notatka mogła się zmienić lub nie można jej już edytować. Zmiany pozostają w tym oknie; otwórz je ponownie, aby wczytać najnowszą notatkę.</string>
 </resources>
