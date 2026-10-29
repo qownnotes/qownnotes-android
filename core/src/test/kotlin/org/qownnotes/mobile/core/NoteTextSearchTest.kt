@@ -38,4 +38,36 @@ class NoteTextSearchTest {
         assertEquals(emptyList<IntRange>(), findTextMatches("café", "cafe"))
         assertEquals(listOf(0 until 4), findTextMatches("café", "CAFÉ"))
     }
+
+    @Test
+    fun snippetOfAShortTextKeepsItWhole() {
+        val text = "Buy salt\nand pepper"
+
+        val snippet = textMatchSnippet(text, findTextMatches(text, "SALT").single())
+
+        assertEquals("Buy salt and pepper", snippet.text)
+        assertEquals("salt", snippet.text.substring(snippet.match.first, snippet.match.last + 1))
+    }
+
+    @Test
+    fun snippetTrimsLongTextAtWordBoundariesWithEllipses() {
+        val text = "alpha bravo charlie delta echo needle foxtrot golf hotel india juliet"
+        val match = findTextMatches(text, "needle").single()
+
+        val snippet = textMatchSnippet(text, match, context = 12)
+
+        assertEquals("\u2026delta echo needle foxtrot\u2026", snippet.text)
+        assertEquals("needle", snippet.text.substring(snippet.match.first, snippet.match.last + 1))
+    }
+
+    @Test
+    fun snippetCollapsesWhitespaceInsideTheMatch() {
+        val text = "first line\n\n   second line"
+        val match = findTextMatches(text, "line\n\n   second").single()
+
+        val snippet = textMatchSnippet(text, match)
+
+        assertEquals("first line second line", snippet.text)
+        assertEquals(6 until 17, snippet.match)
+    }
 }

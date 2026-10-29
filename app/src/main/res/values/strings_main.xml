@@ -126,6 +126,17 @@
     <!-- Versions and trash dialogs -->
     <string name="note_versions">Note versions</string>
     <string name="note_versions_empty">No versions were found for this note.</string>
+    <string name="note_versions_search">Search all versions</string>
+    <string name="note_versions_search_empty">No versions contain “%1$s”.</string>
+    <string name="note_versions_search_summary">%1$s in %2$s</string>
+    <plurals name="note_versions_search_matches">
+        <item quantity="one">%1$d match</item>
+        <item quantity="other">%1$d matches</item>
+    </plurals>
+    <plurals name="note_versions_search_versions">
+        <item quantity="one">%1$d of %2$d version</item>
+        <item quantity="other">%1$d of %2$d versions</item>
+    </plurals>
     <string name="trash_empty">No trashed notes were found on the server.</string>
     <string name="trash_search_note_name">Search note name</string>
     <string name="trash_search_empty">No trashed notes match your search.</string>

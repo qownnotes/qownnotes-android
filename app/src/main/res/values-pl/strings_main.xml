@@ -128,6 +128,21 @@
     <!-- Versions and trash dialogs -->
     <string name="note_versions">Wersje notatki</string>
     <string name="note_versions_empty">Nie znaleziono wersji tej notatki.</string>
+    <string name="note_versions_search">Szukaj we wszystkich wersjach</string>
+    <string name="note_versions_search_empty">Żadna wersja nie zawiera „%1$s”.</string>
+    <string name="note_versions_search_summary">%1$s w %2$s</string>
+    <plurals name="note_versions_search_matches">
+        <item quantity="one">%1$d wynik</item>
+        <item quantity="few">%1$d wyniki</item>
+        <item quantity="many">%1$d wyników</item>
+        <item quantity="other">%1$d wyniku</item>
+    </plurals>
+    <plurals name="note_versions_search_versions">
+        <item quantity="one">%1$d z %2$d wersji</item>
+        <item quantity="few">%1$d z %2$d wersji</item>
+        <item quantity="many">%1$d z %2$d wersji</item>
+        <item quantity="other">%1$d z %2$d wersji</item>
+    </plurals>
     <string name="trash_empty">Na serwerze nie znaleziono notatek w koszu.</string>
     <string name="trash_search_note_name">Szukaj nazwy notatki</string>
     <string name="trash_search_empty">Żadna notatka w koszu nie pasuje do wyszukiwania.</string>

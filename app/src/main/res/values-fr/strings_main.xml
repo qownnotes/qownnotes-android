@@ -127,6 +127,19 @@
     <!-- Versions and trash dialogs -->
     <string name="note_versions">Versions de la note</string>
     <string name="note_versions_empty">Aucune version n\'a été trouvée pour cette note.</string>
+    <string name="note_versions_search">Rechercher dans toutes les versions</string>
+    <string name="note_versions_search_empty">Aucune version ne contient « %1$s ».</string>
+    <string name="note_versions_search_summary">%1$s dans %2$s</string>
+    <plurals name="note_versions_search_matches">
+        <item quantity="one">%1$d résultat</item>
+        <item quantity="many">%1$d résultats</item>
+        <item quantity="other">%1$d résultats</item>
+    </plurals>
+    <plurals name="note_versions_search_versions">
+        <item quantity="one">%1$d version sur %2$d</item>
+        <item quantity="many">%1$d versions sur %2$d</item>
+        <item quantity="other">%1$d versions sur %2$d</item>
+    </plurals>
     <string name="trash_empty">Aucune note supprimée n\'a été trouvée sur le serveur.</string>
     <string name="trash_search_note_name">Rechercher un nom de note</string>
     <string name="trash_search_empty">Aucune note supprimée ne correspond à votre recherche.</string>

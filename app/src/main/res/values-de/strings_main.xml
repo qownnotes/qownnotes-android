@@ -126,6 +126,17 @@
     <!-- Versions and trash dialogs -->
     <string name="note_versions">Notizversionen</string>
     <string name="note_versions_empty">Für diese Notiz wurden keine Versionen gefunden.</string>
+    <string name="note_versions_search">Alle Versionen durchsuchen</string>
+    <string name="note_versions_search_empty">Keine Version enthält „%1$s“.</string>
+    <string name="note_versions_search_summary">%1$s in %2$s</string>
+    <plurals name="note_versions_search_matches">
+        <item quantity="one">%1$d Treffer</item>
+        <item quantity="other">%1$d Treffer</item>
+    </plurals>
+    <plurals name="note_versions_search_versions">
+        <item quantity="one">%1$d von %2$d Version</item>
+        <item quantity="other">%1$d von %2$d Versionen</item>
+    </plurals>
     <string name="trash_empty">Auf dem Server wurden keine gelöschten Notizen gefunden.</string>
     <string name="trash_search_note_name">Notizname suchen</string>
     <string name="trash_search_empty">Keine gelöschten Notizen entsprechen deiner Suche.</string>

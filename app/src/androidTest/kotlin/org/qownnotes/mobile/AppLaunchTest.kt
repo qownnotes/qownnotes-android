@@ -1403,6 +1403,52 @@ class AppLaunchTest {
     }
 
     @Test
+    fun searchesTextAcrossNoteVersionsAndRestoresAMatch() {
+        importAccount("alice", "Existing note", "etag-1", 10, "Current content")
+        application.fakeBackend.noteVersions = listOf(
+            RemoteNoteVersion(3, "Wednesday", "Plain todo list"),
+            RemoteNoteVersion(2, "Tuesday", "Buy apples and bananas, then more Bananas"),
+            RemoteNoteVersion(1, "Monday", "Buy apples")
+        )
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.openNoteMenu()
+        composeRule.onNodeWithTag("note-versions").performClick()
+        composeRule.waitForText("Plain todo list")
+
+        composeRule.onNodeWithTag("note-version-search").performTextInput("banana")
+        composeRule.waitForTagToGo("note-version-3")
+        composeRule.onNodeWithTag("note-version-1").assertDoesNotExist()
+        composeRule.onNodeWithTag("note-version-2").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-version-search-summary")
+            .assertTextContains("2 matches in 1 of 3 versions")
+        composeRule.onNodeWithTag("note-version-match-position").assertTextEquals("1 of 2")
+        composeRule.onNodeWithTag("note-version-next-match").performClick()
+        composeRule.onNodeWithTag("note-version-match-position").assertTextEquals("2 of 2")
+        composeRule.onNodeWithTag("note-version-next-match").performClick()
+        composeRule.onNodeWithTag("note-version-match-position").assertTextEquals("1 of 2")
+
+        composeRule.onNodeWithTag("note-version-search").performTextInput("s kiwi")
+        composeRule.waitForTag("note-version-search-empty")
+        composeRule.onNodeWithTag("restore-note-version").assertIsNotEnabled()
+
+        composeRule.onNodeWithTag("clear-note-version-search").performClick()
+        composeRule.waitForTag("note-version-3")
+        composeRule.onNodeWithTag("note-version-1").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-version-2").assertIsSelected()
+        composeRule.onNodeWithText("Buy apples and bananas, then more Bananas").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("note-version-search").performTextInput("apples")
+        composeRule.waitForTagToGo("note-version-3")
+        composeRule.onNodeWithTag("note-version-1").performClick()
+        composeRule.onNodeWithTag("restore-note-version").performClick()
+        composeRule.onNodeWithTag("confirm-restore-note-version").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { notesOf("alice").single().content == "Buy apples" }
+        }
+    }
+
+    @Test
     fun viewsAndRestoresRemoteTrash() {
         importAccount("alice", "Existing note", "etag-1", 10)
         val trashed = TrashedNote(

@@ -127,6 +127,19 @@
     <!-- Versions and trash dialogs -->
     <string name="note_versions">Versiones de la nota</string>
     <string name="note_versions_empty">No se han encontrado versiones de esta nota.</string>
+    <string name="note_versions_search">Buscar en todas las versiones</string>
+    <string name="note_versions_search_empty">Ninguna versión contiene «%1$s».</string>
+    <string name="note_versions_search_summary">%1$s en %2$s</string>
+    <plurals name="note_versions_search_matches">
+        <item quantity="one">%1$d coincidencia</item>
+        <item quantity="many">%1$d coincidencias</item>
+        <item quantity="other">%1$d coincidencias</item>
+    </plurals>
+    <plurals name="note_versions_search_versions">
+        <item quantity="one">%1$d de %2$d versión</item>
+        <item quantity="many">%1$d de %2$d versiones</item>
+        <item quantity="other">%1$d de %2$d versiones</item>
+    </plurals>
     <string name="trash_empty">No se han encontrado notas en la papelera del servidor.</string>
     <string name="trash_search_note_name">Buscar nombre de nota</string>
     <string name="trash_search_empty">Ninguna nota de la papelera coincide con la búsqueda.</string>

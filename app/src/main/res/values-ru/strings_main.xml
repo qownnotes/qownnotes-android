@@ -128,6 +128,21 @@
     <!-- Versions and trash dialogs -->
     <string name="note_versions">Версии заметки</string>
     <string name="note_versions_empty">Для этой заметки не найдено версий.</string>
+    <string name="note_versions_search">Искать во всех версиях</string>
+    <string name="note_versions_search_empty">Ни одна версия не содержит «%1$s».</string>
+    <string name="note_versions_search_summary">%1$s в %2$s</string>
+    <plurals name="note_versions_search_matches">
+        <item quantity="one">%1$d совпадение</item>
+        <item quantity="few">%1$d совпадения</item>
+        <item quantity="many">%1$d совпадений</item>
+        <item quantity="other">%1$d совпадения</item>
+    </plurals>
+    <plurals name="note_versions_search_versions">
+        <item quantity="one">%1$d из %2$d версии</item>
+        <item quantity="few">%1$d из %2$d версий</item>
+        <item quantity="many">%1$d из %2$d версий</item>
+        <item quantity="other">%1$d из %2$d версии</item>
+    </plurals>
     <string name="trash_empty">На сервере нет заметок в корзине.</string>
     <string name="trash_search_note_name">Поиск по имени заметки</string>
     <string name="trash_search_empty">В корзине нет заметок, соответствующих запросу.</string>

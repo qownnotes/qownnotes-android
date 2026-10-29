@@ -125,6 +125,15 @@
     <!-- Versions and trash dialogs -->
     <string name="note_versions">笔记版本</string>
     <string name="note_versions_empty">未找到此笔记的版本。</string>
+    <string name="note_versions_search">搜索所有版本</string>
+    <string name="note_versions_search_empty">没有版本包含“%1$s”。</string>
+    <string name="note_versions_search_summary">%2$s中共 %1$s</string>
+    <plurals name="note_versions_search_matches">
+        <item quantity="other">%1$d 处匹配</item>
+    </plurals>
+    <plurals name="note_versions_search_versions">
+        <item quantity="other">%1$d/%2$d 个版本</item>
+    </plurals>
     <string name="trash_empty">服务器上未找到已删除的笔记。</string>
     <string name="trash_search_note_name">搜索笔记名称</string>
     <string name="trash_search_empty">没有与搜索匹配的已删除笔记。</string>

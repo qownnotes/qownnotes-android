@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Search the text of all note versions from the note versions dialog. Only versions containing
+  the search are listed, each with its match count and a highlighted excerpt; the preview
+  highlights every match and lets you step between them.
+
 ## [1.7.0] - 2026-10-25
 
 ### Added
