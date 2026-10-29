@@ -22,7 +22,8 @@ Features include:
 * Browse, edit, and delete bookmarks offline, and insert images while editing notes
 * Record audio notes from the app or widget and play audio attachments in the app
 * Light and dark themes on Android 9 and newer
-* Optional note version and remote trash access through QOwnNotes for Nextcloud or QOwnNotesAPI
+* Browse and restore note versions and remote trash through QOwnNotes for Nextcloud or QOwnNotesAPI
+* Search across note versions with match counts, highlighted excerpts, and preview match navigation
 
 QOwnNotes contains no advertising, analytics, or developer-operated telemetry. Notes are stored on
 the device and synchronized only with the Nextcloud server selected by the user.
