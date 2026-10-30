@@ -8,6 +8,8 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+## [26.10.10] - 2026-10-30
+
 ### Added
 
 - Search the text of trashed notes in the **Remote trash** dialog, not just their names. Matching
@@ -664,7 +666,8 @@ zero-based increasing release counter within the month. See [the release guide](
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v26.10.10...HEAD
+[26.10.10]: https://github.com/qownnotes/qownnotes-android/compare/v1.8.0...v26.10.10
 [1.8.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/qownnotes/qownnotes-android/compare/v1.6.0...v1.6.1

@@ -1,0 +1,3 @@
+• Search the text of trashed notes, with match counts and highlighted excerpts
+• Step through highlighted matches in the remote trash preview
+• Releases now use year.month.counter versioning like QOwnNotes desktop
