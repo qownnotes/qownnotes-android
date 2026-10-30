@@ -2,6 +2,7 @@ package org.qownnotes.mobile
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -11,12 +12,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.ManageSearch
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -25,11 +29,14 @@ import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -58,14 +66,45 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import org.qownnotes.mobile.core.NoteSearchScope
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.core.findTextMatches
 import org.qownnotes.mobile.core.textMatchSnippet
+
+/** A trashed note together with every place the current search query occurs in it. */
+private data class TrashSearchResult(
+    val note: TrashedNote,
+    val nameMatches: List<IntRange>,
+    val contentMatches: List<IntRange>
+) {
+    val matchCount: Int get() = nameMatches.size + contentMatches.size
+}
+
+private fun searchTrash(
+    notes: List<TrashedNote>,
+    query: String,
+    scope: NoteSearchScope
+): List<TrashSearchResult> {
+    if (query.isEmpty()) return notes.map { TrashSearchResult(it, emptyList(), emptyList()) }
+    return notes.mapNotNull { note ->
+        val result = TrashSearchResult(
+            note = note,
+            nameMatches = findTextMatches(note.name, query),
+            contentMatches = if (scope == NoteSearchScope.TITLE_AND_CONTENT) {
+                findTextMatches(note.content, query)
+            } else {
+                emptyList()
+            }
+        )
+        result.takeIf { it.matchCount > 0 }
+    }
+}
 
 @Composable
 internal fun TrashedNotesDialog(
@@ -74,17 +113,17 @@ internal fun TrashedNotesDialog(
     onRestore: (TrashedNote) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val filteredNotes = remember(notes, query) {
-        val trimmed = query.trim()
-        if (trimmed.isEmpty()) {
-            notes
-        } else {
-            notes.filter {
-                it.name.contains(trimmed, ignoreCase = true)
-            }
-        }
-    }
-    var selected by remember(filteredNotes) { mutableStateOf(filteredNotes.firstOrNull()) }
+    var scope by rememberSaveable { mutableStateOf(NoteSearchScope.TITLE_AND_CONTENT) }
+    val searchQuery = query.trim()
+    val searching = searchQuery.isNotEmpty()
+    val results = remember(notes, searchQuery, scope) { searchTrash(notes, searchQuery, scope) }
+    var chosen by remember(notes) { mutableStateOf(notes.firstOrNull()) }
+    // Keep the chosen note while the search still finds it, otherwise show the first match.
+    val selected = results.firstOrNull { it.note == chosen } ?: results.firstOrNull()
+    // Remember the shown note, so clearing the search keeps the reader where they were.
+    SideEffect { if (selected != null) chosen = selected.note }
+    var currentMatch by remember(selected?.note, searchQuery, scope) { mutableIntStateOf(0) }
+    val focusManager = LocalFocusManager.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.remote_trash)) },
@@ -99,57 +138,100 @@ internal fun TrashedNotesDialog(
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text(stringResource(R.string.trash_search_note_name)) },
+                        placeholder = {
+                            Text(
+                                stringResource(
+                                    if (scope == NoteSearchScope.TITLE) {
+                                        R.string.trash_search_note_name
+                                    } else {
+                                        R.string.trash_search_notes
+                                    }
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
                         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                         trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                IconButton(
-                                    onClick = { query = "" },
-                                    modifier = Modifier.testTag("clear-trash-search")
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Close,
-                                        contentDescription = stringResource(
-                                            R.string.action_clear_search
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (query.isNotEmpty()) {
+                                    IconButton(
+                                        onClick = { query = "" },
+                                        modifier = Modifier.testTag("clear-trash-search")
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.Close,
+                                            contentDescription = stringResource(
+                                                R.string.action_clear_search
+                                            )
                                         )
-                                    )
+                                    }
                                 }
+                                TrashSearchScopeMenu(scope = scope, onScopeChange = { scope = it })
                             }
                         },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                         shape = MaterialTheme.shapes.extraLarge,
                         modifier = Modifier.fillMaxWidth().testTag("trash-search")
                     )
-                    if (filteredNotes.isEmpty()) {
+                    if (results.isEmpty()) {
                         DialogEmptyState(
                             Icons.Filled.SearchOff,
-                            stringResource(R.string.trash_search_empty)
+                            stringResource(R.string.trash_search_empty),
+                            Modifier.testTag("trash-search-empty")
                         )
                     } else {
+                        if (searching) {
+                            ArchiveSearchSummary(
+                                matchCount = results.sumOf { it.matchCount },
+                                scopeDescription = pluralStringResource(
+                                    R.plurals.trash_search_notes_count,
+                                    notes.size,
+                                    results.size,
+                                    notes.size
+                                ),
+                                tag = "trash-search-summary"
+                            )
+                        }
                         Column(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            filteredNotes.forEach { note ->
+                            results.forEach { result ->
+                                val note = result.note
                                 ArchiveEntryRow(
                                     icon = Icons.AutoMirrored.Filled.Article,
                                     title = note.name,
+                                    titleMatches = result.nameMatches,
                                     subtitle = note.displayTimestamp,
-                                    selected = note == selected,
-                                    onClick = { selected = note },
+                                    selected = result == selected,
+                                    onClick = { chosen = note },
+                                    snippet = result.contentMatches.firstOrNull()?.let {
+                                        matchSnippet(note.content, it)
+                                    },
+                                    badge = if (searching) result.matchCount else null,
                                     modifier = Modifier.testTag("trashed-note-${note.timestamp}")
                                 )
                             }
                         }
-                        ArchivePreview(selected?.content.orEmpty(), "trashed-note-preview")
+                        ArchivePreview(
+                            content = selected?.note?.content.orEmpty(),
+                            tag = "trashed-note-preview",
+                            navigatorTag = "trashed-note",
+                            matches = selected?.contentMatches.orEmpty(),
+                            currentMatch = currentMatch,
+                            onCurrentMatchChange = { currentMatch = it }
+                        )
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { selected?.let(onRestore) },
+                onClick = { selected?.note?.let(onRestore) },
                 enabled = selected != null,
                 modifier = Modifier.testTag("restore-trashed-note")
             ) { IconLabel(Icons.Filled.RestoreFromTrash, stringResource(R.string.action_restore)) }
@@ -158,6 +240,51 @@ internal fun TrashedNotesDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         }
     )
+}
+
+@Composable
+private fun TrashSearchScopeMenu(scope: NoteSearchScope, onScopeChange: (NoteSearchScope) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(
+            onClick = { expanded = true },
+            modifier = Modifier.testTag("trash-search-filter")
+        ) {
+            Icon(
+                Icons.Filled.FilterList,
+                contentDescription = stringResource(R.string.search_filter),
+                tint = if (scope == NoteSearchScope.TITLE) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            listOf(
+                Triple(
+                    NoteSearchScope.TITLE_AND_CONTENT,
+                    R.string.search_filter_title_and_content,
+                    "trash-search-filter-title-content"
+                ),
+                Triple(
+                    NoteSearchScope.TITLE,
+                    R.string.search_filter_title_only,
+                    "trash-search-filter-title"
+                )
+            ).forEach { (option, label, tag) ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(label)) },
+                    leadingIcon = { RadioButton(selected = scope == option, onClick = null) },
+                    onClick = {
+                        onScopeChange(option)
+                        expanded = false
+                    },
+                    modifier = Modifier.testTag(tag)
+                )
+            }
+        }
+    }
 }
 
 /** A note version together with every place the current search query occurs in it. */
@@ -232,10 +359,15 @@ internal fun NoteVersionsDialog(
                         )
                     } else {
                         if (searching) {
-                            NoteVersionSearchSummary(
+                            ArchiveSearchSummary(
                                 matchCount = results.sumOf { it.matches.size },
-                                versionCount = results.size,
-                                totalVersions = versions.size
+                                scopeDescription = pluralStringResource(
+                                    R.plurals.note_versions_search_versions,
+                                    versions.size,
+                                    results.size,
+                                    versions.size
+                                ),
+                                tag = "note-version-search-summary"
                             )
                         }
                         Column(
@@ -284,7 +416,7 @@ internal fun NoteVersionsDialog(
 }
 
 @Composable
-private fun NoteVersionSearchSummary(matchCount: Int, versionCount: Int, totalVersions: Int) {
+private fun ArchiveSearchSummary(matchCount: Int, scopeDescription: String, tag: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -304,16 +436,11 @@ private fun NoteVersionSearchSummary(matchCount: Int, versionCount: Int, totalVe
                     matchCount,
                     matchCount
                 ),
-                pluralStringResource(
-                    R.plurals.note_versions_search_versions,
-                    totalVersions,
-                    versionCount,
-                    totalVersions
-                )
+                scopeDescription
             ),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.testTag("note-version-search-summary")
+            modifier = Modifier.testTag(tag)
         )
     }
 }
@@ -321,11 +448,7 @@ private fun NoteVersionSearchSummary(matchCount: Int, versionCount: Int, totalVe
 @Composable
 private fun matchSnippet(content: String, match: IntRange): AnnotatedString {
     val snippet = remember(content, match) { textMatchSnippet(content, match) }
-    val highlight = SpanStyle(
-        background = MaterialTheme.colorScheme.tertiaryContainer,
-        color = MaterialTheme.colorScheme.onTertiaryContainer,
-        fontWeight = FontWeight.SemiBold
-    )
+    val highlight = matchHighlightStyle()
     return buildAnnotatedString {
         append(snippet.text)
         addStyle(highlight, snippet.match.first, snippet.match.last + 1)
@@ -333,9 +456,17 @@ private fun matchSnippet(content: String, match: IntRange): AnnotatedString {
 }
 
 @Composable
+private fun matchHighlightStyle(): SpanStyle = SpanStyle(
+    background = MaterialTheme.colorScheme.tertiaryContainer,
+    color = MaterialTheme.colorScheme.onTertiaryContainer,
+    fontWeight = FontWeight.SemiBold
+)
+
+@Composable
 private fun ArchivePreview(
     content: String,
     tag: String,
+    navigatorTag: String = "note-version",
     matches: List<IntRange> = emptyList(),
     currentMatch: Int = -1,
     onCurrentMatchChange: (Int) -> Unit = {}
@@ -384,7 +515,8 @@ private fun ArchivePreview(
                 PreviewMatchNavigator(
                     position = currentMatch.coerceIn(matches.indices),
                     count = matches.size,
-                    onPositionChange = onCurrentMatchChange
+                    onPositionChange = onCurrentMatchChange,
+                    tag = navigatorTag
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
@@ -402,7 +534,12 @@ private fun ArchivePreview(
 }
 
 @Composable
-private fun PreviewMatchNavigator(position: Int, count: Int, onPositionChange: (Int) -> Unit) {
+private fun PreviewMatchNavigator(
+    position: Int,
+    count: Int,
+    onPositionChange: (Int) -> Unit,
+    tag: String
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp)
@@ -411,12 +548,12 @@ private fun PreviewMatchNavigator(position: Int, count: Int, onPositionChange: (
             stringResource(R.string.find_match_position, position + 1, count),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f).testTag("note-version-match-position")
+            modifier = Modifier.weight(1f).testTag("$tag-match-position")
         )
         IconButton(
             onClick = { onPositionChange((position - 1 + count) % count) },
             enabled = count > 1,
-            modifier = Modifier.testTag("note-version-previous-match")
+            modifier = Modifier.testTag("$tag-previous-match")
         ) {
             Icon(
                 Icons.Filled.KeyboardArrowUp,
@@ -426,7 +563,7 @@ private fun PreviewMatchNavigator(position: Int, count: Int, onPositionChange: (
         IconButton(
             onClick = { onPositionChange((position + 1) % count) },
             enabled = count > 1,
-            modifier = Modifier.testTag("note-version-next-match")
+            modifier = Modifier.testTag("$tag-next-match")
         ) {
             Icon(
                 Icons.Filled.KeyboardArrowDown,
@@ -444,9 +581,17 @@ private fun ArchiveEntryRow(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier,
+    titleMatches: List<IntRange> = emptyList(),
     snippet: AnnotatedString? = null,
     badge: Int? = null
 ) {
+    val titleHighlight = matchHighlightStyle()
+    val highlightedTitle = remember(title, titleMatches, titleHighlight) {
+        buildAnnotatedString {
+            append(title)
+            titleMatches.forEach { addStyle(titleHighlight, it.first, it.last + 1) }
+        }
+    }
     Surface(
         selected = selected,
         onClick = onClick,
@@ -476,7 +621,7 @@ private fun ArchiveEntryRow(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    title,
+                    highlightedTitle,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
                     maxLines = 1,

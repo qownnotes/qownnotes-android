@@ -140,6 +140,11 @@
     <string name="trash_empty">Auf dem Server wurden keine gelöschten Notizen gefunden.</string>
     <string name="trash_search_note_name">Notizname suchen</string>
     <string name="trash_search_empty">Keine gelöschten Notizen entsprechen deiner Suche.</string>
+    <string name="trash_search_notes">Gelöschte Notizen durchsuchen</string>
+    <plurals name="trash_search_notes_count">
+        <item quantity="one">%1$d von %2$d Notiz</item>
+        <item quantity="other">%1$d von %2$d Notizen</item>
+    </plurals>
 
     <!-- Note detail -->
     <string name="insert_image_failed">Bild konnte nicht eingefügt werden</string>

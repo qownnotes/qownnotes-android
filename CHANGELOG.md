@@ -7,6 +7,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Search the text of trashed notes in the **Remote trash** dialog, not just their names. Matching
+  notes show their match count and a highlighted excerpt, matches in note names are highlighted,
+  and the preview highlights every match and lets you step between them. The filter menu limits
+  the search to note names.
+
 ## [1.8.0] - 2026-10-29
 
 ### Added

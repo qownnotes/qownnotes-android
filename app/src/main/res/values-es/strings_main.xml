@@ -143,6 +143,11 @@
     <string name="trash_empty">No se han encontrado notas en la papelera del servidor.</string>
     <string name="trash_search_note_name">Buscar nombre de nota</string>
     <string name="trash_search_empty">Ninguna nota de la papelera coincide con la búsqueda.</string>
+    <string name="trash_search_notes">Buscar notas en la papelera</string>
+    <plurals name="trash_search_notes_count">
+        <item quantity="one">%1$d de %2$d nota</item>
+        <item quantity="other">%1$d de %2$d notas</item>
+    </plurals>
 
     <!-- Note detail -->
     <string name="insert_image_failed">No se ha podido insertar la imagen</string>

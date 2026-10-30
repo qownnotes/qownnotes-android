@@ -143,6 +143,11 @@
     <string name="trash_empty">Nenhuma nota na lixeira foi encontrada no servidor.</string>
     <string name="trash_search_note_name">Pesquisar nome da nota</string>
     <string name="trash_search_empty">Nenhuma nota da lixeira corresponde à sua pesquisa.</string>
+    <string name="trash_search_notes">Pesquisar notas da lixeira</string>
+    <plurals name="trash_search_notes_count">
+        <item quantity="one">%1$d de %2$d nota</item>
+        <item quantity="other">%1$d de %2$d notas</item>
+    </plurals>
 
     <!-- Note detail -->
     <string name="insert_image_failed">Não foi possível inserir a imagem</string>

@@ -137,6 +137,10 @@
     <string name="trash_empty">服务器上未找到已删除的笔记。</string>
     <string name="trash_search_note_name">搜索笔记名称</string>
     <string name="trash_search_empty">没有与搜索匹配的已删除笔记。</string>
+    <string name="trash_search_notes">搜索回收站中的笔记</string>
+    <plurals name="trash_search_notes_count">
+        <item quantity="other">%1$d/%2$d 条笔记</item>
+    </plurals>
 
     <!-- Note detail -->
     <string name="insert_image_failed">无法插入图片</string>

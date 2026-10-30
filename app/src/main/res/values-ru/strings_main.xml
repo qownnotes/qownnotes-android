@@ -146,6 +146,13 @@
     <string name="trash_empty">На сервере нет заметок в корзине.</string>
     <string name="trash_search_note_name">Поиск по имени заметки</string>
     <string name="trash_search_empty">В корзине нет заметок, соответствующих запросу.</string>
+    <string name="trash_search_notes">Поиск по заметкам в корзине</string>
+    <plurals name="trash_search_notes_count">
+        <item quantity="one">%1$d из %2$d заметки</item>
+        <item quantity="few">%1$d из %2$d заметок</item>
+        <item quantity="many">%1$d из %2$d заметок</item>
+        <item quantity="other">%1$d из %2$d заметок</item>
+    </plurals>
 
     <!-- Note detail -->
     <string name="insert_image_failed">Не удалось вставить изображение</string>

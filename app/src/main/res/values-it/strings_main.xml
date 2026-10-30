@@ -143,6 +143,11 @@
     <string name="trash_empty">Nessuna nota eliminata trovata sul server.</string>
     <string name="trash_search_note_name">Cerca nome nota</string>
     <string name="trash_search_empty">Nessuna nota eliminata corrisponde alla ricerca.</string>
+    <string name="trash_search_notes">Cerca nelle note eliminate</string>
+    <plurals name="trash_search_notes_count">
+        <item quantity="one">%1$d di %2$d nota</item>
+        <item quantity="other">%1$d di %2$d note</item>
+    </plurals>
 
     <!-- Note detail -->
     <string name="insert_image_failed">Impossibile inserire l\'immagine</string>

@@ -140,6 +140,11 @@
     <string name="trash_empty">No trashed notes were found on the server.</string>
     <string name="trash_search_note_name">Search note name</string>
     <string name="trash_search_empty">No trashed notes match your search.</string>
+    <string name="trash_search_notes">Search trashed notes</string>
+    <plurals name="trash_search_notes_count">
+        <item quantity="one">%1$d of %2$d note</item>
+        <item quantity="other">%1$d of %2$d notes</item>
+    </plurals>
 
     <!-- Note detail -->
     <string name="insert_image_failed">Could not insert image</string>

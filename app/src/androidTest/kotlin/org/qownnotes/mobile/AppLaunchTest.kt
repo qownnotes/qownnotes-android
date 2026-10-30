@@ -1502,7 +1502,58 @@ class AppLaunchTest {
         composeRule.waitForText("Beta content")
 
         composeRule.onNodeWithTag("clear-trash-search").performClick()
-        composeRule.waitForText("Alpha content")
+        composeRule.waitForTag("trashed-note-1")
+        composeRule.onNodeWithTag("trashed-note-2").assertIsSelected()
+        composeRule.onNodeWithText("Beta content").assertIsDisplayed()
+    }
+
+    @Test
+    fun searchesRemoteTrashByNoteText() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        application.fakeBackend.trash = listOf(
+            TrashedNote(
+                name = "Groceries",
+                fileName = "Groceries.md",
+                timestamp = 1,
+                displayTimestamp = "Monday",
+                content = "Buy apples and pears",
+                remotePath = "/Notes/Groceries.md"
+            ),
+            TrashedNote(
+                name = "Recipes",
+                fileName = "Recipes.md",
+                timestamp = 2,
+                displayTimestamp = "Tuesday",
+                content = "Bake a cake with cinnamon, then dust with more Cinnamon",
+                remotePath = "/Notes/Recipes.md"
+            )
+        )
+
+        listAction("remote-trash")
+        composeRule.waitForTag("trashed-note-1")
+        composeRule.onNodeWithTag("trash-search").performTextInput("cinnamon")
+        composeRule.waitForTagToGo("trashed-note-1")
+        composeRule.onNodeWithTag("trashed-note-2").assertIsDisplayed()
+        composeRule.onNodeWithTag("trash-search-summary")
+            .assertTextContains("2 matches in 1 of 2 notes")
+        composeRule.onNodeWithTag("trashed-note-match-position").assertTextEquals("1 of 2")
+        composeRule.onNodeWithTag("trashed-note-next-match").performClick()
+        composeRule.onNodeWithTag("trashed-note-match-position").assertTextEquals("2 of 2")
+
+        composeRule.onNodeWithTag("trash-search-filter").performClick()
+        composeRule.onNodeWithTag("trash-search-filter-title").performClick()
+        composeRule.waitForTag("trash-search-empty")
+        composeRule.onNodeWithTag("restore-trashed-note").assertIsNotEnabled()
+
+        composeRule.onNodeWithTag("trash-search-filter").performClick()
+        composeRule.onNodeWithTag("trash-search-filter-title-content").performClick()
+        composeRule.waitForTag("trashed-note-2")
+        composeRule.onNodeWithTag("trashed-note-2").assertIsSelected()
+        composeRule.onNodeWithTag("restore-trashed-note").performClick()
+        composeRule.onNodeWithTag("confirm-restore-trashed-note").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.restoredTrash.map { it.name } == listOf("Recipes")
+        }
     }
 
     @Test

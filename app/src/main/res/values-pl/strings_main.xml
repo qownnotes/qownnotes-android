@@ -146,6 +146,13 @@
     <string name="trash_empty">Na serwerze nie znaleziono notatek w koszu.</string>
     <string name="trash_search_note_name">Szukaj nazwy notatki</string>
     <string name="trash_search_empty">Żadna notatka w koszu nie pasuje do wyszukiwania.</string>
+    <string name="trash_search_notes">Szukaj w notatkach w koszu</string>
+    <plurals name="trash_search_notes_count">
+        <item quantity="one">%1$d z %2$d notatki</item>
+        <item quantity="few">%1$d z %2$d notatek</item>
+        <item quantity="many">%1$d z %2$d notatek</item>
+        <item quantity="other">%1$d z %2$d notatek</item>
+    </plurals>
 
     <!-- Note detail -->
     <string name="insert_image_failed">Nie udało się wstawić obrazu</string>
