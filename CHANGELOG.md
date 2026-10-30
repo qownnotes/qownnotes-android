@@ -2,8 +2,9 @@
 
 All notable changes to QOwnNotes Mobile are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
-uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Releases from
+`26.10.10` use QOwnNotes desktop-style calendar versioning (`YY.M.N`): year, unpadded month, and a
+zero-based increasing release counter within the month. See [the release guide](docs/releasing.md).
 
 ## [Unreleased]
 
@@ -13,6 +14,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   notes show their match count and a highlighted excerpt, matches in note names are highlighted,
   and the preview highlights every match and lets you step between them. The filter menu limits
   the search to note names.
+
+### Changed
+
+- Releases use year, month, and a monthly release counter like QOwnNotes desktop
+  (for example, `26.10.10`, `26.10.11`, then `26.11.0`). Android version codes continue increasing
+  independently so existing installations can update normally.
+  The counter includes the ten earlier October releases under the previous versioning scheme.
 
 ## [1.8.0] - 2026-10-29
 

@@ -36,8 +36,13 @@ Before editing:
 3. Determine the highest version code ever published. Include GitHub and F-Droid history; do not
    assume the current file contains the highest value.
 4. Preserve unrelated worktree changes and stop if they conflict directly with release files.
-5. Establish the requested version. Infer a semantic-version recommendation from the changes, but
-   ask when the intended version or compatibility impact is ambiguous.
+5. Establish the requested version using QOwnNotes desktop-style `YY.M.N`: two-digit release year,
+   unpadded month, and a zero-based monthly counter independent of desktop's. Increment the counter
+   for another release in the same month; reset it for a new month or year. Ask when the intended
+   release date or next available counter is ambiguous, and explain compatibility changes in the
+   release notes rather than through semantic version bumps.
+   Count earlier releases under the previous scheme in the transition month; October 2026's first
+   calendar-versioned release is `26.10.10`, following ten published releases that month.
 
 ## Prepare
 
@@ -94,8 +99,8 @@ After success:
 5. Confirm the release workflow's unsigned comparison succeeded and smoke-test install or upgrade
    when possible.
 
-If publication already produced a public release and a defect is found, prepare a new patch version
-and higher version code. Never repair a release by mutating its tag or assets.
+If publication already produced a public release and a defect is found, prepare the next calendar
+version and higher version code. Never repair a release by mutating its tag or assets.
 
 ## F-Droid
 

@@ -151,7 +151,10 @@ Verify maintenance status, compatibility, and licensing before adding or upgradi
 
 The application version is defined once in [`version.properties`](version.properties):
 
-- `VERSION_NAME` is the public release version.
+- `VERSION_NAME` is the public release version. Releases from `26.10.10` use QOwnNotes desktop-style
+  `YY.M.N`: two-digit year, unpadded month, and a zero-based release counter that increases within
+  the month and resets when the month or year changes. Mobile's counter is independent of desktop's.
+  Include earlier releases under the previous scheme when counting the transition month's releases.
 - `VERSION_CODE` is Android's monotonically increasing integer version. It must be greater than the
   code of every previously published release.
 

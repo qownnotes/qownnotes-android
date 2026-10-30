@@ -11,11 +11,21 @@ on continued use of the existing release signing key.
 
 ## 1. Choose The Version
 
-Use semantic versioning based on user-visible behavior and compatibility:
+Use calendar versioning like QOwnNotes desktop: `YY.M.N`.
 
-- Patch: compatible bug fixes, packaging fixes, and small compatible improvements.
-- Minor: new backward-compatible features.
-- Major: incompatible behavior, storage, protocol, or support changes.
+- `YY`: the last two digits of the release year.
+- `M`: the release month, from `1` to `12`, without a leading zero.
+- `N`: the release counter within that month, starting at `0` and increasing by one for each
+  subsequent release. Reset it to `0` when the release month or year changes.
+
+For example, October 2026 releases are `26.10.0`, `26.10.1`, and `26.10.2`; the first November
+release is `26.11.0`, and the first January 2027 release is `27.1.0`. Mobile's counter is independent
+of desktop's. Use the same sequence for features, fixes, and compatibility changes; describe any
+incompatible changes explicitly in the release notes rather than through a major version bump.
+
+The first release after `1.8.0` is `26.10.10`: the eleventh October 2026 release, counting the ten
+earlier releases under the previous scheme. Include those releases in the transition month's
+zero-based counter. Keep historical version names, tags, and changelog sections unchanged.
 
 Fetch the remote tags and inspect the latest GitHub and F-Droid versions. In
 [`version.properties`](../version.properties):
@@ -124,7 +134,7 @@ After the workflow succeeds:
 5. Install or upgrade from the previous stable APK and perform a short smoke test.
 
 If publication fails before a tag and release exist, fix the cause and push a corrected commit to
-`release`. If a release was published, do not alter it: prepare a new patch version with a new,
+`release`. If a release was published, do not alter it: prepare the next calendar version with a new,
 higher version code.
 
 ## 6. Follow The F-Droid Update

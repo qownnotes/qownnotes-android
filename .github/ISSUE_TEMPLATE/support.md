@@ -18,7 +18,7 @@ Please check existing issues first to see if your question has already been answ
 
 #### Environment
 
-- **App version**: <!-- e.g. 0.4.0 -->
+- **App version**: <!-- e.g. 26.10.0 -->
 - **Android version**: <!-- e.g. 14 -->
 - **Device**: <!-- e.g. Pixel 8, Samsung Galaxy S23 -->
 - **Nextcloud version**: <!-- e.g. 28.0.3 -->

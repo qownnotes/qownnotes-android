@@ -325,8 +325,10 @@ CI runs checks and uploads a debug APK for every pushed branch except `release`,
 requests. A push to the `release` branch instead runs the dedicated release workflow, which reads
 the committed version, runs the checks, builds signed packages, extracts that version's section
 from `CHANGELOG.md`, and publishes an immutable GitHub release tagged `v<version>`. Before pushing
-to the release branch, increment both values in `version.properties` and add the matching changelog
-section. Follow the complete preparation, publication, verification, and F-Droid checklist in
+to the release branch, update both values in `version.properties` and add the matching changelog
+section. Releases from `26.10.10` use QOwnNotes desktop-style `YY.M.N` version names, such as `26.10.10`
+and `26.10.11`, with a counter starting at `0` each month; Android version codes keep increasing
+independently. Follow the complete preparation, publication, verification, and F-Droid checklist in
 [`docs/releasing.md`](docs/releasing.md). Configure the following GitHub Actions repository secrets:
 
 ```text
