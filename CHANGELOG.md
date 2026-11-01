@@ -8,6 +8,12 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+### Added
+
+- **Refresh when opening the app** setting, enabled by default. Opening or returning to the app
+  refreshes only the active account, skips synchronization already in progress, and waits five
+  minutes between attempts, including failed attempts. Manual refresh remains immediate.
+
 ## [26.10.10] - 2026-10-30
 
 ### Added

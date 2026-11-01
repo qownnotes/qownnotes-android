@@ -63,6 +63,9 @@
     <!-- Settings -->
     <string name="settings_title">Настройки</string>
     <string name="settings_section_note_list">Список заметок</string>
+    <string name="settings_section_sync">Синхронизация</string>
+    <string name="settings_refresh_on_open">Обновлять при открытии приложения</string>
+    <string name="settings_refresh_on_open_description">Обновлять активную учётную запись при открытии приложения или возвращении в него, не чаще раза в пять минут. Ручное обновление доступно всегда.</string>
     <string name="settings_section_notes">Заметки</string>
     <string name="settings_section_more">Ещё</string>
     <string name="settings_show_note_preview">Показывать превью заметки</string>

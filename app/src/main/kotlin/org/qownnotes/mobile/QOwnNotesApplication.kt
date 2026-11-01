@@ -345,6 +345,29 @@ class ApplicationComponent(
         accountMutex(accountId).withLock { refreshLocked(accountId) }
     }
 
+    /** Only the visible account is refreshed. Do not queue another sync behind ongoing work. */
+    fun refreshOnOpen(accountId: String) {
+        applicationScope.launch { refreshOnOpenIfDue(accountId) }
+    }
+
+    internal suspend fun refreshOnOpenIfDue(accountId: String) {
+        if (!settings.refreshOnOpen.value) return
+        val mutex = accountMutex(accountId)
+        if (!mutex.tryLock()) return
+        try {
+            if (accountRepository.get(accountId) == null) return
+            if (foregroundRefreshDue(
+                    settings.lastRefreshAttemptMillis(accountId),
+                    clock.millis()
+                )
+            ) {
+                refreshLocked(accountId)
+            }
+        } finally {
+            mutex.unlock()
+        }
+    }
+
     internal suspend fun synchronizeFromWorker(accountId: String): SyncOutcome =
         accountMutex(accountId).withLock { refreshLocked(accountId) }
 
@@ -357,6 +380,7 @@ class ApplicationComponent(
             editorDrafts.remove(localNoteIds)
             localNoteIds.forEach(editReservations::remove)
             settings.removeShowCategory(accountId)
+            settings.removeRefreshAttempt(accountId)
             settings.removeUseSubfolders(accountId)
             settings.removeNoteFolderScope(accountId)
             settings.removeBookmarksPath(accountId)
@@ -1186,6 +1210,7 @@ class ApplicationComponent(
         accountId: String,
         propagateFailure: Boolean = false
     ): SyncOutcome {
+        settings.recordRefreshAttempt(accountId, clock.millis())
         updateSyncState(accountId, SyncUiState.Refreshing)
         val outcome = try {
             syncCoordinator.synchronize(accountId)

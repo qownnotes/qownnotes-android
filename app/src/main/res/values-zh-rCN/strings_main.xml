@@ -60,6 +60,9 @@
     <!-- Settings -->
     <string name="settings_title">设置</string>
     <string name="settings_section_note_list">笔记列表</string>
+    <string name="settings_section_sync">同步</string>
+    <string name="settings_refresh_on_open">打开应用时刷新</string>
+    <string name="settings_refresh_on_open_description">打开或返回应用时刷新当前账户，最多每五分钟一次。始终可以手动刷新。</string>
     <string name="settings_section_notes">笔记</string>
     <string name="settings_section_more">更多</string>
     <string name="settings_show_note_preview">显示笔记预览</string>

@@ -50,6 +50,13 @@ retry. Foreground refresh and workers use the same coordinator. Revision guards 
 late failure, conflict resolution, or successful update from replacing newer local state or undoing
 deletion intent.
 
+The device-local **Refresh when opening the app** preference is enabled by default. Opening or
+resuming the main window, or switching accounts, requests an incremental refresh for the active
+account only. Automatic refresh skips busy accounts and uses a persisted five-minute cooldown
+after any synchronization attempt (manual and background work included), including failures.
+There is no foreground polling timer; manual refresh bypasses the cooldown. Disabling the setting
+does not disable durable synchronization of local edits.
+
 A bounded, secret-redacted synchronization diagnostic report is persisted across process restarts
 and can be reviewed, copied, or cleared from Settings without sending telemetry.
 

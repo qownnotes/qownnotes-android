@@ -48,6 +48,32 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
     /** Whether the note list and note-list widgets show a plain-text preview of each note. */
     val showNotePreview: StateFlow<Boolean> = mutableShowNotePreview.asStateFlow()
 
+    private val mutableRefreshOnOpen =
+        MutableStateFlow(preferences.getBoolean(REFRESH_ON_OPEN, true))
+
+    val refreshOnOpen: StateFlow<Boolean> = mutableRefreshOnOpen.asStateFlow()
+
+    fun setRefreshOnOpen(enabled: Boolean) {
+        if (enabled == mutableRefreshOnOpen.value) return
+        preferences.edit().putBoolean(REFRESH_ON_OPEN, enabled).apply()
+        mutableRefreshOnOpen.value = enabled
+    }
+
+    internal fun lastRefreshAttemptMillis(accountId: String): Long? =
+        if (preferences.contains("$LAST_REFRESH_ATTEMPT_PREFIX$accountId")) {
+            preferences.getLong("$LAST_REFRESH_ATTEMPT_PREFIX$accountId", 0)
+        } else {
+            null
+        }
+
+    internal fun recordRefreshAttempt(accountId: String, nowMillis: Long) {
+        preferences.edit().putLong("$LAST_REFRESH_ATTEMPT_PREFIX$accountId", nowMillis).apply()
+    }
+
+    internal fun removeRefreshAttempt(accountId: String) {
+        preferences.edit().remove("$LAST_REFRESH_ATTEMPT_PREFIX$accountId").apply()
+    }
+
     fun setShowNotePreview(enabled: Boolean) {
         if (enabled == mutableShowNotePreview.value) return
         preferences.edit().putBoolean(SHOW_NOTE_PREVIEW, enabled).apply()
@@ -396,6 +422,8 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val PREFERENCES = "qownnotes-settings"
         const val NOTE_TEXT_SIZE_SP = "noteTextSizeSp"
         const val SHOW_NOTE_PREVIEW = "showNotePreview"
+        const val REFRESH_ON_OPEN = "refreshOnOpen"
+        const val LAST_REFRESH_ATTEMPT_PREFIX = "lastRefreshAttempt."
         const val SWIPE_NOTE_ACTIONS = "swipeNoteActions"
         const val HIDE_CREATE_BUTTON_ON_SCROLL = "hideCreateButtonOnScroll"
         const val ASK_FOR_NEW_NOTE_NAME = "askForNewNoteName"

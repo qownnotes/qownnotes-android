@@ -98,6 +98,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         component.takePendingShare()
         component.settings.resetNoteTextSize()
         component.settings.setShowNotePreview(true)
+        component.settings.setRefreshOnOpen(true)
         component.settings.setSwipeNoteActions(false)
         component.settings.setHideCreateButtonOnScroll(true)
         component.settings.setCompactNoteList(false)

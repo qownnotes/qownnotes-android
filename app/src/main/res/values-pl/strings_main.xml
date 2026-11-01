@@ -63,6 +63,9 @@
     <!-- Settings -->
     <string name="settings_title">Ustawienia</string>
     <string name="settings_section_note_list">Lista notatek</string>
+    <string name="settings_section_sync">Synchronizacja</string>
+    <string name="settings_refresh_on_open">Odświeżaj przy otwieraniu aplikacji</string>
+    <string name="settings_refresh_on_open_description">Odświeżaj aktywne konto przy otwieraniu aplikacji lub powrocie do niej, najwyżej co pięć minut. Ręczne odświeżanie jest zawsze dostępne.</string>
     <string name="settings_section_notes">Notatki</string>
     <string name="settings_section_more">Więcej</string>
     <string name="settings_show_note_preview">Pokaż podgląd notatki</string>

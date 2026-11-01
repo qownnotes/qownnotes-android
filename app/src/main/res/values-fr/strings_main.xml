@@ -62,6 +62,9 @@
     <!-- Settings -->
     <string name="settings_title">Paramètres</string>
     <string name="settings_section_note_list">Liste des notes</string>
+    <string name="settings_section_sync">Synchronisation</string>
+    <string name="settings_refresh_on_open">Actualiser à l’ouverture de l’application</string>
+    <string name="settings_refresh_on_open_description">Actualiser le compte actif à l’ouverture ou au retour dans l’application, au maximum toutes les cinq minutes. L’actualisation manuelle reste toujours disponible.</string>
     <string name="settings_section_notes">Notes</string>
     <string name="settings_section_more">Plus</string>
     <string name="settings_show_note_preview">Afficher l\'aperçu des notes</string>

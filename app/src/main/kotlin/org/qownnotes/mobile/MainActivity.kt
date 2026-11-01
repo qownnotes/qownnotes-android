@@ -205,6 +205,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import java.text.DateFormat
@@ -466,6 +467,17 @@ private fun NotesNavigation(
     val loadedAccounts = accounts
     val activeAccountId = loadedAccounts?.firstOrNull { it.id == selectedAccountId }?.id
         ?: loadedAccounts?.firstOrNull()?.id
+    val refreshOnOpen by component.settings.refreshOnOpen
+        .collectAsStateWithLifecycle(context = UiDispatcher)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(activeAccountId, refreshOnOpen, lifecycleOwner) {
+        val accountId = activeAccountId ?: return@LaunchedEffect
+        if (!refreshOnOpen) return@LaunchedEffect
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            component.refreshOnOpen(accountId)
+            kotlinx.coroutines.awaitCancellation()
+        }
+    }
     val pendingShare by component.pendingShare.collectAsStateWithLifecycle(context = UiDispatcher)
     val widgetRequest by component.widgetRequest.collectAsStateWithLifecycle(context = UiDispatcher)
     // Text another application shared becomes a note in the account that is being looked at, and
@@ -1058,6 +1070,8 @@ private fun NoteListScreen(
         searchFocused = false
     }
     val selectionActive = selectedNoteIds.isNotEmpty()
+    val refreshOnOpen by component.settings.refreshOnOpen
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     val showNotePreview by component.settings.showNotePreview
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val swipeNoteActions by component.settings.swipeNoteActions
@@ -1155,7 +1169,6 @@ private fun NoteListScreen(
         }
     }
 
-    LaunchedEffect(accountId) { withContext(UiDispatcher) { component.refresh(accountId) } }
     val selectFolderScope = { selected: NoteFolderScope ->
         storedFolderScope = selected
         component.settings.setNoteFolderScope(accountId, selected)
@@ -1919,6 +1932,15 @@ private fun NoteListScreen(
                     modifier = Modifier.heightIn(max = 520.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
+                    SettingsSectionHeader(stringResource(R.string.settings_section_sync))
+                    SettingsToggle(
+                        label = stringResource(R.string.settings_refresh_on_open),
+                        description = stringResource(R.string.settings_refresh_on_open_description),
+                        checked = refreshOnOpen,
+                        onCheckedChange = component.settings::setRefreshOnOpen,
+                        testTag = "toggle-refresh-on-open"
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     SettingsSectionHeader(stringResource(R.string.settings_section_note_list))
                     SettingsToggle(
                         label = stringResource(R.string.settings_show_note_preview),

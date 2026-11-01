@@ -61,6 +61,9 @@
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_section_note_list">Note list</string>
+    <string name="settings_section_sync">Synchronization</string>
+    <string name="settings_refresh_on_open">Refresh when opening the app</string>
+    <string name="settings_refresh_on_open_description">Refresh the active account when opening or returning to the app, at most once every five minutes. Manual refresh is always available.</string>
     <string name="settings_section_notes">Notes</string>
     <string name="settings_section_more">More</string>
     <string name="settings_show_note_preview">Show note preview</string>
