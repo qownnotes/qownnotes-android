@@ -19,6 +19,8 @@ Implemented in the initial Phase 1 foundation:
 - Reproducible `devenv` environment with JDK 17, Android API 36, build tools 35/36, platform tools, and an API 36 x86_64 emulator image.
 - JVM tests, Android lint, debug APK assembly, and a Compose device test that launches the app and creates an offline note.
 - GitHub Actions CI running formatting, tests, assembly, lint, and dependency-license validation through `devenv`.
+- API 36 device-test CI runs three app shards and a separate library job, with independent reports,
+  bounded build/test steps, and no full-suite retries. Dependabot pushes do not duplicate PR runs.
 - Spotless formatting, Licensee policy enforcement, and Dependabot updates for Gradle and GitHub Actions.
 - GPL-3.0-only licensing, privacy documentation, localized F-Droid metadata, and unsigned
   release-build verification before stable GitHub publication. Official F-Droid publishing remains

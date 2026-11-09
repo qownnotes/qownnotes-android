@@ -665,6 +665,11 @@ class AppLaunchTest {
             account,
             BackendException.Retryable(IOException("offline access_token=top-secret"))
         )
+        // Reopening only refreshes stale accounts; the import above just synchronized this one.
+        application.component.settings.recordRefreshAttempt(
+            account.localAccountId(),
+            System.currentTimeMillis() - 300_001
+        )
 
         composeRule.activityRule.scenario.recreate()
 
@@ -1307,7 +1312,8 @@ class AppLaunchTest {
         composeRule.waitForTag("create-note")
 
         listAction("settings")
-        composeRule.onNodeWithTag("toggle-hide-create-button-on-scroll").assertIsOn()
+        composeRule.onNodeWithTag("toggle-hide-create-button-on-scroll")
+            .performScrollTo().assertIsDisplayed().assertIsOn()
             .performClick()
         composeRule.onNodeWithTag("toggle-hide-create-button-on-scroll").assertIsOff()
         composeRule.onNodeWithTag("close-settings").performClick()
@@ -3791,6 +3797,7 @@ class AppLaunchTest {
     fun longPressingATaskDeletesItsBlockOnlyAfterConfirmation() {
         val content = "- [ ] Parent\n  - [x] Child\n    - [ ] Grandchild\n- [ ] Keep\n\nAfter\n"
         importAccount("alice", "Checklist", "etag-1", 10, content)
+        application.fakeSyncScheduler.pause()
         composeRule.onNodeWithText("Checklist").performClick()
         composeRule.waitForTag("markdown-view")
 
@@ -3806,6 +3813,7 @@ class AppLaunchTest {
         assertEquals(listOf(content), noteContents("alice"))
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
         onView(withText("Delete block")).perform(click())
+        composeRule.waitForTag("confirm-delete-task")
         composeRule.onNodeWithTag("confirm-delete-task").performClick()
         composeRule.waitUntil(timeoutMillis = 10_000) {
             noteContents("alice").single() == "- [ ] Keep\n\nAfter\n"
@@ -3821,17 +3829,36 @@ class AppLaunchTest {
             10,
             "- [ ] Parent\n  - [ ] Child\n    - [x] Grandchild\n\nAfter\n"
         )
+        // This test covers local block deletion, not background push responses that re-render
+        // the note and dismiss an open native task-action popup.
+        application.fakeSyncScheduler.pause()
         composeRule.onNodeWithText("Checklist").performClick()
         composeRule.waitForTag("markdown-view")
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Child"))
         onView(withText("Delete block")).perform(click())
+        composeRule.waitForTag("confirm-delete-task")
         composeRule.onNodeWithTag("confirm-delete-task").performClick()
         composeRule.waitUntil(timeoutMillis = 10_000) {
             noteContents("alice").single() == "- [ ] Parent\n\nAfter\n"
         }
+        // Repository persistence can finish before the hosted TextView and task callbacks update.
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.runOnUiThread {
+                val rendered = composeRule.activity.findViewById<TextView>(R.id.markdown_view).text
+                rendered.contains("Parent") && !rendered.contains("Child")
+            }
+        }
+        // The note and account-wide list are collected independently. Allow their follow-up
+        // frames (and the TextView layout after its drag-handle padding changes) to settle.
+        repeat(2) {
+            composeRule.mainClock.advanceTimeByFrame()
+            composeRule.waitForIdle()
+        }
+        composeRule.waitForIdle()
         // A lone remaining task has no drag handle, but still offers block deletion.
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
         onView(withText("Delete block")).perform(click())
+        composeRule.waitForTag("confirm-delete-task")
         composeRule.onNodeWithTag("confirm-delete-task").performClick()
         composeRule.waitUntil(timeoutMillis = 10_000) {
             noteContents("alice").single() == "\nAfter\n"

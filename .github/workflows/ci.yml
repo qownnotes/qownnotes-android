@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches-ignore: [release]
+    branches-ignore: [release, "dependabot/**"]
 
 permissions:
   contents: read
@@ -30,8 +30,30 @@ jobs:
           retention-days: 14
 
   device-test:
+    name: device-test (${{ matrix.suite }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      # A failing shard must not cancel the others or discard their diagnostics.
+      fail-fast: false
+      matrix:
+        include:
+          - suite: app-0
+            build-tasks: ":app:assembleDebug :app:assembleDebugAndroidTest"
+            test-tasks: ":app:connectedDebugAndroidTest"
+            runner-args: "-Pandroid.testInstrumentationRunnerArguments.numShards=3 -Pandroid.testInstrumentationRunnerArguments.shardIndex=0"
+          - suite: app-1
+            build-tasks: ":app:assembleDebug :app:assembleDebugAndroidTest"
+            test-tasks: ":app:connectedDebugAndroidTest"
+            runner-args: "-Pandroid.testInstrumentationRunnerArguments.numShards=3 -Pandroid.testInstrumentationRunnerArguments.shardIndex=1"
+          - suite: app-2
+            build-tasks: ":app:assembleDebug :app:assembleDebugAndroidTest"
+            test-tasks: ":app:connectedDebugAndroidTest"
+            runner-args: "-Pandroid.testInstrumentationRunnerArguments.numShards=3 -Pandroid.testInstrumentationRunnerArguments.shardIndex=2"
+          - suite: libraries
+            build-tasks: ":backend-nextcloud:assembleDebugAndroidTest :data:assembleDebugAndroidTest :markdown-android:assembleDebugAndroidTest :notefolder-sqlite:assembleDebugAndroidTest"
+            test-tasks: ":backend-nextcloud:connectedDebugAndroidTest :data:connectedDebugAndroidTest :markdown-android:connectedDebugAndroidTest :notefolder-sqlite:connectedDebugAndroidTest"
+            runner-args: ""
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v6
@@ -50,7 +72,11 @@ jobs:
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Build device-test APKs
+        timeout-minutes: 20
+        run: ./gradlew --no-daemon --no-configuration-cache ${{ matrix.build-tasks }}
       - name: Run Android device tests
+        timeout-minutes: 20
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -61,12 +87,14 @@ jobs:
           emulator-options: >-
             -no-window -no-snapshot -no-boot-anim -noaudio
             -gpu swiftshader_indirect -camera-back none
-          script: bash -c 'i=1; while [ $i -le 3 ]; do echo "Device test attempt $i/3"; if ./gradlew --no-daemon --no-configuration-cache connectedDebugAndroidTest; then echo "Tests passed on attempt $i"; exit 0; fi; if [ $i -lt 3 ]; then echo "Tests failed on attempt $i, retrying in 10 seconds..."; sleep 10; fi; i=$((i + 1)); done; echo "Tests failed after 3 attempts"; exit 1'
+          # Run once: blanket retries overwrite reports and can exhaust the job timeout.
+          # Serialize modules that share this emulator and finish other modules after a failure.
+          script: ./gradlew --no-daemon --no-configuration-cache --no-parallel --continue ${{ matrix.test-tasks }} ${{ matrix.runner-args }}
       - name: Upload device-test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-device-test-reports-${{ github.sha }}
+          name: android-device-test-reports-${{ matrix.suite }}-${{ github.sha }}
           path: |
             **/build/reports/androidTests/connected/**
             **/build/outputs/androidTest-results/connected/**

@@ -14,6 +14,12 @@ zero-based increasing release counter within the month. See [the release guide](
   refreshes only the active account, skips synchronization already in progress, and waits five
   minutes between attempts, including failed attempts. Manual refresh remains immediate.
 
+### Changed
+
+- Update Gson and Android build, code-generation, formatting, and dependency-update tooling.
+- Split CI device tests into three app shards and a separate library job, preserving independent
+  reports and replacing full-suite retries with bounded runs. Avoid duplicate Dependabot CI runs.
+
 ## [26.10.10] - 2026-10-30
 
 ### Added

@@ -225,8 +225,21 @@ With an emulator or physical device running:
 just device-test
 ```
 
-CI runs the same instrumentation suite on an API 36 emulator. Real Nextcloud
-SSO interoperability remains a manual test because it requires an installed
+CI runs the same instrumentation suite on API 36 emulators: three app shards and a separate
+library job. Jobs build APKs before starting the emulator, run tests once without blanket retries,
+and upload separate reports even when another shard fails. Build and test steps each have a
+20-minute limit within the 45-minute job budget, leaving time to upload diagnostics. Dependabot
+branches run CI on pull requests only, rather than duplicating it on branch pushes.
+
+To reproduce one app shard locally (use shard indices `0`, `1`, and `2` to cover the suite):
+
+```sh
+./gradlew --no-configuration-cache :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.numShards=3 \
+  -Pandroid.testInstrumentationRunnerArguments.shardIndex=0
+```
+
+Real Nextcloud SSO interoperability remains a manual test because it requires an installed
 and authenticated Nextcloud Files app.
 
 ### Run All Host-Side Checks
