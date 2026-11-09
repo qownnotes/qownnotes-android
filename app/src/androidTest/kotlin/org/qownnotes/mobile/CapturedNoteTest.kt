@@ -149,6 +149,8 @@ class CapturedNoteTest {
 
     @Test
     fun widgetCameraResultOpensLocallySavedNoteWithoutNetwork() {
+        // Opening MainActivity must not turn this offline capture test into a foreground sync.
+        application.component.settings.setRefreshOnOpen(false)
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val monitor = object : Instrumentation.ActivityMonitor() {
             override fun onStartActivity(intent: Intent): Instrumentation.ActivityResult? {

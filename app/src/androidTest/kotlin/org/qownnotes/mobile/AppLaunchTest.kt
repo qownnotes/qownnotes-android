@@ -3802,9 +3802,11 @@ class AppLaunchTest {
         composeRule.waitForTag("markdown-view")
 
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        waitForTaskActions()
         onView(withText("Cancel")).perform(click())
         assertEquals(listOf(content), noteContents("alice"))
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        waitForTaskActions()
         onView(withText("Delete block")).perform(click())
         composeRule.onNodeWithText("Delete checkbox block?").assertIsDisplayed()
         assertEquals(listOf(content), noteContents("alice"))
@@ -3812,6 +3814,7 @@ class AppLaunchTest {
         composeRule.waitForIdle()
         assertEquals(listOf(content), noteContents("alice"))
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        waitForTaskActions()
         onView(withText("Delete block")).perform(click())
         composeRule.waitForTag("confirm-delete-task")
         composeRule.onNodeWithTag("confirm-delete-task").performClick()
@@ -3835,6 +3838,7 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Checklist").performClick()
         composeRule.waitForTag("markdown-view")
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Child"))
+        waitForTaskActions()
         onView(withText("Delete block")).perform(click())
         composeRule.waitForTag("confirm-delete-task")
         composeRule.onNodeWithTag("confirm-delete-task").performClick()
@@ -3848,15 +3852,9 @@ class AppLaunchTest {
                 rendered.contains("Parent") && !rendered.contains("Child")
             }
         }
-        // The note and account-wide list are collected independently. Allow their follow-up
-        // frames (and the TextView layout after its drag-handle padding changes) to settle.
-        repeat(2) {
-            composeRule.mainClock.advanceTimeByFrame()
-            composeRule.waitForIdle()
-        }
-        composeRule.waitForIdle()
         // A lone remaining task has no drag handle, but still offers block deletion.
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        waitForTaskActions()
         onView(withText("Delete block")).perform(click())
         composeRule.waitForTag("confirm-delete-task")
         composeRule.onNodeWithTag("confirm-delete-task").performClick()
@@ -4441,6 +4439,17 @@ class AppLaunchTest {
             ?.coerceToText(composeRule.activity)
             ?.toString()
             .orEmpty()
+    }
+
+    private fun waitForTaskActions() {
+        // Native PopupWindow layout is not tracked by Compose's idling resource.
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            var displayed = false
+            onView(withText("Delete block")).check { view, missing ->
+                displayed = missing == null && view?.isShown == true
+            }
+            displayed
+        }
     }
 
     private fun longPressRenderedTask(label: String): ViewAction = GeneralClickAction(
