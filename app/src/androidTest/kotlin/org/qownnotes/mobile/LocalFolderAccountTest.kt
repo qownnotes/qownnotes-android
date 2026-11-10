@@ -88,7 +88,16 @@ class LocalFolderAccountTest {
         composeRule.waitUntil(10_000) { File(folder, "Projects/Ideas.md").isFile }
 
         runBlocking { component.renameNote(shopping.localId, "Groceries") }
-        composeRule.waitUntil(10_000) { File(folder, "Groceries.md").isFile }
+        // Renames create the new file before deleting the old one. Its existence alone does not
+        // mean that the asynchronous push has finished.
+        composeRule.waitUntil(10_000) {
+            runBlocking {
+                component.noteRepository.get(shopping.localId)?.let {
+                    it.title == "Groceries" && it.syncState == SyncState.SYNCHRONIZED
+                } == true
+            }
+        }
+        assertTrue(File(folder, "Groceries.md").isFile)
         assertFalse(File(folder, "Shopping.md").exists())
         assertEquals("# Shopping\n\n- bread", read("Groceries.md"))
     }
