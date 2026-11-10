@@ -3816,7 +3816,7 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Delete checkbox block?").assertIsDisplayed()
         assertEquals(listOf(content), noteContents("alice"))
         composeRule.onNodeWithText("Cancel").performClick()
-        composeRule.waitForIdle()
+        waitForTaskDialogToClose()
         assertEquals(listOf(content), noteContents("alice"))
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
         waitForTaskActions()
@@ -3858,6 +3858,7 @@ class AppLaunchTest {
             }
         }
         // A lone remaining task has no drag handle, but still offers block deletion.
+        waitForTaskDialogToClose()
         onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
         waitForTaskActions()
         onView(withText("Delete block")).perform(click())
@@ -4444,6 +4445,17 @@ class AppLaunchTest {
             ?.coerceToText(composeRule.activity)
             ?.toString()
             .orEmpty()
+    }
+
+    private fun waitForTaskDialogToClose() {
+        // Compose and repository idleness do not cover the dismissed dialog's native dim layer.
+        // Android drops touches while it still occludes the note, even after window focus returns.
+        composeRule.waitForTagToGo("confirm-delete-task")
+        composeRule.waitForIdle()
+        android.os.SystemClock.sleep(500)
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.runOnIdle { composeRule.activity.hasWindowFocus() }
+        }
     }
 
     private fun waitForTaskActions() {
