@@ -39,6 +39,11 @@ class FdroidScreenshotTest {
 
     @Test
     fun captureStoreScreenshots() {
+        // The first screen offers a Nextcloud account or a local note folder.
+        composeRule.waitForTag("add-local-folder")
+        composeRule.waitForIdle()
+        capture("4.png")
+
         val account =
             SingleSignOnAccount(
                 "demo",

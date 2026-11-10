@@ -40,7 +40,8 @@ check-fdroid-metadata:
       test -s "$metadata/images/icon.png"; \
       test -s "$metadata/images/phoneScreenshots/1.png"; \
       test -s "$metadata/images/phoneScreenshots/2.png"; \
-      test -s "$metadata/images/phoneScreenshots/3.png"
+      test -s "$metadata/images/phoneScreenshots/3.png"; \
+      test -s "$metadata/images/phoneScreenshots/4.png"
 
 # Run all JVM unit tests.
 test:
@@ -189,7 +190,8 @@ capture-fdroid-screenshots: _wait-for-android
       test "${#screenshots[@]}" -eq 1; \
       test -s "${screenshots[0]}/1.png"; \
       test -s "${screenshots[0]}/2.png"; \
-      test -s "${screenshots[0]}/3.png"
+      test -s "${screenshots[0]}/3.png"; \
+      test -s "${screenshots[0]}/4.png"
 
 # Replace the checked-in store screenshots with a fresh deterministic capture.
 update-fdroid-screenshots: capture-fdroid-screenshots
@@ -197,7 +199,8 @@ update-fdroid-screenshots: capture-fdroid-screenshots
       destination=fastlane/metadata/android/en-US/images/phoneScreenshots; \
       install -m 0644 "${screenshots[0]}/1.png" "$destination/1.png"; \
       install -m 0644 "${screenshots[0]}/2.png" "$destination/2.png"; \
-      install -m 0644 "${screenshots[0]}/3.png" "$destination/3.png"
+      install -m 0644 "${screenshots[0]}/3.png" "$destination/3.png"; \
+      install -m 0644 "${screenshots[0]}/4.png" "$destination/4.png"
 
 # Wait until Android and its package manager are ready, not only ADB.
 [private]

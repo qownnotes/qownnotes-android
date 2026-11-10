@@ -55,9 +55,9 @@ the same device. See [`CHANGELOG.md`](CHANGELOG.md) for release details.
 
 ## Screenshots
 
-| Note list | Note view | Note edit |
-| --- | --- | --- |
-| ![Note list](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png) | ![Note view](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png) | ![Note edit](fastlane/metadata/android/en-US/images/phoneScreenshots/3.png) |
+| Note list | Note view | Note edit | Setup |
+| --- | --- | --- | --- |
+| ![Note list](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png) | ![Note view](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png) | ![Note edit](fastlane/metadata/android/en-US/images/phoneScreenshots/3.png) | ![Setup with a Nextcloud account or a local folder](fastlane/metadata/android/en-US/images/phoneScreenshots/4.png) |
 
 ## Nextcloud Account Setup
 
