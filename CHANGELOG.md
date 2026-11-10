@@ -22,6 +22,11 @@ zero-based increasing release counter within the month. See [the release guide](
 - Split CI device tests into three app shards and a separate library job, preserving independent
   reports and replacing full-suite retries with bounded runs. Avoid duplicate Dependabot CI runs.
 
+### Fixed
+
+- Nextcloud synchronization and account import failing with a `LinkedHashMap` cast error after the
+  Gson update, by updating Nextcloud Single Sign-On to 1.3.5.
+
 ## [26.10.10] - 2026-10-30
 
 ### Added
