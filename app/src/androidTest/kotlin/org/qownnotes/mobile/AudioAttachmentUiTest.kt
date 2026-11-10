@@ -3,7 +3,7 @@ package org.qownnotes.mobile
 import android.view.InputDevice
 import android.view.MotionEvent
 import android.widget.TextView
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -30,6 +30,8 @@ import org.qownnotes.mobile.core.RemoteNote
 
 @RunWith(AndroidJUnit4::class)
 class AudioAttachmentUiTest {
+    // The v2 rule queues effect continuations. The legacy unconfined dispatcher can resume
+    // attachment loading on an IO worker and apply dialog changes off the Android main thread.
     @get:Rule val composeRule = createAndroidComposeRule<MainActivity>()
     private val application get() = composeRule.activity.application as TestQOwnNotesApplication
 
