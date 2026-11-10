@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_add_local_folder">Añadir carpeta local</string>
+    <string name="action_use_local_folder">Usar una carpeta local</string>
+    <string name="onboarding_or">o</string>
+    <string name="onboarding_local_folder_description">Guarda las notas como archivos Markdown en una carpeta de este dispositivo, por ejemplo una que Syncthing comparte con QOwnNotes de escritorio. No se necesita Nextcloud.</string>
+    <string name="local_folder_already_added">Esta carpeta ya se ha añadido</string>
+    <string name="local_folder_reconnect_different_folder">Selecciona la misma carpeta para volver a conectar</string>
+    <string name="local_folder_picker_unavailable">No hay ninguna app disponible para seleccionar una carpeta</string>
+    <string name="local_folder_default_name">Notas locales</string>
+    <string name="local_folder_internal_storage">Almacenamiento interno</string>
+    <string name="local_folder_on_device">Carpeta en este dispositivo</string>
+    <string name="remove_local_folder_message">%1$s se quitará de QOwnNotes en este dispositivo, junto con las notas de su papelera. Los archivos de notas de la carpeta no se eliminarán.</string>
+
+    <string name="local_folder_access_lost">QOwnNotes ya no puede acceder a esta carpeta. Vuelve a conectar para seleccionarla de nuevo.</string>
+    <string name="local_folder_storage_failure">No se pudo leer ni escribir la carpeta de notas</string>
+    <string name="local_folder_storage_failure_explanation">Los cambios locales siguen guardados en la app. Comprueba que el almacenamiento de la carpeta esté disponible y tenga espacio libre, y vuelve a sincronizar.</string>
+    <string name="local_folder_read_only_file">El archivo de la nota es de solo lectura</string>
+    <string name="local_folder_note_missing">El archivo de la nota ya no existe en la carpeta</string>
+    <string name="local_folder_tags_missing">La carpeta de notas no tiene notes.sqlite. Las etiquetas están disponibles cuando QOwnNotes de escritorio usa esta carpeta y su notes.sqlite se sincroniza con este dispositivo.</string>
+    <string name="local_folder_read_only_explanation">Puedes leer esta nota, pero su archivo no se puede cambiar. Puede estar protegido contra escritura o no guardado como texto UTF-8.</string>
+    <string name="local_folder_sync_state_missing">No está en la carpeta</string>
+
+    <string name="local_folder_delete_note_message">La nota desaparecerá de la lista ahora. Su archivo pasa de la carpeta a la papelera de esta app, donde se puede restaurar.</string>
+    <string name="local_folder_delete_notes_message">Las notas desaparecerán de la lista ahora. Sus archivos pasan de la carpeta a la papelera de esta app, donde se pueden restaurar.</string>
+    <string name="local_folder_trash_empty">La papelera está vacía.</string>
+    <string name="local_folder_trash_restore_message">El archivo de la nota se restaurará en su carpeta.</string>
+
+    <string name="local_folder_conflict_message">El archivo de la nota cambió en la carpeta después de tu edición local, por ejemplo mediante Syncthing. Carga la versión de la carpeta o conserva primero tu versión local como una nota nueva.</string>
+    <string name="local_folder_conflict_read_only_message">El archivo de la nota pasó a ser de solo lectura mientras tus cambios locales estaban pendientes. Carga la versión de la carpeta o conserva primero tu versión local como una nota nueva editable.</string>
+    <string name="local_folder_conflict_folder_version">Versión de la carpeta</string>
+    <string name="local_folder_conflict_use_folder">Usar versión de la carpeta</string>
+    <string name="local_folder_remote_missing_message">Este archivo de nota se eliminó de la carpeta mientras había cambios locales pendientes. Vuelve a crearlo como un archivo nuevo o descarta la versión local.</string>
+    <string name="local_folder_changes_safe_finish_editing">Tus cambios locales están a salvo en este dispositivo. Termina de editar para elegir cómo resolver el cambio en la carpeta.</string>
+</resources>

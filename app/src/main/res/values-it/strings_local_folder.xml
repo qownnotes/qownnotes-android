@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_add_local_folder">Aggiungi cartella locale</string>
+    <string name="action_use_local_folder">Usa una cartella locale</string>
+    <string name="onboarding_or">oppure</string>
+    <string name="onboarding_local_folder_description">Conserva le note come file Markdown in una cartella su questo dispositivo, ad esempio una che Syncthing condivide con QOwnNotes desktop. Nextcloud non è necessario.</string>
+    <string name="local_folder_already_added">Questa cartella è già stata aggiunta</string>
+    <string name="local_folder_reconnect_different_folder">Seleziona la stessa cartella per riconnetterti</string>
+    <string name="local_folder_picker_unavailable">Nessuna app disponibile per selezionare una cartella</string>
+    <string name="local_folder_default_name">Note locali</string>
+    <string name="local_folder_internal_storage">Memoria interna</string>
+    <string name="local_folder_on_device">Cartella su questo dispositivo</string>
+    <string name="remove_local_folder_message">%1$s verrà rimossa da QOwnNotes su questo dispositivo, insieme alle note nel suo cestino. I file delle note nella cartella non verranno eliminati.</string>
+
+    <string name="local_folder_access_lost">QOwnNotes non può più accedere a questa cartella. Riconnettiti per selezionarla di nuovo.</string>
+    <string name="local_folder_storage_failure">Impossibile leggere o scrivere la cartella delle note</string>
+    <string name="local_folder_storage_failure_explanation">Le modifiche locali restano salvate nell\'app. Verifica che la memoria che contiene la cartella sia disponibile e abbia spazio libero, poi riprova la sincronizzazione.</string>
+    <string name="local_folder_read_only_file">Il file della nota è di sola lettura</string>
+    <string name="local_folder_note_missing">Il file della nota non esiste più nella cartella</string>
+    <string name="local_folder_tags_missing">La cartella delle note non contiene notes.sqlite. Le etichette sono disponibili quando QOwnNotes desktop usa questa cartella e il suo notes.sqlite viene sincronizzato su questo dispositivo.</string>
+    <string name="local_folder_read_only_explanation">Puoi leggere questa nota, ma il suo file non può essere modificato. Potrebbe essere protetto da scrittura o non salvato come testo UTF-8.</string>
+    <string name="local_folder_sync_state_missing">Mancante nella cartella</string>
+
+    <string name="local_folder_delete_note_message">La nota scompare subito dall\'elenco. Il suo file viene spostato dalla cartella al cestino di questa app, da cui può essere ripristinato.</string>
+    <string name="local_folder_delete_notes_message">Le note scompaiono subito dall\'elenco. I loro file vengono spostati dalla cartella al cestino di questa app, da cui possono essere ripristinati.</string>
+    <string name="local_folder_trash_empty">Il cestino è vuoto.</string>
+    <string name="local_folder_trash_restore_message">Il file della nota verrà ripristinato nella sua cartella.</string>
+
+    <string name="local_folder_conflict_message">Il file della nota è cambiato nella cartella dopo la tua modifica locale, ad esempio tramite Syncthing. Carica la versione della cartella o conserva prima la tua versione locale come nuova nota.</string>
+    <string name="local_folder_conflict_read_only_message">Il file della nota è diventato di sola lettura mentre le tue modifiche locali erano in sospeso. Carica la versione della cartella o conserva prima la tua versione locale come nuova nota modificabile.</string>
+    <string name="local_folder_conflict_folder_version">Versione della cartella</string>
+    <string name="local_folder_conflict_use_folder">Usa la versione della cartella</string>
+    <string name="local_folder_remote_missing_message">Questo file di nota è stato eliminato dalla cartella mentre c\'erano modifiche locali in sospeso. Ricrealo come nuovo file o scarta la versione locale.</string>
+    <string name="local_folder_changes_safe_finish_editing">Le tue modifiche locali sono al sicuro su questo dispositivo. Termina la modifica per scegliere come risolvere il cambiamento nella cartella.</string>
+</resources>

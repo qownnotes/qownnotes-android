@@ -86,6 +86,7 @@ import androidx.compose.material.icons.filled.EditOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
@@ -205,6 +206,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
@@ -221,6 +223,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.BuildConfig
+import org.qownnotes.mobile.backend.localfolder.LocalFolderBackend
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteCategories
@@ -247,6 +250,8 @@ import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.core.attachmentApiPath
 import org.qownnotes.mobile.core.findTextMatches
+import org.qownnotes.mobile.core.isLocalFolder
+import org.qownnotes.mobile.core.isLocalFolderAccountId
 import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.core.parseBookmarksSource
 import org.qownnotes.mobile.core.resolveInternalNoteLink
@@ -266,10 +271,22 @@ import org.qownnotes.mobile.markdown.toggleTaskListItem
 
 class MainActivity : ComponentActivity() {
     private var reconnectAccountId: String? = null
+    private var reconnectFolderAccountId: String? = null
+    private val folderPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            val expectedAccountId = reconnectFolderAccountId
+            reconnectFolderAccountId = null
+            if (uri == null) {
+                applicationComponent().cancelAccountImport()
+            } else {
+                applicationComponent().launchLocalFolderImport(uri, expectedAccountId)
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         reconnectAccountId = savedInstanceState?.getString(RECONNECT_ACCOUNT_ID)
+        reconnectFolderAccountId = savedInstanceState?.getString(RECONNECT_FOLDER_ACCOUNT_ID)
         // A recreated activity is handed the intent it started with once more. Only a first start
         // carries a share that has not been accepted yet, so rotating the device or dying in the
         // background cannot turn one shared text into a second note.
@@ -278,6 +295,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             QOwnNotesApp(
                 onImportAccount = { importAccount() },
+                onAddLocalFolder = { pickLocalFolder() },
                 onReconnectAccount = ::reconnectAccount
             )
         }
@@ -295,6 +313,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString(RECONNECT_ACCOUNT_ID, reconnectAccountId)
+        outState.putString(RECONNECT_FOLDER_ACCOUNT_ID, reconnectFolderAccountId)
         super.onSaveInstanceState(outState)
     }
 
@@ -311,7 +330,32 @@ class MainActivity : ComponentActivity() {
             .onFailure(::handleImportFailure)
     }
 
-    private fun reconnectAccount(accountId: String) = importAccount(accountId)
+    private fun reconnectAccount(accountId: String) = if (isLocalFolderAccountId(accountId)) {
+        pickLocalFolder(accountId)
+    } else {
+        importAccount(accountId)
+    }
+
+    private fun pickLocalFolder(expectedAccountId: String? = null) {
+        reconnectFolderAccountId = expectedAccountId
+        applicationComponent().beginAccountImport()
+        lifecycleScope.launch {
+            // Reconnecting opens the picker at the folder the account used.
+            val initialFolder = expectedAccountId?.let { accountId ->
+                applicationComponent().accountRepository.get(accountId)?.localFolderUri
+            }?.let(android.net.Uri::parse)
+            runCatching { folderPicker.launch(initialFolder) }.onFailure { error ->
+                reconnectFolderAccountId = null
+                applicationComponent().reportImportError(
+                    if (error is android.content.ActivityNotFoundException) {
+                        IllegalStateException(getString(R.string.local_folder_picker_unavailable))
+                    } else {
+                        error
+                    }
+                )
+            }
+        }
+    }
 
     @Deprecated("Required by Nextcloud SSO 1.3.x")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -349,6 +393,7 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val RECONNECT_ACCOUNT_ID = "reconnectAccountId"
+        const val RECONNECT_FOLDER_ACCOUNT_ID = "reconnectFolderAccountId"
     }
 }
 
@@ -380,10 +425,19 @@ private sealed interface ArchiveLoadState<out T> {
 }
 
 @Composable
-fun QOwnNotesApp(onImportAccount: () -> Unit = {}, onReconnectAccount: (String) -> Unit = {}) {
+fun QOwnNotesApp(
+    onImportAccount: () -> Unit = {},
+    onAddLocalFolder: () -> Unit = {},
+    onReconnectAccount: (String) -> Unit = {}
+) {
     val application = LocalContext.current.applicationContext as QOwnNotesApplication
     QOwnNotesTheme {
-        NotesNavigation(application.component, onImportAccount, onReconnectAccount)
+        NotesNavigation(
+            application.component,
+            onImportAccount,
+            onAddLocalFolder,
+            onReconnectAccount
+        )
     }
 }
 
@@ -417,6 +471,7 @@ internal val UiDispatcher get() = Dispatchers.Main.immediate
 private fun NotesNavigation(
     component: ApplicationComponent,
     onImportAccount: () -> Unit,
+    onAddLocalFolder: () -> Unit,
     onReconnectAccount: (String) -> Unit
 ) {
     val accounts by component.accountRepository.observeAccounts()
@@ -582,13 +637,14 @@ private fun NotesNavigation(
             )
         }
     } else if (loadedAccounts.isEmpty()) {
-        AccountOnboarding(importState, pendingShare != null, onImportAccount)
+        AccountOnboarding(importState, pendingShare != null, onImportAccount, onAddLocalFolder)
     } else if (managingAccounts) {
         AccountManagementScreen(
             component = component,
             accounts = loadedAccounts,
             onBack = { managingAccounts = false },
             onImportAccount = onImportAccount,
+            onAddLocalFolder = onAddLocalFolder,
             onRemoveAccount = { accountId ->
                 scope.launch {
                     component.removeLocalData(accountId)
@@ -623,6 +679,7 @@ private fun NotesNavigation(
                 importState = importState,
                 onSelectAccount = { selectedAccountId = it },
                 onImportAccount = onImportAccount,
+                onAddLocalFolder = onAddLocalFolder,
                 onReconnectAccount = onReconnectAccount,
                 onManageAccounts = { managingAccounts = true },
                 onOpenBookmarks = { browsingBookmarks = true },
@@ -668,7 +725,8 @@ private fun LoadingScreen() {
 private fun AccountOnboarding(
     state: SyncUiState,
     sharedTextWaiting: Boolean,
-    onImportAccount: () -> Unit
+    onImportAccount: () -> Unit,
+    onAddLocalFolder: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -703,6 +761,34 @@ private fun AccountOnboarding(
         ) {
             Text(stringResource(R.string.action_add_nextcloud_account))
         }
+        // Nextcloud is the primary setup. A folder on the device is the alternative for notes
+        // that are shared with QOwnNotes desktop some other way, such as with Syncthing.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 16.dp)
+        ) {
+            HorizontalDivider(modifier = Modifier.weight(1f))
+            Text(
+                stringResource(R.string.onboarding_or),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+            HorizontalDivider(modifier = Modifier.weight(1f))
+        }
+        Text(
+            stringResource(R.string.onboarding_local_folder_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        OutlinedButton(
+            onClick = onAddLocalFolder,
+            enabled = state !is SyncUiState.Refreshing,
+            modifier = Modifier.testTag("add-local-folder")
+        ) {
+            IconLabel(Icons.Filled.Folder, stringResource(R.string.action_use_local_folder))
+        }
     }
 }
 
@@ -713,6 +799,7 @@ private fun AccountManagementScreen(
     accounts: List<Account>,
     onBack: () -> Unit,
     onImportAccount: () -> Unit,
+    onAddLocalFolder: () -> Unit,
     onRemoveAccount: (String) -> Unit
 ) {
     var settingsAccount by remember { mutableStateOf<Account?>(null) }
@@ -758,7 +845,7 @@ private fun AccountManagementScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(account.displayName, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                account.serverUrl,
+                                accountLocation(account),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -770,10 +857,12 @@ private fun AccountManagementScreen(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(
-                            onClick = { settingsAccount = account },
-                            modifier = Modifier.testTag("account-settings-${account.id}")
-                        ) { Text(stringResource(R.string.note_settings_title)) }
+                        if (component.supportsNoteSettings(account.id)) {
+                            TextButton(
+                                onClick = { settingsAccount = account },
+                                modifier = Modifier.testTag("account-settings-${account.id}")
+                            ) { Text(stringResource(R.string.note_settings_title)) }
+                        }
                         TextButton(
                             onClick = { removalAccount = account },
                             modifier = Modifier.testTag("remove-account-${account.id}")
@@ -786,6 +875,14 @@ private fun AccountManagementScreen(
                     onClick = onImportAccount,
                     modifier = Modifier.fillMaxWidth().testTag("add-managed-account")
                 ) { Text(stringResource(R.string.action_add_nextcloud_account)) }
+            }
+            item {
+                OutlinedButton(
+                    onClick = onAddLocalFolder,
+                    modifier = Modifier.fillMaxWidth().testTag("add-managed-local-folder")
+                ) {
+                    IconLabel(Icons.Filled.Folder, stringResource(R.string.action_add_local_folder))
+                }
             }
         }
     }
@@ -935,7 +1032,14 @@ private fun RemoveAccountDialog(account: Account, onDismiss: () -> Unit, onRemov
         title = { Text(stringResource(R.string.remove_account_title)) },
         text = {
             Text(
-                stringResource(R.string.remove_account_message, account.displayName)
+                stringResource(
+                    if (account.isLocalFolder) {
+                        R.string.remove_local_folder_message
+                    } else {
+                        R.string.remove_account_message
+                    },
+                    account.displayName
+                )
             )
         },
         confirmButton = {
@@ -962,6 +1066,7 @@ private fun NoteListScreen(
     importState: SyncUiState,
     onSelectAccount: (String) -> Unit,
     onImportAccount: () -> Unit,
+    onAddLocalFolder: () -> Unit,
     onReconnectAccount: (String) -> Unit,
     onManageAccounts: () -> Unit,
     onOpenBookmarks: () -> Unit,
@@ -1003,7 +1108,7 @@ private fun NoteListScreen(
     // Without subfolders the account behaves like a QOwnNotes note folder with subfolders turned
     // off: only root notes are listed and created. The remembered folder is kept for later.
     val folderScope = if (useSubfolders) storedFolderScope else NoteFolderScope()
-    val nestedFolders = component.nestedFolders
+    val nestedFolders = component.nestedFolders(accountId)
     // Expanded folder keys; the selected folder's ancestors start expanded so it is visible.
     var expandedFolders by rememberSaveable(accountId) {
         mutableStateOf(
@@ -1356,7 +1461,11 @@ private fun NoteListScreen(
                                         )
                                         DropdownMenuItem(
                                             text = {
-                                                Text(stringResource(R.string.action_add_account))
+                                                Text(
+                                                    stringResource(
+                                                        R.string.action_add_nextcloud_account
+                                                    )
+                                                )
                                             },
                                             leadingIcon = {
                                                 Icon(
@@ -1370,6 +1479,21 @@ private fun NoteListScreen(
                                                 onImportAccount()
                                             },
                                             modifier = Modifier.testTag("add-account")
+                                        )
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    stringResource(R.string.action_add_local_folder)
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.Folder, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                accountMenuOpen = false
+                                                onAddLocalFolder()
+                                            },
+                                            modifier = Modifier.testTag("add-local-folder-menu")
                                         )
                                         DropdownMenuItem(
                                             text = {
@@ -1815,7 +1939,11 @@ private fun NoteListScreen(
                 modifier = Modifier.fillMaxSize().padding(padding).testTag("pull-to-refresh")
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    SyncStatus(syncState, reconnect = { onReconnectAccount(accountId) })
+                    SyncStatus(
+                        syncState,
+                        localFolder = isLocalFolderAccountId(accountId),
+                        reconnect = { onReconnectAccount(accountId) }
+                    )
                     LazyColumn(
                         state = noteListState,
                         modifier = Modifier.weight(1f).testTag("note-list")
@@ -2247,7 +2375,15 @@ private fun NoteListScreen(
             title = {
                 Text(pluralStringResource(R.plurals.delete_notes_title, ids.size, ids.size))
             },
-            text = { Text(stringResource(R.string.delete_notes_message)) },
+            text = {
+                Text(
+                    backendText(
+                        accountId,
+                        R.string.delete_notes_message,
+                        R.string.local_folder_delete_notes_message
+                    )
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -2338,21 +2474,22 @@ private fun NoteListScreen(
         when (val state = trashState) {
             ArchiveLoadState.Idle -> Unit
             ArchiveLoadState.Loading -> ArchiveLoadingDialog(
-                title = stringResource(R.string.remote_trash),
+                title = backendText(accountId, R.string.remote_trash, R.string.trash),
                 onDismiss = {
                     trashRequestId++
                     trashState = ArchiveLoadState.Idle
                 }
             )
             is ArchiveLoadState.Failed -> ArchiveErrorDialog(
-                title = stringResource(R.string.remote_trash),
+                title = backendText(accountId, R.string.remote_trash, R.string.trash),
                 message = state.message,
                 onDismiss = { trashState = ArchiveLoadState.Idle }
             )
             is ArchiveLoadState.Loaded -> TrashedNotesDialog(
                 notes = state.items,
                 onDismiss = { trashState = ArchiveLoadState.Idle },
-                onRestore = { trashToRestore = it }
+                onRestore = { trashToRestore = it },
+                localFolder = isLocalFolderAccountId(accountId)
             )
         }
     }
@@ -2361,7 +2498,15 @@ private fun NoteListScreen(
             onDismissRequest = { trashToRestore = null },
             icon = { Icon(Icons.Filled.RestoreFromTrash, contentDescription = null) },
             title = { Text(stringResource(R.string.trash_restore_title, trashed.name)) },
-            text = { Text(stringResource(R.string.trash_restore_message)) },
+            text = {
+                Text(
+                    backendText(
+                        accountId,
+                        R.string.trash_restore_message,
+                        R.string.local_folder_trash_restore_message
+                    )
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -2771,7 +2916,20 @@ private fun AccountAvatar(
     val avatarModifier = modifier.size(40.dp).clip(CircleShape)
         .testTag("account-avatar-${account.id}")
     val bitmap = avatar
-    if (bitmap != null) {
+    if (account.isLocalFolder) {
+        Box(
+            modifier = avatarModifier.background(MaterialTheme.colorScheme.secondaryContainer)
+                .clearAndSetSemantics { contentDescription = description },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Filled.Folder,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+    } else if (bitmap != null) {
         Image(
             bitmap = bitmap.asImageBitmap(),
             contentDescription = description,
@@ -2794,7 +2952,7 @@ private fun AccountAvatar(
 }
 
 @Composable
-private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
+private fun SyncStatus(state: SyncUiState, localFolder: Boolean, reconnect: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
             .testTag("sync-status"),
@@ -2812,11 +2970,16 @@ private fun SyncStatus(state: SyncUiState, reconnect: () -> Unit) {
             is SyncUiState.Failed -> ExpandableSyncError(
                 message = state.message,
                 technicalDetails = state.diagnostic,
+                localFolder = localFolder,
                 testTag = "account-sync-error",
                 modifier = Modifier.weight(1f)
             )
-            is SyncUiState.AuthenticationRequired ->
-                Text(state.message, color = MaterialTheme.colorScheme.error)
+            is SyncUiState.AuthenticationRequired -> Text(
+                localFolderSyncMessage(state.message, localFolder)?.let { stringResource(it) }
+                    ?: state.message,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f, fill = false)
+            )
             is SyncUiState.AccountRemoved ->
                 Text(state.message, color = MaterialTheme.colorScheme.error)
         }
@@ -2952,7 +3115,7 @@ private fun NoteDetailScreen(
     var linkDialogTitle by rememberSaveable(localId) { mutableStateOf("") }
     var importingImage by remember(localId) { mutableStateOf(false) }
     val nextcloudDeckFlow = remember(note?.accountId) {
-        note?.accountId?.takeIf { component.supportsNextcloudDeck }
+        note?.accountId?.takeIf(component::supportsNextcloudDeck)
             ?.let(component::nextcloudDeckAvailable)
             ?: flowOf(false)
     }
@@ -3556,7 +3719,9 @@ private fun NoteDetailScreen(
                                             modifier = Modifier.testTag("note-information")
                                         )
                                     }
-                                    if (current?.remoteId != null) {
+                                    if (current?.remoteId != null &&
+                                        component.supportsNoteVersions(current.accountId)
+                                    ) {
                                         DropdownMenuItem(
                                             text = {
                                                 Text(stringResource(R.string.note_menu_versions))
@@ -3575,7 +3740,7 @@ private fun NoteDetailScreen(
                                         )
                                     }
                                     if (current?.remoteId != null &&
-                                        component.supportsNoteSharing
+                                        component.supportsNoteSharing(current.accountId)
                                     ) {
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.share_note)) },
@@ -3757,13 +3922,17 @@ private fun NoteDetailScreen(
                     ExpandableSyncError(
                         message = message,
                         technicalDetails = noteSyncDiagnostics[localId],
+                        localFolder = note?.accountId?.let(::isLocalFolderAccountId) == true,
                         testTag = "note-sync-error",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         panel = true,
                         detail = when {
                             conflicted -> stringResource(R.string.local_changes_safe)
-                            note?.syncState == SyncState.REMOTE_MISSING ->
-                                stringResource(R.string.local_changes_safe_finish_editing)
+                            note?.syncState == SyncState.REMOTE_MISSING -> backendText(
+                                note?.accountId,
+                                R.string.local_changes_safe_finish_editing,
+                                R.string.local_folder_changes_safe_finish_editing
+                            )
                             else -> null
                         },
                         actions = if (conflicted) {
@@ -4058,6 +4227,7 @@ private fun NoteDetailScreen(
                     ExpandableSyncError(
                         message = message,
                         technicalDetails = noteSyncDiagnostics[localId],
+                        localFolder = note?.accountId?.let(::isLocalFolderAccountId) == true,
                         testTag = "note-sync-error",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         panel = true,
@@ -4094,7 +4264,11 @@ private fun NoteDetailScreen(
                     NoteStatusPanel(
                         icon = Icons.Filled.Lock,
                         message = stringResource(R.string.read_only),
-                        detail = stringResource(R.string.read_only_explanation),
+                        detail = backendText(
+                            note?.accountId,
+                            R.string.read_only_explanation,
+                            R.string.local_folder_read_only_explanation
+                        ),
                         tone = NoteStatusTone.INFO,
                         messageTestTag = "note-read-only",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -4144,7 +4318,7 @@ private fun NoteDetailScreen(
                                     pendingHeading,
                                     loadImages,
                                     source?.remoteId,
-                                    account?.ssoAccountName
+                                    account?.attachmentAccountName()
                                 )
                             if (renderedNote.needsRendering(view, renderKey)) {
                                 component.markdownRenderer.render(
@@ -4259,7 +4433,7 @@ private fun NoteDetailScreen(
                                     },
                                     loadRemoteImages = loadImages,
                                     remoteId = source?.remoteId,
-                                    accountName = account?.ssoAccountName.orEmpty(),
+                                    accountName = account?.attachmentAccountName().orEmpty(),
                                     category = source?.category.orEmpty(),
                                     attachmentApiPath = account?.attachmentApiPath()
                                         ?: "/index.php/apps/notes/api/v1.4/attachment/",
@@ -4378,7 +4552,11 @@ private fun NoteDetailScreen(
             title = { Text(stringResource(R.string.delete_note_title)) },
             text = {
                 Text(
-                    stringResource(R.string.delete_note_message)
+                    backendText(
+                        note?.accountId,
+                        R.string.delete_note_message,
+                        R.string.local_folder_delete_note_message
+                    )
                 )
             },
             confirmButton = {
@@ -4419,13 +4597,19 @@ private fun NoteDetailScreen(
                     modifier = Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState())
                 ) {
                     Text(
-                        stringResource(
-                            if (note?.syncState == SyncState.READ_ONLY_CONFLICT) {
-                                R.string.conflict_read_only_message
-                            } else {
-                                R.string.conflict_message
-                            }
-                        )
+                        if (note?.syncState == SyncState.READ_ONLY_CONFLICT) {
+                            backendText(
+                                note?.accountId,
+                                R.string.conflict_read_only_message,
+                                R.string.local_folder_conflict_read_only_message
+                            )
+                        } else {
+                            backendText(
+                                note?.accountId,
+                                R.string.conflict_message,
+                                R.string.local_folder_conflict_message
+                            )
+                        }
                     )
                     conflictResolutionError?.let {
                         DialogErrorPanel(message = it, messageTag = "conflict-resolution-error")
@@ -4443,7 +4627,11 @@ private fun NoteDetailScreen(
                                         Modifier.weight(1f).testTag("conflict-local-version")
                                     )
                                     ConflictVersionCard(
-                                        stringResource(R.string.conflict_server_version),
+                                        backendText(
+                                            note?.accountId,
+                                            R.string.conflict_server_version,
+                                            R.string.local_folder_conflict_folder_version
+                                        ),
                                         conflict.remote,
                                         Modifier.weight(1f).testTag("conflict-server-version")
                                     )
@@ -4456,7 +4644,11 @@ private fun NoteDetailScreen(
                                         Modifier.testTag("conflict-local-version")
                                     )
                                     ConflictVersionCard(
-                                        stringResource(R.string.conflict_server_version),
+                                        backendText(
+                                            note?.accountId,
+                                            R.string.conflict_server_version,
+                                            R.string.local_folder_conflict_folder_version
+                                        ),
                                         conflict.remote,
                                         Modifier.testTag("conflict-server-version")
                                     )
@@ -4520,8 +4712,16 @@ private fun NoteDetailScreen(
                                     .testTag("use-server-conflict-version")
                             ) {
                                 IconLabel(
-                                    Icons.Filled.CloudDownload,
-                                    stringResource(R.string.conflict_use_server)
+                                    if (note?.accountId?.let(::isLocalFolderAccountId) == true) {
+                                        Icons.Filled.FolderOpen
+                                    } else {
+                                        Icons.Filled.CloudDownload
+                                    },
+                                    backendText(
+                                        note?.accountId,
+                                        R.string.conflict_use_server,
+                                        R.string.local_folder_conflict_use_folder
+                                    )
                                 )
                             }
                         }
@@ -4546,7 +4746,11 @@ private fun NoteDetailScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        stringResource(R.string.remote_missing_message)
+                        backendText(
+                            note?.accountId,
+                            R.string.remote_missing_message,
+                            R.string.local_folder_remote_missing_message
+                        )
                     )
                     remoteMissingResolutionError?.let {
                         DialogErrorPanel(
@@ -4714,7 +4918,7 @@ private fun NoteDetailScreen(
                 folders = remember(accountNotes) {
                     NoteFolders.tree(
                         accountNotes.map(NoteListItem::category),
-                        component.nestedFolders
+                        component.nestedFolders(current.accountId)
                     ).flatten()
                 },
                 onDismiss = {
@@ -4896,7 +5100,9 @@ private fun NoteInformationDialog(note: Note, account: Account?, onDismiss: () -
                     }
                     NoteInformationRow(
                         stringResource(R.string.note_info_synchronization),
-                        stringResource(note.syncState.displayNameRes())
+                        stringResource(
+                            note.syncState.displayNameRes(isLocalFolderAccountId(note.accountId))
+                        )
                     )
                     NoteInformationRow(
                         stringResource(R.string.note_info_access),
@@ -4948,14 +5154,18 @@ private fun NoteInformationRow(label: String, value: String) {
 }
 
 @StringRes
-private fun SyncState.displayNameRes(): Int = when (this) {
+private fun SyncState.displayNameRes(localFolder: Boolean): Int = when (this) {
     SyncState.SYNCHRONIZED -> R.string.sync_state_synchronized
     SyncState.LOCALLY_CREATED -> R.string.sync_state_locally_created
     SyncState.LOCALLY_MODIFIED -> R.string.sync_state_locally_modified
     SyncState.PENDING_DELETION -> R.string.sync_state_pending_deletion
     SyncState.SYNCHRONIZING -> R.string.sync_state_synchronizing
     SyncState.CONFLICT -> R.string.sync_state_conflict
-    SyncState.REMOTE_MISSING -> R.string.sync_state_remote_missing
+    SyncState.REMOTE_MISSING -> if (localFolder) {
+        R.string.local_folder_sync_state_missing
+    } else {
+        R.string.sync_state_remote_missing
+    }
     SyncState.READ_ONLY_CONFLICT -> R.string.sync_state_read_only_conflict
     SyncState.FAILED -> R.string.sync_state_failed
 }
@@ -5661,6 +5871,8 @@ private fun findMatchStatus(query: String, matchCount: Int, currentMatch: Int): 
 private fun ExpandableSyncError(
     message: String,
     technicalDetails: String? = null,
+    /** Whether the message came from a local folder, which has its own wording. */
+    localFolder: Boolean = false,
     testTag: String,
     modifier: Modifier = Modifier,
     /** Shows the error on a [NoteStatusPanel] with [detail] and [actions], as on the note screen. */
@@ -5669,11 +5881,20 @@ private fun ExpandableSyncError(
     actions: (@Composable RowScope.() -> Unit)? = null
 ) {
     val conflictMessage = when (message) {
-        "The note changed on the server" -> R.string.conflict_message
-        "The note became read-only while local changes were pending" ->
+        "The note changed on the server" -> if (localFolder) {
+            R.string.local_folder_conflict_message
+        } else {
+            R.string.conflict_message
+        }
+        "The note became read-only while local changes were pending" -> if (localFolder) {
+            R.string.local_folder_conflict_read_only_message
+        } else {
             R.string.conflict_read_only_message
+        }
+        LocalFolderBackend.CONFLICT_MESSAGE -> R.string.local_folder_conflict_message
         else -> null
     }
+    val localizedMessage = conflictMessage ?: localFolderSyncMessage(message, localFolder)
     // Conflicts have a recovery flow; exception diagnostics remain available in Settings.
     val diagnosticDetails = technicalDetails.takeIf { conflictMessage == null }
     val explanation = syncErrorExplanation(message)?.let { stringResource(it) }
@@ -5687,7 +5908,7 @@ private fun ExpandableSyncError(
             } else {
                 Icons.AutoMirrored.Filled.CallSplit
             },
-            message = conflictMessage?.let { stringResource(it) } ?: message,
+            message = localizedMessage?.let { stringResource(it) } ?: message,
             tone = NoteStatusTone.ERROR,
             messageTestTag = "$testTag-summary",
             detail = detail,
@@ -5711,7 +5932,7 @@ private fun ExpandableSyncError(
     } else {
         Column(modifier = modifier.testTag(testTag)) {
             Text(
-                conflictMessage?.let { stringResource(it) } ?: message,
+                localizedMessage?.let { stringResource(it) } ?: message,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.testTag("$testTag-summary")
             )
@@ -5791,9 +6012,22 @@ private fun ExpandableSyncError(
     }
 }
 
+/** The localized wording of a message that a local-folder account reported in English. */
+@StringRes
+internal fun localFolderSyncMessage(message: String, localFolder: Boolean): Int? = when {
+    message == LocalFolderBackend.FOLDER_ACCESS_MESSAGE -> R.string.local_folder_access_lost
+    message == LocalFolderBackend.STORAGE_FAILURE_MESSAGE -> R.string.local_folder_storage_failure
+    message == LocalFolderBackend.READ_ONLY_MESSAGE -> R.string.local_folder_read_only_file
+    message == LocalFolderBackend.NOTE_MISSING_MESSAGE -> R.string.local_folder_note_missing
+    localFolder && message == "The note no longer exists on the server" ->
+        R.string.local_folder_note_missing
+    else -> null
+}
+
 @StringRes
 private fun syncErrorExplanation(message: String): Int? = when (message) {
     "The server could not be reached" -> R.string.sync_error_server_unreachable_explanation
+    LocalFolderBackend.STORAGE_FAILURE_MESSAGE -> R.string.local_folder_storage_failure_explanation
     else -> null
 }
 

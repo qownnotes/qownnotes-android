@@ -338,6 +338,24 @@ class QOwnNotesDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationTenToElevenKeepsAccountsAsNextcloudAccounts() {
+        helper.createDatabase(DATABASE_NAME, 10).use { database ->
+            insertVersionSixConflict(database)
+        }
+        helper.runMigrationsAndValidate(DATABASE_NAME, 11, true, MIGRATION_10_11).use { database ->
+            assertConflictSnapshotPreserved(database)
+            database.query(
+                "SELECT serverUrl, ssoAccountName, localFolderUri FROM accounts WHERE id = 'account'"
+            ).use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("https://cloud.example", cursor.string("serverUrl"))
+                assertEquals("sso", cursor.string("ssoAccountName"))
+                assertNull(cursor.nullableString("localFolderUri"))
+            }
+        }
+    }
+
     private fun insertVersionSixConflict(database: androidx.sqlite.db.SupportSQLiteDatabase) {
         insertAccountAndNote(database)
         insertConflict(database, includeBase = false)

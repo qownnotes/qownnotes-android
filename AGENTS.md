@@ -3,9 +3,10 @@
 ## Project Summary
 
 QOwnNotes Mobile is an Android-first Kotlin application for reading, creating, editing, and
-synchronizing Markdown notes. It currently uses the Nextcloud Notes REST API and Nextcloud Android
-Single Sign-On. Room is the offline source of truth, and the architecture is intended to support a
-local-folder backend and a portable shared core later.
+synchronizing Markdown notes. Nextcloud is the primary backend, through the Nextcloud Notes REST API
+and Nextcloud Android Single Sign-On. A local folder on the device, such as one shared with
+QOwnNotes desktop through Syncthing, is a secondary account type (ADR 0007). Room is the offline
+source of truth, and the architecture is intended to support a portable shared core later.
 
 Read these documents before making architectural or product decisions:
 
@@ -33,6 +34,7 @@ The Gradle modules are declared in [`settings.gradle.kts`](settings.gradle.kts):
 | `core` | Portable models, contracts, naming policy, search policy, internal links, and encrypted-note detection | `Note.kt`, `Account.kt`, `Contracts.kt`, `NoteNaming.kt`, `MarkdownLinks.kt` |
 | `data` | Room entities, DAOs, repositories, migrations, pull application, and push result application | `QOwnNotesDatabase.kt`, `Entities.kt`, `RoomNoteRepository.kt`, `RoomAccountRepository.kt`, `RoomPushStore.kt` |
 | `backend-nextcloud` | Nextcloud SSO integration, capability negotiation, Notes API transport, DTOs, and HTTP error classification | `NextcloudBackend.kt` |
+| `backend-localfolder` | Local note folders through the Storage Access Framework, path-hash note IDs, content-hash ETags, private trash and favorites | `LocalFolderBackend.kt`, `DocumentTreeNoteFolderFiles.kt` |
 | `markdown-android` | Markwon rendering/editing, Android text widgets, safe images and links, syntax highlighting, selection, search highlights, and edit history | `MarkdownRenderer.kt`, `MarkdownEditor.kt`, `SelectableLinkMovementMethod.kt`, `TextEditHistory.kt` |
 | `notefolder-sqlite` | Validated reading and conservative writing of the QOwnNotes desktop `notes.sqlite` tag tables | `NoteFolderTagDatabase.kt` |
 
@@ -41,9 +43,12 @@ Keep these boundaries intact:
 - UI code observes repositories and calls application-level operations. It must not call Room DAOs,
   Retrofit APIs, SSO APIs, or document providers directly.
 - `core` must not depend on Android or backend-specific types. Put reusable policy there.
-- Keep Room details in `data`, Nextcloud protocol details in `backend-nextcloud`, and Android text
-  behavior in `markdown-android`. Only `notefolder-sqlite` opens desktop `notes.sqlite` files, and
-  only as private copies.
+- Route backend calls per account in `ApplicationComponent`. Nextcloud stays the primary path; a
+  local-folder change must not alter Nextcloud behavior, and server-only features stay hidden for
+  local folders.
+- Keep Room details in `data`, Nextcloud protocol details in `backend-nextcloud`, file access in
+  `backend-localfolder`, and Android text behavior in `markdown-android`. Only `notefolder-sqlite`
+  opens desktop `notes.sqlite` files, and only as private copies.
 - Prefer constructor injection and the existing `ApplicationComponent`; do not add a DI framework
   without a concrete need.
 

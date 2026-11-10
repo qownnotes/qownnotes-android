@@ -13,6 +13,7 @@ import androidx.work.WorkRequest
 import androidx.work.WorkerParameters
 import java.util.concurrent.TimeUnit
 import org.qownnotes.mobile.core.SyncOutcome
+import org.qownnotes.mobile.core.isLocalFolderAccountId
 
 interface SyncScheduler {
     fun schedule(accountId: String, delayMillis: Long = 0)
@@ -60,7 +61,14 @@ class WorkManagerSyncScheduler(context: Context) : SyncScheduler {
         internal fun syncRequest(accountId: String) = OneTimeWorkRequestBuilder<SyncWorker>()
             .setInputData(Data.Builder().putString(ACCOUNT_ID, accountId).build())
             .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                Constraints.Builder().setRequiredNetworkType(
+                    // A local folder is synchronized with the files on this device.
+                    if (isLocalFolderAccountId(accountId)) {
+                        NetworkType.NOT_REQUIRED
+                    } else {
+                        NetworkType.CONNECTED
+                    }
+                ).build()
             )
             .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,

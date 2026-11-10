@@ -29,7 +29,6 @@
     <string name="action_reset">Reset</string>
     <string name="action_clear">Clear</string>
     <string name="action_restore">Restore</string>
-    <string name="action_add_account">Add account</string>
     <string name="action_create_from_search">Create from search</string>
     <string name="action_new_note">New note</string>
     <string name="action_clear_selection">Clear selection</string>

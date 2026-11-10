@@ -29,7 +29,6 @@
     <string name="action_reset">重置</string>
     <string name="action_clear">清除</string>
     <string name="action_restore">恢复</string>
-    <string name="action_add_account">添加账号</string>
     <string name="action_create_from_search">根据搜索内容新建</string>
     <string name="action_new_note">新建笔记</string>
     <string name="action_clear_selection">取消选择</string>

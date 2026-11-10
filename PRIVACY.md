@@ -20,6 +20,13 @@ that account's local data but does not remove the Nextcloud account or delete it
 Browsing note versions and remote trash uses the selected Nextcloud server only when its optional
 QOwnNotesAPI app is installed.
 
+## Local Folders
+
+A local folder account reads and writes only the folder selected in the system folder picker. The
+app does not send its notes anywhere. Other apps that use the folder, such as a file synchronizer,
+handle its files according to their own policies. Deleted notes and favorites of a local folder are
+kept in local application storage until they are restored or the folder account is removed.
+
 ## Audio Notes
 
 Microphone access is requested only when recording an audio note. Recording stops when the

@@ -39,6 +39,7 @@ import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.TrashedNote
+import org.qownnotes.mobile.data.MIGRATION_10_11
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
@@ -67,7 +68,8 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
                     MIGRATION_6_7,
                     MIGRATION_7_8,
                     MIGRATION_8_9,
-                    MIGRATION_9_10
+                    MIGRATION_9_10,
+                    MIGRATION_10_11
                 )
                 .addCallback(QOwnNotesDatabase.CALLBACK)
                 .allowMainThreadQueries()

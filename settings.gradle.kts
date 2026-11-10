@@ -21,6 +21,7 @@ include(
     ":core",
     ":data",
     ":backend-nextcloud",
+    ":backend-localfolder",
     ":markdown-android",
     ":notefolder-sqlite"
 )

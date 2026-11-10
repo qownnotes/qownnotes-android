@@ -110,7 +110,9 @@ private fun searchTrash(
 internal fun TrashedNotesDialog(
     notes: List<TrashedNote>,
     onDismiss: () -> Unit,
-    onRestore: (TrashedNote) -> Unit
+    onRestore: (TrashedNote) -> Unit,
+    /** A local folder's trash is kept on this device rather than on a server. */
+    localFolder: Boolean = false
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var scope by rememberSaveable { mutableStateOf(NoteSearchScope.TITLE_AND_CONTENT) }
@@ -126,10 +128,17 @@ internal fun TrashedNotesDialog(
     val focusManager = LocalFocusManager.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.remote_trash)) },
+        title = {
+            Text(stringResource(if (localFolder) R.string.trash else R.string.remote_trash))
+        },
         text = {
             if (notes.isEmpty()) {
-                DialogEmptyState(Icons.Filled.DeleteOutline, stringResource(R.string.trash_empty))
+                DialogEmptyState(
+                    Icons.Filled.DeleteOutline,
+                    stringResource(
+                        if (localFolder) R.string.local_folder_trash_empty else R.string.trash_empty
+                    )
+                )
             } else {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),

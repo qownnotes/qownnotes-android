@@ -29,7 +29,6 @@
     <string name="action_reset">Réinitialiser</string>
     <string name="action_clear">Effacer</string>
     <string name="action_restore">Restaurer</string>
-    <string name="action_add_account">Ajouter un compte</string>
     <string name="action_create_from_search">Créer à partir de la recherche</string>
     <string name="action_new_note">Nouvelle note</string>
     <string name="action_clear_selection">Effacer la sélection</string>

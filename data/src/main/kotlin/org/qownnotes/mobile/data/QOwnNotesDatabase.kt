@@ -424,7 +424,7 @@ class DatabaseConverters {
         PendingTagOperationEntity::class,
         TagFileEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
@@ -660,6 +660,13 @@ val MIGRATION_7_8 =
                 )"""
             )
             db.execSQL(QOwnNotesDatabase.NOTE_TAG_RELINK_TRIGGER)
+        }
+    }
+
+val MIGRATION_10_11 =
+    object : Migration(10, 11) {
+        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE accounts ADD COLUMN localFolderUri TEXT")
         }
     }
 

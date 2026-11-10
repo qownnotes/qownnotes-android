@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_add_local_folder">Dodaj folder lokalny</string>
+    <string name="action_use_local_folder">Użyj folderu lokalnego</string>
+    <string name="onboarding_or">lub</string>
+    <string name="onboarding_local_folder_description">Przechowuj notatki jako pliki Markdown w folderze na tym urządzeniu, na przykład w takim, który Syncthing udostępnia QOwnNotes na komputerze. Nextcloud nie jest potrzebny.</string>
+    <string name="local_folder_already_added">Ten folder został już dodany</string>
+    <string name="local_folder_reconnect_different_folder">Wybierz ten sam folder, aby połączyć ponownie</string>
+    <string name="local_folder_picker_unavailable">Brak aplikacji do wyboru folderu</string>
+    <string name="local_folder_default_name">Notatki lokalne</string>
+    <string name="local_folder_internal_storage">Pamięć wewnętrzna</string>
+    <string name="local_folder_on_device">Folder na tym urządzeniu</string>
+    <string name="remove_local_folder_message">%1$s zostanie usunięty z QOwnNotes na tym urządzeniu razem z notatkami w jego koszu. Pliki notatek w folderze nie zostaną usunięte.</string>
+
+    <string name="local_folder_access_lost">QOwnNotes nie ma już dostępu do tego folderu. Połącz ponownie, aby go wybrać.</string>
+    <string name="local_folder_storage_failure">Nie udało się odczytać ani zapisać folderu notatek</string>
+    <string name="local_folder_storage_failure_explanation">Lokalne zmiany pozostają zapisane w aplikacji. Sprawdź, czy pamięć z folderem jest dostępna i ma wolne miejsce, a następnie ponów synchronizację.</string>
+    <string name="local_folder_read_only_file">Plik notatki jest tylko do odczytu</string>
+    <string name="local_folder_note_missing">Plik notatki nie istnieje już w folderze</string>
+    <string name="local_folder_tags_missing">Folder notatek nie zawiera pliku notes.sqlite. Tagi są dostępne, gdy QOwnNotes na komputerze używa tego folderu, a jego plik notes.sqlite jest synchronizowany z tym urządzeniem.</string>
+    <string name="local_folder_read_only_explanation">Możesz czytać tę notatkę, ale jej pliku nie można zmienić. Może być chroniony przed zapisem lub nie zapisany jako tekst UTF-8.</string>
+    <string name="local_folder_sync_state_missing">Brak w folderze</string>
+
+    <string name="local_folder_delete_note_message">Notatka zniknie teraz z listy. Jej plik zostanie przeniesiony z folderu do kosza tej aplikacji, skąd można go przywrócić.</string>
+    <string name="local_folder_delete_notes_message">Notatki znikną teraz z listy. Ich pliki zostaną przeniesione z folderu do kosza tej aplikacji, skąd można je przywrócić.</string>
+    <string name="local_folder_trash_empty">Kosz jest pusty.</string>
+    <string name="local_folder_trash_restore_message">Plik notatki zostanie przywrócony do swojego folderu.</string>
+
+    <string name="local_folder_conflict_message">Plik notatki zmienił się w folderze po Twojej lokalnej edycji, na przykład przez Syncthing. Wczytaj wersję z folderu lub najpierw zachowaj wersję lokalną jako nową notatkę.</string>
+    <string name="local_folder_conflict_read_only_message">Plik notatki stał się tylko do odczytu, gdy Twoje lokalne zmiany czekały na zapis. Wczytaj wersję z folderu lub najpierw zachowaj wersję lokalną jako nową edytowalną notatkę.</string>
+    <string name="local_folder_conflict_folder_version">Wersja z folderu</string>
+    <string name="local_folder_conflict_use_folder">Użyj wersji z folderu</string>
+    <string name="local_folder_remote_missing_message">Ten plik notatki został usunięty z folderu, gdy lokalne zmiany czekały na zapis. Utwórz go ponownie jako nowy plik lub odrzuć wersję lokalną.</string>
+    <string name="local_folder_changes_safe_finish_editing">Twoje lokalne zmiany są bezpieczne na tym urządzeniu. Zakończ edycję, aby wybrać, jak rozwiązać zmianę w folderze.</string>
+</resources>

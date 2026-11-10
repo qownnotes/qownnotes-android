@@ -29,7 +29,6 @@
     <string name="action_reset">Zurücksetzen</string>
     <string name="action_clear">Leeren</string>
     <string name="action_restore">Wiederherstellen</string>
-    <string name="action_add_account">Konto hinzufügen</string>
     <string name="action_create_from_search">Aus Suche erstellen</string>
     <string name="action_new_note">Neue Notiz</string>
     <string name="action_clear_selection">Auswahl aufheben</string>

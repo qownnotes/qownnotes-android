@@ -1071,8 +1071,9 @@ class AppLaunchTest {
         )
 
         composeRule.onNodeWithTag("account-menu").performClick()
-        composeRule.waitForText("Add account")
-        composeRule.onNodeWithText("Add account").assertIsDisplayed()
+        composeRule.waitForText("Add Nextcloud account")
+        composeRule.onNodeWithText("Add Nextcloud account").assertIsDisplayed()
+        composeRule.onNodeWithText("Add local folder").assertIsDisplayed()
         composeRule.onNodeWithText("Manage accounts").assertIsDisplayed()
         composeRule.onNodeWithText("Remove account").assertDoesNotExist()
         // A menu item merges its icon into itself, so the icon is only a node of its own in the
@@ -1080,10 +1081,14 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("add-account-icon", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag("manage-accounts-icon", useUnmergedTree = true).assertExists()
         val addBounds = composeRule.onNodeWithTag("add-account").fetchSemanticsNode().boundsInRoot
+        val addFolderBounds = composeRule.onNodeWithTag(
+            "add-local-folder-menu"
+        ).fetchSemanticsNode().boundsInRoot
         val manageBounds = composeRule.onNodeWithTag(
             "manage-accounts"
         ).fetchSemanticsNode().boundsInRoot
-        assertTrue(addBounds.bottom <= manageBounds.top)
+        assertTrue(addBounds.bottom <= addFolderBounds.top)
+        assertTrue(addFolderBounds.bottom <= manageBounds.top)
         composeRule.onNodeWithText("Settings").assertDoesNotExist()
         composeRule.onNodeWithText("About").assertDoesNotExist()
     }

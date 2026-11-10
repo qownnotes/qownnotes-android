@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_add_local_folder">Adicionar pasta local</string>
+    <string name="action_use_local_folder">Usar uma pasta local</string>
+    <string name="onboarding_or">ou</string>
+    <string name="onboarding_local_folder_description">Guarde as notas como arquivos Markdown em uma pasta deste dispositivo, por exemplo uma que o Syncthing compartilha com o QOwnNotes para desktop. O Nextcloud não é necessário.</string>
+    <string name="local_folder_already_added">Esta pasta já foi adicionada</string>
+    <string name="local_folder_reconnect_different_folder">Selecione a mesma pasta para reconectar</string>
+    <string name="local_folder_picker_unavailable">Nenhum app está disponível para selecionar uma pasta</string>
+    <string name="local_folder_default_name">Notas locais</string>
+    <string name="local_folder_internal_storage">Armazenamento interno</string>
+    <string name="local_folder_on_device">Pasta neste dispositivo</string>
+    <string name="remove_local_folder_message">%1$s será removida do QOwnNotes neste dispositivo, junto com as notas da lixeira dela. Os arquivos de notas na pasta não serão excluídos.</string>
+
+    <string name="local_folder_access_lost">O QOwnNotes não consegue mais acessar esta pasta. Reconecte para selecioná-la novamente.</string>
+    <string name="local_folder_storage_failure">Não foi possível ler ou gravar a pasta de notas</string>
+    <string name="local_folder_storage_failure_explanation">As edições locais continuam salvas no app. Verifique se o armazenamento da pasta está disponível e tem espaço livre e tente sincronizar novamente.</string>
+    <string name="local_folder_read_only_file">O arquivo da nota é somente leitura</string>
+    <string name="local_folder_note_missing">O arquivo da nota não existe mais na pasta</string>
+    <string name="local_folder_tags_missing">A pasta de notas não tem notes.sqlite. As etiquetas ficam disponíveis quando o QOwnNotes para desktop usa esta pasta e o notes.sqlite dela é sincronizado com este dispositivo.</string>
+    <string name="local_folder_read_only_explanation">Você pode ler esta nota, mas o arquivo dela não pode ser alterado. Ele pode estar protegido contra gravação ou não estar salvo como texto UTF-8.</string>
+    <string name="local_folder_sync_state_missing">Ausente na pasta</string>
+
+    <string name="local_folder_delete_note_message">A nota desaparecerá da lista agora. O arquivo dela passa da pasta para a lixeira deste app, onde pode ser restaurado.</string>
+    <string name="local_folder_delete_notes_message">As notas desaparecerão da lista agora. Os arquivos delas passam da pasta para a lixeira deste app, onde podem ser restaurados.</string>
+    <string name="local_folder_trash_empty">A lixeira está vazia.</string>
+    <string name="local_folder_trash_restore_message">O arquivo da nota será restaurado na pasta dele.</string>
+
+    <string name="local_folder_conflict_message">O arquivo da nota mudou na pasta depois da sua edição local, por exemplo pelo Syncthing. Carregue a versão da pasta ou preserve primeiro sua versão local como uma nova nota.</string>
+    <string name="local_folder_conflict_read_only_message">O arquivo da nota ficou somente leitura enquanto suas alterações locais estavam pendentes. Carregue a versão da pasta ou preserve primeiro sua versão local como uma nova nota editável.</string>
+    <string name="local_folder_conflict_folder_version">Versão da pasta</string>
+    <string name="local_folder_conflict_use_folder">Usar versão da pasta</string>
+    <string name="local_folder_remote_missing_message">Este arquivo de nota foi excluído da pasta enquanto havia alterações locais pendentes. Recrie-o como um novo arquivo ou descarte a versão local.</string>
+    <string name="local_folder_changes_safe_finish_editing">Suas alterações locais estão seguras neste dispositivo. Termine a edição para escolher como resolver a alteração na pasta.</string>
+</resources>

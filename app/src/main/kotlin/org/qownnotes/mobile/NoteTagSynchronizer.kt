@@ -24,7 +24,8 @@ import org.qownnotes.mobile.notefolder.NoteFolderTagDatabase
 internal class NoteTagSynchronizer(
     private val store: NoteTagStore,
     private val backend: NoteTagFileBackend,
-    private val directory: File
+    private val directory: File,
+    private val missingMessage: String = MISSING_MESSAGE
 ) {
     suspend fun synchronize(account: Account) {
         try {
@@ -55,7 +56,7 @@ internal class NoteTagSynchronizer(
             val downloaded = when (val download = backend.downloadTagFile(account, etag)) {
                 NoteTagFileDownload.Missing -> {
                     cache.delete()
-                    store.markUnavailable(account.id, NoteTagAvailability.MISSING, MISSING_MESSAGE)
+                    store.markUnavailable(account.id, NoteTagAvailability.MISSING, missingMessage)
                     return
                 }
                 NoteTagFileDownload.NotModified -> false

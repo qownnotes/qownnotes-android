@@ -8,6 +8,7 @@ import com.nextcloud.android.sso.AccountImporter
 import com.nextcloud.android.sso.aidl.NextcloudRequest
 import com.nextcloud.android.sso.api.NextcloudAPI
 import com.nextcloud.android.sso.model.SingleSignOnAccount
+import java.io.ByteArrayInputStream
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
@@ -33,14 +34,20 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.qownnotes.mobile.backend.localfolder.DirectoryNoteFolderFiles
+import org.qownnotes.mobile.backend.localfolder.DocumentTreeNoteFolderFiles
+import org.qownnotes.mobile.backend.localfolder.LocalFolderBackend
+import org.qownnotes.mobile.backend.localfolder.NoteFolderFiles
 import org.qownnotes.mobile.backend.nextcloud.NextcloudBackend
 import org.qownnotes.mobile.core.Account
+import org.qownnotes.mobile.core.BackendCapabilities
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.DeckBoard
 import org.qownnotes.mobile.core.DeckCardDetails
 import org.qownnotes.mobile.core.DeckCardDraft
 import org.qownnotes.mobile.core.DeckCardLink
 import org.qownnotes.mobile.core.DeckStackTarget
+import org.qownnotes.mobile.core.LOCAL_FOLDER_ACCOUNT_ID_PREFIX
 import org.qownnotes.mobile.core.NextcloudDeck
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
@@ -60,6 +67,7 @@ import org.qownnotes.mobile.core.NoteTagFileBackend
 import org.qownnotes.mobile.core.NoteTagState
 import org.qownnotes.mobile.core.NoteTags
 import org.qownnotes.mobile.core.NoteWhitespace
+import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.SharedText
@@ -69,11 +77,14 @@ import org.qownnotes.mobile.core.SyncOutcome
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.core.attachmentApiPath
+import org.qownnotes.mobile.core.isLocalFolder
+import org.qownnotes.mobile.core.isLocalFolderAccountId
 import org.qownnotes.mobile.core.mediaImagePath
 import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.core.noteMediaPath
 import org.qownnotes.mobile.core.uniqueMediaImageFileName
 import org.qownnotes.mobile.core.withDiscoveredApi
+import org.qownnotes.mobile.data.MIGRATION_10_11
 import org.qownnotes.mobile.data.MIGRATION_1_2
 import org.qownnotes.mobile.data.MIGRATION_2_3
 import org.qownnotes.mobile.data.MIGRATION_3_4
@@ -129,7 +140,8 @@ class ApplicationComponent(
                 MIGRATION_6_7,
                 MIGRATION_7_8,
                 MIGRATION_8_9,
-                MIGRATION_9_10
+                MIGRATION_9_10,
+                MIGRATION_10_11
             )
             .addCallback(QOwnNotesDatabase.CALLBACK)
             .build(),
@@ -140,10 +152,15 @@ class ApplicationComponent(
     private val tagFileBackend: NoteTagFileBackend? = backend as? NoteTagFileBackend,
     private val deckBackend: NoteDeckBackend? = backend as? NoteDeckBackend,
     private val shareBackend: NoteShareBackend? = backend as? NoteShareBackend,
+    private val localFolderBackend: LocalFolderBackend = LocalFolderBackend(
+        java.io.File(application.filesDir, "local-folders"),
+        { account -> localFolderFiles(application, account) }
+    ),
     val settings: AppSettings = AppSettings(application),
     private val syncScheduler: SyncScheduler = WorkManagerSyncScheduler(application),
     internal val draftCheckpointIntervalMillis: Long = 5_000,
-    avatarFetcher: suspend (Account) -> ByteArray? = { account ->
+    avatarFetcher: suspend (Account) -> ByteArray? = fetch@{ account ->
+        if (account.isLocalFolder) return@fetch null
         fetchAttachment(
             "/index.php/avatar/${android.net.Uri.encode(account.userId)}/128",
             account.ssoAccountName,
@@ -152,7 +169,11 @@ class ApplicationComponent(
     }
 ) {
     private val attachmentHttpClient = NextcloudAttachmentHttpClient { url, accountName ->
-        fetchAttachment(url, accountName, application)
+        if (accountName.startsWith(LOCAL_ATTACHMENT_ACCOUNT_PREFIX)) {
+            readLocalAttachment(url, accountName.removePrefix(LOCAL_ATTACHMENT_ACCOUNT_PREFIX))
+        } else {
+            fetchAttachment(url, accountName, application)
+        }
     }
     val noteRepository = RoomNoteRepository(database.noteDao())
     val accountRepository = RoomAccountRepository(database.accountDao())
@@ -174,6 +195,42 @@ class ApplicationComponent(
     private val tagSynchronizer = tagFileBackend?.let {
         NoteTagSynchronizer(noteTagRepository, it, java.io.File(application.filesDir, "note-tags"))
     }
+    private val localTagSynchronizer = NoteTagSynchronizer(
+        noteTagRepository,
+        localFolderBackend,
+        java.io.File(application.filesDir, "note-tags"),
+        missingMessage = application.getString(R.string.local_folder_tags_missing)
+    )
+
+    /**
+     * Sends each account's requests to the backend that holds its notes, so synchronization treats
+     * Nextcloud accounts and local folders alike.
+     */
+    private val accountBackend = object : NoteBackend {
+        override val capabilities: BackendCapabilities
+            get() = backend.capabilities
+
+        override suspend fun validateAccount(account: Account) =
+            backendFor(account).validateAccount(account)
+
+        override suspend fun discoverAccount(account: Account) =
+            backendFor(account).discoverAccount(account)
+
+        override suspend fun pull(account: Account, checkpoint: PullCheckpoint) =
+            backendFor(account).pull(account, checkpoint)
+
+        override suspend fun get(account: Account, remoteId: Long) =
+            backendFor(account).get(account, remoteId)
+
+        override suspend fun create(account: Account, note: Note) =
+            backendFor(account).create(account, note)
+
+        override suspend fun update(account: Account, note: Note) =
+            backendFor(account).update(account, note)
+
+        override suspend fun delete(account: Account, remoteId: Long) =
+            backendFor(account).delete(account, remoteId)
+    }
     private val syncDiagnosticRepository =
         RoomSyncDiagnosticRepository(database.syncDiagnosticDao())
     private val clock = Clock.systemDefaultZone()
@@ -192,7 +249,7 @@ class ApplicationComponent(
             noteRepository,
             pullStore,
             pushStore,
-            backend,
+            accountBackend,
             onNoteFailure = ::recordNoteSyncDiagnostic,
             onNoteSuccess = { localId ->
                 pendingCaptures.remove(localId)
@@ -201,10 +258,9 @@ class ApplicationComponent(
             synchronizeMedia = { account, note ->
                 val content = pendingCaptures.read(note.localId)
                 if (content != null) {
-                    val noteSettings = requireNoteSettingsBackend().settings(account)
-                    requireNoteMediaBackend().uploadMedia(
+                    requireNoteMediaBackend(account).uploadMedia(
                         account,
-                        noteSettings.notesPath,
+                        mediaNotesPath(account),
                         pendingCaptures.fileName(note.localId),
                         pendingCaptures.mimeType(note.localId),
                         content
@@ -212,7 +268,7 @@ class ApplicationComponent(
                     pendingCaptures.markUploaded(note.localId)
                 }
             },
-            synchronizeTags = { account -> tagSynchronizer?.synchronize(account) }
+            synchronizeTags = { account -> tagSynchronizerFor(account.id)?.synchronize(account) }
         )
 
     /**
@@ -341,6 +397,103 @@ class ApplicationComponent(
         return accountRepository.get(id) ?: account
     }
 
+    fun launchLocalFolderImport(folderUri: android.net.Uri, expectedAccountId: String? = null) {
+        applicationScope.launch {
+            try {
+                if (expectedAccountId == null) {
+                    addLocalFolder(folderUri)
+                } else {
+                    reconnectLocalFolder(expectedAccountId, folderUri)
+                }
+            } catch (error: CancellationException) {
+                cancelAccountImport()
+                throw error
+            } catch (error: Exception) {
+                reportImportError(error)
+            }
+        }
+    }
+
+    /**
+     * Adds a folder on this device as an account. Its notes are files, laid out like a QOwnNotes
+     * desktop note folder, so the folder can be shared with the desktop through any file
+     * synchronizer. Access is granted through the system folder picker and kept across restarts.
+     */
+    suspend fun addLocalFolder(folderUri: android.net.Uri): Account {
+        mutableImportState.value = SyncUiState.Refreshing
+        val uri = folderUri.toString()
+        require(accountRepository.observeAccounts().first().none { it.localFolderUri == uri }) {
+            application.getString(R.string.local_folder_already_added)
+        }
+        persistFolderAccess(folderUri)
+        val account = Account(
+            id = LOCAL_FOLDER_ACCOUNT_ID_PREFIX + UUID.randomUUID(),
+            displayName = localFolderName(folderUri),
+            serverUrl = "",
+            ssoAccountName = "",
+            userId = "",
+            localFolderUri = uri
+        )
+        try {
+            localFolderBackend.discoverAccount(account)
+        } catch (error: Exception) {
+            releaseFolderAccess(uri)
+            throw error
+        }
+        accountRepository.save(account)
+        mutableImportState.value = SyncUiState.Idle
+        updateSyncState(account.id, SyncUiState.Idle)
+        scheduleSync(account.id, 0)
+        return account
+    }
+
+    /** Restores access to a local folder after the grant was lost, for example after a restore. */
+    suspend fun reconnectLocalFolder(accountId: String, folderUri: android.net.Uri): Account {
+        mutableImportState.value = SyncUiState.Refreshing
+        return accountMutex(accountId).withLock {
+            val account = accountRepository.get(accountId)
+                ?: error(application.getString(R.string.account_no_longer_configured))
+            require(account.localFolderUri == folderUri.toString()) {
+                application.getString(R.string.local_folder_reconnect_different_folder)
+            }
+            persistFolderAccess(folderUri)
+            localFolderBackend.discoverAccount(account)
+            mutableImportState.value = SyncUiState.Idle
+            updateSyncState(accountId, SyncUiState.Idle)
+            refreshLocked(accountId)
+            accountRepository.get(accountId) ?: account
+        }
+    }
+
+    private fun persistFolderAccess(folderUri: android.net.Uri) {
+        if (folderUri.scheme != android.content.ContentResolver.SCHEME_CONTENT) return
+        application.contentResolver.takePersistableUriPermission(
+            folderUri,
+            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        )
+    }
+
+    private suspend fun releaseFolderAccess(uri: String) {
+        val folderUri = android.net.Uri.parse(uri)
+        if (folderUri.scheme != android.content.ContentResolver.SCHEME_CONTENT) return
+        if (accountRepository.observeAccounts().first().any { it.localFolderUri == uri }) return
+        runCatching {
+            application.contentResolver.releasePersistableUriPermission(
+                folderUri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        }
+    }
+
+    private fun localFolderName(folderUri: android.net.Uri): String =
+        if (folderUri.scheme == android.content.ContentResolver.SCHEME_CONTENT) {
+            DocumentTreeNoteFolderFiles.displayName(application.contentResolver, folderUri)
+        } else {
+            folderUri.lastPathSegment
+        } ?: application.getString(R.string.local_folder_default_name)
+
     suspend fun refresh(accountId: String) {
         accountMutex(accountId).withLock { refreshLocked(accountId) }
     }
@@ -375,7 +528,12 @@ class ApplicationComponent(
         accountMutex(accountId).withLock {
             val localNoteIds =
                 noteRepository.observeNotes(accountId).first().map { it.localId }
+            val folderUri = accountRepository.get(accountId)?.localFolderUri
             accountRepository.remove(accountId)
+            if (folderUri != null) {
+                localFolderBackend.forget(accountId)
+                releaseFolderAccess(folderUri)
+            }
             localNoteIds.forEach { pendingCaptures.remove(it) }
             editorDrafts.remove(localNoteIds)
             localNoteIds.forEach(editReservations::remove)
@@ -386,7 +544,7 @@ class ApplicationComponent(
             settings.removeBookmarksPath(accountId)
             settings.removeNextcloudDeck(accountId)
             deckChecks.remove(accountId)
-            tagSynchronizer?.forget(accountId)
+            tagSynchronizerFor(accountId)?.forget(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
             accountAvatars.remove(accountId)
@@ -396,7 +554,7 @@ class ApplicationComponent(
 
     suspend fun noteSettings(accountId: String): NoteSettings = accountMutex(accountId).withLock {
         val account = accountRepository.get(accountId) ?: error("The account no longer exists")
-        requireNoteSettingsBackend().settings(account)
+        requireNoteSettingsBackend(account).settings(account)
     }
 
     internal suspend fun importImage(localId: String, uri: android.net.Uri): ImportedImage {
@@ -407,10 +565,9 @@ class ApplicationComponent(
         return accountMutex(note.accountId).withLock {
             val account = accountRepository.get(note.accountId)
                 ?: error("The account no longer exists")
-            val settings = requireNoteSettingsBackend().settings(account)
-            val uploadedName = requireNoteMediaBackend().uploadMedia(
+            val uploadedName = requireNoteMediaBackend(account).uploadMedia(
                 account,
-                settings.notesPath,
+                mediaNotesPath(account),
                 fileName,
                 selected.mimeType,
                 selected.content
@@ -426,7 +583,7 @@ class ApplicationComponent(
         fileExtension: String
     ): NoteSettings = accountMutex(accountId).withLock {
         var account = accountRepository.get(accountId) ?: error("The account no longer exists")
-        val settingsBackend = requireNoteSettingsBackend()
+        val settingsBackend = requireNoteSettingsBackend(account)
         val current = settingsBackend.settings(account)
         val normalizedPath = notesPath.trim().trim('/')
         require(normalizedPath.isNotEmpty()) {
@@ -466,7 +623,7 @@ class ApplicationComponent(
                 pullStore.resetCollection(accountId)
                 // Another folder has its own notes.sqlite; tag changes for this one are void.
                 noteTagRepository.reset(accountId)
-                tagSynchronizer?.forget(accountId)
+                tagSynchronizerFor(accountId)?.forget(accountId)
                 editorDrafts.remove(it)
                 it.forEach(editReservations::remove)
                 mutableNoteSyncDiagnostics.update { diagnostics -> diagnostics - it }
@@ -506,9 +663,7 @@ class ApplicationComponent(
     suspend fun accountAvatar(account: Account) = accountAvatars.load(account)
 
     fun observeNoteTags(accountId: String): kotlinx.coroutines.flow.Flow<NoteTagState> =
-        if (tagSynchronizer ==
-            null
-        ) {
+        if (tagSynchronizerFor(accountId) == null) {
             flowOf(NoteTagState())
         } else {
             noteTagRepository.observe(accountId)
@@ -563,7 +718,7 @@ class ApplicationComponent(
         return attachmentOpener.fetch(
             remoteId,
             path,
-            account.ssoAccountName,
+            account.attachmentAccountName(),
             account.attachmentApiPath()
         )
     }
@@ -920,7 +1075,7 @@ class ApplicationComponent(
                 return@withLock null
             }
             val account = accountRepository.get(accountId) ?: return@withLock null
-            val remote = backend.get(account, requireNotNull(note.remoteId))
+            val remote = accountBackend.get(account, requireNotNull(note.remoteId))
             if (!pushStore.captureConflict(localId, note.localRevision, remote)) {
                 return@withLock null
             }
@@ -1040,7 +1195,7 @@ class ApplicationComponent(
         return accountMutex(accountId).withLock {
             val note = noteRepository.get(localId) ?: error("The note no longer exists")
             val account = accountRepository.get(accountId) ?: error("The account no longer exists")
-            requireArchiveBackend().versions(account, note)
+            requireArchiveBackend(account).versions(account, note)
         }
     }
 
@@ -1050,37 +1205,52 @@ class ApplicationComponent(
     suspend fun trashedNotes(accountId: String, categories: Set<String>): List<TrashedNote> =
         accountMutex(accountId).withLock {
             val account = accountRepository.get(accountId) ?: error("The account no longer exists")
-            requireArchiveBackend().trashedNotes(account, categories)
+            requireArchiveBackend(account).trashedNotes(account, categories)
         }
 
     suspend fun restoreTrashedNote(accountId: String, note: TrashedNote) {
         accountMutex(accountId).withLock {
             val account = accountRepository.get(accountId) ?: error("The account no longer exists")
-            requireArchiveBackend().restoreTrashedNote(account, note)
+            requireArchiveBackend(account).restoreTrashedNote(account, note)
             refreshLocked(accountId, propagateFailure = true)
         }
     }
 
-    /** Whether categories nest, so the note list can offer a folder tree. */
-    val nestedFolders: Boolean
-        get() = backend.capabilities.nestedCategories
+    /** Whether the account's categories nest, so the note list can offer a folder tree. */
+    fun nestedFolders(accountId: String): Boolean = if (isLocalFolderAccountId(accountId)) {
+        localFolderBackend.capabilities.nestedCategories
+    } else {
+        backend.capabilities.nestedCategories
+    }
 
     /** Whether the account backend can create Nextcloud Deck cards at all. */
-    val supportsNextcloudDeck: Boolean
-        get() = deckBackend != null
+    fun supportsNextcloudDeck(accountId: String): Boolean =
+        deckBackend != null && !isLocalFolderAccountId(accountId)
+
+    /** Whether the account keeps earlier versions of its notes. */
+    fun supportsNoteVersions(accountId: String): Boolean = !isLocalFolderAccountId(accountId)
+
+    /** Whether the account's server can change where its notes are stored. */
+    fun supportsNoteSettings(accountId: String): Boolean =
+        noteSettingsBackend != null && !isLocalFolderAccountId(accountId)
 
     /**
      * Whether the account's server supports Nextcloud Deck, as last detected. Starts from the
      * stored result so the editor can offer Deck offline; see [refreshDeckAvailability].
      */
     fun nextcloudDeckAvailable(accountId: String): StateFlow<Boolean> =
-        settings.nextcloudDeckAvailable(accountId)
+        if (supportsNextcloudDeck(accountId)) {
+            settings.nextcloudDeckAvailable(accountId)
+        } else {
+            MutableStateFlow(false).asStateFlow()
+        }
 
     /**
      * Asks the server once per application run whether it supports Deck and stores the answer.
      * A failed check, for example while offline, keeps the stored answer and is retried later.
      */
     suspend fun refreshDeckAvailability(accountId: String) {
+        if (!supportsNextcloudDeck(accountId)) return
         val backend = deckBackend ?: return
         if (!deckChecks.add(accountId)) return
         try {
@@ -1160,8 +1330,8 @@ class ApplicationComponent(
     }
 
     /** Whether the account backend can create public links to notes. */
-    val supportsNoteSharing: Boolean
-        get() = shareBackend != null
+    fun supportsNoteSharing(accountId: String): Boolean =
+        shareBackend != null && !isLocalFolderAccountId(accountId)
 
     // Like Deck requests, sharing requests never read or write note content, so they do not wait
     // for the account's synchronization lock.
@@ -1336,20 +1506,47 @@ class ApplicationComponent(
         val syncState: SyncState
     )
 
-    private fun requireArchiveBackend(): NoteArchiveBackend = archiveBackend
-        ?: throw BackendException.FeatureUnavailable(
-            application.getString(R.string.backend_no_archive)
-        )
+    private fun backendFor(account: Account): NoteBackend =
+        if (account.isLocalFolder) localFolderBackend else backend
 
-    private fun requireNoteSettingsBackend(): NoteSettingsBackend = noteSettingsBackend
-        ?: throw BackendException.FeatureUnavailable(
-            application.getString(R.string.backend_no_note_settings)
-        )
+    private fun tagSynchronizerFor(accountId: String): NoteTagSynchronizer? =
+        if (isLocalFolderAccountId(accountId)) localTagSynchronizer else tagSynchronizer
 
-    private fun requireNoteMediaBackend(): NoteMediaBackend = mediaBackend
-        ?: throw BackendException.FeatureUnavailable(
-            application.getString(R.string.backend_no_image_uploads)
-        )
+    /** Local folders keep media at their top level; a server keeps them below its notes path. */
+    private suspend fun mediaNotesPath(account: Account): String = if (account.isLocalFolder) {
+        ""
+    } else {
+        requireNoteSettingsBackend(
+            account
+        ).settings(account).notesPath
+    }
+
+    /** Reads an image or attachment that a local-folder note links to. Blocks. */
+    private fun readLocalAttachment(url: String, accountId: String): java.io.InputStream? {
+        val (remoteId, path) = parseAttachmentUrl(url) ?: return null
+        val account = kotlinx.coroutines.runBlocking { accountRepository.get(accountId) }
+            ?.takeIf(Account::isLocalFolder) ?: return null
+        return localFolderBackend.readAttachment(account, remoteId, path)
+            ?.let(::ByteArrayInputStream)
+    }
+
+    private fun requireArchiveBackend(account: Account): NoteArchiveBackend =
+        (if (account.isLocalFolder) localFolderBackend else archiveBackend)
+            ?: throw BackendException.FeatureUnavailable(
+                application.getString(R.string.backend_no_archive)
+            )
+
+    private fun requireNoteSettingsBackend(account: Account): NoteSettingsBackend =
+        noteSettingsBackend?.takeUnless { account.isLocalFolder }
+            ?: throw BackendException.FeatureUnavailable(
+                application.getString(R.string.backend_no_note_settings)
+            )
+
+    private fun requireNoteMediaBackend(account: Account): NoteMediaBackend =
+        (if (account.isLocalFolder) localFolderBackend else mediaBackend)
+            ?: throw BackendException.FeatureUnavailable(
+                application.getString(R.string.backend_no_image_uploads)
+            )
 
     private fun requireDeckBackend(): NoteDeckBackend = deckBackend
         ?: throw BackendException.FeatureUnavailable(
@@ -1360,6 +1557,34 @@ class ApplicationComponent(
         ?: throw BackendException.FeatureUnavailable(
             application.getString(R.string.backend_no_sharing)
         )
+}
+
+/** Marks an attachment request of a local-folder account, which the folder serves itself. */
+private const val LOCAL_ATTACHMENT_ACCOUNT_PREFIX = "local-folder-attachments:"
+
+/** The account name the Markdown renderer passes back when it loads one of the note's images. */
+internal fun Account.attachmentAccountName(): String =
+    if (isLocalFolder) LOCAL_ATTACHMENT_ACCOUNT_PREFIX + id else ssoAccountName
+
+/** Splits an attachment request URL into its note ID and the link inside the note. */
+internal fun parseAttachmentUrl(url: String): Pair<Long, String>? {
+    val path = url.substringBefore('?')
+    val remoteId = path.substringAfterLast('/').toLongOrNull() ?: return null
+    val link = url.substringAfter('?', "").split('&')
+        .firstOrNull { it.startsWith("path=") }
+        ?.removePrefix("path=")
+        ?.let { java.net.URLDecoder.decode(it, java.nio.charset.StandardCharsets.UTF_8.name()) }
+        ?: return null
+    return remoteId to link
+}
+
+private fun localFolderFiles(context: Context, account: Account): NoteFolderFiles {
+    val uri = android.net.Uri.parse(requireNotNull(account.localFolderUri))
+    return if (uri.scheme == android.content.ContentResolver.SCHEME_FILE) {
+        DirectoryNoteFolderFiles(java.io.File(requireNotNull(uri.path)))
+    } else {
+        DocumentTreeNoteFolderFiles(context.contentResolver, uri)
+    }
 }
 
 private fun SingleSignOnAccount.displayName(): String =

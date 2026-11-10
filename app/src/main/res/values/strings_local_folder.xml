@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Adding a local folder -->
+    <string name="action_add_local_folder">Add local folder</string>
+    <string name="action_use_local_folder">Use a local folder</string>
+    <string name="onboarding_or">or</string>
+    <string name="onboarding_local_folder_description">Keep notes as Markdown files in a folder on this device, for example one that Syncthing shares with QOwnNotes desktop. No Nextcloud is needed.</string>
+    <string name="local_folder_already_added">This folder has already been added</string>
+    <string name="local_folder_reconnect_different_folder">Select the same folder to reconnect</string>
+    <string name="local_folder_picker_unavailable">No app is available to select a folder</string>
+    <string name="local_folder_default_name">Local notes</string>
+    <string name="local_folder_internal_storage">Internal storage</string>
+    <string name="local_folder_on_device">Folder on this device</string>
+    <string name="remove_local_folder_message">%1$s will be removed from QOwnNotes on this device, together with the notes in its trash. The note files in the folder will not be deleted.</string>
+
+    <!-- Folder status and errors -->
+    <string name="local_folder_access_lost">QOwnNotes can no longer access this folder. Reconnect to select it again.</string>
+    <string name="local_folder_storage_failure">The note folder could not be read or written</string>
+    <string name="local_folder_storage_failure_explanation">Local edits remain saved in the app. Check that the storage holding the folder is available and has free space, then retry synchronization.</string>
+    <string name="local_folder_read_only_file">The note file is read-only</string>
+    <string name="local_folder_note_missing">The note file no longer exists in the folder</string>
+    <string name="local_folder_tags_missing">The note folder has no notes.sqlite. Tags are available when QOwnNotes desktop uses this folder and its notes.sqlite is synchronized to this device.</string>
+    <string name="local_folder_read_only_explanation">You can read this note, but its file cannot be changed. It may be write-protected or not saved as UTF-8 text.</string>
+    <string name="local_folder_sync_state_missing">Missing in folder</string>
+
+    <!-- Trash -->
+    <string name="local_folder_delete_note_message">The note will disappear from the list now. Its file moves from the folder to the trash of this app, where it can be restored.</string>
+    <string name="local_folder_delete_notes_message">The notes will disappear from the list now. Their files move from the folder to the trash of this app, where they can be restored.</string>
+    <string name="local_folder_trash_empty">The trash is empty.</string>
+    <string name="local_folder_trash_restore_message">The note file will be restored to its folder.</string>
+
+    <!-- Conflicts -->
+    <string name="local_folder_conflict_message">The note file changed in the folder after your local edit, for example through Syncthing. Load the folder version, or first preserve your local version as a new note.</string>
+    <string name="local_folder_conflict_read_only_message">The note file became read-only while your local changes were pending. Load the folder version, or first preserve your local version as a new writable note.</string>
+    <string name="local_folder_conflict_folder_version">Folder version</string>
+    <string name="local_folder_conflict_use_folder">Use folder version</string>
+    <string name="local_folder_remote_missing_message">This note file was deleted from the folder while local changes were pending. Recreate it as a new file, or discard the local version.</string>
+    <string name="local_folder_changes_safe_finish_editing">Your local changes are safe on this device. Finish editing to choose how to resolve the change in the folder.</string>
+</resources>

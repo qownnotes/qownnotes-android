@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_add_local_folder">Добавить локальную папку</string>
+    <string name="action_use_local_folder">Использовать локальную папку</string>
+    <string name="onboarding_or">или</string>
+    <string name="onboarding_local_folder_description">Храните заметки как файлы Markdown в папке на этом устройстве, например в папке, которую Syncthing синхронизирует с QOwnNotes на компьютере. Nextcloud не нужен.</string>
+    <string name="local_folder_already_added">Эта папка уже добавлена</string>
+    <string name="local_folder_reconnect_different_folder">Выберите ту же папку, чтобы переподключиться</string>
+    <string name="local_folder_picker_unavailable">Нет приложения для выбора папки</string>
+    <string name="local_folder_default_name">Локальные заметки</string>
+    <string name="local_folder_internal_storage">Внутренняя память</string>
+    <string name="local_folder_on_device">Папка на этом устройстве</string>
+    <string name="remove_local_folder_message">%1$s будет удалена из QOwnNotes на этом устройстве вместе с заметками в её корзине. Файлы заметок в папке не будут удалены.</string>
+
+    <string name="local_folder_access_lost">QOwnNotes больше не может получить доступ к этой папке. Переподключитесь, чтобы выбрать её снова.</string>
+    <string name="local_folder_storage_failure">Не удалось прочитать или записать папку заметок</string>
+    <string name="local_folder_storage_failure_explanation">Локальные изменения остаются сохранёнными в приложении. Убедитесь, что хранилище с папкой доступно и на нём есть свободное место, затем повторите синхронизацию.</string>
+    <string name="local_folder_read_only_file">Файл заметки доступен только для чтения</string>
+    <string name="local_folder_note_missing">Файл заметки больше не существует в папке</string>
+    <string name="local_folder_tags_missing">В папке заметок нет notes.sqlite. Теги доступны, когда QOwnNotes на компьютере использует эту папку и её notes.sqlite синхронизируется с этим устройством.</string>
+    <string name="local_folder_read_only_explanation">Вы можете читать эту заметку, но её файл нельзя изменить. Возможно, он защищён от записи или сохранён не в кодировке UTF-8.</string>
+    <string name="local_folder_sync_state_missing">Отсутствует в папке</string>
+
+    <string name="local_folder_delete_note_message">Заметка сразу исчезнет из списка. Её файл переместится из папки в корзину этого приложения, откуда его можно восстановить.</string>
+    <string name="local_folder_delete_notes_message">Заметки сразу исчезнут из списка. Их файлы переместятся из папки в корзину этого приложения, откуда их можно восстановить.</string>
+    <string name="local_folder_trash_empty">Корзина пуста.</string>
+    <string name="local_folder_trash_restore_message">Файл заметки будет восстановлен в его папку.</string>
+
+    <string name="local_folder_conflict_message">Файл заметки изменился в папке после вашего локального изменения, например через Syncthing. Загрузите версию из папки или сначала сохраните локальную версию как новую заметку.</string>
+    <string name="local_folder_conflict_read_only_message">Файл заметки стал доступен только для чтения, пока ваши локальные изменения ожидали сохранения. Загрузите версию из папки или сначала сохраните локальную версию как новую редактируемую заметку.</string>
+    <string name="local_folder_conflict_folder_version">Версия в папке</string>
+    <string name="local_folder_conflict_use_folder">Использовать версию из папки</string>
+    <string name="local_folder_remote_missing_message">Этот файл заметки был удалён из папки, пока локальные изменения ожидали сохранения. Создайте его заново как новый файл или отмените локальную версию.</string>
+    <string name="local_folder_changes_safe_finish_editing">Ваши локальные изменения в безопасности на этом устройстве. Завершите редактирование, чтобы выбрать, как разрешить изменение в папке.</string>
+</resources>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_add_local_folder">Lokalen Ordner hinzufügen</string>
+    <string name="action_use_local_folder">Lokalen Ordner verwenden</string>
+    <string name="onboarding_or">oder</string>
+    <string name="onboarding_local_folder_description">Notizen als Markdown-Dateien in einem Ordner auf diesem Gerät speichern, zum Beispiel in einem, den Syncthing mit QOwnNotes am Desktop teilt. Nextcloud wird nicht benötigt.</string>
+    <string name="local_folder_already_added">Dieser Ordner wurde bereits hinzugefügt</string>
+    <string name="local_folder_reconnect_different_folder">Wähle denselben Ordner, um die Verbindung wiederherzustellen</string>
+    <string name="local_folder_picker_unavailable">Keine App zum Auswählen eines Ordners verfügbar</string>
+    <string name="local_folder_default_name">Lokale Notizen</string>
+    <string name="local_folder_internal_storage">Interner Speicher</string>
+    <string name="local_folder_on_device">Ordner auf diesem Gerät</string>
+    <string name="remove_local_folder_message">%1$s wird zusammen mit den Notizen in seinem Papierkorb aus QOwnNotes auf diesem Gerät entfernt. Die Notizdateien im Ordner werden nicht gelöscht.</string>
+
+    <string name="local_folder_access_lost">QOwnNotes kann nicht mehr auf diesen Ordner zugreifen. Stelle die Verbindung wieder her, um ihn erneut auszuwählen.</string>
+    <string name="local_folder_storage_failure">Der Notizordner konnte nicht gelesen oder geschrieben werden</string>
+    <string name="local_folder_storage_failure_explanation">Lokale Änderungen bleiben in der App gespeichert. Prüfe, ob der Speicher mit dem Ordner verfügbar ist und freien Platz hat, und wiederhole dann die Synchronisierung.</string>
+    <string name="local_folder_read_only_file">Die Notizdatei ist schreibgeschützt</string>
+    <string name="local_folder_note_missing">Die Notizdatei existiert nicht mehr im Ordner</string>
+    <string name="local_folder_tags_missing">Der Notizordner enthält keine notes.sqlite. Tags sind verfügbar, wenn QOwnNotes am Desktop diesen Ordner verwendet und seine notes.sqlite auf dieses Gerät synchronisiert wird.</string>
+    <string name="local_folder_read_only_explanation">Du kannst diese Notiz lesen, aber ihre Datei kann nicht geändert werden. Sie ist möglicherweise schreibgeschützt oder nicht als UTF-8-Text gespeichert.</string>
+    <string name="local_folder_sync_state_missing">Fehlt im Ordner</string>
+
+    <string name="local_folder_delete_note_message">Die Notiz verschwindet jetzt aus der Liste. Ihre Datei wird aus dem Ordner in den Papierkorb dieser App verschoben, wo sie wiederhergestellt werden kann.</string>
+    <string name="local_folder_delete_notes_message">Die Notizen verschwinden jetzt aus der Liste. Ihre Dateien werden aus dem Ordner in den Papierkorb dieser App verschoben, wo sie wiederhergestellt werden können.</string>
+    <string name="local_folder_trash_empty">Der Papierkorb ist leer.</string>
+    <string name="local_folder_trash_restore_message">Die Notizdatei wird in ihrem Ordner wiederhergestellt.</string>
+
+    <string name="local_folder_conflict_message">Die Notizdatei hat sich nach deiner lokalen Änderung im Ordner geändert, zum Beispiel durch Syncthing. Lade die Ordnerversion oder sichere zuerst deine lokale Version als neue Notiz.</string>
+    <string name="local_folder_conflict_read_only_message">Die Notizdatei wurde schreibgeschützt, während deine lokalen Änderungen ausstanden. Lade die Ordnerversion oder sichere zuerst deine lokale Version als neue beschreibbare Notiz.</string>
+    <string name="local_folder_conflict_folder_version">Ordnerversion</string>
+    <string name="local_folder_conflict_use_folder">Ordnerversion verwenden</string>
+    <string name="local_folder_remote_missing_message">Diese Notizdatei wurde aus dem Ordner gelöscht, während lokale Änderungen ausstanden. Erstelle sie als neue Datei neu oder verwirf die lokale Version.</string>
+    <string name="local_folder_changes_safe_finish_editing">Deine lokalen Änderungen sind auf diesem Gerät sicher. Beende die Bearbeitung, um zu entscheiden, wie die Änderung im Ordner aufgelöst wird.</string>
+</resources>

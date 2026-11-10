@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_add_local_folder">添加本地文件夹</string>
+    <string name="action_use_local_folder">使用本地文件夹</string>
+    <string name="onboarding_or">或</string>
+    <string name="onboarding_local_folder_description">将笔记作为 Markdown 文件保存在此设备的文件夹中，例如由 Syncthing 与 QOwnNotes 桌面版共享的文件夹。无需 Nextcloud。</string>
+    <string name="local_folder_already_added">此文件夹已添加</string>
+    <string name="local_folder_reconnect_different_folder">请选择同一个文件夹以重新连接</string>
+    <string name="local_folder_picker_unavailable">没有可用于选择文件夹的应用</string>
+    <string name="local_folder_default_name">本地笔记</string>
+    <string name="local_folder_internal_storage">内部存储</string>
+    <string name="local_folder_on_device">此设备上的文件夹</string>
+    <string name="remove_local_folder_message">将从此设备上的 QOwnNotes 中移除 %1$s 及其回收站中的笔记。文件夹中的笔记文件不会被删除。</string>
+
+    <string name="local_folder_access_lost">QOwnNotes 无法再访问此文件夹。请重新连接以再次选择它。</string>
+    <string name="local_folder_storage_failure">无法读取或写入笔记文件夹</string>
+    <string name="local_folder_storage_failure_explanation">本地编辑仍保存在应用中。请检查存放该文件夹的存储是否可用且有可用空间，然后重试同步。</string>
+    <string name="local_folder_read_only_file">笔记文件为只读</string>
+    <string name="local_folder_note_missing">文件夹中已不存在该笔记文件</string>
+    <string name="local_folder_tags_missing">笔记文件夹中没有 notes.sqlite。当 QOwnNotes 桌面版使用此文件夹且其 notes.sqlite 同步到此设备时，即可使用标签。</string>
+    <string name="local_folder_read_only_explanation">你可以阅读此笔记，但无法更改其文件。该文件可能受写保护，或未以 UTF-8 文本保存。</string>
+    <string name="local_folder_sync_state_missing">文件夹中缺失</string>
+
+    <string name="local_folder_delete_note_message">笔记将立即从列表中消失。其文件会从文件夹移至此应用的回收站，可从中恢复。</string>
+    <string name="local_folder_delete_notes_message">笔记将立即从列表中消失。它们的文件会从文件夹移至此应用的回收站，可从中恢复。</string>
+    <string name="local_folder_trash_empty">回收站为空。</string>
+    <string name="local_folder_trash_restore_message">笔记文件将恢复到其所在文件夹。</string>
+
+    <string name="local_folder_conflict_message">在你本地编辑后，文件夹中的笔记文件发生了变化，例如通过 Syncthing。请加载文件夹版本，或先将本地版本保存为新笔记。</string>
+    <string name="local_folder_conflict_read_only_message">在你的本地更改待保存期间，笔记文件变为只读。请加载文件夹版本，或先将本地版本保存为新的可编辑笔记。</string>
+    <string name="local_folder_conflict_folder_version">文件夹版本</string>
+    <string name="local_folder_conflict_use_folder">使用文件夹版本</string>
+    <string name="local_folder_remote_missing_message">在本地更改待保存期间，此笔记文件已从文件夹中删除。请将其重新创建为新文件，或放弃本地版本。</string>
+    <string name="local_folder_changes_safe_finish_editing">你的本地更改在此设备上是安全的。完成编辑后即可选择如何处理文件夹中的更改。</string>
+</resources>

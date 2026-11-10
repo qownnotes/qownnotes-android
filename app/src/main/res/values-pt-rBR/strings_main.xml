@@ -29,7 +29,6 @@
     <string name="action_reset">Redefinir</string>
     <string name="action_clear">Limpar</string>
     <string name="action_restore">Restaurar</string>
-    <string name="action_add_account">Adicionar conta</string>
     <string name="action_create_from_search">Criar a partir da pesquisa</string>
     <string name="action_new_note">Nova nota</string>
     <string name="action_clear_selection">Limpar seleção</string>

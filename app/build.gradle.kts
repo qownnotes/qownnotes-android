@@ -97,6 +97,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":data"))
     implementation(project(":backend-nextcloud"))
+    implementation(project(":backend-localfolder"))
     implementation(project(":markdown-android"))
     implementation(project(":notefolder-sqlite"))
     implementation(platform(libs.androidx.compose.bom))

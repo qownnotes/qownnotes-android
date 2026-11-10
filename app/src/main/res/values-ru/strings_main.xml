@@ -29,7 +29,6 @@
     <string name="action_reset">Сбросить</string>
     <string name="action_clear">Очистить</string>
     <string name="action_restore">Восстановить</string>
-    <string name="action_add_account">Добавить аккаунт</string>
     <string name="action_create_from_search">Создать из поиска</string>
     <string name="action_new_note">Новая заметка</string>
     <string name="action_clear_selection">Снять выделение</string>

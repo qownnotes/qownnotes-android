@@ -11,8 +11,23 @@ data class Account(
     val lastModifiedEpochSeconds: Long = 0,
     val lastSyncError: String? = null,
     /** Discovered server-app API path; null preserves the legacy Notes endpoint. */
-    val apiBasePath: String? = null
+    val apiBasePath: String? = null,
+    /** The granted folder of a local-folder account; null for a Nextcloud account. */
+    val localFolderUri: String? = null
 )
+
+/** A local-folder account keeps its notes as files in a folder on this device. */
+val Account.isLocalFolder: Boolean
+    get() = localFolderUri != null
+
+/**
+ * Local-folder account identifiers carry this prefix, so code that only knows an account ID, such
+ * as the synchronization scheduler, can tell that the account needs no network.
+ */
+const val LOCAL_FOLDER_ACCOUNT_ID_PREFIX = "local-folder-"
+
+fun isLocalFolderAccountId(accountId: String): Boolean =
+    accountId.startsWith(LOCAL_FOLDER_ACCOUNT_ID_PREFIX)
 
 /** A different server app has independent collection ETags and incremental checkpoints. */
 fun Account.withDiscoveredApi(discovered: Account): Account = discovered.copy(
@@ -62,13 +77,16 @@ sealed class BackendException(message: String, cause: Throwable? = null) :
     class Authentication(cause: Throwable? = null) :
         BackendException("Authentication required", cause)
 
-    class AuthorizationRequired(cause: Throwable? = null) :
-        BackendException("Nextcloud account authorization required", cause)
+    class AuthorizationRequired(
+        cause: Throwable? = null,
+        message: String = "Nextcloud account authorization required"
+    ) : BackendException(message, cause)
 
     class AccountRemoved(cause: Throwable? = null) :
         BackendException("The Nextcloud account is no longer available", cause)
 
-    class Permission(cause: Throwable? = null) : BackendException("Permission denied", cause)
+    class Permission(cause: Throwable? = null, message: String = "Permission denied") :
+        BackendException(message, cause)
 
     class NotesAppMissing :
         BackendException(
@@ -79,19 +97,24 @@ sealed class BackendException(message: String, cause: Throwable? = null) :
     class UnsupportedApi(val versions: List<String>) :
         BackendException("Nextcloud Notes API 1.2 or newer is required")
 
-    class Retryable(cause: Throwable) : BackendException("The server could not be reached", cause)
+    class Retryable(cause: Throwable, message: String = "The server could not be reached") :
+        BackendException(message, cause)
 
     class FilesAppUnavailable(cause: Throwable) :
         BackendException("Can't reach Nextcloud Files. Open the Files app and retry sync.", cause)
 
-    class Conflict(cause: Throwable? = null) :
-        BackendException("The note changed on the server", cause)
+    class Conflict(cause: Throwable? = null, message: String = "The note changed on the server") :
+        BackendException(message, cause)
 
-    class RemoteMissing(cause: Throwable? = null) :
-        BackendException("The note no longer exists on the server", cause)
+    class RemoteMissing(
+        cause: Throwable? = null,
+        message: String = "The note no longer exists on the server"
+    ) : BackendException(message, cause)
 
-    class InsufficientStorage(cause: Throwable? = null) :
-        BackendException("The server does not have enough storage", cause)
+    class InsufficientStorage(
+        cause: Throwable? = null,
+        message: String = "The server does not have enough storage"
+    ) : BackendException(message, cause)
 
     class FeatureUnavailable(message: String) : BackendException(message)
 

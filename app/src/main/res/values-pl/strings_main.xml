@@ -29,7 +29,6 @@
     <string name="action_reset">Resetuj</string>
     <string name="action_clear">Wyczyść</string>
     <string name="action_restore">Przywróć</string>
-    <string name="action_add_account">Dodaj konto</string>
     <string name="action_create_from_search">Utwórz z wyszukiwania</string>
     <string name="action_new_note">Nowa notatka</string>
     <string name="action_clear_selection">Wyczyść zaznaczenie</string>

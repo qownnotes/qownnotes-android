@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_add_local_folder">Ajouter un dossier local</string>
+    <string name="action_use_local_folder">Utiliser un dossier local</string>
+    <string name="onboarding_or">ou</string>
+    <string name="onboarding_local_folder_description">Conservez les notes sous forme de fichiers Markdown dans un dossier de cet appareil, par exemple un dossier que Syncthing partage avec QOwnNotes pour ordinateur. Nextcloud n\'est pas nécessaire.</string>
+    <string name="local_folder_already_added">Ce dossier a déjà été ajouté</string>
+    <string name="local_folder_reconnect_different_folder">Sélectionnez le même dossier pour vous reconnecter</string>
+    <string name="local_folder_picker_unavailable">Aucune application n\'est disponible pour sélectionner un dossier</string>
+    <string name="local_folder_default_name">Notes locales</string>
+    <string name="local_folder_internal_storage">Stockage interne</string>
+    <string name="local_folder_on_device">Dossier sur cet appareil</string>
+    <string name="remove_local_folder_message">%1$s sera retiré de QOwnNotes sur cet appareil, ainsi que les notes de sa corbeille. Les fichiers de notes du dossier ne seront pas supprimés.</string>
+
+    <string name="local_folder_access_lost">QOwnNotes ne peut plus accéder à ce dossier. Reconnectez-vous pour le sélectionner à nouveau.</string>
+    <string name="local_folder_storage_failure">Le dossier de notes n\'a pas pu être lu ou écrit</string>
+    <string name="local_folder_storage_failure_explanation">Les modifications locales restent enregistrées dans l\'application. Vérifiez que le stockage contenant le dossier est disponible et dispose d\'espace libre, puis relancez la synchronisation.</string>
+    <string name="local_folder_read_only_file">Le fichier de la note est en lecture seule</string>
+    <string name="local_folder_note_missing">Le fichier de la note n\'existe plus dans le dossier</string>
+    <string name="local_folder_tags_missing">Le dossier de notes ne contient pas de notes.sqlite. Les étiquettes sont disponibles lorsque QOwnNotes pour ordinateur utilise ce dossier et que son notes.sqlite est synchronisé sur cet appareil.</string>
+    <string name="local_folder_read_only_explanation">Vous pouvez lire cette note, mais son fichier ne peut pas être modifié. Il est peut-être protégé en écriture ou n\'est pas enregistré en texte UTF-8.</string>
+    <string name="local_folder_sync_state_missing">Absente du dossier</string>
+
+    <string name="local_folder_delete_note_message">La note disparaît de la liste dès maintenant. Son fichier passe du dossier à la corbeille de cette application, d\'où il peut être restauré.</string>
+    <string name="local_folder_delete_notes_message">Les notes disparaissent de la liste dès maintenant. Leurs fichiers passent du dossier à la corbeille de cette application, d\'où ils peuvent être restaurés.</string>
+    <string name="local_folder_trash_empty">La corbeille est vide.</string>
+    <string name="local_folder_trash_restore_message">Le fichier de la note sera restauré dans son dossier.</string>
+
+    <string name="local_folder_conflict_message">Le fichier de la note a changé dans le dossier après votre modification locale, par exemple via Syncthing. Chargez la version du dossier ou conservez d\'abord votre version locale comme nouvelle note.</string>
+    <string name="local_folder_conflict_read_only_message">Le fichier de la note est passé en lecture seule alors que vos modifications locales étaient en attente. Chargez la version du dossier ou conservez d\'abord votre version locale comme nouvelle note modifiable.</string>
+    <string name="local_folder_conflict_folder_version">Version du dossier</string>
+    <string name="local_folder_conflict_use_folder">Utiliser la version du dossier</string>
+    <string name="local_folder_remote_missing_message">Ce fichier de note a été supprimé du dossier alors que des modifications locales étaient en attente. Recréez-le comme nouveau fichier ou abandonnez la version locale.</string>
+    <string name="local_folder_changes_safe_finish_editing">Vos modifications locales sont en sécurité sur cet appareil. Terminez la modification pour choisir comment résoudre le changement dans le dossier.</string>
+</resources>

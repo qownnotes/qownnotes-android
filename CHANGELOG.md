@@ -10,6 +10,14 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ### Added
 
+- Use a local folder without Nextcloud
+  ([#47](https://github.com/qownnotes/qownnotes-android/issues/47)). Choose **Use a local folder**
+  on the first screen, or **Add local folder** in the account menu or account management, to keep
+  notes as Markdown files in a folder laid out like a QOwnNotes desktop note folder, for example
+  one synchronized with Syncthing. Notes are edited offline, written to the files without a network
+  connection, and refreshed from changes made by other programs, which become conflicts instead of
+  being overwritten. Subfolders, images, attachments, audio notes, favorites, `notes.sqlite` tags,
+  and a restorable trash are supported. Nextcloud accounts are unchanged.
 - **Refresh when opening the app** setting, enabled by default. Opening or returning to the app
   refreshes only the active account, skips synchronization already in progress, and waits five
   minutes between attempts, including failed attempts. Manual refresh remains immediate.
@@ -19,6 +27,7 @@ zero-based increasing release counter within the month. See [the release guide](
 - Development and release deployment automatically prefer the sole ready USB-connected physical
   device, with a numbered device selector when the target is ambiguous and `ANDROID_SERIAL` overrides.
 - Update Gson and Android build, code-generation, formatting, and dependency-update tooling.
+- The account menu now says **Add Nextcloud account** next to the new **Add local folder** action.
 - Split CI device tests into three app shards and a separate library job, preserving independent
   reports and replacing full-suite retries with bounded runs. Avoid duplicate Dependabot CI runs.
 

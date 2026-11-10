@@ -1,6 +1,6 @@
 # QOwnNotes Mobile Application Plan
 
-Status: Phase 5 implemented; Phase 3–5 real-server verification remains open
+Status: Phase 5 and the Phase 6 local-folder backend implemented; Phase 3–5 real-server verification remains open
 Primary platform: Android
 Potential later platform: iOS
 Project location: Separate repository
@@ -10,7 +10,7 @@ Minimum Android version: Android 9 / API 28
 
 Implemented in the initial Phase 1 foundation:
 
-- Gradle multi-module project with `app`, `core`, `data`, `backend-nextcloud`, and `markdown-android` boundaries. `notefolder-sqlite` was added later for QOwnNotes note-folder databases.
+- Gradle multi-module project with `app`, `core`, `data`, `backend-nextcloud`, and `markdown-android` boundaries. `notefolder-sqlite` was added later for QOwnNotes note-folder databases, and `backend-localfolder` for local note folders.
 - Kotlin/JVM domain models and explicit repository, backend, synchronization, naming, and link-resolver contracts.
 - QOwnNotes-compatible default note naming and creation, including stable local identities and deterministic unit tests.
 - Room account/note schema, exported schema history, DAO, and Room-backed repository.
@@ -806,6 +806,7 @@ Extend `BackendCapabilities` with a `nestedCategories` flag beside the existing 
 ## Local-Folder Backend
 
 Add the local-only backend after the Nextcloud view, edit, create, and synchronization workflow is reliable.
+The implemented design is recorded in [ADR 0007](docs/architecture/0007-local-folder-backend.md).
 
 ### Android Storage Model
 
@@ -1308,6 +1309,25 @@ Sharing follows the QOwnNotes desktop `ShareDialog` and `CloudService::shareNote
 - Open: expiration date editing, labels, hiding downloads, and a share indicator in the note list.
 
 ### Phase 6: Local-Only Folder Backend
+
+Implemented as described in
+[ADR 0007](docs/architecture/0007-local-folder-backend.md): a local folder is an additional account
+type next to Nextcloud accounts, added from onboarding, the account menu, or account management.
+The `backend-localfolder` module implements the backend contracts on a Storage Access Framework
+folder, and the existing synchronization engine moves changes between Room and the files. It covers
+folder selection with persistent grants and reconnecting, `.md` and `.txt` indexing with subfolders
+as categories, create, edit, rename, move, and delete through the push queue, external changes on
+refresh with content-hash conflict detection, an app-private trash with restore, private favorites,
+local images and attachments, media uploads, and `notes.sqlite` tags. Server-only features are
+hidden for local folders, and server wording has local-folder variants.
+
+Open:
+
+- Per-folder settings such as the default file extension and additional note file extensions.
+- Detecting external changes while the app stays in the foreground, without a refresh.
+- Renames that only change letter case on case-insensitive storage.
+
+Original scope:
 
 - Add folder selection and persistent URI permissions.
 - Index Markdown and text files.

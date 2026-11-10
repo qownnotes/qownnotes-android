@@ -1,7 +1,8 @@
 # QOwnNotes Mobile
 
 QOwnNotes Mobile is an Android-first, offline-capable Markdown notes application. It preserves key
-QOwnNotes behavior while synchronizing through the Nextcloud Notes API.
+QOwnNotes behavior while synchronizing through the Nextcloud Notes API. Notes can also be kept in a
+local folder on the device, for example one shared with QOwnNotes desktop through Syncthing.
 
 QOwnNotes Mobile is free software licensed under the
 [GNU General Public License version 3 only](LICENSE). See the [privacy policy](PRIVACY.md) for how
@@ -14,6 +15,8 @@ local, Nextcloud, and remote-image data are handled.
 ## Features
 
 - Import one or more accounts from the Nextcloud Files Android app through Single Sign-On.
+- Use a folder on the device as an account without Nextcloud. Its Markdown files and subfolders
+  are notes and categories, laid out like a QOwnNotes desktop note folder.
 - Read, search, create, rename, edit, and delete notes while keeping Room as the offline source of
   truth.
 - Synchronize with Nextcloud Notes API 1.2 or newer using incremental pulls, ETags, conflict-safe
@@ -103,6 +106,25 @@ If a server note disappears while local edits are pending, the note remains on t
 be recreated as a new server note or discarded explicitly. If a note becomes read-only while local
 content changes are pending, the app can first preserve those changes as a new writable note before
 adopting the read-only server version.
+
+## Local Folder Setup
+
+Choose **Use a local folder** on the first screen, or **Add local folder** in the account menu or
+account management, and select a folder in the system folder picker. QOwnNotes Mobile keeps access
+to that folder only; it needs no storage permission. The folder can be the one QOwnNotes desktop
+uses, synchronized to the phone with Syncthing or another file synchronizer.
+
+- `.md` and `.txt` files are notes, subfolders are categories, and new notes are created as `.md`
+  files. Hidden files and folders and the top-level `media` and `attachments` folders hold no notes.
+- Images and attachments are read from and added to `media/` and `attachments/`, and tags use the
+  folder's `notes.sqlite` when QOwnNotes desktop created one.
+- Edits are saved in the app first and written to the files right after, without a network
+  connection. Refreshing, or opening the app, picks up files changed by other programs. If a file
+  changed in the folder while a local edit was pending, the note becomes a conflict instead of
+  overwriting the file.
+- Deleted notes move to the app's own trash, where they can be restored. Favorites are kept in the
+  app. Removing the folder account removes both from the device but never deletes note files.
+- Note versions, sharing, and Nextcloud Deck need a Nextcloud server and are not offered.
 
 ## NixOS Recipes
 
