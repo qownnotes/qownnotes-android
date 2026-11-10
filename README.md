@@ -149,14 +149,21 @@ Start it in one `devenv shell`:
 just start-emulator
 ```
 
-In another `devenv shell`, install and launch the development app. The recipe waits until
-Android's package manager is ready:
+In another `devenv shell`, install and launch the development app. Select the emulator from
+the device selector, or target it explicitly. The recipe waits until Android's package manager
+is ready:
 
 ```sh
 just deploy-dev
 ```
 
 `just run` is an alias for `just deploy-dev`.
+
+To target an emulator explicitly, use its serial from `adb devices -l`, for example:
+
+```sh
+ANDROID_SERIAL=emulator-5554 just deploy-dev
+```
 
 Stop the emulator when you are done. Other emulators and connected devices keep running:
 
@@ -188,6 +195,18 @@ Install and launch the development app:
 
 ```sh
 just deploy-dev
+```
+
+`deploy-dev`, `deploy-dev-signed`, and `deploy-release` automatically target the sole authorized
+USB-connected physical device, even when emulators or wireless devices are also connected. Otherwise, a numbered
+selector lists ready devices with their serials and model details. Enter a number to choose or `q`
+to cancel. Offline and unauthorized devices cannot be selected.
+
+Set `ANDROID_SERIAL` to override automatic selection. In non-interactive shells, it is required
+unless there is exactly one ready USB-connected physical device:
+
+```sh
+ANDROID_SERIAL=<device-serial> just deploy-dev
 ```
 
 After configuring the release signing variables described below, build and deploy the production
@@ -247,6 +266,10 @@ and authenticated Nextcloud Files app.
 ```sh
 just check
 ```
+
+This includes deployment-selection tests with fake ADB devices. Run those separately with
+`just test-deploy-device`; no connected device or Android build is needed. The interactive tests
+use util-linux `script`, included in the development environment.
 
 ### Build Signed Development And Release Variants
 

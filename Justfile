@@ -46,6 +46,10 @@ check-fdroid-metadata:
 test:
     ./gradlew test
 
+# Test development deployment device selection with fake ADB devices.
+test-deploy-device:
+    bash scripts/tests/with-android-device-test
+
 # Run Android lint for the debug build.
 lint:
     ./gradlew lintDebug
@@ -67,7 +71,7 @@ update-dependencies:
     ./gradlew --no-configuration-cache versionCatalogUpdate
 
 # Run all host-side checks and build the debug APK.
-check: check-fdroid-metadata
+check: check-fdroid-metadata test-deploy-device
     ./gradlew spotlessCheck test assembleDebug lintDebug :app:licensee
 
 # Run all checks and build signed release packages with signing material from Vaultwarden.
@@ -106,8 +110,12 @@ stop-emulator:
 # Install and launch the development app on a connected device.
 run: deploy-dev
 
-# Install and launch the development app on a connected device.
-deploy-dev: _wait-for-android
+# Prefer a USB device, or select a device interactively, then install and launch.
+deploy-dev:
+    @./scripts/with-android-device {{ just_executable() }} _deploy-dev
+
+[private]
+_deploy-dev: _wait-for-android
     ./gradlew assembleDebug
     @{{ just_executable() }} _check-dev-signer deploy-dev-signed
     adb install -r app/build/outputs/apk/debug/app-debug.apk
@@ -117,8 +125,12 @@ deploy-dev: _wait-for-android
 uninstall-dev: _wait-for-android
     adb uninstall org.qownnotes.mobile.dev
 
-# Install and launch the shared-key-signed development app on a connected device.
-deploy-dev-signed: _wait-for-android
+# Prefer a USB device, or select a device, then deploy the shared-key-signed app.
+deploy-dev-signed:
+    @./scripts/with-android-device {{ just_executable() }} _deploy-dev-signed
+
+[private]
+_deploy-dev-signed: _wait-for-android
     ./scripts/with-android-signing development ./gradlew assembleDebug
     @{{ just_executable() }} _check-dev-signer deploy-dev
     adb install -r app/build/outputs/apk/debug/app-debug.apk
@@ -152,8 +164,12 @@ _check-dev-signer other-recipe:
       "      Remove the app first. This deletes its local data, including unsynced changes." >&2
     exit 1
 
-# Install and launch the signed release app on a connected device.
-deploy-release: _wait-for-android
+# Prefer a USB device, or select a device, then deploy the signed release app.
+deploy-release:
+    @./scripts/with-android-device {{ just_executable() }} _deploy-release
+
+[private]
+_deploy-release: _wait-for-android
     ./scripts/with-android-signing release ./gradlew assembleRelease installRelease
     adb shell am start -n org.qownnotes.mobile/.MainActivity
 

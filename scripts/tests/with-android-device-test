@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/../.." && pwd)"
+temporary="$(mktemp -d)"
+trap 'rm -rf "$temporary"' EXIT
+mkdir -p "$temporary/bin" "$temporary/project/scripts"
+cp "$root/Justfile" "$temporary/project/Justfile"
+cp "$root/scripts/with-android-device" "$temporary/project/scripts/with-android-device"
+export PATH="$temporary/bin:$PATH"
+export DEVICE_FIXTURE="$temporary/devices" COMMAND_LOG="$temporary/commands"
+unset ANDROID_SERIAL
+
+cat > "$temporary/bin/adb" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$*" == 'devices -l' ]]; then
+  if [[ "${ADB_FAIL:-0}" == 1 ]]; then
+    echo 'ADB enumeration failed' >&2
+    exit 1
+  fi
+  cat "$DEVICE_FIXTURE"
+else
+  printf '%s:adb %s\n' "${ANDROID_SERIAL:-unset}" "$*" >> "$COMMAND_LOG"
+  if [[ "$*" == 'shell getprop sys.boot_completed' ]]; then
+    echo 1
+  fi
+fi
+EOF
+cat > "$temporary/bin/record-device" <<'EOF'
+#!/usr/bin/env bash
+printf '%s:%s\n' "${ANDROID_SERIAL:-unset}" "$*" >> "$COMMAND_LOG"
+EOF
+cat > "$temporary/project/gradlew" <<'EOF'
+#!/usr/bin/env bash
+printf '%s:gradle %s\n' "${ANDROID_SERIAL:-unset}" "$*" >> "$COMMAND_LOG"
+EOF
+cat > "$temporary/project/scripts/with-android-signing" <<'EOF'
+#!/usr/bin/env bash
+shift
+exec "$@"
+EOF
+chmod +x "$temporary/bin/adb" "$temporary/bin/record-device" \
+  "$temporary/project/gradlew" "$temporary/project/scripts/with-android-signing"
+
+wrapper="$root/scripts/with-android-device"
+assert_log() {
+  grep -Fxq "$1" "$COMMAND_LOG" || { echo "Missing expected command: $1" >&2; exit 1; }
+}
+expect_failure() {
+  : > "$COMMAND_LOG"
+  if "$wrapper" record-device < /dev/null > "$temporary/output" 2>&1; then
+    echo 'Expected device selection to fail' >&2
+    exit 1
+  fi
+  [[ ! -s "$COMMAND_LOG" ]]
+  grep -Fq "$1" "$temporary/output"
+}
+
+cat > "$DEVICE_FIXTURE" <<'EOF'
+List of devices attached
+emulator-5554 device product:sdk model:Emulator transport_id:1
+phone device usb:1-2 product:phone model:Pixel_9 transport_id:2
+192.168.1.2:5555 device product:phone model:Wireless transport_id:3
+locked unauthorized usb:1-3 transport_id:4
+missing offline usb:1-4 transport_id:5
+EOF
+"$wrapper" record-device 'argument with spaces'
+assert_log 'phone:argument with spaces'
+ADB_FAIL=1 ANDROID_SERIAL=emulator-5554 "$wrapper" record-device override
+assert_log 'emulator-5554:override'
+ADB_FAIL=1 expect_failure 'ADB enumeration failed'
+
+# Verify selection reaches the wait, build, signer check, install, and launch.
+for recipe in deploy-dev deploy-dev-signed run; do
+  : > "$COMMAND_LOG"
+  (cd "$temporary/project" && just "$recipe")
+  assert_log 'phone:adb wait-for-device'
+  assert_log 'phone:adb shell getprop sys.boot_completed'
+  assert_log 'phone:gradle assembleDebug'
+  assert_log 'phone:adb shell pm path org.qownnotes.mobile.dev'
+  assert_log 'phone:adb install -r app/build/outputs/apk/debug/app-debug.apk'
+  assert_log 'phone:adb shell am start -n org.qownnotes.mobile.dev/org.qownnotes.mobile.MainActivity'
+  if grep -qv '^phone:' "$COMMAND_LOG"; then
+    echo 'Deployment used a different device' >&2
+    exit 1
+  fi
+done
+
+# Release installation is performed by Gradle, which must inherit the same target.
+: > "$COMMAND_LOG"
+(cd "$temporary/project" && just deploy-release)
+assert_log 'phone:adb wait-for-device'
+assert_log 'phone:adb shell getprop sys.boot_completed'
+assert_log 'phone:gradle assembleRelease installRelease'
+assert_log 'phone:adb shell am start -n org.qownnotes.mobile/.MainActivity'
+if grep -qv '^phone:' "$COMMAND_LOG"; then
+  echo 'Release deployment used a different device' >&2
+  exit 1
+fi
+
+cat >> "$DEVICE_FIXTURE" <<'EOF'
+second-phone device usb:1-5 product:phone model:Pixel_8 transport_id:6
+EOF
+expect_failure 'Set ANDROID_SERIAL'
+
+# util-linux script gives the selector a terminal without needing a real device.
+: > "$COMMAND_LOG"
+printf 'bad\n4\n' | script -q -e -c "'$wrapper' record-device selected" /dev/null > "$temporary/output"
+assert_log 'second-phone:selected'
+grep -Fq 'Enter one of the listed device numbers.' "$temporary/output"
+grep -Fq 'Pixel_8' "$temporary/output"
+if grep -Eq '\) (locked|missing) ' "$temporary/output"; then
+  echo 'Selector included a device that is not ready' >&2
+  exit 1
+fi
+: > "$COMMAND_LOG"
+if printf 'q\n' | script -q -e -c "'$wrapper' record-device cancelled" /dev/null > "$temporary/output"; then
+  echo 'Expected cancellation to fail' >&2
+  exit 1
+fi
+[[ ! -s "$COMMAND_LOG" ]]
+
+printf 'List of devices attached\nemulator-5554 device model:Emulator\n' > "$DEVICE_FIXTURE"
+expect_failure 'Set ANDROID_SERIAL'
+printf '1\n' | script -q -e -c "'$wrapper' record-device emulator" /dev/null > "$temporary/output"
+assert_log 'emulator-5554:emulator'
+
+printf 'List of devices attached\nlocked unauthorized usb:1-3\nmissing offline usb:1-4\n' > "$DEVICE_FIXTURE"
+expect_failure 'No authorized Android devices are ready'
+printf 'List of devices attached\n' > "$DEVICE_FIXTURE"
+expect_failure 'No authorized Android devices are ready'
+
+echo 'Android device selection and deployment tests passed.'

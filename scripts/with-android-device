@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+[[ $# -gt 0 ]] || { echo 'Usage: with-android-device <command> [args...]' >&2; exit 1; }
+
+# An explicit choice also works in non-interactive shells and nested just recipes.
+if [[ -n "${ANDROID_SERIAL:-}" ]]; then
+  exec "$@"
+fi
+
+devices="$(adb devices -l)"
+serials=()
+labels=()
+usb_serials=()
+while read -r serial state details; do
+  [[ "$state" == device ]] || continue
+  serials+=("$serial")
+  labels+=("$serial $details")
+  if [[ "$serial" != emulator-* && " $details " == *' usb:'* ]]; then
+    usb_serials+=("$serial")
+  fi
+done <<< "$devices"
+
+if [[ ${#serials[@]} -eq 0 ]]; then
+  printf '%s\n' 'No authorized Android devices are ready. Connect a device and accept its USB debugging prompt.' "$devices" >&2
+  exit 1
+fi
+
+if [[ ${#usb_serials[@]} -eq 1 ]]; then
+  ANDROID_SERIAL="${usb_serials[0]}"
+else
+  echo 'Select the Android device to deploy to:' >&2
+  for index in "${!serials[@]}"; do
+    printf '  %d) %s\n' "$((index + 1))" "${labels[$index]}" >&2
+  done
+  if [[ ! -t 0 ]]; then
+    echo 'No unique USB device and no interactive terminal. Set ANDROID_SERIAL to a device serial.' >&2
+    exit 1
+  fi
+  while true; do
+    printf 'Device number (or q to cancel): ' >&2
+    IFS= read -r choice || exit 1
+    [[ "$choice" != q && "$choice" != Q ]] || exit 1
+    # Compare strings rather than treating arbitrary input as shell arithmetic.
+    for index in "${!serials[@]}"; do
+      if [[ "$choice" == "$((index + 1))" ]]; then
+        ANDROID_SERIAL="${serials[$index]}"
+        break 2
+      fi
+    done
+    echo 'Enter one of the listed device numbers.' >&2
+  done
+fi
+
+export ANDROID_SERIAL
+printf 'Deploying to %s\n' "$ANDROID_SERIAL" >&2
+exec "$@"

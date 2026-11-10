@@ -16,6 +16,8 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ### Changed
 
+- Development and release deployment automatically prefer the sole ready USB-connected physical
+  device, with a numbered device selector when the target is ambiguous and `ANDROID_SERIAL` overrides.
 - Update Gson and Android build, code-generation, formatting, and dependency-update tooling.
 - Split CI device tests into three app shards and a separate library job, preserving independent
   reports and replacing full-suite retries with bounded runs. Avoid duplicate Dependabot CI runs.
