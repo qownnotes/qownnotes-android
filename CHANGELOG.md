@@ -8,6 +8,8 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+## [26.11.0] - 2026-11-10
+
 ### Added
 
 - Use a local folder without Nextcloud
@@ -28,6 +30,8 @@ zero-based increasing release counter within the month. See [the release guide](
   device, with a numbered device selector when the target is ambiguous and `ANDROID_SERIAL` overrides.
 - Update Gson and Android build, code-generation, formatting, and dependency-update tooling.
 - The account menu now says **Add Nextcloud account** next to the new **Add local folder** action.
+- The store listing and README show the setup screen with the choice between a Nextcloud account
+  and a local folder, and describe local folders.
 - Split CI device tests into three app shards and a separate library job, preserving independent
   reports and replacing full-suite retries with bounded runs. Avoid duplicate Dependabot CI runs.
 
@@ -694,7 +698,8 @@ zero-based increasing release counter within the month. See [the release guide](
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v26.10.10...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.0...HEAD
+[26.11.0]: https://github.com/qownnotes/qownnotes-android/compare/v26.10.10...v26.11.0
 [26.10.10]: https://github.com/qownnotes/qownnotes-android/compare/v1.8.0...v26.10.10
 [1.8.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.6.1...v1.7.0

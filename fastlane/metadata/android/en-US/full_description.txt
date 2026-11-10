@@ -2,14 +2,18 @@ QOwnNotes is an offline-capable Markdown notes app for Android that synchronizes
 Nextcloud server.
 
 The Nextcloud Files Android app and a server with Nextcloud Notes API 1.2 or newer, provided by
-Nextcloud Notes or QOwnNotes for Nextcloud, are required for account setup. Nextcloud Files manages
+Nextcloud Notes or QOwnNotes for Nextcloud, are required for Nextcloud accounts. Nextcloud Files manages
 your login credentials. Its Single Sign-On library stores an account access token in QOwnNotes'
 private preferences, not in the notes database.
+
+Without Nextcloud, you can also use a folder on the device, laid out like a QOwnNotes desktop note
+folder, for example one synchronized with Syncthing. No storage permission is needed.
 
 Features include:
 
 * Read, search, create, rename, edit, and delete notes while offline
 * Conflict-safe synchronization using ETags and durable pending changes
+* Local note folders without Nextcloud, with conflict detection and a restorable trash
 * CommonMark and GitHub Flavored Markdown rendering and source editing
 * QOwnNotes wiki links, task states, note naming, subfolders, and favorites
 * Move or copy notes between subfolders and duplicate notes
@@ -26,7 +30,7 @@ Features include:
 * Search across note versions with match counts, highlighted excerpts, and preview match navigation
 
 QOwnNotes contains no advertising, analytics, or developer-operated telemetry. Notes are stored on
-the device and synchronized only with the Nextcloud server selected by the user.
+the device and synchronized only with the Nextcloud server or local folder selected by the user.
 
 Images load automatically when a note is opened. Remote HTTPS images contact the hosts referenced
 in the note, which can see your IP address and request metadata. The note menu's "Load images"

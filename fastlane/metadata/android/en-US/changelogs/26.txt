@@ -1,0 +1,4 @@
+• Use a local folder without Nextcloud, for example one synchronized with QOwnNotes desktop through Syncthing
+• Folder notes work offline, keep subfolders, images, tags, and favorites, and turn outside changes into conflicts instead of overwriting them
+• Deleted folder notes can be restored from the app's trash
+• Optionally refresh the active account when opening the app
