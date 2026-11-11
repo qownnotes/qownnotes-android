@@ -558,6 +558,79 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun tappingLoadedImageUsesItsBitmapWithoutOpeningItsWrappingLink() {
+        instrumentation.runOnMainSync {
+            val view = textView()
+            val bitmap = Bitmap.createBitmap(100, 80, Bitmap.Config.ARGB_8888)
+            val loaded = BitmapDrawable(view.resources, bitmap)
+            loaded.setBounds(0, 0, 100, 80)
+            var opened: NoteImage? = null
+            var links = 0
+            MarkdownRenderer(view.context).render(
+                view,
+                "[![photo](https://example.com/image.png)](https://example.com)",
+                loadRemoteImages = true,
+                onImageClick = { opened = it },
+                onExternalLink = {
+                    links++
+                    true
+                }
+            )
+            val text = view.text as Spannable
+            val span = text.getSpans(0, text.length, AsyncDrawableSpan::class.java).single()
+            span.drawable.setResult(loaded)
+            span.drawable.initWithKnownDimensions(320, view.textSize)
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+            view.touch(text.getSpanStart(span), 50)
+            assertTrue(opened?.bitmap === bitmap)
+            assertEquals("photo", opened?.description)
+            assertEquals(0, links)
+
+            opened = null
+            view.touch(text.getSpanStart(span), ViewConfiguration.getLongPressTimeout() + 100L)
+            assertNull(opened)
+            Selection.setSelection(text, 0, text.length)
+            view.touch(text.getSpanStart(span), 50)
+            assertNull(opened)
+            Selection.removeSelection(text)
+            // Tapping beside the image, on the same line, is not an image tap.
+            view.touchAt(150f, view.layout.getLineBottom(0) - 40f)
+            assertNull(opened)
+
+            // Failed/loading images must not open the viewer or leak to an enclosing URL.
+            span.drawable.setResult(ColorDrawable(Color.RED).apply { setBounds(0, 0, 100, 80) })
+            view.touch(text.getSpanStart(span), 50)
+            assertNull(opened)
+            assertEquals(0, links)
+        }
+    }
+
+    @Test
+    fun imagesStayUntappableWithoutAViewerSoTheirLinksStillOpen() {
+        instrumentation.runOnMainSync {
+            val view = textView()
+            var links = 0
+            MarkdownRenderer(view.context).render(
+                view,
+                "[![photo](https://example.com/image.png)](https://example.com)",
+                loadRemoteImages = true,
+                onExternalLink = {
+                    links++
+                    true
+                }
+            )
+            val text = view.text as Spannable
+            assertEquals(0, text.getSpans(0, text.length, NoteImageSpan::class.java).size)
+            text.getSpans(0, text.length, LinkSpan::class.java).single().onClick(view)
+            assertEquals(1, links)
+        }
+    }
+
+    @Test
     fun showsRegisteredLocalImageWithoutRemoteNoteAndBlocksOthers() {
         val file = File(instrumentation.targetContext.cacheDir, "local-image-test.png")
         Bitmap.createBitmap(4, 3, Bitmap.Config.ARGB_8888).apply {
@@ -766,6 +839,23 @@ class MarkdownRendererInstrumentedTest {
         ).forEach { event ->
             movementMethod.onTouchEvent(this, text as Spannable, event)
             event.recycle()
+        }
+    }
+
+    private fun AppCompatTextView.touchAt(x: Float, y: Float) {
+        val downTime = SystemClock.uptimeMillis()
+        listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP).forEach { action ->
+            MotionEvent.obtain(
+                downTime,
+                downTime + 50,
+                action,
+                x + totalPaddingLeft,
+                y + totalPaddingTop,
+                0
+            ).also { event ->
+                movementMethod.onTouchEvent(this, text as Spannable, event)
+                event.recycle()
+            }
         }
     }
 

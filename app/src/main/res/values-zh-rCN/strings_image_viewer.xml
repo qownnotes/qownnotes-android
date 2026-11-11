@@ -1,0 +1,7 @@
+<resources>
+    <string name="image_viewer_image">图片</string>
+    <string name="image_viewer_close">关闭图片</string>
+    <string name="image_viewer_fit">适应屏幕</string>
+    <string name="image_viewer_zoom_in">放大</string>
+    <string name="image_viewer_zoom_level">%1$d%%</string>
+</resources>

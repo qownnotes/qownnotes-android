@@ -8,6 +8,15 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+### Added
+
+- Tap an image in a note to view it full screen
+  ([#46](https://github.com/qownnotes/qownnotes-android/issues/46)). Pinch or double-tap to zoom,
+  drag to pan, tap to hide the controls, and swipe a fitted image up or down to close it. The image
+  description is shown as the title, and **Fit to screen** returns to the whole image. Nextcloud,
+  local-folder, and remote images open from the copy already shown in the note, without loading
+  them again or handing private addresses to another app.
+
 ## [26.11.0] - 2026-11-10
 
 ### Added

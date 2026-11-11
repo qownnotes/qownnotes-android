@@ -1,0 +1,7 @@
+<resources>
+    <string name="image_viewer_image">Bild</string>
+    <string name="image_viewer_close">Bild schließen</string>
+    <string name="image_viewer_fit">An Bildschirm anpassen</string>
+    <string name="image_viewer_zoom_in">Vergrößern</string>
+    <string name="image_viewer_zoom_level">%1$d %%</string>
+</resources>

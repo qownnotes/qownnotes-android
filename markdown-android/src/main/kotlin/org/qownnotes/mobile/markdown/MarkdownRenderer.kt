@@ -23,6 +23,7 @@ import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.ext.tasklist.TaskListSpan
+import io.noties.markwon.image.AsyncDrawableSpan
 import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.image.SchemeHandler
 import io.noties.markwon.image.destination.ImageDestinationProcessor
@@ -105,7 +106,8 @@ class MarkdownRenderer private constructor(
         accountName: String = "",
         attachmentApiPath: String = "/index.php/apps/notes/api/v1.4/attachment/",
         category: String = "",
-        localImages: Map<String, File> = emptyMap()
+        localImages: Map<String, File> = emptyMap(),
+        onImageClick: ((NoteImage) -> Unit)? = null
     ) {
         val selectionStart = view.selectionStart
         val selectionEnd = view.selectionEnd
@@ -131,6 +133,7 @@ class MarkdownRenderer private constructor(
         }
         val markwon = if (loadRemoteImages) imageMarkwon else textMarkwon
         markwon.setMarkdown(view, safeMarkdown.withoutFrontmatter().withInternalLinks())
+        if (onImageClick != null) attachImageSpans(view, onImageClick)
         // Replacing the text reinitializes ArrowKeyMovementMethod's selection at offset zero.
         // TextView then brings that offset into view on its next pre-draw, scrolling a focused
         // checklist to the top. Keep the existing rendered offsets (not Markdown source offsets),
@@ -360,6 +363,18 @@ private fun attachTaskToggleSpans(
             TaskToggleSpan(index, task.getLeadingMargin(true), onTaskToggle),
             text.getSpanStart(task),
             text.getSpanEnd(task),
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+    }
+}
+
+private fun attachImageSpans(view: AppCompatTextView, onImageClick: (NoteImage) -> Unit) {
+    val text = view.text as? Spannable ?: return
+    text.getSpans(0, text.length, AsyncDrawableSpan::class.java).forEach { image ->
+        text.setSpan(
+            NoteImageSpan(image, onImageClick),
+            text.getSpanStart(image),
+            text.getSpanEnd(image),
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
     }

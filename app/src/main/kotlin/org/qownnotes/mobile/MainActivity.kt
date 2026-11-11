@@ -259,6 +259,7 @@ import org.qownnotes.mobile.markdown.MarkdownEditText
 import org.qownnotes.mobile.markdown.MarkdownEditorBinding
 import org.qownnotes.mobile.markdown.MarkdownFormatAction
 import org.qownnotes.mobile.markdown.MarkdownRenderer
+import org.qownnotes.mobile.markdown.NoteImage
 import org.qownnotes.mobile.markdown.NoteSearchColors
 import org.qownnotes.mobile.markdown.TaskDragAutoScroll
 import org.qownnotes.mobile.markdown.TaskDragColors
@@ -3201,6 +3202,7 @@ private fun NoteDetailScreen(
     var finding by rememberSaveable(localId) { mutableStateOf(initialFindQuery != null) }
     var togglingTask by remember(localId) { mutableStateOf(false) }
     var taskToDelete by remember(localId) { mutableStateOf<Pair<String, Int>?>(null) }
+    var viewedImage by remember(localId) { mutableStateOf<NoteImage?>(null) }
     var findQuery by rememberSaveable(localId) { mutableStateOf(initialFindQuery.orEmpty()) }
     // Find opened for the list search was not a request to type, so it must not raise the keyboard.
     var findFromListSearch by rememberSaveable(localId) {
@@ -4437,7 +4439,8 @@ private fun NoteDetailScreen(
                                     category = source?.category.orEmpty(),
                                     attachmentApiPath = account?.attachmentApiPath()
                                         ?: "/index.php/apps/notes/api/v1.4/attachment/",
-                                    localImages = source?.let(component::pendingImages).orEmpty()
+                                    localImages = source?.let(component::pendingImages).orEmpty(),
+                                    onImageClick = { viewedImage = it }
                                 )
                             }
                             val found = highlightNoteSearchMatches(
@@ -4464,6 +4467,7 @@ private fun NoteDetailScreen(
             }
         }
     }
+    viewedImage?.let { image -> NoteImageViewer(image) { viewedImage = null } }
     taskToDelete?.let { (content, taskIndex) ->
         val canDelete = note?.content == content && note?.readOnly == false &&
             note?.syncState !in setOf(

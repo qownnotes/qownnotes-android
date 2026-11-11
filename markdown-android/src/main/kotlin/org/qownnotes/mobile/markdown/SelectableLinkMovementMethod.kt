@@ -1,11 +1,14 @@
 package org.qownnotes.mobile.markdown
 
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.text.Spannable
 import android.text.method.ArrowKeyMovementMethod
 import android.text.style.ClickableSpan
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import android.widget.TextView
+import io.noties.markwon.image.AsyncDrawableSpan
 import kotlin.math.hypot
 
 /**
@@ -20,6 +23,7 @@ import kotlin.math.hypot
 internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
     private var downX = 0f
     private var downY = 0f
+    private var moved = false
 
     override fun canSelectArbitrarily(): Boolean = true
 
@@ -28,9 +32,30 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
             MotionEvent.ACTION_DOWN -> {
                 downX = event.x
                 downY = event.y
+                moved = false
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> moved = true
+            MotionEvent.ACTION_MOVE -> {
+                if (hypot(event.x - downX, event.y - downY) >
+                    ViewConfiguration.get(widget.context).scaledTouchSlop
+                ) {
+                    moved = true
+                }
             }
             MotionEvent.ACTION_UP -> {
                 if (isTap(widget, event)) {
+                    imageAt(widget, buffer, event)?.let { image ->
+                        // Only a decoded image opens; a placeholder or blocked image swallows the
+                        // tap so it cannot fall through to a link wrapping the image.
+                        (image.image.drawable.result as? BitmapDrawable)?.bitmap?.let { bitmap ->
+                            val description = buffer.subSequence(
+                                buffer.getSpanStart(image),
+                                buffer.getSpanEnd(image)
+                            ).toString().trim()
+                            image.open(NoteImage(bitmap, description))
+                        }
+                        return true
+                    }
                     taskAt(widget, buffer, event)?.let { task ->
                         task.toggle(task.index)
                         return true
@@ -84,6 +109,7 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
      * selected belongs to the selection.
      */
     private fun isTap(widget: TextView, event: MotionEvent): Boolean {
+        if (moved) return false
         if (widget.hasSelection()) return false
         if (event.eventTime - event.downTime >=
             ViewConfiguration.getLongPressTimeout()
@@ -105,4 +131,33 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
         val offset = layout.getOffsetForHorizontal(line, x)
         return buffer.getSpans(offset, offset, ClickableSpan::class.java).firstOrNull()
     }
+
+    private fun imageAt(widget: TextView, buffer: Spannable, event: MotionEvent): NoteImageSpan? {
+        val layout = widget.layout ?: return null
+        val x = event.x - widget.totalPaddingLeft + widget.scrollX
+        val y = event.y - widget.totalPaddingTop + widget.scrollY
+        if (y < 0 || y >= layout.height) return null
+        val line = layout.getLineForVertical(y.toInt())
+        return buffer.getSpans(
+            layout.getLineStart(line),
+            layout.getLineEnd(line),
+            NoteImageSpan::class.java
+        ).firstOrNull { image ->
+            val start = buffer.getSpanStart(image)
+            val end = buffer.getSpanEnd(image)
+            val left = minOf(layout.getPrimaryHorizontal(start), layout.getPrimaryHorizontal(end))
+            val bounds = image.image.drawable.bounds
+            val bottom = layout.getLineBottom(line).toFloat()
+            x >= left && x < left + bounds.width() &&
+                y >= bottom - bounds.height() && y < bottom
+        }
+    }
 }
+
+internal class NoteImageSpan(val image: AsyncDrawableSpan, val open: (NoteImage) -> Unit)
+
+/**
+ * A rendered note image the reader tapped. [bitmap] is the bounded decode already shown in the
+ * note, so viewing it needs no new request and never exposes the image's source URL.
+ */
+class NoteImage(val bitmap: Bitmap, val description: String)
