@@ -3799,6 +3799,24 @@ class AppLaunchTest {
     }
 
     @Test
+    fun copyingARenderedTableCopiesTheTextOfItsCells() {
+        importAccount(
+            "alice",
+            "Prices",
+            "etag-1",
+            10,
+            "Costs\n\n| Item | Cost |\n| --- | --- |\n| Salt | 2 |\n\nDone\n"
+        )
+        composeRule.onNodeWithText("Prices").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        val copied = selectAllAndCopy(R.id.markdown_view)
+
+        assertTrue("unexpected clipboard content: $copied", copied.contains("Item\tCost\nSalt\t2"))
+        assertTrue("unexpected clipboard content: $copied", copied.endsWith("Done"))
+    }
+
+    @Test
     fun longPressingATaskDeletesItsBlockOnlyAfterConfirmation() {
         val content = "- [ ] Parent\n  - [x] Child\n    - [ ] Grandchild\n- [ ] Keep\n\nAfter\n"
         importAccount("alice", "Checklist", "etag-1", 10, content)

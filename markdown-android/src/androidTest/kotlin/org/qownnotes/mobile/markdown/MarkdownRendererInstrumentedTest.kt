@@ -287,6 +287,44 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun copyingASelectionAcrossTablesUsesTheTextOfTheirCells() {
+        val markdown = "Intro\n\n| Name | **Amount** |\n| --- | ---: |\n| `salt` | [two](x) g |\n" +
+            "| [[Pepper]] | a\\|b |\n\n- item\n\n  | Nested |\n  | --- |\n  | cell |\n\nOutro"
+        instrumentation.runOnMainSync {
+            val view = renderedMarkdownView()
+            MarkdownRenderer(view.context).render(view, markdown)
+            val text = view.text as Spannable
+
+            Selection.setSelection(text, 0, text.length)
+            assertEquals(
+                "Intro\nName\tAmount\nsalt\ttwo g\nPepper\ta|b\nitem\nNested\ncell\nOutro",
+                view.selectedTextWithTableCells(text)?.replace("\n\n", "\n")
+            )
+
+            // A selection that ends inside the first table only copies the rows it covers.
+            val firstRow = text.indexOf('\u00a0')
+            Selection.setSelection(text, text.indexOf("tro"), firstRow + 1)
+            assertEquals("tro\n\nName\tAmount", view.selectedTextWithTableCells(text))
+
+            Selection.setSelection(text, 0, "Intro".length)
+            assertNull(view.selectedTextWithTableCells(text))
+        }
+    }
+
+    @Test
+    fun copyingFallsBackToTheRenderedTextWhenTableRowsCannotBeMatched() {
+        instrumentation.runOnMainSync {
+            val view = renderedMarkdownView()
+            MarkdownRenderer(view.context).render(view, "| A |\n| --- |\n| b |")
+            val text = view.text as Spannable
+            view.tableRows = { listOf(listOf("A")) }
+            Selection.setSelection(text, 0, text.length)
+
+            assertNull(view.selectedTextWithTableCells(text))
+        }
+    }
+
+    @Test
     fun tappingAResolvedLinkOpensItWhileTheNoteIsSelectable() {
         val expected = ResolvedNoteLink("target", null)
         var opened: ResolvedNoteLink? = null
@@ -879,11 +917,20 @@ class MarkdownRendererInstrumentedTest {
         }
     }
 
-    private fun textView(): AppCompatTextView {
-        val context = ContextThemeWrapper(
-            instrumentation.targetContext,
-            androidx.appcompat.R.style.Theme_AppCompat
+    private fun renderedMarkdownView() = RenderedMarkdownView(themedContext()).apply {
+        layoutParams = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
         )
+    }
+
+    private fun themedContext() = ContextThemeWrapper(
+        instrumentation.targetContext,
+        androidx.appcompat.R.style.Theme_AppCompat
+    )
+
+    private fun textView(): AppCompatTextView {
+        val context = themedContext()
         return AppCompatTextView(context).apply {
             layoutParams = android.view.ViewGroup.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,

@@ -132,7 +132,11 @@ class MarkdownRenderer private constructor(
             encryption.markdown
         }
         val markwon = if (loadRemoteImages) imageMarkwon else textMarkwon
-        markwon.setMarkdown(view, safeMarkdown.withoutFrontmatter().withInternalLinks())
+        val renderedMarkdown = safeMarkdown.withoutFrontmatter().withInternalLinks()
+        markwon.setMarkdown(view, renderedMarkdown)
+        // Parsed again only if the reader copies a selection that includes a table.
+        (view as? RenderedMarkdownView)?.tableRows =
+            { renderedTableRows(markwon, renderedMarkdown) }
         if (onImageClick != null) attachImageSpans(view, onImageClick)
         // Replacing the text reinitializes ArrowKeyMovementMethod's selection at offset zero.
         // TextView then brings that offset into view on its next pre-draw, scrolling a focused

@@ -261,6 +261,7 @@ import org.qownnotes.mobile.markdown.MarkdownFormatAction
 import org.qownnotes.mobile.markdown.MarkdownRenderer
 import org.qownnotes.mobile.markdown.NoteImage
 import org.qownnotes.mobile.markdown.NoteSearchColors
+import org.qownnotes.mobile.markdown.RenderedMarkdownView
 import org.qownnotes.mobile.markdown.TaskDragAutoScroll
 import org.qownnotes.mobile.markdown.TaskDragColors
 import org.qownnotes.mobile.markdown.deleteTaskListItem
@@ -4289,7 +4290,7 @@ private fun NoteDetailScreen(
                 ) {
                     AndroidView(
                         factory = { context ->
-                            AppCompatTextView(context).also {
+                            RenderedMarkdownView(context).also {
                                 it.id = R.id.markdown_view
                                 it.setTextSize(
                                     TypedValue.COMPLEX_UNIT_SP,

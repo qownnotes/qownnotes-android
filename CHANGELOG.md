@@ -17,6 +17,12 @@ zero-based increasing release counter within the month. See [the release guide](
   local-folder, and remote images open from the copy already shown in the note, without loading
   them again or handing private addresses to another app.
 
+### Fixed
+
+- Copying a selection in the note preview that includes a table now copies the text of its cells,
+  one row per line with the cells separated by tabs, instead of blank lines
+  ([#53](https://github.com/qownnotes/qownnotes-android/issues/53)).
+
 ## [26.11.0] - 2026-11-10
 
 ### Added
