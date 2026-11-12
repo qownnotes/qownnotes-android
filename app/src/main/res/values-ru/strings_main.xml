@@ -122,6 +122,8 @@
     <!-- Note list items -->
     <string name="favorite_remove">Убрать из избранного</string>
     <string name="favorite_add">Добавить в избранное</string>
+    <string name="note_select">Выбрать</string>
+    <string name="note_deselect">Снять выбор</string>
     <string name="note_uncategorized">Корневая папка</string>
     <string name="account_avatar_description">Аккаунт: %1$s</string>
     <string name="sync_available_offline">Доступно офлайн</string>

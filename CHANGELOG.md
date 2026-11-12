@@ -19,6 +19,11 @@ zero-based increasing release counter within the month. See [the release guide](
 - **Copy block** in the checkbox block actions of the note preview copies a task with its nested
   items and continuation text as Markdown, keeping the checkbox states
   ([#53](https://github.com/qownnotes/qownnotes-android/issues/53)).
+- Selecting notes in the note list now shows a checkbox in front of every note, so that selected
+  notes are recognizable by more than their highlight color
+  ([#41](https://github.com/qownnotes/qownnotes-android/issues/41)). Tap a checkbox or a note to
+  select or deselect it. Screen readers announce whether a note is selected and whether a tap
+  selects or deselects it.
 
 ### Changed
 

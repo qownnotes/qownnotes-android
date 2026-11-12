@@ -119,6 +119,8 @@
     <!-- Note list items -->
     <string name="favorite_remove">从收藏中移除</string>
     <string name="favorite_add">添加到收藏</string>
+    <string name="note_select">选择</string>
+    <string name="note_deselect">取消选择</string>
     <string name="note_uncategorized">根文件夹</string>
     <string name="account_avatar_description">账号：%1$s</string>
     <string name="sync_available_offline">可离线使用</string>

@@ -1354,9 +1354,22 @@ class AppLaunchTest {
             )
         }
         composeRule.waitForText("Second note")
+        // The checkbox only adds a visual cue; its row carries the selection semantics.
+        fun secondCheckbox() =
+            composeRule.onNodeWithTag("note-checkbox-second-local", useUnmergedTree = true)
+        secondCheckbox().assertDoesNotExist()
 
         composeRule.onNodeWithTag("note-${first.localId}").performTouchInput { longClick() }
         composeRule.onNodeWithText("1 selected").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-${first.localId}").assertIsSelected()
+        secondCheckbox().assertIsDisplayed()
+        // The selection checkbox toggles its note like a tap on the row.
+        secondCheckbox().performClick()
+        composeRule.onNodeWithText("2 selected").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-second-local").assertIsSelected()
+        secondCheckbox().performClick()
+        composeRule.onNodeWithText("1 selected").assertIsDisplayed()
+        composeRule.onNodeWithTag("note-second-local").assertIsNotSelected()
         composeRule.onNodeWithTag("note-second-local").performClick()
         composeRule.onNodeWithText("2 selected").assertIsDisplayed()
         composeRule.onNodeWithTag("note-selection-menu").performClick()

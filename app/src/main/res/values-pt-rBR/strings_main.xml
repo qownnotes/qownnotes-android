@@ -121,6 +121,8 @@
     <!-- Note list items -->
     <string name="favorite_remove">Remover dos favoritos</string>
     <string name="favorite_add">Adicionar aos favoritos</string>
+    <string name="note_select">Selecionar</string>
+    <string name="note_deselect">Desmarcar</string>
     <string name="note_uncategorized">Pasta raiz</string>
     <string name="account_avatar_description">Conta: %1$s</string>
     <string name="sync_available_offline">Disponível offline</string>

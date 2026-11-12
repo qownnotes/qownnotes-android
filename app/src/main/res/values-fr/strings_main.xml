@@ -121,6 +121,8 @@
     <!-- Note list items -->
     <string name="favorite_remove">Retirer des favoris</string>
     <string name="favorite_add">Ajouter aux favoris</string>
+    <string name="note_select">Sélectionner</string>
+    <string name="note_deselect">Désélectionner</string>
     <string name="note_uncategorized">Dossier racine</string>
     <string name="account_avatar_description">Compte\u00A0: %1$s</string>
     <string name="sync_available_offline">Disponible hors ligne</string>

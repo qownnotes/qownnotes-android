@@ -17,6 +17,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
@@ -2747,6 +2748,17 @@ private fun NoteListItem(
     // Cards wrap the whole item, including the swipe action background, so swiping reveals the
     // action inside the card outline.
     val cardShape = RoundedCornerShape(12.dp)
+    // The selection checkbox brings its own touch target, so the row's leading padding shrinks
+    // to keep the checkbox aligned where the title starts outside selection mode.
+    val rowStartPadding by animateDpAsState(
+        targetValue = if (selectionActive) 8.dp else 20.dp,
+        label = "note-row-start-padding"
+    )
+    val clickLabel = when {
+        !selectionActive -> null
+        selected -> stringResource(R.string.note_deselect)
+        else -> stringResource(R.string.note_select)
+    }
     val itemModifier = if (appearance.noteCards) {
         Modifier.padding(horizontal = 12.dp, vertical = if (compact) 2.dp else 4.dp)
             .clip(cardShape)
@@ -2774,13 +2786,17 @@ private fun NoteListItem(
                 // favorite button keeps its own click handling.
                 .then(
                     if (appearance.noteCards) {
-                        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                        Modifier.combinedClickable(
+                            onClickLabel = clickLabel,
+                            onClick = onClick,
+                            onLongClick = onLongClick
+                        )
                     } else {
                         Modifier
                     }
                 )
                 .padding(
-                    start = 20.dp,
+                    start = rowStartPadding,
                     end = 8.dp,
                     top = rowVerticalPadding,
                     bottom = rowVerticalPadding
@@ -2788,16 +2804,27 @@ private fun NoteListItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             CompositionLocalProvider(LocalContentColor provides rowContent) {
+                NoteSelectionCheckbox(
+                    visible = selectionActive,
+                    selected = selected,
+                    uncheckedColor = rowSecondary,
+                    onClick = onClick,
+                    testTag = "note-checkbox-${note.localId}"
+                )
                 Column(
                     modifier = Modifier.weight(1f)
                         .then(
                             if (appearance.noteCards) {
                                 Modifier
                             } else {
-                                Modifier.combinedClickable(
-                                    onClick = onClick,
-                                    onLongClick = onLongClick
-                                )
+                                // Flat rows are focused through their text, so it carries the
+                                // selected state that accessibility services announce.
+                                Modifier.semantics { this.selected = selected }
+                                    .combinedClickable(
+                                        onClickLabel = clickLabel,
+                                        onClick = onClick,
+                                        onLongClick = onLongClick
+                                    )
                             }
                         )
                         .padding(vertical = textVerticalPadding)

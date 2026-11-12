@@ -120,6 +120,8 @@
     <!-- Note list items -->
     <string name="favorite_remove">Aus Favoriten entfernen</string>
     <string name="favorite_add">Zu Favoriten hinzufügen</string>
+    <string name="note_select">Auswählen</string>
+    <string name="note_deselect">Auswahl aufheben</string>
     <string name="note_uncategorized">Stammordner</string>
     <string name="account_avatar_description">Konto: %1$s</string>
     <string name="sync_available_offline">Offline verfügbar</string>
