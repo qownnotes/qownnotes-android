@@ -1500,6 +1500,10 @@ A screen fed by a database query keeps showing the previous result until the new
 the screen is idle while it still shows what an action is about to replace. Assert that something
 has gone by waiting for it to go, not by checking once.
 
+After confirming a rename, wait for the dialog to disappear and the activity to regain window
+focus before checking the editor. Its unchanged text, selection, and view focus can remain behind
+the dialog while the asynchronous save is still running.
+
 ### Integration Tests
 
 Run against supported Nextcloud/Notes server combinations and verify:

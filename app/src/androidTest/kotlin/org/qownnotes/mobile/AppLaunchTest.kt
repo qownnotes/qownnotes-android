@@ -3546,7 +3546,8 @@ class AppLaunchTest {
 
         awaitEditorFocus(true)
         awaitEditorState(source, source.length - 3)
-        onView(withId(R.id.markdown_editor)).check { view, _ ->
+        onView(withId(R.id.markdown_editor)).check { view, error ->
+            if (error != null) throw error
             assertEquals(source.length, (view as TextView).selectionEnd)
         }
         assertEquals(source, noteContents("alice").single())
@@ -4384,6 +4385,14 @@ class AppLaunchTest {
             composeRule.onNodeWithTag("update-heading-checkbox").assertIsOff()
         }
         composeRule.onNodeWithTag("confirm-rename-note").performClick()
+        // Saving runs outside Compose idleness. An unchanged editor can still hold its old
+        // focus and selection behind the dialog, so neither proves that the rename finished.
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("note-name-field").fetchSemanticsNodes().isEmpty()
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.runOnIdle { composeRule.activity.hasWindowFocus() }
+        }
     }
 
     private fun typeAtEditorEnd(value: String) {
