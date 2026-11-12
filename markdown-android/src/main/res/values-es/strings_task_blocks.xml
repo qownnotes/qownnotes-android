@@ -1,4 +1,5 @@
 <resources>
+    <string name="task_copy_block">Copiar bloque</string>
     <string name="task_delete_block">Eliminar bloque</string>
     <string name="task_cancel">Cancelar</string>
 </resources>

@@ -1,6 +1,8 @@
 package org.qownnotes.mobile.markdown
 
 import android.animation.ValueAnimator
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.ColorFilter
@@ -71,6 +73,7 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
     private val overlay = TaskDragOverlay()
     private var tasks: Map<Int, RenderedTask> = emptyMap()
     private var groupOf: Map<Int, List<Int>> = emptyMap()
+    private var markdown = ""
     private var onMove: ((Int, Int) -> Unit)? = null
     private var onDelete: ((Int) -> Unit)? = null
     private var deletable = emptySet<Int>()
@@ -116,6 +119,7 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
     ) {
         cancelDrag()
         actions?.dismiss()
+        this.markdown = markdown
         this.onMove = onMove
         this.onDelete = onDelete
         deletable = if (onDelete == null) emptySet() else deletableTaskIndices(markdown)
@@ -148,6 +152,8 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
                 .toMap()
         }
         view.setOnTouchListener(if (tasks.isEmpty()) null else this)
+        // Only the checkbox opens the block actions. A long press on the task's text is left to the
+        // platform, which selects the word under the finger like in any other paragraph.
         view.setOnLongClickListener(
             if (onDelete == null ||
                 tasks.isEmpty()
@@ -155,10 +161,7 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
                 null
             } else {
                 View.OnLongClickListener {
-                    val layout = view.layout ?: return@OnLongClickListener false
-                    val task = tasks.values.filter { it.index in deletable }
-                        .filter { blockBounds(it, layout).contains(downX, downY) }
-                        .maxByOrNull { it.start } ?: return@OnLongClickListener false
+                    val task = checkboxAt(downX, downY) ?: return@OnLongClickListener false
                     showActions(task)
                     true
                 }
@@ -262,28 +265,40 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
                 overlay.invalidateSelf()
             }
         }
-        fun button(label: Int, color: Int, action: () -> Unit) {
+        fun button(
+            label: Int,
+            color: Int,
+            icon: Int? = null,
+            iconOnly: Boolean = false,
+            action: () -> Unit
+        ) {
             row.addView(
                 AppCompatButton(view.context).apply {
-                    text = view.context.getString(label)
+                    if (iconOnly) {
+                        contentDescription = view.context.getString(label)
+                    } else {
+                        text = view.context.getString(label)
+                    }
                     isAllCaps = false
                     textSize = 14F
                     setTextColor(color)
-                    if (label == R.string.task_delete_block) {
-                        setCompoundDrawablesRelativeWithIntrinsicBounds(
-                            R.drawable.ic_task_delete,
-                            0,
-                            0,
-                            0
-                        )
+                    if (icon != null) {
+                        // Relative drawables are only resolved once the button is attached, which
+                        // would leave the icon out of the measurement that places the popup.
+                        if (isRtl()) {
+                            setCompoundDrawablesWithIntrinsicBounds(0, 0, icon, 0)
+                        } else {
+                            setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0)
+                        }
                         compoundDrawableTintList = ColorStateList.valueOf(color)
-                        compoundDrawablePadding = dp(8)
+                        compoundDrawablePadding = if (iconOnly) 0 else dp(8)
                     }
                     minWidth = dp(48)
                     minimumWidth = dp(48)
                     minHeight = dp(48)
                     minimumHeight = dp(48)
-                    setPadding(dp(16), 0, dp(16), 0)
+                    val padding = if (iconOnly) dp(14) else dp(16)
+                    setPadding(padding, 0, padding, 0)
                     background =
                         RippleDrawable(
                             ColorStateList.valueOf(withAlpha(color, 35)),
@@ -304,10 +319,24 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
                 }
             )
         }
-        button(R.string.task_delete_block, colors.destructive) { onDelete?.invoke(task.index) }
-        button(R.string.task_cancel, colors.accent) { }
-        row.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+        button(R.string.task_copy_block, colors.accent, R.drawable.ic_task_copy) {
+            copyBlock(task)
+        }
+        button(R.string.task_delete_block, colors.destructive, R.drawable.ic_task_delete) {
+            onDelete?.invoke(task.index)
+        }
+        button(R.string.task_cancel, colors.accent, R.drawable.ic_task_cancel, iconOnly = true) { }
         val visible = Rect().also(view::getWindowVisibleDisplayFrame)
+        row.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+        // Long translations would push the last action off a narrow screen, so the actions are
+        // stacked instead. The margin leaves room for the popup's own insets at the screen edges.
+        if (row.measuredWidth > visible.width() - dp(32)) {
+            row.orientation = LinearLayout.VERTICAL
+            for (index in 0 until row.childCount) {
+                row.getChildAt(index).layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+            }
+            row.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+        }
         val location = IntArray(2).also(view::getLocationOnScreen)
         val bounds = blockBounds(task, view.layout)
         val x = (location[0] + bounds.centerX() - row.measuredWidth / 2).roundToInt()
@@ -317,6 +346,41 @@ internal class TaskDragController(private val view: AppCompatTextView) : View.On
             .coerceIn(visible.top, maxOf(visible.top, visible.bottom - row.measuredHeight))
         actions = popup
         popup.showAtLocation(view, Gravity.TOP or Gravity.LEFT, x, y)
+    }
+
+    private fun copyBlock(task: RenderedTask) {
+        val block = taskListItemBlock(markdown, task.index) ?: return
+        view.context.getSystemService(ClipboardManager::class.java)
+            ?.setPrimaryClip(ClipData.newPlainText(null, block))
+    }
+
+    /** The task whose checkbox, in the leading margin before its first line, is at [x], [y]. */
+    private fun checkboxAt(x: Float, y: Float): RenderedTask? {
+        val layout = view.layout ?: return null
+        val reach = 24 * density
+        return tasks.values.filter { it.index in deletable }
+            .mapNotNull { task ->
+                val line = layout.getLineForOffset(task.start)
+                val top = view.totalPaddingTop + layout.getLineTop(line).toFloat()
+                val bottom = view.totalPaddingTop + layout.getLineBottom(line).toFloat()
+                val centerY = (top + bottom) / 2F
+                val halfHeight = maxOf(reach, (bottom - top) / 2F)
+                val textStart = layout.getPrimaryHorizontal(task.start) + view.totalPaddingLeft
+                val centerX = if (isRtl()) {
+                    textStart + task.margin / 2F
+                } else {
+                    textStart -
+                        task.margin / 2F
+                }
+                val halfWidth = maxOf(task.margin / 2F, reach)
+                if (abs(y - centerY) > halfHeight || abs(x - centerX) > halfWidth) {
+                    null
+                } else {
+                    task to abs(y - centerY) + abs(x - centerX)
+                }
+            }
+            .minByOrNull { it.second }
+            ?.first
     }
 
     private fun dp(value: Int) = (value * density).roundToInt()

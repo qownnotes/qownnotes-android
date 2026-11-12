@@ -1,4 +1,5 @@
 <resources>
+    <string name="task_copy_block">Copy block</string>
     <string name="task_delete_block">Delete block</string>
     <string name="task_cancel">Cancel</string>
     <string name="encrypted_content_locked">Encrypted content is locked on this device.</string>

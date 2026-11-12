@@ -66,6 +66,19 @@ fun deleteTaskListItem(markdown: String, taskIndex: Int): String? {
     return markdown.substring(0, parsed.bodyStart) + remaining.joinToString("\n")
 }
 
+/**
+ * The Markdown of a task with its nested items and continuation lines, as [deleteTaskListItem]
+ * would remove it. The indentation of the task's own line is removed from every line, so a nested
+ * block pastes as a top-level list. Returns `null` for missing or unsupported (quoted) items.
+ */
+fun taskListItemBlock(markdown: String, taskIndex: Int): String? {
+    val parsed = parseTaskList(markdown)
+    val task = parsed.blocks.firstOrNull { it.index == taskIndex } ?: return null
+    val lines = parsed.lines.subList(task.line, task.end)
+    val indent = lines.first().takeWhile { it == ' ' || it == '\t' }
+    return lines.joinToString("\n") { it.removePrefix(indent) }
+}
+
 internal fun deletableTaskIndices(markdown: String): Set<Int> =
     parseTaskList(markdown).blocks.map { it.index }.toSet()
 

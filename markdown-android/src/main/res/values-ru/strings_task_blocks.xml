@@ -1,4 +1,5 @@
 <resources>
+    <string name="task_copy_block">Копировать блок</string>
     <string name="task_delete_block">Удалить блок</string>
     <string name="task_cancel">Отмена</string>
 </resources>

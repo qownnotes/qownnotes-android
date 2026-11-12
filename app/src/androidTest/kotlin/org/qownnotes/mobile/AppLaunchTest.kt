@@ -51,8 +51,10 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.pressKey
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeText
+import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.hasFocus
+import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -3799,6 +3801,37 @@ class AppLaunchTest {
     }
 
     @Test
+    fun longPressingTheTextOfAWritableTaskSelectsAWord() {
+        importAccount("alice", "Checklist", "etag-1", 10, "- [ ] Buy groceries\n- [ ] Keep\n")
+        application.fakeSyncScheduler.pause()
+        composeRule.onNodeWithText("Checklist").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("groceries"))
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            selectionOf(R.id.markdown_view) == "groceries"
+        }
+        onView(withText("Delete block")).check(doesNotExist())
+    }
+
+    @Test
+    fun longPressingACheckboxCopiesItsBlockAsMarkdown() {
+        val content = "- [ ] Parent\n  - [x] Child\n    - [ ] Grandchild\n- [ ] Keep\n"
+        importAccount("alice", "Checklist", "etag-1", 10, content)
+        application.fakeSyncScheduler.pause()
+        composeRule.onNodeWithText("Checklist").performClick()
+        composeRule.waitForTag("markdown-view")
+
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedCheckbox("Child"))
+        waitForTaskActions()
+        onView(withText("Copy block")).perform(click())
+
+        assertEquals("- [x] Child\n  - [ ] Grandchild", clipboardText())
+        assertEquals(listOf(content), noteContents("alice"))
+    }
+
+    @Test
     fun copyingARenderedTableCopiesTheTextOfItsCells() {
         importAccount(
             "alice",
@@ -3824,11 +3857,11 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Checklist").performClick()
         composeRule.waitForTag("markdown-view")
 
-        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedCheckbox("Parent"))
         waitForTaskActions()
-        onView(withText("Cancel")).perform(click())
+        onView(withContentDescription("Cancel")).perform(click())
         assertEquals(listOf(content), noteContents("alice"))
-        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedCheckbox("Parent"))
         waitForTaskActions()
         onView(withText("Delete block")).perform(click())
         composeRule.onNodeWithText("Delete checkbox block?").assertIsDisplayed()
@@ -3836,7 +3869,7 @@ class AppLaunchTest {
         composeRule.onNodeWithText("Cancel").performClick()
         waitForTaskDialogToClose()
         assertEquals(listOf(content), noteContents("alice"))
-        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedCheckbox("Parent"))
         waitForTaskActions()
         onView(withText("Delete block")).perform(click())
         composeRule.waitForTag("confirm-delete-task")
@@ -3860,7 +3893,7 @@ class AppLaunchTest {
         application.fakeSyncScheduler.pause()
         composeRule.onNodeWithText("Checklist").performClick()
         composeRule.waitForTag("markdown-view")
-        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Child"))
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedCheckbox("Child"))
         waitForTaskActions()
         onView(withText("Delete block")).perform(click())
         composeRule.waitForTag("confirm-delete-task")
@@ -3877,7 +3910,7 @@ class AppLaunchTest {
         }
         // A lone remaining task has no drag handle, but still offers block deletion.
         waitForTaskDialogToClose()
-        onView(withId(R.id.markdown_view)).perform(longPressRenderedTask("Parent"))
+        onView(withId(R.id.markdown_view)).perform(longPressRenderedCheckbox("Parent"))
         waitForTaskActions()
         onView(withText("Delete block")).perform(click())
         composeRule.waitForTag("confirm-delete-task")
@@ -4487,6 +4520,7 @@ class AppLaunchTest {
         }
     }
 
+    /** Long-presses a word of the rendered task with [label], away from its checkbox. */
     private fun longPressRenderedTask(label: String): ViewAction = GeneralClickAction(
         Tap.LONG,
         { view ->
@@ -4497,6 +4531,31 @@ class AppLaunchTest {
             val location = IntArray(2).also(view::getLocationOnScreen)
             floatArrayOf(
                 location[0] + text.totalPaddingLeft + layout.getPrimaryHorizontal(offset),
+                location[1] + text.totalPaddingTop +
+                    (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f
+            )
+        },
+        Press.FINGER,
+        InputDevice.SOURCE_UNKNOWN,
+        MotionEvent.BUTTON_PRIMARY
+    )
+
+    /** Long-presses the checkbox drawn in the leading margin before the task with [label]. */
+    private fun longPressRenderedCheckbox(label: String): ViewAction = GeneralClickAction(
+        Tap.LONG,
+        { view ->
+            val text = view as TextView
+            val start = text.text.indexOf(label)
+            val layout = text.layout
+            val line = layout.getLineForOffset(start)
+            val margin = (text.text as Spanned)
+                .getSpans(start, start + 1, LeadingMarginSpan::class.java)
+                .filter { (text.text as Spanned).getSpanStart(it) == start }
+                .maxOf { it.getLeadingMargin(true) }
+            val location = IntArray(2).also(view::getLocationOnScreen)
+            floatArrayOf(
+                location[0] + text.totalPaddingLeft + layout.getPrimaryHorizontal(start) -
+                    margin / 2f,
                 location[1] + text.totalPaddingTop +
                     (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f
             )

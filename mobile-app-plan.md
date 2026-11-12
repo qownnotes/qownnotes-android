@@ -320,6 +320,7 @@ A note is read far more often than it is edited, and taking a phone number, a co
 - Let the reader select rendered note text with the platform's own gesture and copy it with the platform's own selection toolbar.
 - Copy what the reader sees. Selection addresses the rendered text, so the copied text carries no Markdown markers.
 - Copy table cells, not their placeholders. Markwon draws each table row from its own layouts and leaves a single placeholder character per row in the view's text, so selection covers whole rows. Copying a selection that includes rows replaces each placeholder with that row's cell text, separated by tabs. The cell text is taken from a second parse of the rendered Markdown, matched to the rows by order, and only when such a copy happens, so rendering does not slow down; when the rows cannot be matched, the platform's copy is used unchanged.
+- Leave the long press on any rendered text, including a task's text, to the platform's selection. Task-block actions are reached through the task's checkbox instead.
 - Keep links tappable while the text is selectable. Selection has to be the base behavior, because the framework only offers selection when the movement method reports that it can select arbitrarily and the link-only movement method also discards the selection as soon as a touch lands outside a link.
 - Distinguish the gestures rather than letting them compete: only a short, stationary touch follows a link, so a press long enough to start a selection and a drag that scrolls the note leave the link alone.
 - Keep the note scrollable. A selectable text view consumes touches a read-only one ignores, and scrolling is the more common gesture.
@@ -1351,8 +1352,10 @@ Original scope:
   Rendered checkboxes are matched to their source lines by parsing a copy of the note, tagged per
   task-like line, with the renderer's own Markwon parser; a checkbox or list whose source cannot
   be identified this way is neither toggled nor offered for dragging.
-  Long-pressing an identifiable, writable task block shows a themed floating delete/cancel row
-  and highlights the block. Confirmed deletion removes the task, its nested items, and continuation
+  Long-pressing the checkbox of an identifiable, writable task block shows a themed floating
+  copy/delete/close row and highlights the block; long-pressing the task's text selects it like
+  other rendered text (#53). Copying puts the block's Markdown source on the clipboard, with the
+  indentation of its first line removed. Confirmed deletion removes the task, its nested items, and continuation
   lines through the existing offline-first content replacement path; single-item lists are supported.
 - Image sharing and general attachments
 - Sharing
