@@ -44,7 +44,7 @@ local, Nextcloud, and remote-image data are handled.
 - Insert web links from a clipboard-prefilled dialog with automatic page titles and editable labels.
 - Find text inside an open note, select and copy rendered text, and adjust the note text size.
 - Tap an image in a note to view it full screen with pinch and double-tap zoom, panning, and
-  swipe-to-close.
+  swipe-to-close, and copy it to the clipboard.
 - Reorder checkbox blocks by dragging their handles, or long-press a block to delete it together
   with nested items and continuation text after confirmation.
 - Detect read-only and QOwnNotes-encrypted notes and fail closed for unsafe HTML, links, images, and

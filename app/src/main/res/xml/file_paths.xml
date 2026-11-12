@@ -3,6 +3,9 @@
     <cache-path
         name="attachments"
         path="attachments/" />
+    <cache-path
+        name="copied_images"
+        path="copied-images/" />
     <files-path
         name="camera"
         path="camera/" />

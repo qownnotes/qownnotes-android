@@ -1,5 +1,11 @@
 package org.qownnotes.mobile
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.graphics.Bitmap
+import android.os.Build
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -32,6 +38,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,6 +68,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -74,14 +82,19 @@ import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import java.io.File
+import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.markdown.NoteImage
 
 /**
@@ -99,6 +112,8 @@ internal fun NoteImageViewer(image: NoteImage, onDismiss: () -> Unit) {
     var offset by remember { mutableStateOf(Offset.Zero) }
     var dismissDrag by remember { mutableFloatStateOf(0f) }
     var controlsVisible by remember { mutableStateOf(true) }
+    var copying by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val zoomAnimation = remember { arrayOfNulls<Job>(1) }
 
     fun close(slideTo: Float = dismissDrag) {
@@ -343,6 +358,37 @@ internal fun NoteImageViewer(image: NoteImage, onDismiss: () -> Unit) {
                             )
                         }
                     }
+                    IconButton(
+                        onClick = {
+                            copying = true
+                            scope.launch {
+                                val copied = copyImageToClipboard(context, image)
+                                copying = false
+                                // Android 13 and newer confirm clipboard changes themselves.
+                                if (!copied ||
+                                    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                                ) {
+                                    Toast.makeText(
+                                        context,
+                                        if (copied) {
+                                            R.string.image_viewer_copied
+                                        } else {
+                                            R.string.image_viewer_copy_failed
+                                        },
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        },
+                        enabled = !copying,
+                        modifier = Modifier.testTag("image-viewer-copy")
+                    ) {
+                        Icon(
+                            Icons.Filled.ContentCopy,
+                            contentDescription = stringResource(R.string.image_viewer_copy),
+                            tint = Color.White.copy(alpha = if (copying) 0.5f else 1f)
+                        )
+                    }
                 }
             }
             AnimatedVisibility(
@@ -394,6 +440,35 @@ private fun ImmersiveViewerWindow(systemBarsVisible: Boolean) {
         }
     }
 }
+
+/**
+ * Puts [image] on the clipboard as a PNG that other apps can paste. Only the newest copy is kept
+ * in the app cache, and the clipboard grants readers temporary access to it.
+ */
+internal suspend fun copyImageToClipboard(context: Context, image: NoteImage): Boolean {
+    val uri = withContext(Dispatchers.IO) {
+        runCatching {
+            val directory = File(context.cacheDir, COPIED_IMAGES_DIRECTORY).apply {
+                deleteRecursively()
+                mkdirs()
+            }
+            val file = File(directory, "image-${UUID.randomUUID()}.png")
+            val written = file.outputStream().use {
+                image.bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+            }
+            check(written) { "The image could not be encoded" }
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        }.getOrNull()
+    } ?: return false
+    return runCatching {
+        val label = image.description.ifBlank { context.getString(R.string.image_viewer_image) }
+        val clipboard = context.getSystemService(ClipboardManager::class.java)
+            ?: error("No clipboard")
+        clipboard.setPrimaryClip(ClipData.newUri(context.contentResolver, label, uri))
+    }.isSuccess
+}
+
+private const val COPIED_IMAGES_DIRECTORY = "copied-images"
 
 internal fun fittedImageSize(width: Int, height: Int, viewport: Size): Size {
     if (width <= 0 || height <= 0 || viewport.width <= 0f || viewport.height <= 0f) {

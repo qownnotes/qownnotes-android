@@ -1,6 +1,8 @@
 package org.qownnotes.mobile
 
+import android.content.ClipboardManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Offset
@@ -17,7 +19,11 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.swipeDown
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -79,6 +85,36 @@ class NoteImageViewerTest {
         composeRule.onNodeWithContentDescription("Image").assertIsDisplayed()
         composeRule.onNodeWithTag("image-viewer-image").performTouchInput { swipeDown() }
         composeRule.waitUntil(5_000) { dismissed }
+    }
+
+    @Test
+    fun copyButtonPutsTheImageOnTheClipboardAsAPng() {
+        showViewer()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val clipboard = context.getSystemService(ClipboardManager::class.java)
+        composeRule.runOnUiThread { clipboard.clearPrimaryClip() }
+
+        composeRule.onNodeWithTag("image-viewer-copy").performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.runOnUiThread { clipboard.primaryClip?.getItemAt(0)?.uri } != null
+        }
+
+        val clip = composeRule.runOnUiThread { clipboard.primaryClip!! }
+        assertEquals("Whiteboard", clip.description.label)
+        assertTrue(clip.description.hasMimeType("image/png"))
+        val uri = clip.getItemAt(0).uri
+        assertEquals("${context.packageName}.fileprovider", uri.authority)
+        val pasted = context.contentResolver.openInputStream(uri)!!.use(BitmapFactory::decodeStream)
+        assertEquals(300, pasted.width)
+        assertEquals(200, pasted.height)
+        assertFalse(dismissed)
+
+        // A second copy replaces the first, so copied images do not pile up in the cache.
+        composeRule.onNodeWithTag("image-viewer-copy").performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.runOnUiThread { clipboard.primaryClip?.getItemAt(0)?.uri } != uri
+        }
+        assertEquals(1, File(context.cacheDir, "copied-images").listFiles()!!.size)
     }
 
     private fun zoomText(): String? = composeRule.onAllNodesWithTag("image-viewer-zoom")

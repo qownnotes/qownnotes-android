@@ -4,4 +4,7 @@
     <string name="image_viewer_fit">По размеру экрана</string>
     <string name="image_viewer_zoom_in">Увеличить</string>
     <string name="image_viewer_zoom_level">%1$d%%</string>
+    <string name="image_viewer_copy">Копировать изображение</string>
+    <string name="image_viewer_copied">Изображение скопировано</string>
+    <string name="image_viewer_copy_failed">Не удалось скопировать изображение</string>
 </resources>

@@ -16,6 +16,8 @@ zero-based increasing release counter within the month. See [the release guide](
   description is shown as the title, and **Fit to screen** returns to the whole image. Nextcloud,
   local-folder, and remote images open from the copy already shown in the note, without loading
   them again or handing private addresses to another app.
+- **Copy image** in the full-screen image viewer puts the image on the clipboard, so it can be
+  pasted into other apps.
 - **Copy block** in the checkbox block actions of the note preview copies a task with its nested
   items and continuation text as Markdown, keeping the checkbox states
   ([#53](https://github.com/qownnotes/qownnotes-android/issues/53)).

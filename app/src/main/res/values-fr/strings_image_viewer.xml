@@ -4,4 +4,7 @@
     <string name="image_viewer_fit">Ajuster à l’écran</string>
     <string name="image_viewer_zoom_in">Agrandir</string>
     <string name="image_viewer_zoom_level">%1$d %%</string>
+    <string name="image_viewer_copy">Copier l’image</string>
+    <string name="image_viewer_copied">Image copiée</string>
+    <string name="image_viewer_copy_failed">Impossible de copier l’image</string>
 </resources>

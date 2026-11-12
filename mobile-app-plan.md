@@ -480,7 +480,8 @@ Before adding dependencies, verify current versions, licenses, maintenance statu
 - Safe handling of standard links and images
 - Full-screen image viewer from a tapped rendered image, with pinch and double-tap zoom, panning,
   and swipe-to-close; it reuses the bounded decoded bitmap without another request and never
-  exposes authenticated attachment URLs to other apps.
+  exposes authenticated attachment URLs to other apps. Copying puts a PNG of that bitmap on the
+  clipboard through the app's `FileProvider`; only the newest copy is kept in the cache.
 - Detection of QOwnNotes encrypted blocks
 
 ### Early Follow-Up
