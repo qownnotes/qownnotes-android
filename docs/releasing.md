@@ -59,6 +59,13 @@ see in the store listing. Deterministic screenshots can be regenerated on a conn
 devenv shell -- just update-fdroid-screenshots
 ```
 
+The capture includes the note list, preview, editor, Nextcloud/local-folder setup, Deck browser,
+card editing and creation, trash restoration, version search, desktop-compatible tags, and sharing.
+Review all eleven images in `fastlane/metadata/android/en-US/images/phoneScreenshots/`; the same
+files appear in the README. Commit them before tagging the release. F-Droid imports Fastlane
+metadata from the latest release it processes, not from an untagged branch; screenshots do not
+belong in the official `fdroiddata` repository and need no recipe change.
+
 ## 3. Verify The Release Candidate
 
 Prepare the release on a normal branch and review the complete diff. Confirm that no credentials,

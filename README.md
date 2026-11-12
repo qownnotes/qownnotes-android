@@ -62,6 +62,14 @@ the same device. See [`CHANGELOG.md`](CHANGELOG.md) for release details.
 | --- | --- | --- | --- |
 | ![Note list](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png) | ![Note view](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png) | ![Note edit](fastlane/metadata/android/en-US/images/phoneScreenshots/3.png) | ![Setup with a Nextcloud account or a local folder](fastlane/metadata/android/en-US/images/phoneScreenshots/4.png) |
 
+| Deck cards | Edit Deck card | Create Deck card | Note trash |
+| --- | --- | --- | --- |
+| ![Browse Nextcloud Deck cards](fastlane/metadata/android/en-US/images/phoneScreenshots/5.png) | ![Edit a Nextcloud Deck card](fastlane/metadata/android/en-US/images/phoneScreenshots/6.png) | ![Create a Deck card and link it into a note](fastlane/metadata/android/en-US/images/phoneScreenshots/7.png) | ![Browse and restore trashed notes](fastlane/metadata/android/en-US/images/phoneScreenshots/8.png) |
+
+| Note versions | Desktop-compatible tags | Note sharing |
+| --- | --- | --- |
+| ![Search and restore note versions](fastlane/metadata/android/en-US/images/phoneScreenshots/9.png) | ![Assign QOwnNotes desktop tags](fastlane/metadata/android/en-US/images/phoneScreenshots/10.png) | ![Manage a password-protected Nextcloud share](fastlane/metadata/android/en-US/images/phoneScreenshots/11.png) |
+
 ## Nextcloud Account Setup
 
 Install the Nextcloud Files Android app, sign in to the desired server there,
@@ -481,7 +489,8 @@ Each stable release must include a store changelog at
 the file exists and is no longer than F-Droid's 500-character limit. Store descriptions and images
 are maintained under `fastlane/metadata/android/en-US/`.
 
-Generate deterministic list, rendered-note, and editor screenshots from fixed test data on a
+Generate deterministic list, rendered-note, editor, Nextcloud/local-folder setup, Deck browser,
+Deck editor and creation, trash, version search, desktop tag, and sharing screenshots from fixed test data on a
 connected emulator or device with:
 
 ```sh

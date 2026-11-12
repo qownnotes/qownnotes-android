@@ -8,6 +8,12 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+### Changed
+
+- Expand the F-Droid and README screenshot gallery to showcase Nextcloud Deck browsing, editing
+  and card creation, note trash, version search and restoration, desktop-compatible tags, and
+  password-protected sharing alongside Nextcloud and local-folder setup.
+
 ## [26.11.1] - 2026-11-12
 
 ### Added

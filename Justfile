@@ -38,10 +38,9 @@ check-fdroid-metadata:
       test -s "$metadata/changelogs/$VERSION_CODE.txt"; \
       test "$(wc -m < "$metadata/changelogs/$VERSION_CODE.txt")" -le 500; \
       test -s "$metadata/images/icon.png"; \
-      test -s "$metadata/images/phoneScreenshots/1.png"; \
-      test -s "$metadata/images/phoneScreenshots/2.png"; \
-      test -s "$metadata/images/phoneScreenshots/3.png"; \
-      test -s "$metadata/images/phoneScreenshots/4.png"
+      for number in {1..11}; do \
+        test -s "$metadata/images/phoneScreenshots/$number.png"; \
+      done
 
 # Run all JVM unit tests.
 test:
@@ -188,19 +187,17 @@ capture-fdroid-screenshots: _wait-for-android
       -Pandroid.testInstrumentationRunnerArguments.class=org.qownnotes.mobile.FdroidScreenshotTest
     screenshots=(app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected/*/fdroid); \
       test "${#screenshots[@]}" -eq 1; \
-      test -s "${screenshots[0]}/1.png"; \
-      test -s "${screenshots[0]}/2.png"; \
-      test -s "${screenshots[0]}/3.png"; \
-      test -s "${screenshots[0]}/4.png"
+      for number in {1..11}; do \
+        test -s "${screenshots[0]}/$number.png"; \
+      done
 
 # Replace the checked-in store screenshots with a fresh deterministic capture.
 update-fdroid-screenshots: capture-fdroid-screenshots
     screenshots=(app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected/*/fdroid); \
       destination=fastlane/metadata/android/en-US/images/phoneScreenshots; \
-      install -m 0644 "${screenshots[0]}/1.png" "$destination/1.png"; \
-      install -m 0644 "${screenshots[0]}/2.png" "$destination/2.png"; \
-      install -m 0644 "${screenshots[0]}/3.png" "$destination/3.png"; \
-      install -m 0644 "${screenshots[0]}/4.png" "$destination/4.png"
+      for number in {1..11}; do \
+        install -m 0644 "${screenshots[0]}/$number.png" "$destination/$number.png"; \
+      done
 
 # Wait until Android and its package manager are ready, not only ADB.
 [private]
