@@ -14,6 +14,12 @@ zero-based increasing release counter within the month. See [the release guide](
   and card creation, note trash, version search and restoration, desktop-compatible tags, and
   password-protected sharing alongside Nextcloud and local-folder setup.
 
+### Fixed
+
+- Entering the editor from a scrolled note no longer occasionally puts the cursor at the end of
+  the note when reserving an edit triggers a preview rerender. This also fixes the reading-position
+  device-test failure in CI.
+
 ## [26.11.1] - 2026-11-12
 
 ### Added

@@ -3577,15 +3577,19 @@ private fun NoteDetailScreen(
             (current.syncState != SyncState.FAILED || current.remoteId != null)
     }
     val startEditing = {
+        // Reserving the edit changes the Room revision. Its Flow can rerender the preview and
+        // invalidate TextView.layout while beginEditing suspends, so snapshot the reading position
+        // before starting database work rather than falling back to the end of the note afterward.
+        val readingOffset = sourceOffsetForReadingPosition(
+            renderedView,
+            scrollState.value,
+            note?.content.orEmpty()
+        )
         scope.launch {
             component.beginEditing(localId)?.let { editable ->
                 draft = editable.content
                 contentBeforeEditing = editable.content
-                selectionStart = sourceOffsetForReadingPosition(
-                    renderedView,
-                    scrollState.value,
-                    editable.content
-                )
+                selectionStart = readingOffset.coerceIn(0, editable.content.length)
                 selectionEnd = selectionStart
                 editing = true
             }

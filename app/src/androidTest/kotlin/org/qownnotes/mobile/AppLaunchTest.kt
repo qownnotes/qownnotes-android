@@ -3031,12 +3031,35 @@ class AppLaunchTest {
         importAccount("alice", "Long note", "etag-1", 10, content)
         composeRule.onNodeWithText("Long note").performClick()
         composeRule.waitForTag("markdown-view")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.runOnIdle {
+                val view = composeRule.activity.findViewById<TextView>(R.id.markdown_view)
+                view?.text?.contains("Paragraph 80") == true && view.layout != null
+            }
+        }
         val renderedTopBeforeScroll = screenTopOf(R.id.markdown_view)
         composeRule.onNodeWithTag("markdown-view").performTouchInput {
             swipeUp(durationMillis = 1_000)
         }
         composeRule.waitUntil(timeoutMillis = 10_000) {
             screenTopOf(R.id.markdown_view) < renderedTopBeforeScroll
+        }
+
+        // Remember the actual visible paragraph before Room reserves the edit and rerenders the
+        // preview. Merely checking a nonzero caret also accepts unrelated positions in the note.
+        var expectedSelection = 0
+        onView(withId(R.id.markdown_view)).check { view, _ ->
+            val text = view as TextView
+            val layout = checkNotNull(text.layout)
+            val scrollY = renderedTopBeforeScroll - IntArray(2).also(view::getLocationOnScreen)[1]
+            val line = layout.getLineForVertical(scrollY)
+            val renderedOffset = layout.getLineStart(line)
+            val sourceOffset = (renderedOffset.toLong() * content.length / text.length()).toInt()
+            expectedSelection = if (sourceOffset == 0) {
+                0
+            } else {
+                content.lastIndexOf('\n', sourceOffset - 1) + 1
+            }
         }
 
         composeRule.enterEditMode()
@@ -3047,6 +3070,7 @@ class AppLaunchTest {
         }
         assertTrue("expected selection after the start of the note", selection > 0)
         assertTrue("expected selection before the end of the note", selection < content.length)
+        assertEquals("expected selection at the reading position", expectedSelection, selection)
 
         lateinit var editor: org.qownnotes.mobile.markdown.MarkdownEditText
         onView(withId(R.id.markdown_editor)).check { view, _ ->
