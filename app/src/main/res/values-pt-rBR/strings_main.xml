@@ -79,6 +79,14 @@
     <string name="settings_show_toolbar_labels">Mostrar rótulos da barra</string>
     <string name="settings_remove_edited_trailing_spaces">Limpar espaços finais ao salvar</string>
     <string name="settings_remove_edited_trailing_spaces_description">Remover espaços finais únicos apenas das linhas editadas. Preservar linhas não alteradas e quebras de linha do Markdown.</string>
+    <string name="settings_section_photos">Fotos</string>
+    <string name="settings_reduce_photo_resolution">Reduzir a resolução das fotos</string>
+    <string name="settings_reduce_photo_resolution_description">Reduz as fotos tiradas em uma nota ou por um widget, para que ocupem menos espaço e sincronizem mais rápido. Desative para manter a resolução total da câmera.</string>
+    <string name="photo_size_small">Pequena</string>
+    <string name="photo_size_medium">Média</string>
+    <string name="photo_size_large">Grande</string>
+    <string name="settings_photo_size_summary">Lado maior de até %1$s pixels, cerca de %2$s por foto</string>
+    <string name="settings_photo_size_summary_default">Recomendado: lado maior de até %1$s pixels, cerca de %2$s por foto</string>
     <string name="settings_show_toolbar_labels_description">Mostra um nome curto abaixo de cada ícone da barra do editor.</string>
     <string name="settings_bookmarks_file">Arquivo de marcadores</string>
     <string name="settings_bookmarks_file_invalid">Use um caminho relativo terminado em .md</string>
@@ -223,6 +231,10 @@
     <string name="format_numbered_list">Criar item de lista numerada</string>
     <string name="format_quote">Criar citação</string>
     <string name="insert_image">Inserir imagem</string>
+    <string name="take_photo">Tirar foto</string>
+    <string name="image_attaching">Anexando imagem…</string>
+    <string name="photo_attaching">Anexando foto…</string>
+    <string name="camera_photo_description">foto</string>
     <string name="insert_date">Inserir data</string>
     <string name="insert_date_time">Inserir data e hora</string>
     <string name="create_deck_card">Criar cartão do Nextcloud Deck</string>
@@ -241,6 +253,7 @@
     <string name="toolbar_label_outdent">Remover recuo</string>
     <string name="toolbar_label_link">Link</string>
     <string name="toolbar_label_image">Imagem</string>
+    <string name="toolbar_label_camera">Foto</string>
     <string name="toolbar_label_date">Data</string>
     <string name="toolbar_label_date_time">Data e hora</string>
     <string name="toolbar_label_create_deck_card">Novo cartão</string>
@@ -264,6 +277,7 @@
     <string name="toolbar_help_outdent">Move a linha atual ou as selecionadas até 4 espaços para a esquerda.</string>
     <string name="toolbar_help_link">Adiciona um link. O texto selecionado vira o título do link e um endereço web copiado é preenchido.</string>
     <string name="toolbar_help_image">Escolhe uma imagem, anexa à nota e a insere no cursor.</string>
+    <string name="toolbar_help_camera">Tira uma foto com a câmera, anexa à nota e a insere no cursor. As fotos são reduzidas conforme as configurações.</string>
     <string name="toolbar_help_date">Insere a data de hoje, como 2026-10-09.</string>
     <string name="toolbar_help_date_time">Insere a data e a hora atuais, como 2026-10-09 14:30:00.</string>
     <string name="toolbar_help_create_deck_card">Cria um cartão do Nextcloud Deck. O texto selecionado vira o título do cartão e é substituído por um link para ele.</string>

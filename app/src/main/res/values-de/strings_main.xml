@@ -78,6 +78,14 @@
     <string name="settings_show_toolbar_labels">Symbolleisten-Beschriftungen anzeigen</string>
     <string name="settings_remove_edited_trailing_spaces">Leerzeichen beim Speichern bereinigen</string>
     <string name="settings_remove_edited_trailing_spaces_description">Einzelne Leerzeichen am Zeilenende nur aus bearbeiteten Zeilen entfernen. Unveränderte Zeilen und Markdown-Zeilenumbrüche beibehalten.</string>
+    <string name="settings_section_photos">Fotos</string>
+    <string name="settings_reduce_photo_resolution">Fotoauflösung verringern</string>
+    <string name="settings_reduce_photo_resolution_description">Verkleinert Fotos, die in einer Notiz oder über ein Widget aufgenommen werden, damit sie weniger Speicher belegen und schneller synchronisieren. Ausschalten, um die volle Auflösung der Kamera zu behalten.</string>
+    <string name="photo_size_small">Klein</string>
+    <string name="photo_size_medium">Mittel</string>
+    <string name="photo_size_large">Groß</string>
+    <string name="settings_photo_size_summary">Längste Seite bis zu %1$s Pixel, etwa %2$s pro Foto</string>
+    <string name="settings_photo_size_summary_default">Empfohlen: längste Seite bis zu %1$s Pixel, etwa %2$s pro Foto</string>
     <string name="settings_show_toolbar_labels_description">Zeigt unter jedem Symbol der Editor-Symbolleiste einen kurzen Namen.</string>
     <string name="settings_bookmarks_file">Lesezeichen-Datei</string>
     <string name="settings_bookmarks_file_invalid">Verwende einen relativen Pfad, der auf .md endet</string>
@@ -218,6 +226,10 @@
     <string name="format_numbered_list">Nummerierten Listeneintrag erstellen</string>
     <string name="format_quote">Blockzitat erstellen</string>
     <string name="insert_image">Bild einfügen</string>
+    <string name="take_photo">Foto aufnehmen</string>
+    <string name="image_attaching">Bild wird angehängt…</string>
+    <string name="photo_attaching">Foto wird angehängt…</string>
+    <string name="camera_photo_description">Foto</string>
     <string name="insert_date">Datum einfügen</string>
     <string name="insert_date_time">Datum und Uhrzeit einfügen</string>
     <string name="create_deck_card">Nextcloud-Deck-Karte erstellen</string>
@@ -236,6 +248,7 @@
     <string name="toolbar_label_outdent">Ausrücken</string>
     <string name="toolbar_label_link">Link</string>
     <string name="toolbar_label_image">Bild</string>
+    <string name="toolbar_label_camera">Foto</string>
     <string name="toolbar_label_date">Datum</string>
     <string name="toolbar_label_date_time">Datum &amp; Zeit</string>
     <string name="toolbar_label_create_deck_card">Neue Karte</string>
@@ -259,6 +272,7 @@
     <string name="toolbar_help_outdent">Rückt die aktuelle oder ausgewählte Zeilen um bis zu 4 Leerzeichen nach links aus.</string>
     <string name="toolbar_help_link">Fügt einen Weblink ein. Ausgewählter Text wird zum Linktitel, und eine kopierte Webadresse wird übernommen.</string>
     <string name="toolbar_help_image">Wählt ein Bild, hängt es an die Notiz an und fügt es an der Cursorposition ein.</string>
+    <string name="toolbar_help_camera">Nimmt ein Foto mit der Kamera auf, hängt es an die Notiz an und fügt es an der Cursorposition ein. Fotos werden gemäß den Einstellungen verkleinert.</string>
     <string name="toolbar_help_date">Fügt das heutige Datum ein, etwa 2026-10-09.</string>
     <string name="toolbar_help_date_time">Fügt das aktuelle Datum und die Uhrzeit ein, etwa 2026-10-09 14:30:00.</string>
     <string name="toolbar_help_create_deck_card">Erstellt eine Nextcloud-Deck-Karte. Ausgewählter Text wird zum Kartentitel und durch einen Link zur Karte ersetzt.</string>

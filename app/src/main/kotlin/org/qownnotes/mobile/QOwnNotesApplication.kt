@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.backend.localfolder.DirectoryNoteFolderFiles
 import org.qownnotes.mobile.backend.localfolder.DocumentTreeNoteFolderFiles
 import org.qownnotes.mobile.backend.localfolder.LocalFolderBackend
@@ -557,8 +558,56 @@ class ApplicationComponent(
         requireNoteSettingsBackend(account).settings(account)
     }
 
-    internal suspend fun importImage(localId: String, uri: android.net.Uri): ImportedImage {
-        val selected = selectedImageReader.read(uri)
+    internal suspend fun importImage(localId: String, uri: android.net.Uri): ImportedImage =
+        uploadImage(localId, selectedImageReader.read(uri))
+
+    /** A new private file for the camera to write a photo for a note into. */
+    internal fun newCameraPhotoFile(): java.io.File =
+        java.io.File(application.filesDir, "camera/note-${java.util.UUID.randomUUID()}.jpg")
+            .also { it.parentFile?.mkdirs() }
+
+    /**
+     * Reduces a photo the camera wrote to [file] as the photo setting asks, then attaches it to the
+     * note. The file is removed afterwards, whether or not the photo could be attached.
+     */
+    internal suspend fun importCameraPhoto(localId: String, file: java.io.File): ImportedImage =
+        try {
+            prepareCameraPhoto(file)
+            val content = withContext(Dispatchers.IO) {
+                file.takeIf(java.io.File::isFile)?.readBytes()
+            }
+            require(content != null && content.isNotEmpty()) {
+                application.getString(R.string.image_empty)
+            }
+            uploadImage(
+                localId,
+                SelectedImage(
+                    description = application.getString(R.string.camera_photo_description),
+                    mimeType = "image/jpeg",
+                    content = content
+                )
+            )
+        } finally {
+            withContext(Dispatchers.IO) { file.delete() }
+        }
+
+    /**
+     * Scales a photo the camera wrote down in place, as the photo setting asks. A photo that cannot
+     * be reduced is kept at its full resolution rather than lost.
+     */
+    internal suspend fun prepareCameraPhoto(file: java.io.File) {
+        try {
+            CapturedPhotoProcessor.reduce(file, settings.photoResolution.value.maxDimension)
+        } catch (error: kotlinx.coroutines.CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            android.util.Log.w("QOwnNotes", "Keeping the photo at full resolution", error)
+        } catch (error: OutOfMemoryError) {
+            android.util.Log.w("QOwnNotes", "Keeping the photo at full resolution", error)
+        }
+    }
+
+    private suspend fun uploadImage(localId: String, selected: SelectedImage): ImportedImage {
         val fileName = uniqueMediaImageFileName(selected.mimeType)
         val note = noteRepository.get(localId) ?: error("The note no longer exists")
         require(!note.readOnly) { application.getString(R.string.note_read_only_error) }

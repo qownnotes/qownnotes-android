@@ -77,6 +77,14 @@
     <string name="settings_show_toolbar_labels">显示工具栏标签</string>
     <string name="settings_remove_edited_trailing_spaces">保存时清理行尾空格</string>
     <string name="settings_remove_edited_trailing_spaces_description">仅删除已编辑行末尾的单个空格。保留未改动的行和 Markdown 换行。</string>
+    <string name="settings_section_photos">照片</string>
+    <string name="settings_reduce_photo_resolution">降低照片分辨率</string>
+    <string name="settings_reduce_photo_resolution_description">缩小在笔记中或通过小部件拍摄的照片，以减少存储占用并加快同步。关闭后将保留相机的完整分辨率。</string>
+    <string name="photo_size_small">小</string>
+    <string name="photo_size_medium">中</string>
+    <string name="photo_size_large">大</string>
+    <string name="settings_photo_size_summary">长边最多 %1$s 像素，每张约 %2$s</string>
+    <string name="settings_photo_size_summary_default">推荐：长边最多 %1$s 像素，每张约 %2$s</string>
     <string name="settings_show_toolbar_labels_description">在编辑器工具栏的每个图标下方显示简短名称。</string>
     <string name="settings_bookmarks_file">书签文件</string>
     <string name="settings_bookmarks_file_invalid">请使用以 .md 结尾的相对路径</string>
@@ -212,6 +220,10 @@
     <string name="format_numbered_list">创建编号列表项</string>
     <string name="format_quote">创建引用块</string>
     <string name="insert_image">插入图片</string>
+    <string name="take_photo">拍照</string>
+    <string name="image_attaching">正在附加图片…</string>
+    <string name="photo_attaching">正在附加照片…</string>
+    <string name="camera_photo_description">照片</string>
     <string name="insert_date">插入日期</string>
     <string name="insert_date_time">插入日期和时间</string>
     <string name="create_deck_card">创建 Nextcloud Deck 卡片</string>
@@ -230,6 +242,7 @@
     <string name="toolbar_label_outdent">减少缩进</string>
     <string name="toolbar_label_link">链接</string>
     <string name="toolbar_label_image">图片</string>
+    <string name="toolbar_label_camera">拍照</string>
     <string name="toolbar_label_date">日期</string>
     <string name="toolbar_label_date_time">日期时间</string>
     <string name="toolbar_label_create_deck_card">新卡片</string>
@@ -253,6 +266,7 @@
     <string name="toolbar_help_outdent">将当前行或所选行向左移动最多 4 个空格。</string>
     <string name="toolbar_help_link">添加网页链接。所选文本将成为链接标题，并自动填入已复制的网址。</string>
     <string name="toolbar_help_image">选择一张图片，将其附加到笔记并插入到光标处。</string>
+    <string name="toolbar_help_camera">使用相机拍照，将其附加到笔记并插入到光标处。照片会按设置缩小。</string>
     <string name="toolbar_help_date">插入今天的日期，例如 2026-10-09。</string>
     <string name="toolbar_help_date_time">插入当前日期和时间，例如 2026-10-09 14:30:00。</string>
     <string name="toolbar_help_create_deck_card">创建 Nextcloud Deck 卡片。所选文本将成为卡片标题，并被替换为指向该卡片的链接。</string>

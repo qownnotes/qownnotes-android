@@ -78,6 +78,14 @@
     <string name="settings_show_toolbar_labels">Show toolbar labels</string>
     <string name="settings_remove_edited_trailing_spaces">Clean trailing spaces on save</string>
     <string name="settings_remove_edited_trailing_spaces_description">Remove single trailing spaces only from edited lines. Preserve untouched lines and Markdown hard breaks.</string>
+    <string name="settings_section_photos">Photos</string>
+    <string name="settings_reduce_photo_resolution">Reduce photo resolution</string>
+    <string name="settings_reduce_photo_resolution_description">Scale down photos taken in a note or from a widget, so they use less storage and synchronize faster. Turn off to keep the camera\'s full resolution.</string>
+    <string name="photo_size_small">Small</string>
+    <string name="photo_size_medium">Medium</string>
+    <string name="photo_size_large">Large</string>
+    <string name="settings_photo_size_summary">Longest side up to %1$s pixels, about %2$s per photo</string>
+    <string name="settings_photo_size_summary_default">Recommended: longest side up to %1$s pixels, about %2$s per photo</string>
     <string name="settings_show_toolbar_labels_description">Show a short name below each editor toolbar icon.</string>
     <string name="settings_bookmarks_file">Bookmarks file</string>
     <string name="settings_bookmarks_file_invalid">Use a relative path ending in .md</string>
@@ -218,6 +226,10 @@
     <string name="format_numbered_list">Create numbered list item</string>
     <string name="format_quote">Create block quote</string>
     <string name="insert_image">Insert image</string>
+    <string name="take_photo">Take photo</string>
+    <string name="image_attaching">Attaching image…</string>
+    <string name="photo_attaching">Attaching photo…</string>
+    <string name="camera_photo_description">photo</string>
     <string name="insert_date">Insert date</string>
     <string name="insert_date_time">Insert date and time</string>
     <string name="create_deck_card">Create Nextcloud Deck card</string>
@@ -236,6 +248,7 @@
     <string name="toolbar_label_outdent">Outdent</string>
     <string name="toolbar_label_link">Link</string>
     <string name="toolbar_label_image">Image</string>
+    <string name="toolbar_label_camera">Photo</string>
     <string name="toolbar_label_date">Date</string>
     <string name="toolbar_label_date_time">Date &amp; time</string>
     <string name="toolbar_label_create_deck_card">New card</string>
@@ -259,6 +272,7 @@
     <string name="toolbar_help_outdent">Move the current or selected lines up to 4 spaces back to the left.</string>
     <string name="toolbar_help_link">Add a web link. Selected text becomes the link title, and a copied web address is filled in.</string>
     <string name="toolbar_help_image">Choose an image, attach it to the note, and insert it at the cursor.</string>
+    <string name="toolbar_help_camera">Take a photo with the camera, attach it to the note, and insert it at the cursor. Photos are reduced as set in the settings.</string>
     <string name="toolbar_help_date">Insert today\'s date, such as 2026-10-09.</string>
     <string name="toolbar_help_date_time">Insert the current date and time, such as 2026-10-09 14:30:00.</string>
     <string name="toolbar_help_create_deck_card">Create a Nextcloud Deck card. Selected text becomes the card title and is replaced by a link to the card.</string>

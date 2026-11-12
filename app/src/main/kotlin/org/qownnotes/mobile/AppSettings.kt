@@ -8,6 +8,8 @@ import org.qownnotes.mobile.core.DEFAULT_BOOKMARKS_PATH
 import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteFolderScope
+import org.qownnotes.mobile.core.PhotoResolution
+import org.qownnotes.mobile.core.PhotoSize
 import org.qownnotes.mobile.markdown.NoteTextSize
 
 /**
@@ -168,6 +170,27 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         if (dismissed == mutableEditorToolbarHintDismissed.value) return
         preferences.edit().putBoolean(EDITOR_TOOLBAR_HINT_DISMISSED, dismissed).apply()
         mutableEditorToolbarHintDismissed.value = dismissed
+    }
+
+    private val mutablePhotoResolution = MutableStateFlow(
+        PhotoResolution(
+            reduce = preferences.getBoolean(REDUCE_PHOTO_RESOLUTION, true),
+            size = preferences.getString(PHOTO_SIZE, null)
+                ?.let { stored -> PhotoSize.entries.firstOrNull { it.name == stored } }
+                ?: PhotoSize.DEFAULT
+        )
+    )
+
+    /** How photos taken in a note or from a widget are scaled down before they are attached. */
+    val photoResolution: StateFlow<PhotoResolution> = mutablePhotoResolution.asStateFlow()
+
+    fun setPhotoResolution(resolution: PhotoResolution) {
+        if (resolution == mutablePhotoResolution.value) return
+        preferences.edit()
+            .putBoolean(REDUCE_PHOTO_RESOLUTION, resolution.reduce)
+            .putString(PHOTO_SIZE, resolution.size.name)
+            .apply()
+        mutablePhotoResolution.value = resolution
     }
 
     private val mutableAppearance = MutableStateFlow(readAppearance())
@@ -438,6 +461,8 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val SHOW_LIST_HEADER = "showListHeader"
         const val NOTE_CARDS = "noteCards"
         const val AUDIO_LINK_OPENING = "audioLinkOpening"
+        const val REDUCE_PHOTO_RESOLUTION = "reducePhotoResolution"
+        const val PHOTO_SIZE = "photoSize"
 
         // Legacy global key migrated to existing accounts when the application starts.
         const val SHOW_CATEGORY = "showCategory"

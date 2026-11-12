@@ -80,6 +80,14 @@
     <string name="settings_show_toolbar_labels">Pokazuj etykiety paska</string>
     <string name="settings_remove_edited_trailing_spaces">Usuwaj końcowe spacje przy zapisie</string>
     <string name="settings_remove_edited_trailing_spaces_description">Usuwaj pojedyncze końcowe spacje tylko ze zmienionych wierszy. Zachowuj niezmienione wiersze i podziały wierszy Markdown.</string>
+    <string name="settings_section_photos">Zdjęcia</string>
+    <string name="settings_reduce_photo_resolution">Zmniejszaj rozdzielczość zdjęć</string>
+    <string name="settings_reduce_photo_resolution_description">Zmniejsza zdjęcia zrobione w notatce lub z widżetu, aby zajmowały mniej miejsca i szybciej się synchronizowały. Wyłącz, aby zachować pełną rozdzielczość aparatu.</string>
+    <string name="photo_size_small">Mały</string>
+    <string name="photo_size_medium">Średni</string>
+    <string name="photo_size_large">Duży</string>
+    <string name="settings_photo_size_summary">Dłuższy bok do %1$s pikseli, około %2$s na zdjęcie</string>
+    <string name="settings_photo_size_summary_default">Zalecane: dłuższy bok do %1$s pikseli, około %2$s na zdjęcie</string>
     <string name="settings_show_toolbar_labels_description">Pokazuje krótką nazwę pod każdą ikoną paska narzędzi edytora.</string>
     <string name="settings_bookmarks_file">Plik zakładek</string>
     <string name="settings_bookmarks_file_invalid">Użyj ścieżki względnej zakończonej na .md</string>
@@ -230,6 +238,10 @@
     <string name="format_numbered_list">Utwórz element listy numerowanej</string>
     <string name="format_quote">Utwórz cytat blokowy</string>
     <string name="insert_image">Wstaw obraz</string>
+    <string name="take_photo">Zrób zdjęcie</string>
+    <string name="image_attaching">Dołączanie obrazu…</string>
+    <string name="photo_attaching">Dołączanie zdjęcia…</string>
+    <string name="camera_photo_description">zdjęcie</string>
     <string name="insert_date">Wstaw datę</string>
     <string name="insert_date_time">Wstaw datę i godzinę</string>
     <string name="create_deck_card">Utwórz kartę Nextcloud Deck</string>
@@ -248,6 +260,7 @@
     <string name="toolbar_label_outdent">Usuń wcięcie</string>
     <string name="toolbar_label_link">Link</string>
     <string name="toolbar_label_image">Obraz</string>
+    <string name="toolbar_label_camera">Zdjęcie</string>
     <string name="toolbar_label_date">Data</string>
     <string name="toolbar_label_date_time">Data i godz.</string>
     <string name="toolbar_label_create_deck_card">Nowa karta</string>
@@ -271,6 +284,7 @@
     <string name="toolbar_help_outdent">Przesuwa bieżący lub zaznaczone wiersze o maksymalnie 4 spacje w lewo.</string>
     <string name="toolbar_help_link">Dodaje link. Zaznaczony tekst staje się tytułem linku, a skopiowany adres internetowy zostaje wstawiony.</string>
     <string name="toolbar_help_image">Wybiera obraz, dołącza go do notatki i wstawia w miejscu kursora.</string>
+    <string name="toolbar_help_camera">Robi zdjęcie aparatem, dołącza je do notatki i wstawia w miejscu kursora. Zdjęcia są zmniejszane zgodnie z ustawieniami.</string>
     <string name="toolbar_help_date">Wstawia dzisiejszą datę, np. 2026-10-09.</string>
     <string name="toolbar_help_date_time">Wstawia bieżącą datę i godzinę, np. 2026-10-09 14:30:00.</string>
     <string name="toolbar_help_create_deck_card">Tworzy kartę Nextcloud Deck. Zaznaczony tekst staje się tytułem karty i zostaje zastąpiony linkiem do niej.</string>

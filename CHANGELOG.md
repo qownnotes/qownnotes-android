@@ -24,6 +24,14 @@ zero-based increasing release counter within the month. See [the release guide](
   ([#41](https://github.com/qownnotes/qownnotes-android/issues/41)). Tap a checkbox or a note to
   select or deselect it. Screen readers announce whether a note is selected and whether a tap
   selects or deselects it.
+- **Take photo** in the editor toolbar takes a photo with the camera and inserts it into the note at
+  the cursor ([#45](https://github.com/qownnotes/qownnotes-android/issues/45)). A progress bar
+  above the toolbar shows while the photo or a chosen image is attached.
+- **Reduce photo resolution** setting in a new **Photos** settings section, enabled by default.
+  Photos taken in a note or from a widget are scaled down to at most 2,560 pixels on the longest
+  side (about 1 MB), or to the **Small** (1,920) or **Large** (3,840) size. Turn it off to keep the
+  camera's full resolution. Reduced photos are turned upright and keep only their capture time from
+  the camera's metadata, so location data is not attached.
 
 ### Changed
 
@@ -34,6 +42,8 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ### Fixed
 
+- Photos stored sideways by the camera are now shown upright in the note preview, and attached
+  photos larger than 5 MB are no longer left blank once they were synchronized.
 - Keep Deck card loading and error updates on the UI thread, including retrying a missing card.
 - Copying a selection in the note preview that includes a table now copies the text of its cells,
   one row per line with the cells separated by tabs, instead of blank lines

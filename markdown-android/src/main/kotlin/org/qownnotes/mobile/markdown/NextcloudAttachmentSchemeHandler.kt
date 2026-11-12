@@ -6,6 +6,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import io.noties.markwon.image.ImageItem
 import io.noties.markwon.image.SchemeHandler
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.util.Locale
@@ -59,7 +60,10 @@ private fun InputStream.decodeBoundedDrawable(resources: Resources): BitmapDrawa
     }
     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
         ?: error("Image could not be decoded")
-    return BitmapDrawable(resources, bitmap)
+    return BitmapDrawable(
+        resources,
+        bitmap.uprightFor(exifOrientation { ByteArrayInputStream(bytes) })
+    )
 }
 
 private fun InputStream.readBoundedBytes(limit: Int): ByteArray {
@@ -78,8 +82,11 @@ private fun InputStream.readBoundedBytes(limit: Int): ByteArray {
 
 internal const val ATTACHMENT_SCHEME = "nextcloud-attachment"
 private const val SCHEME = ATTACHMENT_SCHEME
-private const val MAX_IMAGE_BYTES = 5 * 1024 * 1024
-private const val MAX_SOURCE_DIMENSION = 8192
-private const val MAX_SOURCE_PIXELS = 32L * 1024 * 1024
+
+// Note attachments include full-resolution camera photos, so they are allowed to be larger than
+// remote web images. The decoded bitmap is still subsampled to MAX_DECODED_DIMENSION.
+private const val MAX_IMAGE_BYTES = 32 * 1024 * 1024
+private const val MAX_SOURCE_DIMENSION = 16384
+private const val MAX_SOURCE_PIXELS = 128L * 1024 * 1024
 private const val MAX_DECODED_DIMENSION = 2048
 private val ALLOWED_IMAGE_TYPES = setOf("image/jpeg", "image/png", "image/webp")

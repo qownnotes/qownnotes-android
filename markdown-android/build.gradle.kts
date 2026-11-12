@@ -20,6 +20,7 @@ kotlin { jvmToolchain(17) }
 dependencies {
     implementation(project(":core"))
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.exifinterface)
     implementation(libs.markwon.core)
     implementation(libs.markwon.image)
     implementation(libs.markwon.ext.strikethrough)

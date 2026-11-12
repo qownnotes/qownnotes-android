@@ -2,6 +2,11 @@ package org.qownnotes.mobile
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -36,6 +41,7 @@ import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreTime
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.StrikethroughS
 import androidx.compose.material.icons.filled.Today
@@ -47,6 +53,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -223,6 +230,14 @@ internal enum class EditorTool(
         R.string.toolbar_help_image,
         "insert-image"
     ),
+    CAMERA(
+        EditorToolGroup.INSERT,
+        Icons.Filled.PhotoCamera,
+        R.string.take_photo,
+        R.string.toolbar_label_camera,
+        R.string.toolbar_help_camera,
+        "take-photo"
+    ),
     DATE(
         EditorToolGroup.INSERT,
         Icons.Filled.Today,
@@ -257,8 +272,13 @@ internal enum class EditorTool(
     )
 }
 
-internal fun availableEditorTools(deckAvailable: Boolean): List<EditorTool> =
-    EditorTool.entries.filter { deckAvailable || it.group != EditorToolGroup.DECK }
+internal fun availableEditorTools(
+    deckAvailable: Boolean,
+    cameraAvailable: Boolean
+): List<EditorTool> = EditorTool.entries.filter {
+    (deckAvailable || it.group != EditorToolGroup.DECK) &&
+        (cameraAvailable || it != EditorTool.CAMERA)
+}
 
 /**
  * The editor's formatting and insert actions as one scrollable row, grouped by purpose and ending
@@ -267,6 +287,7 @@ internal fun availableEditorTools(deckAvailable: Boolean): List<EditorTool> =
 @Composable
 internal fun EditorToolbar(
     deckAvailable: Boolean,
+    cameraAvailable: Boolean,
     showLabels: Boolean,
     isEnabled: (EditorTool) -> Boolean,
     onTool: (EditorTool) -> Unit,
@@ -274,7 +295,7 @@ internal fun EditorToolbar(
     onHeadingLevel: (Int) -> Unit,
     onHelp: () -> Unit
 ) {
-    val tools = availableEditorTools(deckAvailable)
+    val tools = availableEditorTools(deckAvailable, cameraAvailable)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
@@ -491,6 +512,51 @@ private fun headingLevelStyle(level: Int): TextStyle = when (level) {
     else -> MaterialTheme.typography.bodySmall
 }
 
+/** Shows above the toolbar while an image or photo is attached to the note. */
+@Composable
+internal fun EditorAttachmentProgress(@StringRes message: Int?) {
+    // Keeps the text while the bar animates away after the attachment finished.
+    var shown by remember { mutableStateOf(message) }
+    if (message != null) shown = message
+    AnimatedVisibility(
+        visible = message != null,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut()
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.fillMaxWidth().testTag("editor-attachment-progress")
+        ) {
+            Column {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        if (shown == R.string.photo_attaching) {
+                            Icons.Filled.PhotoCamera
+                        } else {
+                            Icons.Filled.AddPhotoAlternate
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    shown?.let {
+                        Text(stringResource(it), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** A one-time hint explaining how to find out what the toolbar icons do. */
 @Composable
 internal fun EditorToolbarHint(onShowHelp: () -> Unit, onDismiss: () -> Unit) {
@@ -532,11 +598,12 @@ internal fun EditorToolbarHint(onShowHelp: () -> Unit, onDismiss: () -> Unit) {
 @Composable
 internal fun EditorToolbarHelpDialog(
     deckAvailable: Boolean,
+    cameraAvailable: Boolean,
     showLabels: Boolean,
     onShowLabelsChange: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val tools = availableEditorTools(deckAvailable)
+    val tools = availableEditorTools(deckAvailable, cameraAvailable)
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null) },

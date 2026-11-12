@@ -34,6 +34,7 @@ import org.qownnotes.mobile.core.NoteShareChange
 import org.qownnotes.mobile.core.NoteShareStatus
 import org.qownnotes.mobile.core.NoteSharing
 import org.qownnotes.mobile.core.NoteSharingPolicy
+import org.qownnotes.mobile.core.PhotoResolution
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteNote
@@ -110,6 +111,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         // The first-use hint would shift the editor below the toolbar in unrelated tests.
         component.settings.setEditorToolbarHintDismissed(true)
         component.settings.setAppearance(AppAppearance())
+        component.settings.setPhotoResolution(PhotoResolution())
         component.settings.resetDeckLinkOpening()
         component.settings.resetAudioLinkOpening()
         fakeBackend.reset()

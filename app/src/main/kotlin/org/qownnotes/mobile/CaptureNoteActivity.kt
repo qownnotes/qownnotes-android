@@ -57,6 +57,8 @@ class CaptureNoteActivity : ComponentActivity() {
         lifecycleScope.launch {
             val component = application().component
             val result = runCatching {
+                // Reducing twice is harmless: a reduced photo already fits and is kept as it is.
+                capturedFile()?.let { component.prepareCameraPhoto(it) }
                 component.createCapturedNote(accountId, localId, uri).localId
             }
             result.onSuccess { localId ->

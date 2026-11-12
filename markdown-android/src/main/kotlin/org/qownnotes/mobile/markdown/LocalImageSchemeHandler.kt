@@ -63,7 +63,7 @@ private fun decodeLocalImage(resources: Resources, file: File): BitmapDrawable {
         options.inSampleSize *= 2
     }
     val bitmap = BitmapFactory.decodeFile(file.path, options) ?: error("Image could not be decoded")
-    return BitmapDrawable(resources, bitmap)
+    return BitmapDrawable(resources, bitmap.uprightFor(exifOrientation(file)))
 }
 
 internal const val LOCAL_IMAGE_SCHEME = "qon-local-image"

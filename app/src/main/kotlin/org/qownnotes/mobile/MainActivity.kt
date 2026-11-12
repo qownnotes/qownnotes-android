@@ -3,6 +3,7 @@ package org.qownnotes.mobile
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -203,6 +204,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -211,6 +213,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
+import java.io.File
 import java.text.DateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -1194,6 +1197,8 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val removeEditedTrailingSpaces by component.settings.removeEditedTrailingSpaces
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val photoResolution by component.settings.photoResolution
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     // Visibility is kept apart from the name because the field may report a last value change
     // while the dialog closes, which must not reopen it.
     var namingNewNote by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -2166,6 +2171,12 @@ private fun NoteListScreen(
                         },
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                             .testTag("bookmarks-path")
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                    SettingsSectionHeader(stringResource(R.string.settings_section_photos))
+                    PhotoResolutionSettings(
+                        resolution = photoResolution,
+                        onChange = component.settings::setPhotoResolution
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     SettingsSectionHeader(stringResource(R.string.settings_section_more))
@@ -3142,7 +3153,8 @@ private fun NoteDetailScreen(
     var editor by remember { mutableStateOf<MarkdownEditText?>(null) }
     var linkDialogUrl by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     var linkDialogTitle by rememberSaveable(localId) { mutableStateOf("") }
-    var importingImage by remember(localId) { mutableStateOf(false) }
+    // The progress message while an image is attached, or null when none is.
+    var importingImage by remember(localId) { mutableStateOf<Int?>(null) }
     val nextcloudDeckFlow = remember(note?.accountId) {
         note?.accountId?.takeIf(component::supportsNextcloudDeck)
             ?.let(component::nextcloudDeckAvailable)
@@ -3158,27 +3170,61 @@ private fun NoteDetailScreen(
     var showNoteDeckBrowser by rememberSaveable(localId) { mutableStateOf(false) }
     var deckLinkUrl by rememberSaveable(localId) { mutableStateOf<String?>(null) }
     var audioAttachmentPath by rememberSaveable(localId) { mutableStateOf<String?>(null) }
+    val attachImage = { progress: Int, import: suspend () -> ImportedImage ->
+        importingImage = progress
+        scope.launch {
+            runCatching { import() }
+                .onSuccess { image ->
+                    editor?.insertImage(image.description, image.markdownPath)
+                    editor?.focusForInput()
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    Toast.makeText(
+                        context,
+                        error.message ?: resources.getString(R.string.insert_image_failed),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            importingImage = null
+        }
+        Unit
+    }
     val imagePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
-                importingImage = true
-                scope.launch {
-                    runCatching { component.importImage(localId, uri) }
-                        .onSuccess { image ->
-                            editor?.insertImage(image.description, image.markdownPath)
-                            editor?.focusForInput()
-                        }
-                        .onFailure { error ->
-                            Toast.makeText(
-                                context,
-                                error.message ?: resources.getString(R.string.insert_image_failed),
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    importingImage = false
-                }
+                attachImage(R.string.image_attaching) { component.importImage(localId, uri) }
             }
         }
+    val cameraAvailable = remember {
+        context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+    }
+    // The camera may outlive this process, so the file it writes to is kept across recreation.
+    var cameraPhotoPath by rememberSaveable(localId) { mutableStateOf<String?>(null) }
+    val camera =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
+            val file = cameraPhotoPath?.let(::File) ?: return@rememberLauncherForActivityResult
+            cameraPhotoPath = null
+            if (saved) {
+                attachImage(R.string.photo_attaching) { component.importCameraPhoto(localId, file) }
+            } else {
+                file.delete()
+            }
+        }
+    val takePhoto = {
+        val file = component.newCameraPhotoFile()
+        cameraPhotoPath = file.path
+        runCatching {
+            camera.launch(
+                FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            )
+        }.onFailure {
+            file.delete()
+            cameraPhotoPath = null
+            Toast.makeText(context, R.string.widget_camera_unavailable, Toast.LENGTH_LONG).show()
+        }
+        Unit
+    }
     // Hiding the keyboard and the state change that takes the editor away have to happen in one
     // go on [UiDispatcher]: the input method is only reachable while the editor still has a window
     // token, and editing is left from callbacks that have already waited for a repository call.
@@ -4100,17 +4146,19 @@ private fun NoteDetailScreen(
                             }
                         )
                     }
+                    EditorAttachmentProgress(importingImage)
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
                         // Undo and redo stay first, so stepping back does not require scrolling.
                         EditorToolbar(
                             deckAvailable = nextcloudDeckAvailable,
+                            cameraAvailable = cameraAvailable,
                             showLabels = showToolbarLabels,
                             isEnabled = { tool ->
                                 when (tool) {
                                     EditorTool.UNDO -> canUndo
                                     EditorTool.REDO -> canRedo
-                                    EditorTool.IMAGE -> !importingImage
+                                    EditorTool.IMAGE, EditorTool.CAMERA -> importingImage == null
                                     else -> true
                                 }
                             },
@@ -4159,6 +4207,7 @@ private fun NoteDetailScreen(
                                         linkDialogUrl = current?.clipboardWebUrl().orEmpty()
                                     }
                                     EditorTool.IMAGE -> imagePicker.launch("image/*")
+                                    EditorTool.CAMERA -> takePhoto()
                                     EditorTool.DATE -> {
                                         editor?.insertText(
                                             LocalDateTime.now()
@@ -4839,6 +4888,7 @@ private fun NoteDetailScreen(
     if (showToolbarHelp && editing) {
         EditorToolbarHelpDialog(
             deckAvailable = nextcloudDeckAvailable,
+            cameraAvailable = cameraAvailable,
             showLabels = showToolbarLabels,
             onShowLabelsChange = component.settings::setShowEditorToolbarLabels,
             onDismiss = {

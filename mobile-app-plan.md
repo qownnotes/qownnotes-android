@@ -1358,6 +1358,12 @@ Original scope:
   indentation of its first line removed. Confirmed deletion removes the task, its nested items, and continuation
   lines through the existing offline-first content replacement path; single-item lists are supported.
 - Image sharing and general attachments
+- Camera photos in notes: the editor toolbar's camera action (#45) attaches a photo through the
+  same immediate media upload as a chosen image. Camera photos from the editor and the widget are
+  reduced to a device-wide maximum longest side (default 2560 px; 1920 or 3840 selectable) unless
+  the user turns reduction off to keep the camera's file unchanged; reduction bakes in the Exif
+  orientation and keeps only capture-time metadata. Note-attachment previews accept up to 32 MiB
+  and honor Exif orientation, so full-resolution photos still render.
 - Sharing
 - Widgets: account note-list, single-note, creation, and camera actions are implemented. The
   camera action persists a private photo and its Room note before scheduling sync; pending
