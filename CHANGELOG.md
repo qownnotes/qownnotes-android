@@ -8,6 +8,8 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+## [26.11.1] - 2026-11-12
+
 ### Added
 
 - Tap an image in a note to view it full screen
@@ -747,7 +749,8 @@ zero-based increasing release counter within the month. See [the release guide](
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.0...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.1...HEAD
+[26.11.1]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.0...v26.11.1
 [26.11.0]: https://github.com/qownnotes/qownnotes-android/compare/v26.10.10...v26.11.0
 [26.10.10]: https://github.com/qownnotes/qownnotes-android/compare/v1.8.0...v26.10.10
 [1.8.0]: https://github.com/qownnotes/qownnotes-android/compare/v1.7.0...v1.8.0

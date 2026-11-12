@@ -1,0 +1,6 @@
+• View images full screen with zoom, copy them, or annotate them without overwriting the original file
+• Take photos in the editor, with configurable resolution and upright previews
+• Long-press a task's checkbox to copy or delete its block; long-press its text to select it
+• Note selection now shows checkboxes
+• Copying preview tables includes their cell text
+• Fix large photo previews and Deck card loading updates
