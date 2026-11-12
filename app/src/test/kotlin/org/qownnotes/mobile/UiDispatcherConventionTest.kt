@@ -15,7 +15,11 @@ import org.junit.Test
  * neither failure reproduces reliably, so the rule is checked at the source rather than waited for.
  */
 class UiDispatcherConventionTest {
-    private val source = File("src/main/kotlin/org/qownnotes/mobile/MainActivity.kt").readText()
+    private val source = listOf(
+        "MainActivity.kt",
+        "DeckCardEditorUi.kt",
+        "DeckCardBrowserUi.kt"
+    ).joinToString("\n") { File("src/main/kotlin/org/qownnotes/mobile/$it").readText() }
 
     @Test
     fun everyRememberedScopeNamesTheUiDispatcher() {
@@ -62,7 +66,9 @@ class UiDispatcherConventionTest {
         val called = Regex("""\bcomponent\.(\w+)\(""")
         val unconfined = blocks(source, "LaunchedEffect(")
             .map { effect ->
-                blocks(effect, "scope.launch").fold(effect) { body, launched ->
+                val confined = blocks(effect, "scope.launch") +
+                    blocks(effect, "withContext(UiDispatcher)")
+                confined.fold(effect) { body, launched ->
                     body.replace(launched, "")
                 }
             }
@@ -123,6 +129,9 @@ class UiDispatcherConventionTest {
             "checkpointDraft",
             "createNote",
             "createSharedNote",
+            "deckBrowseBoards",
+            "deckCard",
+            "deckCards",
             "moveNotesToTrash",
             "transferNotes",
             "noteVersions",

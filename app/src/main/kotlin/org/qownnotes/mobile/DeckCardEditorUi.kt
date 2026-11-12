@@ -71,6 +71,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.BackendException
 import org.qownnotes.mobile.core.DeckCardDetails
@@ -217,7 +218,7 @@ internal fun DeckCardEditorDialog(
         loadError = null
         original = null
         try {
-            val loaded = component.deckCard(account.id, link)
+            val loaded = withContext(UiDispatcher) { component.deckCard(account.id, link) }
             original = loaded
             title = loaded.title
             description = loaded.description

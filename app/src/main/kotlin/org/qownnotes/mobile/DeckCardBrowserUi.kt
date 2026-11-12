@@ -62,6 +62,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.DeckBoard
 import org.qownnotes.mobile.core.DeckCard
@@ -93,7 +94,7 @@ internal fun DeckCardBrowserDialog(
     LaunchedEffect(account.id, boardsRequest) {
         boardError = null
         try {
-            val loaded = component.deckBrowseBoards(account.id)
+            val loaded = withContext(UiDispatcher) { component.deckBrowseBoards(account.id) }
             val targets = loaded.flatMap { board ->
                 board.stacks.map { DeckStackTarget(board.id, it.id) }
             }
@@ -118,7 +119,10 @@ internal fun DeckCardBrowserDialog(
             stackId ?: return@LaunchedEffect
         )
         try {
-            cards = component.deckCards(account.id, target, includeArchived)
+            cards =
+                withContext(UiDispatcher) {
+                    component.deckCards(account.id, target, includeArchived)
+                }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {

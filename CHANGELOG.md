@@ -34,6 +34,7 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ### Fixed
 
+- Keep Deck card loading and error updates on the UI thread, including retrying a missing card.
 - Copying a selection in the note preview that includes a table now copies the text of its cells,
   one row per line with the cells separated by tabs, instead of blank lines
   ([#53](https://github.com/qownnotes/qownnotes-android/issues/53)).
