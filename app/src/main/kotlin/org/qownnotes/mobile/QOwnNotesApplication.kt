@@ -78,11 +78,14 @@ import org.qownnotes.mobile.core.SyncOutcome
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.core.attachmentApiPath
+import org.qownnotes.mobile.core.inlineMarkdownImages
+import org.qownnotes.mobile.core.insertMarkdownImageAfter
 import org.qownnotes.mobile.core.isLocalFolder
 import org.qownnotes.mobile.core.isLocalFolderAccountId
 import org.qownnotes.mobile.core.mediaImagePath
 import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.core.noteMediaPath
+import org.qownnotes.mobile.core.replaceMarkdownImage
 import org.qownnotes.mobile.core.uniqueMediaImageFileName
 import org.qownnotes.mobile.core.withDiscoveredApi
 import org.qownnotes.mobile.data.MIGRATION_10_11
@@ -605,6 +608,42 @@ class ApplicationComponent(
         } catch (error: OutOfMemoryError) {
             android.util.Log.w("QOwnNotes", "Keeping the photo at full resolution", error)
         }
+    }
+
+    /**
+     * Uploads an annotated copy of the note image [imageIndex] of `inlineMarkdownImages`, as it
+     * was written in [renderedContent], then either points that image at the copy or adds the
+     * copy after it. The original file is never overwritten. Fails without changing the note if
+     * the image was edited or moved since [renderedContent] was shown.
+     */
+    internal suspend fun saveAnnotatedImage(
+        localId: String,
+        renderedContent: String,
+        imageIndex: Int,
+        annotated: android.graphics.Bitmap,
+        replace: Boolean
+    ) {
+        val changed = application.getString(R.string.image_annotation_note_changed)
+        val image = inlineMarkdownImages(renderedContent).getOrNull(imageIndex) ?: error(changed)
+        val original = renderedContent.substring(image.start, image.end)
+        val description = renderedContent.substring(image.descriptionStart, image.descriptionEnd)
+        val (mimeType, content) = withContext(Dispatchers.IO) { encodeAnnotatedImage(annotated) }
+        val imported = uploadImage(localId, SelectedImage(description, mimeType, content))
+        val saved = editMutexes.getOrPut(localId, ::Mutex).withLock {
+            val current = noteRepository.get(localId)?.content ?: error(changed)
+            val updated = if (replace) {
+                replaceMarkdownImage(current, imageIndex, original, imported.markdownPath)
+            } else {
+                insertMarkdownImageAfter(current, imageIndex, original, imported.markdownPath)
+            } ?: error(changed)
+            saveDraftLocked(localId, updated).also { saved ->
+                if (saved) {
+                    editorDrafts.replaceWithPersisted(localId, updated)
+                    editReservations.remove(localId)
+                }
+            }
+        }
+        check(saved) { application.getString(R.string.note_read_only_error) }
     }
 
     private suspend fun uploadImage(localId: String, selected: SelectedImage): ImportedImage {

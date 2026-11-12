@@ -137,7 +137,13 @@ class MarkdownRenderer private constructor(
         // Parsed again only if the reader copies a selection that includes a table.
         (view as? RenderedMarkdownView)?.tableRows =
             { renderedTableRows(markwon, renderedMarkdown) }
-        if (onImageClick != null) attachImageSpans(view, onImageClick)
+        if (onImageClick != null) {
+            // Matching images to their source takes another parse, so it waits for a tap.
+            val sources = lazy {
+                if (encryption.blockCount == 0) markwon.renderedImageSources(markdown) else null
+            }
+            attachImageSpans(view, sources, onImageClick)
+        }
         // Replacing the text reinitializes ArrowKeyMovementMethod's selection at offset zero.
         // TextView then brings that offset into view on its next pre-draw, scrolling a focused
         // checklist to the top. Keep the existing rendered offsets (not Markdown source offsets),
@@ -372,11 +378,19 @@ private fun attachTaskToggleSpans(
     }
 }
 
-private fun attachImageSpans(view: AppCompatTextView, onImageClick: (NoteImage) -> Unit) {
+private fun attachImageSpans(
+    view: AppCompatTextView,
+    sources: Lazy<List<Int?>?>,
+    onImageClick: (NoteImage) -> Unit
+) {
     val text = view.text as? Spannable ?: return
-    text.getSpans(0, text.length, AsyncDrawableSpan::class.java).forEach { image ->
+    val images = text.getSpans(0, text.length, AsyncDrawableSpan::class.java)
+        .sortedWith(compareBy({ text.getSpanStart(it) }, { text.getSpanEnd(it) }))
+    images.forEachIndexed { rendered, image ->
+        // An image is only matched to its source when the parse found exactly the rendered ones.
+        val sourceIndex = { sources.value?.takeIf { it.size == images.size }?.get(rendered) }
         text.setSpan(
-            NoteImageSpan(image, onImageClick),
+            NoteImageSpan(image, sourceIndex, onImageClick),
             text.getSpanStart(image),
             text.getSpanEnd(image),
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE

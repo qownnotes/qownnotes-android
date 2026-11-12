@@ -8,15 +8,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeDown
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -35,14 +41,19 @@ class NoteImageViewerTest {
 
     private var dismissed = false
 
-    private fun showViewer(description: String = "Whiteboard") {
+    private fun showViewer(
+        description: String = "Whiteboard",
+        onSaveAnnotation: (suspend (Bitmap, Boolean) -> Unit)? = null
+    ) {
         val bitmap = Bitmap.createBitmap(300, 200, Bitmap.Config.ARGB_8888).apply {
             eraseColor(Color.GREEN)
         }
         composeRule.setContent {
             MaterialTheme {
                 if (!dismissed) {
-                    NoteImageViewer(NoteImage(bitmap, description)) { dismissed = true }
+                    NoteImageViewer(NoteImage(bitmap, description), onSaveAnnotation) {
+                        dismissed = true
+                    }
                 }
             }
         }
@@ -116,6 +127,90 @@ class NoteImageViewerTest {
         }
         assertEquals(1, File(context.cacheDir, "copied-images").listFiles()!!.size)
     }
+
+    @Test
+    fun annotatingDrawsUndoesRedoesAndSavesAsANewImage() {
+        var saved: Pair<Bitmap, Boolean>? = null
+        showViewer { annotated, replace -> saved = annotated to replace }
+        composeRule.onNodeWithTag("image-viewer-annotate").performClick()
+        composeRule.onNodeWithTag("image-annotation-done").assertIsNotEnabled()
+        composeRule.onNodeWithTag("image-annotation-tool-pen").assertIsOn()
+        // Two fingers zoom rather than draw; zooming back out keeps the screen-to-image mapping.
+        composeRule.onNodeWithTag("image-annotation-canvas").performTouchInput {
+            pinch(
+                center - Offset(20f, 0f),
+                center - Offset(250f, 0f),
+                center + Offset(20f, 0f),
+                center + Offset(250f, 0f)
+            )
+        }
+        composeRule.onNodeWithTag("image-annotation-done").assertIsNotEnabled()
+        composeRule.onNodeWithTag("image-annotation-canvas").performTouchInput {
+            pinch(
+                center - Offset(250f, 0f),
+                center - Offset(20f, 0f),
+                center + Offset(250f, 0f),
+                center + Offset(20f, 0f)
+            )
+        }
+        composeRule.onNodeWithTag("image-annotation-done").assertIsNotEnabled()
+
+        // The image fills the screen width, so its middle row runs across the screen's middle.
+        drawAcrossTheMiddle()
+        composeRule.onNodeWithTag("image-annotation-done").assertIsEnabled()
+        composeRule.onNodeWithTag("image-annotation-undo").performClick()
+        composeRule.onNodeWithTag("image-annotation-done").assertIsNotEnabled()
+        composeRule.onNodeWithTag("image-annotation-redo").performClick()
+
+        composeRule.onNodeWithTag("image-annotation-done").performClick()
+        composeRule.onNodeWithTag("image-annotation-add").performClick()
+        composeRule.waitUntil(5_000) { dismissed }
+
+        val (annotated, replace) = saved!!
+        assertFalse(replace)
+        assertEquals(300, annotated.width)
+        val marked = annotated.getPixel(150, 100)
+        assertTrue(Color.red(marked) > 200 && Color.green(marked) < 100)
+        // Away from the stroke the image is unchanged.
+        assertEquals(Color.GREEN, annotated.getPixel(150, 20))
+    }
+
+    @Test
+    fun annotationsCanBeErasedAndClosingAsksBeforeDiscardingThem() {
+        showViewer()
+        composeRule.onNodeWithTag("image-viewer-annotate").performClick()
+        drawAcrossTheMiddle()
+        composeRule.onNodeWithTag("image-annotation-tool-eraser").performClick()
+        composeRule.onNodeWithTag("image-annotation-canvas").performTouchInput { click(center) }
+        composeRule.onNodeWithTag("image-annotation-done").assertIsNotEnabled()
+        composeRule.onNodeWithTag("image-annotation-undo").performClick()
+
+        composeRule.onNodeWithTag("image-annotation-close").performClick()
+        composeRule.onNodeWithTag("image-annotation-discard").performClick()
+        waitUntilGone("image-annotation-editor")
+        composeRule.onNodeWithTag("image-viewer-image").assertIsDisplayed()
+        assertFalse(dismissed)
+    }
+
+    @Test
+    fun textToolAddsALabelAndImagesOutsideEditableNotesCanOnlyBeCopied() {
+        showViewer()
+        composeRule.onNodeWithTag("image-viewer-annotate").performClick()
+        composeRule.onNodeWithTag("image-annotation-tool-text").performClick()
+        composeRule.onNodeWithTag("image-annotation-canvas").performTouchInput { click(center) }
+        composeRule.onNodeWithTag("image-annotation-text-field").performTextInput("Look here")
+        composeRule.onNodeWithTag("image-annotation-text-done").performClick()
+        composeRule.onNodeWithTag("image-annotation-done").assertIsEnabled().performClick()
+
+        composeRule.onNodeWithTag("image-annotation-add").assertIsNotEnabled()
+        composeRule.onNodeWithTag("image-annotation-replace").assertIsNotEnabled()
+        composeRule.onNodeWithTag("image-annotation-copy").assertIsEnabled()
+    }
+
+    private fun drawAcrossTheMiddle() =
+        composeRule.onNodeWithTag("image-annotation-canvas").performTouchInput {
+            swipe(Offset(width * 0.2f, centerY), Offset(width * 0.8f, centerY), 300)
+        }
 
     private fun zoomText(): String? = composeRule.onAllNodesWithTag("image-viewer-zoom")
         .fetchSemanticsNodes().firstOrNull()?.config

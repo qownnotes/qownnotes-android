@@ -52,7 +52,7 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
                                 buffer.getSpanStart(image),
                                 buffer.getSpanEnd(image)
                             ).toString().trim()
-                            image.open(NoteImage(bitmap, description))
+                            image.open(NoteImage(bitmap, description, image.sourceIndex()))
                         }
                         return true
                     }
@@ -154,10 +154,17 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
     }
 }
 
-internal class NoteImageSpan(val image: AsyncDrawableSpan, val open: (NoteImage) -> Unit)
+internal class NoteImageSpan(
+    val image: AsyncDrawableSpan,
+    val sourceIndex: () -> Int?,
+    val open: (NoteImage) -> Unit
+)
 
 /**
  * A rendered note image the reader tapped. [bitmap] is the bounded decode already shown in the
  * note, so viewing it needs no new request and never exposes the image's source URL.
+ *
+ * [sourceIndex] is the image's index in `inlineMarkdownImages` of the rendered Markdown, or null
+ * when the image cannot be matched to its source with certainty, such as a reference-style image.
  */
-class NoteImage(val bitmap: Bitmap, val description: String)
+class NoteImage(val bitmap: Bitmap, val description: String, val sourceIndex: Int? = null)

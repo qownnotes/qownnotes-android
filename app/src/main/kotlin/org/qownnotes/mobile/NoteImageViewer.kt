@@ -39,6 +39,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Draw
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -103,7 +104,11 @@ import org.qownnotes.mobile.markdown.NoteImage
  * up or down closes the viewer.
  */
 @Composable
-internal fun NoteImageViewer(image: NoteImage, onDismiss: () -> Unit) {
+internal fun NoteImageViewer(
+    image: NoteImage,
+    onSaveAnnotation: (suspend (annotated: Bitmap, replace: Boolean) -> Unit)? = null,
+    onDismiss: () -> Unit
+) {
     val bitmap = remember(image) { image.bitmap.asImageBitmap() }
     val scope = rememberCoroutineScope()
     val appearance = remember { Animatable(0f) }
@@ -113,6 +118,7 @@ internal fun NoteImageViewer(image: NoteImage, onDismiss: () -> Unit) {
     var dismissDrag by remember { mutableFloatStateOf(0f) }
     var controlsVisible by remember { mutableStateOf(true) }
     var copying by remember { mutableStateOf(false) }
+    var annotating by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val zoomAnimation = remember { arrayOfNulls<Job>(1) }
 
@@ -135,13 +141,14 @@ internal fun NoteImageViewer(image: NoteImage, onDismiss: () -> Unit) {
     }
 
     Dialog(
-        onDismissRequest = { close() },
+        // While annotating, back is handled by the editor, which may ask before discarding.
+        onDismissRequest = { if (!annotating) close() },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
         )
     ) {
-        ImmersiveViewerWindow(systemBarsVisible = controlsVisible)
+        ImmersiveViewerWindow(systemBarsVisible = controlsVisible || annotating)
         BoxWithConstraints(Modifier.fillMaxSize().testTag("image-viewer")) {
             val viewport = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             val center = Offset(viewport.width / 2f, viewport.height / 2f)
@@ -359,25 +366,21 @@ internal fun NoteImageViewer(image: NoteImage, onDismiss: () -> Unit) {
                         }
                     }
                     IconButton(
+                        onClick = { annotating = true },
+                        modifier = Modifier.testTag("image-viewer-annotate")
+                    ) {
+                        Icon(
+                            Icons.Filled.Draw,
+                            contentDescription = stringResource(R.string.image_annotate),
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(
                         onClick = {
                             copying = true
                             scope.launch {
-                                val copied = copyImageToClipboard(context, image)
+                                copyImageWithFeedback(context, image)
                                 copying = false
-                                // Android 13 and newer confirm clipboard changes themselves.
-                                if (!copied ||
-                                    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
-                                ) {
-                                    Toast.makeText(
-                                        context,
-                                        if (copied) {
-                                            R.string.image_viewer_copied
-                                        } else {
-                                            R.string.image_viewer_copy_failed
-                                        },
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
                             }
                         },
                         enabled = !copying,
@@ -412,6 +415,21 @@ internal fun NoteImageViewer(image: NoteImage, onDismiss: () -> Unit) {
                     )
                 }
             }
+            AnimatedVisibility(
+                visible = annotating,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                ImageAnnotationEditor(
+                    image = image,
+                    onSave = onSaveAnnotation,
+                    onSaved = {
+                        annotating = false
+                        close()
+                    },
+                    onClose = { annotating = false }
+                )
+            }
         }
     }
 }
@@ -438,6 +456,19 @@ private fun ImmersiveViewerWindow(systemBarsVisible: Boolean) {
                 hide(WindowInsetsCompat.Type.systemBars())
             }
         }
+    }
+}
+
+/** Copies [image] and says so where Android does not already confirm clipboard changes. */
+internal suspend fun copyImageWithFeedback(context: Context, image: NoteImage) {
+    val copied = copyImageToClipboard(context, image)
+    // Android 13 and newer confirm clipboard changes themselves.
+    if (!copied || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        Toast.makeText(
+            context,
+            if (copied) R.string.image_viewer_copied else R.string.image_viewer_copy_failed,
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
 

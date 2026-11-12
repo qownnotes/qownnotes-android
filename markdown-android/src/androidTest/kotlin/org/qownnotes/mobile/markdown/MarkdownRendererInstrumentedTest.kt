@@ -648,6 +648,27 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun matchesTappedImagesToTheirSourceButNotCodeTablesOrReferences() {
+        instrumentation.runOnMainSync {
+            val view = textView()
+            // Inline image syntax in source order: front 0, code 1, one 2, cell 3, two 4.
+            val markdown = "---\ntitle: ![front](f.png)\n---\n`![code](c.png)`\n\n" +
+                "![one](a.png)\n\n![ref][r]\n\n| ![cell](t.png) |\n| --- |\n\n" +
+                "[![two](b.png)](https://example.com)\n\n[r]: r.png\n"
+            MarkdownRenderer(view.context).render(
+                view,
+                markdown,
+                loadRemoteImages = true,
+                onImageClick = {}
+            )
+            val text = view.text as Spannable
+            val images = text.getSpans(0, text.length, NoteImageSpan::class.java)
+                .sortedBy(text::getSpanStart)
+            assertEquals(listOf(2, null, 4), images.map { it.sourceIndex() })
+        }
+    }
+
+    @Test
     fun imagesStayUntappableWithoutAViewerSoTheirLinksStillOpen() {
         instrumentation.runOnMainSync {
             val view = textView()

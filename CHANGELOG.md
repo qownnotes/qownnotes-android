@@ -17,7 +17,13 @@ zero-based increasing release counter within the month. See [the release guide](
   local-folder, and remote images open from the copy already shown in the note, without loading
   them again or handing private addresses to another app.
 - **Copy image** in the full-screen image viewer puts the image on the clipboard, so it can be
-  pasted into other apps.
+  pasted into other apps ([#46](https://github.com/qownnotes/qownnotes-android/issues/46)).
+- **Annotate** in the full-screen image viewer lets you draw on an image with a pen, highlighter,
+  arrows, rectangles, and text, in eight colors and three sizes, with an eraser and undo/redo. Use
+  two fingers to zoom in for detail. When done, add the annotated image to the note after the
+  original, replace the original in the note, or copy it. The original file is never overwritten,
+  and the annotated copy is uploaded to the media folder like any other image
+  ([#46](https://github.com/qownnotes/qownnotes-android/issues/46)).
 - **Copy block** in the checkbox block actions of the note preview copies a task with its nested
   items and continuation text as Markdown, keeping the checkbox states
   ([#53](https://github.com/qownnotes/qownnotes-android/issues/53)).

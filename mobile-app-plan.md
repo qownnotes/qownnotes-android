@@ -482,6 +482,11 @@ Before adding dependencies, verify current versions, licenses, maintenance statu
   and swipe-to-close; it reuses the bounded decoded bitmap without another request and never
   exposes authenticated attachment URLs to other apps. Copying puts a PNG of that bitmap on the
   clipboard through the app's `FileProvider`; only the newest copy is kept in the cache.
+  Annotation draws pen, highlighter, arrow, rectangle, and text marks in the bitmap's pixels and
+  uploads the result as a new media image (JPEG, or PNG with transparency). The note then either
+  gets the new image after the original or has the original's destination replaced; the original
+  file is never overwritten. The rendered image is matched to its inline Markdown source through
+  the renderer's own parse (as for tasks), and the note is only edited if that source is unchanged.
 - Detection of QOwnNotes encrypted blocks
 
 ### Early Follow-Up

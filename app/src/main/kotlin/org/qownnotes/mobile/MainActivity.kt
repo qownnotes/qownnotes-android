@@ -3276,7 +3276,8 @@ private fun NoteDetailScreen(
     var finding by rememberSaveable(localId) { mutableStateOf(initialFindQuery != null) }
     var togglingTask by remember(localId) { mutableStateOf(false) }
     var taskToDelete by remember(localId) { mutableStateOf<Pair<String, Int>?>(null) }
-    var viewedImage by remember(localId) { mutableStateOf<NoteImage?>(null) }
+    // A tapped image, with the note content it was rendered from.
+    var viewedImage by remember(localId) { mutableStateOf<Pair<NoteImage, String>?>(null) }
     var findQuery by rememberSaveable(localId) { mutableStateOf(initialFindQuery.orEmpty()) }
     // Find opened for the list search was not a request to type, so it must not raise the keyboard.
     var findFromListSearch by rememberSaveable(localId) {
@@ -4517,7 +4518,9 @@ private fun NoteDetailScreen(
                                     attachmentApiPath = account?.attachmentApiPath()
                                         ?: "/index.php/apps/notes/api/v1.4/attachment/",
                                     localImages = source?.let(component::pendingImages).orEmpty(),
-                                    onImageClick = { viewedImage = it }
+                                    onImageClick = { image ->
+                                        viewedImage = image to source?.content.orEmpty()
+                                    }
                                 )
                             }
                             val found = highlightNoteSearchMatches(
@@ -4544,7 +4547,31 @@ private fun NoteDetailScreen(
             }
         }
     }
-    viewedImage?.let { image -> NoteImageViewer(image) { viewedImage = null } }
+    viewedImage?.let { (image, renderedContent) ->
+        val sourceIndex = image.sourceIndex
+        val canSaveAnnotation = sourceIndex != null && !editing && note?.readOnly == false &&
+            note?.syncState !in setOf(
+                SyncState.CONFLICT,
+                SyncState.REMOTE_MISSING,
+                SyncState.READ_ONLY_CONFLICT
+            )
+        NoteImageViewer(
+            image = image,
+            onSaveAnnotation = if (canSaveAnnotation && sourceIndex != null) {
+                { annotated, replace ->
+                    component.saveAnnotatedImage(
+                        localId,
+                        renderedContent,
+                        sourceIndex,
+                        annotated,
+                        replace
+                    )
+                }
+            } else {
+                null
+            }
+        ) { viewedImage = null }
+    }
     taskToDelete?.let { (content, taskIndex) ->
         val canDelete = note?.content == content && note?.readOnly == false &&
             note?.syncState !in setOf(
