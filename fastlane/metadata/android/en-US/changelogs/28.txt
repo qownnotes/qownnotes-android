@@ -1,0 +1,4 @@
+• Browse Nextcloud folders in Note settings and see which folders already hold notes
+• After adding an account, choose the folder shared with QOwnNotes desktop; no files are moved
+• Expand the screenshot gallery to showcase Deck, trash, versions, tags, and sharing
+• Fix the editor cursor occasionally jumping to the end when opening a scrolled note
