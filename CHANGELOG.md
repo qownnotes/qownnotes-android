@@ -33,6 +33,12 @@ zero-based increasing release counter within the month. See [the release guide](
   and whether to convert to WebP, compare the current size with the actual size of the shrunk copy,
   then replace the image or add the smaller copy after it. The original file stays in the media
   folder.
+- See the details of an image from the information button in the full-screen image viewer: its
+  file name, format, resolution in pixels and megapixels, aspect ratio, and file size, what the
+  camera recorded (date taken, camera, lens, exposure, and location with a **Show on map**
+  button), and the image's description and link in the note, which can be copied. Images on the
+  web show the resolution loaded for viewing. The details are read from the original file, which is
+  not changed.
 
 ### Changed
 

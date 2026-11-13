@@ -4670,9 +4670,25 @@ private fun NoteDetailScreen(
                 )
             }
         }
+        val infoSource = remember(image, renderedContent) {
+            val link = sourceIndex?.let { component.noteImageLink(renderedContent, it) }
+            val local = link != null && org.qownnotes.mobile.core.parseRelativeAttachmentLink(
+                link,
+                note?.category.orEmpty()
+            ) != null
+            NoteImageInfoSource(
+                link = link,
+                loadDetails = if (local && link != null) {
+                    { component.noteImageDetails(localId, link) }
+                } else {
+                    null
+                }
+            )
+        }
         NoteImageViewer(
             image = image,
             shrinkActions = shrinkActions,
+            infoSource = infoSource,
             onSaveAnnotation = if (canSaveAnnotation && sourceIndex != null) {
                 { annotated, replace ->
                     component.saveAnnotatedImage(

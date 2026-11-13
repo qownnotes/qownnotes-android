@@ -762,11 +762,36 @@ class ApplicationComponent(
         imageIndex: Int
     ): String? {
         val note = noteRepository.get(localId) ?: return null
-        val image = inlineMarkdownImages(renderedContent).getOrNull(imageIndex) ?: return null
-        val path = renderedContent.substring(image.destinationStart, image.destinationEnd)
-        return path.takeIf {
+        return noteImageLink(renderedContent, imageIndex)?.takeIf {
             org.qownnotes.mobile.core.parseRelativeAttachmentLink(it, note.category) != null &&
                 isShrinkableImagePath(it)
+        }
+    }
+
+    /** The link of note image [imageIndex] of `inlineMarkdownImages` in [renderedContent]. */
+    internal fun noteImageLink(renderedContent: String, imageIndex: Int): String? =
+        inlineMarkdownImages(renderedContent).getOrNull(imageIndex)?.let {
+            renderedContent.substring(it.destinationStart, it.destinationEnd)
+        }
+
+    /**
+     * Details of the original file behind the note image at [link], read from a private copy.
+     * Returns `null` for images on the web, which are not downloaded again for this, and for files
+     * that cannot be loaded.
+     */
+    internal suspend fun noteImageDetails(localId: String, link: String): ImageFileDetails? {
+        val note = noteRepository.get(localId) ?: return null
+        if (org.qownnotes.mobile.core.parseRelativeAttachmentLink(link, note.category) == null) {
+            return null
+        }
+        return try {
+            val file = originalNoteImage(localId, link)
+            withContext(Dispatchers.IO) { ImageDetailsReader.read(file) }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            android.util.Log.w("QOwnNotes", "Image details are unavailable", error)
+            null
         }
     }
 

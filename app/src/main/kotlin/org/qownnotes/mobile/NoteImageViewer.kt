@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Draw
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.PhotoSizeSelectSmall
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -111,6 +112,7 @@ internal fun NoteImageViewer(
     image: NoteImage,
     onSaveAnnotation: (suspend (annotated: Bitmap, replace: Boolean) -> Unit)? = null,
     shrinkActions: NoteImageShrinkActions? = null,
+    infoSource: NoteImageInfoSource? = null,
     onDismiss: () -> Unit
 ) {
     val bitmap = remember(image) { image.bitmap.asImageBitmap() }
@@ -125,6 +127,8 @@ internal fun NoteImageViewer(
     var annotating by remember { mutableStateOf(false) }
     var shrinking by remember { mutableStateOf(false) }
     var savingShrunk by remember { mutableStateOf(false) }
+    var showingInfo by remember { mutableStateOf(false) }
+    val panelOpen = shrinking || showingInfo
     val context = LocalContext.current
     val zoomAnimation = remember { arrayOfNulls<Job>(1) }
 
@@ -147,14 +151,14 @@ internal fun NoteImageViewer(
     }
 
     Dialog(
-        // While annotating or shrinking, back is handled by that panel, which may be saving.
-        onDismissRequest = { if (!annotating && !shrinking) close() },
+        // While annotating or a panel is open, back is handled there; it may be saving.
+        onDismissRequest = { if (!annotating && !panelOpen) close() },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
         )
     ) {
-        ImmersiveViewerWindow(systemBarsVisible = controlsVisible || annotating || shrinking)
+        ImmersiveViewerWindow(systemBarsVisible = controlsVisible || annotating || panelOpen)
         BoxWithConstraints(Modifier.fillMaxSize().testTag("image-viewer")) {
             val viewport = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             val center = Offset(viewport.width / 2f, viewport.height / 2f)
@@ -317,7 +321,7 @@ internal fun NoteImageViewer(
                     .testTag("image-viewer-image")
             )
 
-            val controlsShown = controlsVisible && !closing && dismissDrag == 0f && !shrinking
+            val controlsShown = controlsVisible && !closing && dismissDrag == 0f && !panelOpen
             AnimatedVisibility(
                 visible = controlsShown,
                 enter = fadeIn(),
@@ -381,6 +385,16 @@ internal fun NoteImageViewer(
                             tint = Color.White
                         )
                     }
+                    IconButton(
+                        onClick = { showingInfo = true },
+                        modifier = Modifier.testTag("image-viewer-info")
+                    ) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = stringResource(R.string.image_info),
+                            tint = Color.White
+                        )
+                    }
                     if (shrinkActions != null) {
                         IconButton(
                             onClick = { shrinking = true },
@@ -434,15 +448,36 @@ internal fun NoteImageViewer(
                 }
             }
             AnimatedVisibility(
-                visible = shrinking,
+                visible = panelOpen,
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
                 Box(
                     Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
                         .pointerInput(Unit) {
-                            detectTapGestures { if (!savingShrunk) shrinking = false }
+                            detectTapGestures {
+                                showingInfo = false
+                                if (!savingShrunk) shrinking = false
+                            }
                         }
+                )
+            }
+            AnimatedVisibility(
+                visible = showingInfo,
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut(),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                ImageInfoPanel(
+                    image = image,
+                    source = infoSource,
+                    onShrink = shrinkActions?.let {
+                        {
+                            showingInfo = false
+                            shrinking = true
+                        }
+                    },
+                    onClose = { showingInfo = false }
                 )
             }
             AnimatedVisibility(

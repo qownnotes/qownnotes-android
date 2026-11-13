@@ -178,86 +178,33 @@ internal fun ImageShrinkPanel(
         }
     }
 
-    Surface(
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 2.dp,
-        modifier = modifier.widthIn(max = 640.dp).fillMaxWidth().testTag("image-shrink-panel")
+    ViewerPanel(
+        icon = Icons.Filled.PhotoSizeSelectSmall,
+        title = stringResource(R.string.image_shrink),
+        onClose = onClose,
+        closeEnabled = !saving,
+        testTag = "image-shrink",
+        modifier = modifier
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.navigationBarsPadding().verticalScroll(rememberScrollState())
-                .padding(start = 24.dp, end = 12.dp, top = 12.dp, bottom = 20.dp)
-        ) {
-            Box(
-                Modifier.align(Alignment.CenterHorizontally).padding(end = 12.dp)
-                    .width(32.dp).height(4.dp).clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+        val loaded = original
+        when {
+            loadError != null -> PanelMessage(
+                loadError.orEmpty(),
+                error = true,
+                tag = "image-shrink-error"
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(40.dp).clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                ) {
-                    Icon(
-                        Icons.Filled.PhotoSizeSelectSmall,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Text(
-                    stringResource(R.string.image_shrink),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.weight(1f).padding(horizontal = 16.dp)
-                )
-                IconButton(
-                    onClick = onClose,
-                    enabled = !saving,
-                    modifier = Modifier.testTag("image-shrink-close")
-                ) {
-                    Icon(
-                        Icons.Filled.Close,
-                        contentDescription = stringResource(R.string.image_shrink_close)
-                    )
-                }
-            }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(end = 12.dp)
-            ) {
-                val loaded = original
-                when {
-                    loadError != null -> PanelMessage(
-                        loadError.orEmpty(),
-                        error = true,
-                        tag = "image-shrink-error"
-                    )
-                    loaded == null -> Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(vertical = 12.dp)
-                    ) {
-                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                        Text(
-                            stringResource(R.string.image_shrink_loading),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    else -> ShrinkOptions(
-                        info = loaded.second,
-                        preview = preview,
-                        computing = computing,
-                        saving = saving,
-                        maxDimension = maxDimension,
-                        onMaxDimension = { maxDimension = it },
-                        webp = webp,
-                        onWebp = { webp = it },
-                        onSave = ::save
-                    )
-                }
-            }
+            loaded == null -> PanelLoading(stringResource(R.string.image_shrink_loading))
+            else -> ShrinkOptions(
+                info = loaded.second,
+                preview = preview,
+                computing = computing,
+                saving = saving,
+                maxDimension = maxDimension,
+                onMaxDimension = { maxDimension = it },
+                webp = webp,
+                onWebp = { webp = it },
+                onSave = ::save
+            )
         }
     }
 }
@@ -476,7 +423,7 @@ private fun SizeSummary(
 }
 
 @Composable
-private fun PanelMessage(text: String, error: Boolean, tag: String) {
+internal fun PanelMessage(text: String, error: Boolean, tag: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -519,10 +466,10 @@ private fun ImageFileInfo.details(): String = stringResource(
     R.string.image_shrink_details,
     NumberFormat.getIntegerInstance().format(width),
     NumberFormat.getIntegerInstance().format(height),
-    formatName(mimeType)
+    imageFormatName(mimeType)
 )
 
-private fun formatName(mimeType: String): String = when (mimeType) {
+internal fun imageFormatName(mimeType: String): String = when (mimeType) {
     ImageShrinker.JPEG -> "JPEG"
     ImageShrinker.PNG -> "PNG"
     ImageShrinker.WEBP -> "WebP"
