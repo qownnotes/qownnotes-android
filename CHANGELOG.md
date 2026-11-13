@@ -27,7 +27,7 @@ zero-based increasing release counter within the month. See [the release guide](
   as it is whenever converting or scaling it would not make it smaller.
 - Choose which images are shrunk when they are added to a note: camera photos taken in a note or
   from a widget, images chosen from the gallery or files, and annotated copies each have their own
-  switch. Chosen images stay as they are unless turned on, and images up to 30 MB can then be
+  switch, and all are on by default. While chosen images are shrunk, images up to 30 MB can be
   chosen. A preview card shows what the current settings save on a typical photo.
 - Shrink an image that is already in a note from the full-screen image viewer: choose a resolution
   and whether to convert to WebP, compare the current size with the actual size of the shrunk copy,

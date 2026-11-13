@@ -197,7 +197,7 @@ class CameraPhotoTest {
 
         composeRule.onNodeWithTag("toggle-save-as-webp").performScrollTo().assertIsOn()
         composeRule.onNodeWithTag("toggle-shrink-camera").performScrollTo().assertIsOn()
-        composeRule.onNodeWithTag("toggle-shrink-chosen").performScrollTo().assertIsOff()
+        composeRule.onNodeWithTag("toggle-shrink-chosen").performScrollTo().assertIsOn()
         composeRule.onNodeWithTag("toggle-shrink-annotated").performScrollTo().assertIsOn()
         composeRule.onNodeWithTag("image-shrink-saved").performScrollTo()
             .assertTextContains("79", substring = true)
@@ -207,12 +207,10 @@ class CameraPhotoTest {
         assertEquals(ImageShrinkSettings(saveAsWebp = false), settings.imageShrink.value)
         composeRule.onNodeWithTag("image-shrink-saved").assertTextContains("70", substring = true)
 
-        composeRule.onNodeWithTag("toggle-shrink-chosen").performScrollTo().performClick()
-            .assertIsOn()
         composeRule.onNodeWithTag("toggle-shrink-camera").performScrollTo().performClick()
             .assertIsOff()
         assertEquals(
-            ImageShrinkSettings(saveAsWebp = false, cameraPhotos = false, chosenImages = true),
+            ImageShrinkSettings(saveAsWebp = false, cameraPhotos = false),
             settings.imageShrink.value
         )
         assertEquals(ImageShrinking.NONE, settings.imageShrinkingFor(ImageOrigin.CAMERA))
@@ -237,7 +235,7 @@ class CameraPhotoTest {
         val changed = ImageShrinkSettings(
             saveAsWebp = false,
             cameraPhotos = false,
-            chosenImages = true,
+            chosenImages = false,
             annotatedImages = false
         )
         settings.setImageShrink(changed)

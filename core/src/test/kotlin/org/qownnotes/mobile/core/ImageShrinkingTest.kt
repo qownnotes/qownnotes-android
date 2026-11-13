@@ -8,7 +8,7 @@ import org.junit.Test
 
 class ImageShrinkingTest {
     @Test
-    fun shrinksPhotosTakenAndAnnotatedCopiesToWebpByDefaultButKeepsChosenImages() {
+    fun shrinksEveryAddedImageToWebpByDefault() {
         val settings = ImageShrinkSettings()
         val resolution = PhotoResolution()
 
@@ -21,17 +21,20 @@ class ImageShrinkingTest {
             ImageShrinking(2560, webp = true),
             settings.shrinkingFor(ImageOrigin.ANNOTATED, resolution)
         )
-        assertEquals(ImageShrinking.NONE, settings.shrinkingFor(ImageOrigin.CHOSEN, resolution))
+        assertEquals(
+            ImageShrinking(2560, webp = true),
+            settings.shrinkingFor(ImageOrigin.CHOSEN, resolution)
+        )
     }
 
     @Test
     fun eachWayOfAddingImagesCanBeTurnedOnOrOffOnItsOwn() {
         val settings = ImageShrinkSettings()
             .with(ImageOrigin.CAMERA, false)
-            .with(ImageOrigin.CHOSEN, true)
+            .with(ImageOrigin.CHOSEN, false)
 
         assertFalse(settings.appliesTo(ImageOrigin.CAMERA))
-        assertTrue(settings.appliesTo(ImageOrigin.CHOSEN))
+        assertFalse(settings.appliesTo(ImageOrigin.CHOSEN))
         assertTrue(settings.appliesTo(ImageOrigin.ANNOTATED))
         assertEquals(
             ImageShrinking.NONE,

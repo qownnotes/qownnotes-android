@@ -21,6 +21,7 @@ import androidx.core.content.FileProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
+import java.text.NumberFormat
 import java.util.UUID
 import kotlin.random.Random
 import kotlinx.coroutines.runBlocking
@@ -109,7 +110,8 @@ class ImageShrinkTest {
     }
 
     @Test
-    fun chosenImagesAreAttachedAsTheyAreByDefault() = runBlocking<Unit> {
+    fun chosenImagesAreAttachedAsTheyAreWhenTurnedOff() = runBlocking<Unit> {
+        application.component.settings.setImageShrink(ImageShrinkSettings(chosenImages = false))
         val localId = application.component.createNote("image-account").localId
         val source = writeImage(4000, 3000, Bitmap.CompressFormat.JPEG, "jpg")
 
@@ -123,8 +125,7 @@ class ImageShrinkTest {
     }
 
     @Test
-    fun chosenImagesAreShrunkToWebpWhenTurnedOn() = runBlocking<Unit> {
-        application.component.settings.setImageShrink(ImageShrinkSettings(chosenImages = true))
+    fun chosenImagesAreShrunkToWebpByDefault() = runBlocking<Unit> {
         val localId = application.component.createNote("image-account").localId
         val source = writeImage(4000, 3000, Bitmap.CompressFormat.JPEG, "jpg")
 
@@ -211,15 +212,15 @@ class ImageShrinkTest {
 
         composeRule.onNodeWithTag("image-viewer-shrink").performClick()
         waitForTag("image-shrink-saved")
-        waitForResult("2,560 × 1,707")
+        waitForResult(dimensions(2560, 1707))
         composeRule.onNodeWithTag("image-shrink-size-2560").assertIsSelected()
         // The image already fits the large size, so choosing it would not change anything.
         composeRule.onNodeWithTag("image-shrink-size-3840").assertIsNotEnabled()
 
         composeRule.onNodeWithTag("image-shrink-size-original").performScrollTo().performClick()
-        waitForResult("3,000 × 2,000")
+        waitForResult(dimensions(3000, 2000))
         composeRule.onNodeWithTag("image-shrink-size-1920").performScrollTo().performClick()
-        waitForResult("1,920 × 1,280")
+        waitForResult(dimensions(1920, 1280))
         composeRule.onNodeWithTag("image-shrink-replace").performScrollTo().assertIsEnabled()
             .performClick()
 
@@ -281,6 +282,10 @@ class ImageShrinkTest {
 
     private fun uriFor(file: File) =
         FileProvider.getUriForFile(application, "${application.packageName}.fileprovider", file)
+
+    private fun dimensions(width: Int, height: Int) = NumberFormat.getIntegerInstance().let {
+        "${it.format(width)} × ${it.format(height)}"
+    }
 
     private fun waitForResult(text: String) = composeRule.waitUntil(10_000) {
         composeRule.onAllNodes(

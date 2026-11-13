@@ -18,13 +18,13 @@ enum class ImageOrigin {
  * Which ways of adding an image shrink it, and whether shrinking stores it as WebP. The resolution
  * shrunk images are scaled down to is the [PhotoResolution] setting.
  *
- * Camera photos and annotated copies are shrunk by default, because the app creates them. Chosen
- * images are kept as they are unless the user opts in, as they may already be prepared elsewhere.
+ * Every way of adding an image shrinks it by default; each can be turned off on its own, for
+ * example to keep chosen images that were already prepared elsewhere exactly as they are.
  */
 data class ImageShrinkSettings(
     val saveAsWebp: Boolean = true,
     val cameraPhotos: Boolean = true,
-    val chosenImages: Boolean = false,
+    val chosenImages: Boolean = true,
     val annotatedImages: Boolean = true
 ) {
     fun appliesTo(origin: ImageOrigin): Boolean = when (origin) {
