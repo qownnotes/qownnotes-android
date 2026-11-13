@@ -39,6 +39,8 @@ import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteDeckBackend
+import org.qownnotes.mobile.core.NoteFolderDiscovery
+import org.qownnotes.mobile.core.NoteFolderDiscoveryBackend
 import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
@@ -50,6 +52,7 @@ import org.qownnotes.mobile.core.NoteTagFileBackend
 import org.qownnotes.mobile.core.NoteTagFileDownload
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
+import org.qownnotes.mobile.core.RemoteFolderListing
 import org.qownnotes.mobile.core.RemoteNote
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.TrashedNote
@@ -71,6 +74,7 @@ class NextcloudBackend(context: Context) :
     NoteArchiveBackend,
     NoteMediaBackend,
     NoteSettingsBackend,
+    NoteFolderDiscoveryBackend,
     NoteTagFileBackend,
     NoteDeckBackend,
     NoteShareBackend {
@@ -217,6 +221,40 @@ class NextcloudBackend(context: Context) :
             }
             withApis(account) { _, notesApi, _ ->
                 updateSettingsWithApi(notesApi, notesPath, fileSuffix)
+            }
+        } catch (error: Throwable) {
+            throw error.asBackendException()
+        }
+    }
+
+    override suspend fun discoverNoteFolders(account: Account): NoteFolderDiscovery =
+        withContext(Dispatchers.IO) {
+            try {
+                withNextcloudApi(account) { api ->
+                    val notesApi = NextcloudRetrofitApiBuilder(
+                        api,
+                        account.apiBasePath ?: NOTES_ENDPOINT
+                    ).create(NotesApi::class.java)
+                    discoverNoteFoldersWithClient(
+                        NextcloudWebDavRequestClient(api),
+                        loadSettingsFromApi(notesApi)
+                    ) { path -> webDavEndpoint(account, path) }
+                }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun browseFolder(
+        account: Account,
+        path: String,
+        fileSuffix: String
+    ): RemoteFolderListing? = withContext(Dispatchers.IO) {
+        try {
+            withNextcloudApi(account) { api ->
+                browseFolderWithClient(NextcloudWebDavRequestClient(api), path, fileSuffix) {
+                    webDavEndpoint(account, it)
+                }
             }
         } catch (error: Throwable) {
             throw error.asBackendException()

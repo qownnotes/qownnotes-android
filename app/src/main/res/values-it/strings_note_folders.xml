@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="note_folder_browse">Sfoglia cartelle</string>
+    <string name="note_folder_picker_title">Scegli la cartella delle note</string>
+    <string name="note_folder_picker_root">I tuoi file</string>
+    <string name="note_folder_picker_up">Cartella superiore</string>
+    <string name="note_folder_picker_open">Apri %1$s</string>
+    <string name="note_folder_picker_no_subfolders">Nessuna cartella qui</string>
+    <string name="note_folder_picker_select">Usa questa cartella</string>
+    <string name="note_folder_picker_root_hint">Apri la cartella che contiene le tue note o quella in cui salvare le nuove note.</string>
+    <string name="note_folder_picker_missing">Questa cartella non esiste. Scegline un’altra.</string>
+    <string name="note_folder_picker_load_failed">Impossibile caricare le cartelle</string>
+    <plurals name="note_folder_notes">
+        <item quantity="one">%d nota</item>
+        <item quantity="other">%d note</item>
+    </plurals>
+    <plurals name="note_folder_subfolders">
+        <item quantity="one">%d sottocartella</item>
+        <item quantity="other">%d sottocartelle</item>
+    </plurals>
+    <string name="note_folder_no_notes">Nessuna nota</string>
+    <string name="note_folder_desktop">Cartella di QOwnNotes desktop</string>
+    <string name="note_folder_does_not_exist">Non esiste ancora</string>
+    <string name="note_folder_suggestions_title">Altre cartelle con note</string>
+    <string name="note_folder_suggestion_use">Usa %1$s come cartella delle note</string>
+</resources>

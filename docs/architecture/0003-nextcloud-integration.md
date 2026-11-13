@@ -26,6 +26,13 @@ collection. A full pull follows a successful change. The canonical settings retu
 are authoritative. An extension change affects only files created afterward and does not invalidate
 the collection checkpoint.
 
+The folder can be picked from the user's files through depth-1 WebDAV `PROPFIND` listings, which
+the backend parses itself and refuses when they declare a document type. To catch a localized
+Nextcloud Notes folder next to the QOwnNotes desktop `Notes` folder, the backend probes a bounded
+number of top-level folders named like a Nextcloud Notes default folder and reports the ones that
+hold notes. The app offers them in note settings, but never changes the setting without the
+user's choice.
+
 Nextcloud Deck is a second optional companion, exposed through the `NoteDeckBackend` contract.
 The app detects Deck from the server capabilities instead of an opt-in setting.
 The adapter lists boards, creates cards, and loads/edits linked cards through the Deck REST API

@@ -26,6 +26,9 @@ import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteDeckBackend
+import org.qownnotes.mobile.core.NoteFolderCandidates
+import org.qownnotes.mobile.core.NoteFolderDiscovery
+import org.qownnotes.mobile.core.NoteFolderDiscoveryBackend
 import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.NoteSettingsBackend
 import org.qownnotes.mobile.core.NoteShare
@@ -37,7 +40,9 @@ import org.qownnotes.mobile.core.NoteSharingPolicy
 import org.qownnotes.mobile.core.PhotoResolution
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.PullResult
+import org.qownnotes.mobile.core.RemoteFolderListing
 import org.qownnotes.mobile.core.RemoteNote
+import org.qownnotes.mobile.core.RemoteNoteFolder
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.TrashedNote
 import org.qownnotes.mobile.data.MIGRATION_10_11
@@ -206,6 +211,7 @@ class FakePullBackend :
     NoteBackend,
     NoteArchiveBackend,
     NoteSettingsBackend,
+    NoteFolderDiscoveryBackend,
     org.qownnotes.mobile.core.NoteMediaBackend,
     org.qownnotes.mobile.core.NoteTagFileBackend,
     NoteDeckBackend,
@@ -229,6 +235,12 @@ class FakePullBackend :
     val restoredTrash = mutableListOf<TrashedNote>()
     val settingsByAccount = mutableMapOf<String, NoteSettings>()
     val settingsUpdates = mutableListOf<Pair<String, NoteSettings>>()
+
+    /** The server's folders by path, where the empty path is the files root. */
+    val remoteFolders = mutableMapOf<String, RemoteFolderListing>()
+
+    /** Other folders that hold notes; none by default, so imports do not ask about the folder. */
+    var noteFolderCandidates = emptyList<RemoteNoteFolder>()
     var validationGate: CompletableDeferred<Unit>? = null
     var pullGate: CompletableDeferred<Unit>? = null
     var createFailure: Throwable? = null
@@ -506,6 +518,21 @@ class FakePullBackend :
         return updated
     }
 
+    override suspend fun discoverNoteFolders(account: Account): NoteFolderDiscovery {
+        val path = settings(account).notesPath
+        return NoteFolderDiscovery(
+            currentPath = path,
+            current = remoteFolders[path]?.folder ?: RemoteNoteFolder(path, 1, 0, false),
+            candidates = noteFolderCandidates
+        )
+    }
+
+    override suspend fun browseFolder(
+        account: Account,
+        path: String,
+        fileSuffix: String
+    ): RemoteFolderListing? = remoteFolders[NoteFolderCandidates.normalize(path)]
+
     override suspend fun versions(account: Account, note: Note): List<RemoteNoteVersion> =
         noteVersions
 
@@ -551,6 +578,8 @@ class FakePullBackend :
         restoredTrash.clear()
         settingsByAccount.clear()
         settingsUpdates.clear()
+        remoteFolders.clear()
+        noteFolderCandidates = emptyList()
         validationGate?.cancel()
         validationGate = null
         pullGate?.cancel()

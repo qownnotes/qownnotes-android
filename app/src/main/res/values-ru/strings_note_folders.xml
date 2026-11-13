@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="note_folder_browse">Обзор папок</string>
+    <string name="note_folder_picker_title">Выбор папки заметок</string>
+    <string name="note_folder_picker_root">Ваши файлы</string>
+    <string name="note_folder_picker_up">Родительская папка</string>
+    <string name="note_folder_picker_open">Открыть %1$s</string>
+    <string name="note_folder_picker_no_subfolders">Здесь нет папок</string>
+    <string name="note_folder_picker_select">Использовать эту папку</string>
+    <string name="note_folder_picker_root_hint">Откройте папку с вашими заметками или папку, в которой должны сохраняться новые заметки.</string>
+    <string name="note_folder_picker_missing">Эта папка не существует. Выберите другую.</string>
+    <string name="note_folder_picker_load_failed">Не удалось загрузить папки</string>
+    <plurals name="note_folder_notes">
+        <item quantity="one">%d заметка</item>
+        <item quantity="few">%d заметки</item>
+        <item quantity="many">%d заметок</item>
+        <item quantity="other">%d заметки</item>
+    </plurals>
+    <plurals name="note_folder_subfolders">
+        <item quantity="one">%d подпапка</item>
+        <item quantity="few">%d подпапки</item>
+        <item quantity="many">%d подпапок</item>
+        <item quantity="other">%d подпапки</item>
+    </plurals>
+    <string name="note_folder_no_notes">Нет заметок</string>
+    <string name="note_folder_desktop">Папка QOwnNotes для компьютера</string>
+    <string name="note_folder_does_not_exist">Ещё не существует</string>
+    <string name="note_folder_suggestions_title">Другие папки с заметками</string>
+    <string name="note_folder_suggestion_use">Использовать %1$s как папку заметок</string>
+</resources>

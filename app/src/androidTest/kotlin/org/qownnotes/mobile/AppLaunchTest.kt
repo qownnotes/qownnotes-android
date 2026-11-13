@@ -82,7 +82,9 @@ import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.PullResult
+import org.qownnotes.mobile.core.RemoteFolderListing
 import org.qownnotes.mobile.core.RemoteNote
+import org.qownnotes.mobile.core.RemoteNoteFolder
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
@@ -1250,6 +1252,48 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("managed-account-$aliceId").assertDoesNotExist()
         composeRule.onNodeWithTag("managed-account-$bobId").assertIsDisplayed()
     }
+
+    @Test
+    fun choosesTheNoteFolderByBrowsingOrFromFoldersThatHoldNotes() {
+        application.fakeBackend.remoteFolders.putAll(
+            mapOf(
+                "" to folderListing("", subfolders = listOf("Documents", "Notes")),
+                "Documents" to folderListing("Documents", subfolders = listOf("QOwnNotes")),
+                "Documents/QOwnNotes" to folderListing("Documents/QOwnNotes", notes = 3)
+            )
+        )
+        application.fakeBackend.noteFolderCandidates =
+            listOf(RemoteNoteFolder("Notizen", 7, 0, false))
+        val aliceId = importAccount("alice", "Alice note", "etag-a", 10).localAccountId()
+
+        accountAction("manage-accounts")
+        composeRule.onNodeWithTag("account-settings-$aliceId").performClick()
+        composeRule.waitForTag("note-folder-suggestion-Notizen")
+        composeRule.onNodeWithTag("note-folder-suggestion-Notizen").performClick()
+        composeRule.onNodeWithTag("notes-path").assertTextContains("Notizen")
+
+        composeRule.onNodeWithTag("browse-notes-path").performClick()
+        composeRule.waitForTag("note-folder-picker-folder-Documents")
+        composeRule.onNodeWithTag("note-folder-picker-folder-Documents").performClick()
+        composeRule.waitForTag("note-folder-picker-folder-QOwnNotes")
+        composeRule.onNodeWithTag("note-folder-picker-folder-QOwnNotes").performClick()
+        composeRule.waitForTag("note-folder-picker-summary")
+        composeRule.onNodeWithTag("note-folder-picker-summary").assertTextContains("3 notes")
+        composeRule.onNodeWithTag("note-folder-picker-select").performClick()
+
+        composeRule.onNodeWithTag("notes-path").assertTextContains("Documents/QOwnNotes")
+        composeRule.onNodeWithTag("save-account-settings").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.settingsUpdates.lastOrNull()?.second?.notesPath ==
+                "Documents/QOwnNotes"
+        }
+    }
+
+    private fun folderListing(
+        path: String,
+        notes: Int = 0,
+        subfolders: List<String> = emptyList()
+    ) = RemoteFolderListing(RemoteNoteFolder(path, notes, subfolders.size, false), subfolders)
 
     @Test
     fun synchronizationStatusStaysAboveTheScrollingNoteList() {

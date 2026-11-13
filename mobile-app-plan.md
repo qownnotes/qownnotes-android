@@ -776,6 +776,16 @@ then clear the old synchronized cache and pull checkpoint transactionally before
 new collection. `fileSuffix` is also editable; it controls newly created files and does not rename
 existing notes.
 
+The note folder can be chosen by browsing the user's Nextcloud files through WebDAV `PROPFIND`
+(depth 1, the only listing Nextcloud Files' SSO bridge supports); typing the path stays possible.
+Nextcloud Notes creates its default folder under a localized name (for example `Notizen`), while
+QOwnNotes desktop suggests `Notes`, so both can exist with different notes. The app therefore
+probes top-level folders named like a Nextcloud Notes default folder (portable policy in
+`NoteFolderCandidates`) and offers those that hold notes, preferring folders with a QOwnNotes
+desktop `notes.sqlite`. The candidates appear in note settings. Nothing is switched or moved
+without the user's explicit choice, and the switch uses the same guarded path as account
+management.
+
 Map QOwnNotes note subfolders onto `category`. The mapping is lossless in both directions, including nesting, so this is the supported way to give QOwnNotes users folders on a Nextcloud account.
 
 Multiple roots come from multiple accounts now and from the local-folder backend later. That backend is file-first like the desktop application, so it can model QOwnNotes note folders directly.

@@ -56,6 +56,8 @@ import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteConflict
 import org.qownnotes.mobile.core.NoteDeckBackend
 import org.qownnotes.mobile.core.NoteFactory
+import org.qownnotes.mobile.core.NoteFolderDiscovery
+import org.qownnotes.mobile.core.NoteFolderDiscoveryBackend
 import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSettings
@@ -70,6 +72,7 @@ import org.qownnotes.mobile.core.NoteTags
 import org.qownnotes.mobile.core.NoteWhitespace
 import org.qownnotes.mobile.core.PullCheckpoint
 import org.qownnotes.mobile.core.QOwnNotesNamingPolicy
+import org.qownnotes.mobile.core.RemoteFolderListing
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.SharedText
 import org.qownnotes.mobile.core.SyncDiagnostic
@@ -153,6 +156,8 @@ class ApplicationComponent(
     private val archiveBackend: NoteArchiveBackend? = backend as? NoteArchiveBackend,
     private val mediaBackend: NoteMediaBackend? = backend as? NoteMediaBackend,
     private val noteSettingsBackend: NoteSettingsBackend? = backend as? NoteSettingsBackend,
+    private val noteFolderDiscoveryBackend: NoteFolderDiscoveryBackend? =
+        backend as? NoteFolderDiscoveryBackend,
     private val tagFileBackend: NoteTagFileBackend? = backend as? NoteTagFileBackend,
     private val deckBackend: NoteDeckBackend? = backend as? NoteDeckBackend,
     private val shareBackend: NoteShareBackend? = backend as? NoteShareBackend,
@@ -559,6 +564,28 @@ class ApplicationComponent(
     suspend fun noteSettings(accountId: String): NoteSettings = accountMutex(accountId).withLock {
         val account = accountRepository.get(accountId) ?: error("The account no longer exists")
         requireNoteSettingsBackend(account).settings(account)
+    }
+
+    fun supportsNoteFolderDiscovery(accountId: String): Boolean =
+        noteFolderDiscoveryBackend != null && supportsNoteSettings(accountId)
+
+    /**
+     * The account's note folder next to other folders that may already hold the user's notes.
+     * Only reads the server, so it does not wait for synchronization.
+     */
+    suspend fun discoverNoteFolders(accountId: String): NoteFolderDiscovery {
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        return requireNoteFolderDiscoveryBackend(account).discoverNoteFolders(account)
+    }
+
+    /** Lists a folder of the account's files for the note folder picker. */
+    suspend fun browseNoteFolder(
+        accountId: String,
+        path: String,
+        fileSuffix: String
+    ): RemoteFolderListing? {
+        val account = accountRepository.get(accountId) ?: error("The account no longer exists")
+        return requireNoteFolderDiscoveryBackend(account).browseFolder(account, path, fileSuffix)
     }
 
     internal suspend fun importImage(localId: String, uri: android.net.Uri): ImportedImage =
@@ -1622,6 +1649,12 @@ class ApplicationComponent(
         (if (account.isLocalFolder) localFolderBackend else archiveBackend)
             ?: throw BackendException.FeatureUnavailable(
                 application.getString(R.string.backend_no_archive)
+            )
+
+    private fun requireNoteFolderDiscoveryBackend(account: Account): NoteFolderDiscoveryBackend =
+        noteFolderDiscoveryBackend?.takeUnless { account.isLocalFolder }
+            ?: throw BackendException.FeatureUnavailable(
+                application.getString(R.string.backend_no_note_settings)
             )
 
     private fun requireNoteSettingsBackend(account: Account): NoteSettingsBackend =

@@ -247,6 +247,7 @@ import org.qownnotes.mobile.core.NoteTagAvailability
 import org.qownnotes.mobile.core.NoteTagState
 import org.qownnotes.mobile.core.NoteTags
 import org.qownnotes.mobile.core.NoteVersionSnapshot
+import org.qownnotes.mobile.core.RemoteNoteFolder
 import org.qownnotes.mobile.core.RemoteNoteVersion
 import org.qownnotes.mobile.core.ResolvedNoteLink
 import org.qownnotes.mobile.core.SharedText
@@ -924,6 +925,9 @@ private fun AccountNoteSettingsDialog(
     var fileExtension by rememberSaveable(account.id) { mutableStateOf("") }
     var error by remember(account.id) { mutableStateOf<String?>(null) }
     var saving by remember(account.id) { mutableStateOf(false) }
+    var browsing by rememberSaveable(account.id) { mutableStateOf(false) }
+    var candidates by remember(account.id) { mutableStateOf(emptyList<RemoteNoteFolder>()) }
+    val canBrowse = component.supportsNoteFolderDiscovery(account.id)
     val loadFailedMessage = stringResource(R.string.note_settings_load_failed)
     val saveFailedMessage = stringResource(R.string.note_settings_save_failed)
 
@@ -931,12 +935,24 @@ private fun AccountNoteSettingsDialog(
         try {
             val loaded = withContext(UiDispatcher) { component.noteSettings(account.id) }
             settings = loaded
-            notesPath = loaded.notesPath
-            fileExtension = loaded.fileSuffix.removePrefix(".")
+            if (notesPath.isEmpty()) notesPath = loaded.notesPath
+            if (fileExtension.isEmpty()) fileExtension = loaded.fileSuffix.removePrefix(".")
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Exception) {
             error = failure.message ?: loadFailedMessage
+        }
+    }
+    LaunchedEffect(account.id, canBrowse) {
+        if (!canBrowse) return@LaunchedEffect
+        try {
+            candidates = withContext(UiDispatcher) {
+                component.discoverNoteFolders(account.id).candidates
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // Suggestions are optional; the folder can still be typed or browsed.
         }
     }
 
@@ -945,7 +961,10 @@ private fun AccountNoteSettingsDialog(
         icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
         title = { Text(stringResource(R.string.note_settings_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
                 Text(
                     account.displayName,
                     style = MaterialTheme.typography.bodyMedium,
@@ -961,9 +980,30 @@ private fun AccountNoteSettingsDialog(
                         onValueChange = { notesPath = it },
                         label = { Text(stringResource(R.string.note_settings_note_folder)) },
                         leadingIcon = { Icon(Icons.Filled.Folder, contentDescription = null) },
+                        trailingIcon = if (canBrowse) {
+                            {
+                                TooltipIconButton(
+                                    icon = Icons.Filled.FolderOpen,
+                                    description = stringResource(R.string.note_folder_browse),
+                                    onClick = { browsing = true },
+                                    enabled = !saving && settings != null,
+                                    testTag = "browse-notes-path"
+                                )
+                            }
+                        } else {
+                            null
+                        },
                         singleLine = true,
                         enabled = !saving,
                         modifier = Modifier.fillMaxWidth().testTag("notes-path")
+                    )
+                    NoteFolderSuggestions(
+                        candidates = candidates.filterNot {
+                            it.path == settings?.notesPath?.trim('/')
+                        },
+                        selectedPath = notesPath,
+                        enabled = !saving,
+                        onSelect = { notesPath = it }
                     )
                     OutlinedTextField(
                         value = fileExtension,
@@ -1028,6 +1068,23 @@ private fun AccountNoteSettingsDialog(
         },
         modifier = Modifier.testTag("account-settings-dialog")
     )
+
+    val loadedSettings = settings
+    if (browsing && loadedSettings != null) {
+        NoteFolderPickerDialog(
+            component = component,
+            accountId = account.id,
+            initialPath = notesPath.ifBlank { loadedSettings.notesPath },
+            fileSuffix = ".${fileExtension.ifBlank {
+                loadedSettings.fileSuffix.removePrefix(".")
+            }}",
+            onSelect = { path, _ ->
+                browsing = false
+                notesPath = path
+            },
+            onDismiss = { browsing = false }
+        )
+    }
 }
 
 @Composable

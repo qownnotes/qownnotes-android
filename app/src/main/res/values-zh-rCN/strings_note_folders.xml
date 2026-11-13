@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="note_folder_browse">浏览文件夹</string>
+    <string name="note_folder_picker_title">选择笔记文件夹</string>
+    <string name="note_folder_picker_root">你的文件</string>
+    <string name="note_folder_picker_up">上级文件夹</string>
+    <string name="note_folder_picker_open">打开 %1$s</string>
+    <string name="note_folder_picker_no_subfolders">此处没有文件夹</string>
+    <string name="note_folder_picker_select">使用此文件夹</string>
+    <string name="note_folder_picker_root_hint">打开存放笔记的文件夹，或用于保存新笔记的文件夹。</string>
+    <string name="note_folder_picker_missing">此文件夹不存在。请选择其他文件夹。</string>
+    <string name="note_folder_picker_load_failed">无法加载文件夹</string>
+    <plurals name="note_folder_notes">
+        <item quantity="other">%d 条笔记</item>
+    </plurals>
+    <plurals name="note_folder_subfolders">
+        <item quantity="other">%d 个子文件夹</item>
+    </plurals>
+    <string name="note_folder_no_notes">没有笔记</string>
+    <string name="note_folder_desktop">QOwnNotes 桌面版文件夹</string>
+    <string name="note_folder_does_not_exist">尚不存在</string>
+    <string name="note_folder_suggestions_title">其他包含笔记的文件夹</string>
+    <string name="note_folder_suggestion_use">将 %1$s 用作笔记文件夹</string>
+</resources>

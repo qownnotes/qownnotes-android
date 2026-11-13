@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="note_folder_browse">Browse folders</string>
+    <string name="note_folder_picker_title">Choose note folder</string>
+    <string name="note_folder_picker_root">Your files</string>
+    <string name="note_folder_picker_up">Parent folder</string>
+    <string name="note_folder_picker_open">Open %1$s</string>
+    <string name="note_folder_picker_no_subfolders">No folders in here</string>
+    <string name="note_folder_picker_select">Use this folder</string>
+    <string name="note_folder_picker_root_hint">Open the folder that holds your notes, or the one where new notes should go.</string>
+    <string name="note_folder_picker_missing">This folder does not exist. Choose another one.</string>
+    <string name="note_folder_picker_load_failed">Could not load the folders</string>
+    <plurals name="note_folder_notes">
+        <item quantity="one">%d note</item>
+        <item quantity="other">%d notes</item>
+    </plurals>
+    <plurals name="note_folder_subfolders">
+        <item quantity="one">%d subfolder</item>
+        <item quantity="other">%d subfolders</item>
+    </plurals>
+    <string name="note_folder_no_notes">No notes</string>
+    <string name="note_folder_desktop">QOwnNotes desktop folder</string>
+    <string name="note_folder_does_not_exist">Does not exist yet</string>
+    <string name="note_folder_summary_separator" translatable="false">" · "</string>
+    <string name="note_folder_suggestions_title">Other folders with notes</string>
+    <string name="note_folder_suggestion_use">Use %1$s as note folder</string>
+</resources>

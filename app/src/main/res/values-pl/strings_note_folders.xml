@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="note_folder_browse">Przeglądaj foldery</string>
+    <string name="note_folder_picker_title">Wybierz folder notatek</string>
+    <string name="note_folder_picker_root">Twoje pliki</string>
+    <string name="note_folder_picker_up">Folder nadrzędny</string>
+    <string name="note_folder_picker_open">Otwórz %1$s</string>
+    <string name="note_folder_picker_no_subfolders">Brak folderów</string>
+    <string name="note_folder_picker_select">Użyj tego folderu</string>
+    <string name="note_folder_picker_root_hint">Otwórz folder z notatkami lub folder, w którym mają być zapisywane nowe notatki.</string>
+    <string name="note_folder_picker_missing">Ten folder nie istnieje. Wybierz inny.</string>
+    <string name="note_folder_picker_load_failed">Nie udało się wczytać folderów</string>
+    <plurals name="note_folder_notes">
+        <item quantity="one">%d notatka</item>
+        <item quantity="few">%d notatki</item>
+        <item quantity="many">%d notatek</item>
+        <item quantity="other">%d notatki</item>
+    </plurals>
+    <plurals name="note_folder_subfolders">
+        <item quantity="one">%d podfolder</item>
+        <item quantity="few">%d podfoldery</item>
+        <item quantity="many">%d podfolderów</item>
+        <item quantity="other">%d podfolderu</item>
+    </plurals>
+    <string name="note_folder_no_notes">Brak notatek</string>
+    <string name="note_folder_desktop">Folder QOwnNotes na komputer</string>
+    <string name="note_folder_does_not_exist">Jeszcze nie istnieje</string>
+    <string name="note_folder_suggestions_title">Inne foldery z notatkami</string>
+    <string name="note_folder_suggestion_use">Użyj %1$s jako folderu notatek</string>
+</resources>

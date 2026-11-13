@@ -8,6 +8,14 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+### Added
+
+- Choose a Nextcloud account's note folder by browsing your Nextcloud files in **Note settings**;
+  typing the path is now optional. The dialog also lists other folders that already hold notes,
+  such as the localized folder Nextcloud Notes creates (for example `Notizen`) next to the `Notes`
+  folder of QOwnNotes desktop, with their note counts and whether QOwnNotes desktop uses them
+  ([#54](https://github.com/qownnotes/qownnotes-android/issues/54)).
+
 ### Changed
 
 - Expand the F-Droid and README screenshot gallery to showcase Nextcloud Deck browsing, editing
