@@ -4689,6 +4689,7 @@ private fun NoteDetailScreen(
             image = image,
             shrinkActions = shrinkActions,
             infoSource = infoSource,
+            onImageChange = { viewedImage = it to renderedContent },
             onSaveAnnotation = if (canSaveAnnotation && sourceIndex != null) {
                 { annotated, replace ->
                     component.saveAnnotatedImage(

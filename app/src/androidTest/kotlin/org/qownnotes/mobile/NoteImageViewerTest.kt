@@ -5,8 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -24,6 +26,8 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
@@ -33,6 +37,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.qownnotes.mobile.core.ImageShrinking
 import org.qownnotes.mobile.markdown.NoteImage
 
 @RunWith(AndroidJUnit4::class)
@@ -67,6 +72,8 @@ class NoteImageViewerTest {
         composeRule.onNodeWithContentDescription("Whiteboard").assertIsDisplayed()
         assertGone("image-viewer-zoom")
         assertGone("image-viewer-fit")
+        // A single image has nowhere to move to.
+        assertGone("image-viewer-position")
 
         composeRule.onNodeWithTag("image-viewer-image").performTouchInput { doubleClick(center) }
         waitForTag("image-viewer-zoom")
@@ -87,6 +94,71 @@ class NoteImageViewerTest {
         assertFalse(dismissed)
 
         composeRule.onNodeWithTag("image-viewer-close").performClick()
+        composeRule.waitUntil(5_000) { dismissed }
+    }
+
+    @Test
+    fun swipingSidewaysMovesBetweenTheNotesImagesUnlessZoomed() {
+        val gallery = NoteImage.gallery(
+            listOf("First", "Second", "Third").mapIndexed { index, description ->
+                val bitmap = Bitmap.createBitmap(300, 200, Bitmap.Config.ARGB_8888)
+                bitmap.eraseColor(listOf(Color.RED, Color.GREEN, Color.BLUE)[index])
+                NoteImage(bitmap, description, index)
+            }
+        )
+        val shown = mutableStateOf(gallery[1])
+        composeRule.setContent {
+            MaterialTheme {
+                if (!dismissed) {
+                    val image = shown.value
+                    NoteImageViewer(
+                        image,
+                        shrinkActions = NoteImageShrinkActions(
+                            defaults = ImageShrinking(2560, webp = true),
+                            loadOriginal = { error("Not needed") },
+                            shrink = { _, _ -> null },
+                            save = { _, _ -> }
+                        ).takeIf { image.description != "Third" },
+                        onImageChange = { shown.value = it }
+                    ) { dismissed = true }
+                }
+            }
+        }
+        composeRule.onNodeWithTag("image-viewer-title").assertTextEquals("Second")
+        composeRule.onNodeWithTag("image-viewer-position")
+            .assertContentDescriptionEquals("Image 2 of 3")
+
+        composeRule.onNodeWithTag("image-viewer-image").performTouchInput { swipeLeft() }
+        composeRule.waitUntil(5_000) { shown.value === gallery[2] }
+        composeRule.onNodeWithTag("image-viewer-title").assertTextEquals("Third")
+        composeRule.onNodeWithTag("image-viewer-position")
+            .assertContentDescriptionEquals("Image 3 of 3")
+        // Actions follow the shown image; this one cannot be shrunk.
+        assertGone("image-viewer-shrink")
+
+        repeat(2) {
+            composeRule.onNodeWithTag("image-viewer-image").performTouchInput { swipeRight() }
+            composeRule.waitForIdle()
+        }
+        composeRule.waitUntil(5_000) { shown.value === gallery[0] }
+        composeRule.onNodeWithTag("image-viewer-title").assertTextEquals("First")
+        composeRule.onNodeWithTag("image-viewer-shrink").assertIsDisplayed()
+        // There is nothing before the first image.
+        composeRule.onNodeWithTag("image-viewer-image").performTouchInput { swipeRight() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("image-viewer-title").assertTextEquals("First")
+
+        // A zoomed image pans instead of moving to the next one.
+        composeRule.onNodeWithTag("image-viewer-image").performTouchInput { doubleClick(center) }
+        waitForTag("image-viewer-zoom")
+        composeRule.onNodeWithTag("image-viewer-image").performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+        assertTrue(shown.value === gallery[0])
+
+        // Back at fit, swiping down still closes the viewer.
+        composeRule.onNodeWithTag("image-viewer-fit").performClick()
+        waitUntilGone("image-viewer-zoom")
+        composeRule.onNodeWithTag("image-viewer-image").performTouchInput { swipeDown() }
         composeRule.waitUntil(5_000) { dismissed }
     }
 

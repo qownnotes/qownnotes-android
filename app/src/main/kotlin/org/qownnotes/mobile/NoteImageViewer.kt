@@ -11,6 +11,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -36,9 +38,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -60,9 +66,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
@@ -80,6 +88,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -108,7 +117,12 @@ import org.qownnotes.mobile.markdown.NoteImage
 /**
  * Shows a tapped note image full screen. Pinch or double-tap zooms around the fingers, dragging
  * pans within the image's edges, a tap shows or hides the controls, and swiping a fitted image
- * up or down closes the viewer.
+ * up or down closes the viewer. Swiping a fitted image sideways moves to the previous or next
+ * image of the note's `NoteImage.gallery`.
+ *
+ * [onSaveAnnotation], [shrinkActions], and [infoSource] belong to [image]. When the reader moves
+ * to another image, [onImageChange] reports it, and they are not offered until the caller passes
+ * that image back with its own.
  */
 @Composable
 internal fun NoteImageViewer(
@@ -116,9 +130,23 @@ internal fun NoteImageViewer(
     onSaveAnnotation: (suspend (annotated: Bitmap, replace: Boolean) -> Unit)? = null,
     shrinkActions: NoteImageShrinkActions? = null,
     infoSource: NoteImageInfoSource? = null,
+    onImageChange: (NoteImage) -> Unit = {},
     onDismiss: () -> Unit
 ) {
-    val bitmap = remember(image) { image.bitmap.asImageBitmap() }
+    // The gallery is the one of the opened image; moving between its images keeps it.
+    val gallery = remember { image.gallery.takeIf { image in it } ?: listOf(image) }
+    val pagerState = rememberPagerState(
+        initialPage = gallery.indexOf(image).coerceAtLeast(0)
+    ) { gallery.size }
+    val current = gallery.getOrElse(pagerState.currentPage) { image }
+    val belongsToCurrent = current === image
+    val currentSaveAnnotation = onSaveAnnotation?.takeIf { belongsToCurrent }
+    val currentShrinkActions = shrinkActions?.takeIf { belongsToCurrent }
+    val currentInfoSource = infoSource?.takeIf { belongsToCurrent }
+    val reportImageChange by rememberUpdatedState(onImageChange)
+    LaunchedEffect(current) {
+        if (current !== image) reportImageChange(current)
+    }
     val scope = rememberCoroutineScope()
     val appearance = remember { Animatable(0f) }
     var closing by remember { mutableStateOf(false) }
@@ -133,10 +161,10 @@ internal fun NoteImageViewer(
     var showingInfo by remember { mutableStateOf(false) }
     val panelOpen = shrinking || showingInfo
     // Read once for both the bar at the bottom and the details panel.
-    val detailsLoader = infoSource?.loadDetails
-    var detailsLoading by remember(infoSource) { mutableStateOf(detailsLoader != null) }
-    var details by remember(infoSource) { mutableStateOf<ImageFileDetails?>(null) }
-    LaunchedEffect(infoSource) {
+    val detailsLoader = currentInfoSource?.loadDetails
+    var detailsLoading by remember(currentInfoSource) { mutableStateOf(detailsLoader != null) }
+    var details by remember(currentInfoSource) { mutableStateOf<ImageFileDetails?>(null) }
+    LaunchedEffect(currentInfoSource) {
         if (detailsLoader == null) return@LaunchedEffect
         details = try {
             detailsLoader()
@@ -180,7 +208,7 @@ internal fun NoteImageViewer(
         BoxWithConstraints(Modifier.fillMaxSize().testTag("image-viewer")) {
             val viewport = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             val center = Offset(viewport.width / 2f, viewport.height / 2f)
-            val fitted = fittedImageSize(bitmap.width, bitmap.height, viewport)
+            val fitted = fittedImageSize(current.bitmap.width, current.bitmap.height, viewport)
 
             fun bounded(candidate: Offset, atScale: Float): Offset {
                 val maxX = ((fitted.width * atScale - viewport.width) / 2f).coerceAtLeast(0f)
@@ -210,7 +238,13 @@ internal fun NoteImageViewer(
 
             val zoomed = scale > ZOOMED_THRESHOLD
             val dragProgress = (abs(dismissDrag) / (viewport.height / 3f)).coerceIn(0f, 1f)
-            val description = image.description
+            val description = current.description
+            // Each image opens fitted, whatever the one before was zoomed to.
+            LaunchedEffect(pagerState.settledPage) {
+                zoomAnimation[0]?.cancel()
+                scale = 1f
+                offset = Offset.Zero
+            }
             val zoomInLabel = stringResource(R.string.image_viewer_zoom_in)
             val fitLabel = stringResource(R.string.image_viewer_fit)
             val zoomState = stringResource(
@@ -223,121 +257,151 @@ internal fun NoteImageViewer(
                     .graphicsLayer { alpha = appearance.value * (1f - dragProgress * 0.75f) }
                     .background(Color.Black)
             )
-            Image(
-                bitmap = bitmap,
-                contentDescription = description.ifBlank {
-                    stringResource(R.string.image_viewer_image)
-                },
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize()
-                    .semantics {
-                        stateDescription = zoomState
-                        customActions = listOf(
-                            CustomAccessibilityAction(if (zoomed) fitLabel else zoomInLabel) {
-                                animateZoom(if (zoomed) 1f else DOUBLE_TAP_ZOOM)
-                                true
-                            }
-                        )
-                    }
-                    .pointerInput(viewport, fitted) {
-                        detectTapGestures(
-                            onTap = { controlsVisible = !controlsVisible },
-                            onDoubleTap = { tap ->
-                                animateZoom(
-                                    if (scale >
-                                        ZOOMED_THRESHOLD
-                                    ) {
-                                        1f
-                                    } else {
-                                        DOUBLE_TAP_ZOOM
-                                    },
-                                    tap
-                                )
-                            }
-                        )
-                    }
-                    .pointerInput(viewport, fitted) {
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            zoomAnimation[0]?.cancel()
-                            val velocity = VelocityTracker()
-                            velocity.addPosition(down.uptimeMillis, down.position)
-                            val slop = viewConfiguration.touchSlop
-                            var pastSlop = false
-                            var dismissing = false
-                            var totalZoom = 1f
-                            var totalPan = Offset.Zero
-                            do {
-                                val event = awaitPointerEvent()
-                                event.changes.firstOrNull { it.id == down.id }?.let {
-                                    velocity.addPosition(it.uptimeMillis, it.position)
-                                }
-                                val zoom = event.calculateZoom()
-                                val pan = event.calculatePan()
-                                if (!pastSlop) {
-                                    totalZoom *= zoom
-                                    totalPan += pan
-                                    val zoomMotion =
-                                        abs(1f - totalZoom) * event.calculateCentroidSize(false)
-                                    if (zoomMotion > slop || totalPan.getDistance() > slop) {
-                                        pastSlop = true
-                                        dismissing = event.changes.size == 1 &&
-                                            scale <= ZOOMED_THRESHOLD &&
-                                            abs(totalPan.y) > abs(totalPan.x)
-                                    }
-                                }
-                                if (pastSlop) {
-                                    if (dismissing) {
-                                        dismissDrag += pan.y
-                                    } else {
-                                        val newScale = (scale * zoom).coerceIn(MIN_PINCH, MAX_ZOOM)
-                                        val centroid = event.calculateCentroid(useCurrent = false)
-                                        val moved = if (centroid.isSpecified) {
-                                            val focus = centroid - center
-                                            focus - (focus - offset) * (newScale / scale) + pan
-                                        } else {
-                                            offset + pan
-                                        }
-                                        scale = newScale
-                                        offset = bounded(moved, scale.coerceAtLeast(1f))
-                                    }
-                                    event.changes.forEach { if (it.positionChanged()) it.consume() }
-                                }
-                            } while (event.changes.any { it.pressed })
-                            if (dismissing) {
-                                val flingVelocity = velocity.calculateVelocity().y
-                                val flung = abs(flingVelocity) > DISMISS_VELOCITY.dp.toPx() &&
-                                    flingVelocity * dismissDrag > 0f
-                                if (flung ||
-                                    abs(dismissDrag) > viewport.height * DISMISS_FRACTION
+            // Zooming, panning, and closing act on the image being shown.
+            val currentImageModifier = Modifier
+                .semantics {
+                    stateDescription = zoomState
+                    customActions = listOf(
+                        CustomAccessibilityAction(if (zoomed) fitLabel else zoomInLabel) {
+                            animateZoom(if (zoomed) 1f else DOUBLE_TAP_ZOOM)
+                            true
+                        }
+                    )
+                }
+                .pointerInput(viewport, fitted) {
+                    detectTapGestures(
+                        onTap = { controlsVisible = !controlsVisible },
+                        onDoubleTap = { tap ->
+                            animateZoom(
+                                if (scale >
+                                    ZOOMED_THRESHOLD
                                 ) {
-                                    close(slideTo = viewport.height / 2f * sign(dismissDrag))
+                                    1f
                                 } else {
-                                    scope.launch {
-                                        animate(dismissDrag, 0f, animationSpec = spring()) {
-                                                value,
-                                                _
-                                            ->
-                                            dismissDrag = value
-                                        }
+                                    DOUBLE_TAP_ZOOM
+                                },
+                                tap
+                            )
+                        }
+                    )
+                }
+                .pointerInput(viewport, fitted) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        zoomAnimation[0]?.cancel()
+                        val velocity = VelocityTracker()
+                        velocity.addPosition(down.uptimeMillis, down.position)
+                        val slop = viewConfiguration.touchSlop
+                        var pastSlop = false
+                        var dismissing = false
+                        var totalZoom = 1f
+                        var totalPan = Offset.Zero
+                        do {
+                            val event = awaitPointerEvent()
+                            event.changes.firstOrNull { it.id == down.id }?.let {
+                                velocity.addPosition(it.uptimeMillis, it.position)
+                            }
+                            val zoom = event.calculateZoom()
+                            val pan = event.calculatePan()
+                            if (!pastSlop) {
+                                totalZoom *= zoom
+                                totalPan += pan
+                                val zoomMotion =
+                                    abs(1f - totalZoom) * event.calculateCentroidSize(false)
+                                if (zoomMotion > slop || totalPan.getDistance() > slop) {
+                                    // A sideways swipe of a fitted image is left unconsumed
+                                    // for the pager, which moves to the next image.
+                                    if (gallery.size > 1 && event.changes.size == 1 &&
+                                        scale <= ZOOMED_THRESHOLD &&
+                                        abs(totalPan.x) > abs(totalPan.y)
+                                    ) {
+                                        return@awaitEachGesture
+                                    }
+                                    pastSlop = true
+                                    dismissing = event.changes.size == 1 &&
+                                        scale <= ZOOMED_THRESHOLD &&
+                                        abs(totalPan.y) > abs(totalPan.x)
+                                }
+                            }
+                            if (pastSlop) {
+                                if (dismissing) {
+                                    dismissDrag += pan.y
+                                } else {
+                                    val newScale = (scale * zoom).coerceIn(MIN_PINCH, MAX_ZOOM)
+                                    val centroid = event.calculateCentroid(useCurrent = false)
+                                    val moved = if (centroid.isSpecified) {
+                                        val focus = centroid - center
+                                        focus - (focus - offset) * (newScale / scale) + pan
+                                    } else {
+                                        offset + pan
+                                    }
+                                    scale = newScale
+                                    offset = bounded(moved, scale.coerceAtLeast(1f))
+                                }
+                                event.changes.forEach { if (it.positionChanged()) it.consume() }
+                            }
+                        } while (event.changes.any { it.pressed })
+                        if (dismissing) {
+                            val flingVelocity = velocity.calculateVelocity().y
+                            val flung = abs(flingVelocity) > DISMISS_VELOCITY.dp.toPx() &&
+                                flingVelocity * dismissDrag > 0f
+                            if (flung ||
+                                abs(dismissDrag) > viewport.height * DISMISS_FRACTION
+                            ) {
+                                close(slideTo = viewport.height / 2f * sign(dismissDrag))
+                            } else {
+                                scope.launch {
+                                    animate(dismissDrag, 0f, animationSpec = spring()) {
+                                            value,
+                                            _
+                                        ->
+                                        dismissDrag = value
                                     }
                                 }
-                            } else if (scale < 1f) {
-                                animateZoom(1f)
                             }
+                        } else if (scale < 1f) {
+                            animateZoom(1f)
                         }
                     }
-                    .graphicsLayer {
-                        val entrance = lerp(ENTRANCE_SCALE, 1f, appearance.value)
-                        val dragShrink = 1f - dragProgress * 0.15f
-                        scaleX = scale * entrance * dragShrink
-                        scaleY = scale * entrance * dragShrink
-                        translationX = offset.x
-                        translationY = offset.y + dismissDrag
-                        alpha = appearance.value
-                    }
-                    .testTag("image-viewer-image")
-            )
+                }
+                .graphicsLayer {
+                    val entrance = lerp(ENTRANCE_SCALE, 1f, appearance.value)
+                    val dragShrink = 1f - dragProgress * 0.15f
+                    scaleX = scale * entrance * dragShrink
+                    scaleY = scale * entrance * dragShrink
+                    translationX = offset.x
+                    translationY = offset.y + dismissDrag
+                    alpha = appearance.value
+                }
+                .testTag("image-viewer-image")
+            HorizontalPager(
+                state = pagerState,
+                key = { it },
+                beyondViewportPageCount = 1,
+                pageSpacing = 16.dp,
+                userScrollEnabled = gallery.size > 1 && !zoomed && !closing && !annotating &&
+                    !panelOpen && dismissDrag == 0f,
+                modifier = Modifier.fillMaxSize().testTag("image-viewer-pager")
+            ) { page ->
+                val pageImage = gallery[page]
+                val isCurrent = page == pagerState.currentPage
+                Image(
+                    bitmap = remember(pageImage) { pageImage.bitmap.asImageBitmap() },
+                    contentDescription = pageImage.description.ifBlank {
+                        stringResource(R.string.image_viewer_image)
+                    },
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize()
+                        .then(
+                            if (isCurrent) {
+                                currentImageModifier
+                            } else {
+                                Modifier.graphicsLayer { alpha = appearance.value }
+                                    .testTag("image-viewer-image-$page")
+                            }
+                        )
+                )
+            }
 
             val controlsShown = controlsVisible && !closing && dismissDrag == 0f && !panelOpen
             AnimatedVisibility(
@@ -413,7 +477,7 @@ internal fun NoteImageViewer(
                             tint = Color.White
                         )
                     }
-                    if (shrinkActions != null) {
+                    if (currentShrinkActions != null) {
                         IconButton(
                             onClick = { shrinking = true },
                             modifier = Modifier.testTag("image-viewer-shrink")
@@ -429,7 +493,7 @@ internal fun NoteImageViewer(
                         onClick = {
                             copying = true
                             scope.launch {
-                                copyImageWithFeedback(context, image)
+                                copyImageWithFeedback(context, current)
                                 copying = false
                             }
                         },
@@ -481,9 +545,12 @@ internal fun NoteImageViewer(
                             )
                         }
                     }
+                    if (gallery.size > 1) {
+                        ImagePagePosition(pagerState.currentPage, gallery.size)
+                    }
                     ImageMetadataBar(
-                        image = image,
-                        link = infoSource?.link,
+                        image = current,
+                        link = currentInfoSource?.link,
                         details = details,
                         loading = detailsLoading,
                         onClick = { showingInfo = true }
@@ -512,11 +579,11 @@ internal fun NoteImageViewer(
                 modifier = Modifier.align(Alignment.BottomCenter)
             ) {
                 ImageInfoPanel(
-                    image = image,
-                    source = infoSource,
+                    image = current,
+                    source = currentInfoSource,
                     details = details,
                     loading = detailsLoading,
-                    onShrink = shrinkActions?.let {
+                    onShrink = currentShrinkActions?.let {
                         {
                             showingInfo = false
                             shrinking = true
@@ -526,12 +593,12 @@ internal fun NoteImageViewer(
                 )
             }
             AnimatedVisibility(
-                visible = shrinking && shrinkActions != null,
+                visible = shrinking && currentShrinkActions != null,
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
                 modifier = Modifier.align(Alignment.BottomCenter)
             ) {
-                shrinkActions?.let { actions ->
+                currentShrinkActions?.let { actions ->
                     ImageShrinkPanel(
                         actions = actions,
                         onSaved = {
@@ -549,14 +616,60 @@ internal fun NoteImageViewer(
                 exit = fadeOut()
             ) {
                 ImageAnnotationEditor(
-                    image = image,
-                    onSave = onSaveAnnotation,
+                    image = current,
+                    onSave = currentSaveAnnotation,
                     onSaved = {
                         annotating = false
                         close()
                     },
                     onClose = { annotating = false }
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Where the shown image is among the note's images: a dot per image with the current one
+ * stretched, or a count when there are too many images for dots.
+ */
+@Composable
+private fun ImagePagePosition(page: Int, count: Int) {
+    val label = stringResource(R.string.image_viewer_position, page + 1, count)
+    Surface(
+        shape = CircleShape,
+        color = Color(0xFF2E2E2E).copy(alpha = 0.88f),
+        contentColor = Color.White,
+        modifier = Modifier.semantics { contentDescription = label }
+            .testTag("image-viewer-position")
+    ) {
+        if (count > MAX_POSITION_DOTS) {
+            Text(
+                "${page + 1} / $count",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+            )
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+            ) {
+                repeat(count) { index ->
+                    val selected = index == page
+                    val width by animateDpAsState(
+                        if (selected) 18.dp else 6.dp,
+                        label = "image-position-dot"
+                    )
+                    val alpha by animateFloatAsState(
+                        if (selected) 1f else 0.45f,
+                        label = "image-position-alpha"
+                    )
+                    Box(
+                        Modifier.width(width).height(6.dp).clip(CircleShape)
+                            .background(Color.White.copy(alpha = alpha))
+                    )
+                }
             }
         }
     }
@@ -647,3 +760,4 @@ private const val MAX_ZOOM = 6f
 private const val DISMISS_FRACTION = 0.12f
 private const val DISMISS_VELOCITY = 600
 private const val ZOOM_STIFFNESS = 400f
+private const val MAX_POSITION_DOTS = 8

@@ -1,5 +1,5 @@
 • Browse Nextcloud folders in Note settings and see which folders already hold notes
 • After adding an account, choose the folder shared with QOwnNotes desktop; no files are moved
-• Store images as WebP by default, shrink note images, and show image details
+• Store images as WebP, shrink note images, see image details, and swipe between images
 • Expand the screenshot gallery to showcase Deck, trash, versions, tags, and sharing
 • Fix the editor cursor occasionally jumping to the end when opening a scrolled note

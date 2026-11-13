@@ -52,4 +52,5 @@
     <string name="image_info_copy_link">Copier le lien</string>
     <string name="image_info_link_copied">Lien copié</string>
     <string name="image_info_pixels">%1$s × %2$s\u00A0px</string>
+    <string name="image_viewer_position">Image %1$d sur %2$d</string>
 </resources>

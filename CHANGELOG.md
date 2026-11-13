@@ -33,6 +33,8 @@ zero-based increasing release counter within the month. See [the release guide](
   and whether to convert to WebP, compare the current size with the actual size of the shrunk copy,
   then replace the image or add the smaller copy after it. The original file stays in the media
   folder.
+- Swipe sideways in the full-screen image viewer to move to the previous or next image of the
+  note. Dots at the bottom show which image is open; zoomed images pan instead.
 - The full-screen image viewer shows the image's file type, resolution, and file size at the
   bottom together with its other controls; tapping it opens the image details.
 - See the details of an image from the information button in the full-screen image viewer: its

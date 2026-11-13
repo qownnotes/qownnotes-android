@@ -648,6 +648,46 @@ class MarkdownRendererInstrumentedTest {
     }
 
     @Test
+    fun tappedImageComesWithTheNotesOtherLoadedImagesInReadingOrder() {
+        instrumentation.runOnMainSync {
+            val view = textView()
+            var opened: NoteImage? = null
+            MarkdownRenderer(view.context).render(
+                view,
+                "![one](a.png)\n\n![loading](b.png)\n\n![three](c.png)\n",
+                loadRemoteImages = true,
+                onImageClick = { opened = it }
+            )
+            val text = view.text as Spannable
+            val spans = text.getSpans(0, text.length, AsyncDrawableSpan::class.java)
+                .sortedBy(text::getSpanStart)
+            val bitmaps = listOf(0, 2).associateWith {
+                Bitmap.createBitmap(100, 80, Bitmap.Config.ARGB_8888)
+            }
+            bitmaps.forEach { (index, bitmap) ->
+                spans[index].drawable.setResult(
+                    BitmapDrawable(view.resources, bitmap).apply { setBounds(0, 0, 100, 80) }
+                )
+            }
+            spans.forEach { it.drawable.initWithKnownDimensions(320, view.textSize) }
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+
+            view.touch(text.getSpanStart(spans[2]), 50)
+
+            val image = requireNotNull(opened)
+            assertTrue(image.bitmap === bitmaps[2])
+            assertEquals(listOf("one", "three"), image.gallery.map { it.description })
+            assertEquals(listOf(0, 2), image.gallery.map { it.sourceIndex })
+            assertTrue(image.gallery[1] === image)
+            assertTrue(image.gallery[0].gallery === image.gallery)
+        }
+    }
+
+    @Test
     fun matchesTappedImagesToTheirSourceButNotCodeTablesOrReferences() {
         instrumentation.runOnMainSync {
             val view = textView()

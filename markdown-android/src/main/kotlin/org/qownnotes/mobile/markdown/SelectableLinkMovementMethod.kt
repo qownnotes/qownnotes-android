@@ -47,13 +47,7 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
                     imageAt(widget, buffer, event)?.let { image ->
                         // Only a decoded image opens; a placeholder or blocked image swallows the
                         // tap so it cannot fall through to a link wrapping the image.
-                        (image.image.drawable.result as? BitmapDrawable)?.bitmap?.let { bitmap ->
-                            val description = buffer.subSequence(
-                                buffer.getSpanStart(image),
-                                buffer.getSpanEnd(image)
-                            ).toString().trim()
-                            image.open(NoteImage(bitmap, description, image.sourceIndex()))
-                        }
+                        openImage(buffer, image)
                         return true
                     }
                     taskAt(widget, buffer, event)?.let { task ->
@@ -69,6 +63,30 @@ internal class SelectableLinkMovementMethod : ArrowKeyMovementMethod() {
         }
         return super.onTouchEvent(widget, buffer, event)
     }
+
+    /**
+     * Opens [tapped] together with the note's other loaded images, in reading order, so the
+     * viewer can move between them.
+     */
+    private fun openImage(buffer: Spannable, tapped: NoteImageSpan) {
+        if (tapped.bitmap() == null) return
+        val spans = buffer.getSpans(0, buffer.length, NoteImageSpan::class.java)
+            .sortedWith(compareBy({ buffer.getSpanStart(it) }, { buffer.getSpanEnd(it) }))
+        val images = spans.mapNotNull { span ->
+            span.bitmap()?.let { bitmap ->
+                span to NoteImage(
+                    bitmap,
+                    buffer.subSequence(buffer.getSpanStart(span), buffer.getSpanEnd(span))
+                        .toString().trim(),
+                    span.sourceIndex()
+                )
+            }
+        }
+        NoteImage.gallery(images.map { it.second })
+        images.first { it.first === tapped }.second.let(tapped.open)
+    }
+
+    private fun NoteImageSpan.bitmap(): Bitmap? = (image.drawable.result as? BitmapDrawable)?.bitmap
 
     private fun taskAt(widget: TextView, buffer: Spannable, event: MotionEvent): TaskToggleSpan? {
         val layout = widget.layout ?: return null
@@ -167,4 +185,20 @@ internal class NoteImageSpan(
  * [sourceIndex] is the image's index in `inlineMarkdownImages` of the rendered Markdown, or null
  * when the image cannot be matched to its source with certainty, such as a reference-style image.
  */
-class NoteImage(val bitmap: Bitmap, val description: String, val sourceIndex: Int? = null)
+class NoteImage(val bitmap: Bitmap, val description: String, val sourceIndex: Int? = null) {
+    /**
+     * The note's loaded images in reading order, including this one, for moving between them in
+     * the viewer. Images that are still loading or were blocked are left out.
+     */
+    var gallery: List<NoteImage> = listOf(this)
+        private set
+
+    companion object {
+        /** Makes [images] one gallery, in the given order, and returns it. */
+        fun gallery(images: List<NoteImage>): List<NoteImage> {
+            val gallery = images.toList()
+            gallery.forEach { it.gallery = gallery }
+            return gallery
+        }
+    }
+}
