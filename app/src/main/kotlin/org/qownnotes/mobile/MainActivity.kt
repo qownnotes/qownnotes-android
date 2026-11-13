@@ -484,6 +484,8 @@ private fun NotesNavigation(
     val accounts by component.accountRepository.observeAccounts()
         .collectAsStateWithLifecycle(initialValue = null as List<Account>?, context = UiDispatcher)
     val importState by component.importState.collectAsStateWithLifecycle(context = UiDispatcher)
+    val noteFolderReview by component.noteFolderReview
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     val scope = rememberCoroutineScope { UiDispatcher }
     var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     var observedAccountIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
@@ -713,6 +715,17 @@ private fun NotesNavigation(
                     findOnOpen = searchText
                     navigationRequest++
                 }
+            )
+        }
+    }
+    val review = noteFolderReview
+    // Shown over whichever screen is open, once the account it is about is in the list.
+    if (review != null && loadedAccounts?.any { it.id == review.accountId } == true) {
+        key(review.accountId) {
+            NoteFolderReviewDialog(
+                component = component,
+                review = review,
+                onDismiss = component::dismissNoteFolderReview
             )
         }
     }

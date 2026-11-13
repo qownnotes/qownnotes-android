@@ -30,8 +30,8 @@ The folder can be picked from the user's files through depth-1 WebDAV `PROPFIND`
 the backend parses itself and refuses when they declare a document type. To catch a localized
 Nextcloud Notes folder next to the QOwnNotes desktop `Notes` folder, the backend probes a bounded
 number of top-level folders named like a Nextcloud Notes default folder and reports the ones that
-hold notes. The app offers them in note settings, but never changes the setting without the
-user's choice.
+hold notes. The app offers them, in note settings and once after adding an account, but never
+changes the setting without the user's choice.
 
 Nextcloud Deck is a second optional companion, exposed through the `NoteDeckBackend` contract.
 The app detects Deck from the server capabilities instead of an opt-in setting.

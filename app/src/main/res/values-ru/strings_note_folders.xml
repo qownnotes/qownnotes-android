@@ -27,4 +27,12 @@
     <string name="note_folder_does_not_exist">Ещё не существует</string>
     <string name="note_folder_suggestions_title">Другие папки с заметками</string>
     <string name="note_folder_suggestion_use">Использовать %1$s как папку заметок</string>
+    <string name="note_folder_review_title">Проверьте папку заметок</string>
+    <string name="note_folder_review_current">Ваши заметки синхронизируются с этой папкой из настроек заметок Nextcloud:</string>
+    <string name="note_folder_review_candidates">Заметки найдены и в других папках. Выберите папку, которую используют QOwnNotes для компьютера и другие приложения, чтобы везде отображались одни и те же заметки.</string>
+    <string name="note_folder_review_empty">В этой папке пока нет заметок. Если ваши заметки находятся в другой папке, выберите её сейчас.</string>
+    <string name="note_folder_review_keep">Оставить текущую папку</string>
+    <string name="note_folder_review_choose_other">Выбрать другую папку</string>
+    <string name="note_folder_review_switching">Переключение на %1$s…</string>
+    <string name="note_folder_switch_failed">Не удалось изменить папку заметок</string>
 </resources>

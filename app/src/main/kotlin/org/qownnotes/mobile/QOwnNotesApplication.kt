@@ -121,6 +121,13 @@ open class QOwnNotesApplication : Application() {
     val accountImportGateway by lazy(::createAccountImportGateway)
 }
 
+/** The note folder of a newly added account, with the other folders that already hold notes. */
+data class NoteFolderReview(
+    val accountId: String,
+    val settings: NoteSettings,
+    val discovery: NoteFolderDiscovery
+)
+
 sealed interface SyncUiState {
     data object Idle : SyncUiState
 
@@ -252,6 +259,10 @@ class ApplicationComponent(
         mutableNoteSyncDiagnostics.asStateFlow()
     private val mutableImportState = MutableStateFlow<SyncUiState>(SyncUiState.Idle)
     val importState: StateFlow<SyncUiState> = mutableImportState.asStateFlow()
+    private val mutableNoteFolderReview = MutableStateFlow<NoteFolderReview?>(null)
+
+    /** A newly added account whose note folder the user should confirm. */
+    val noteFolderReview: StateFlow<NoteFolderReview?> = mutableNoteFolderReview.asStateFlow()
     private val syncCoordinator =
         AccountSyncCoordinator(
             accountRepository,
@@ -402,6 +413,7 @@ class ApplicationComponent(
             refreshLocked(id)
         } else {
             scheduleSync(id, 0)
+            reviewNoteFolderOf(id)
         }
         return accountRepository.get(id) ?: account
     }
@@ -553,6 +565,12 @@ class ApplicationComponent(
             settings.removeBookmarksPath(accountId)
             settings.removeNextcloudDeck(accountId)
             deckChecks.remove(accountId)
+            mutableNoteFolderReview.update {
+                it?.takeUnless { review ->
+                    review.accountId ==
+                        accountId
+                }
+            }
             tagSynchronizerFor(accountId)?.forget(accountId)
             mutableSyncStates.update { it - accountId }
             mutableNoteSyncDiagnostics.update { it - localNoteIds }
@@ -586,6 +604,34 @@ class ApplicationComponent(
     ): RemoteFolderListing? {
         val account = accountRepository.get(accountId) ?: error("The account no longer exists")
         return requireNoteFolderDiscoveryBackend(account).browseFolder(account, path, fileSuffix)
+    }
+
+    /**
+     * Asks once whether a newly added account uses the right note folder, when its folder is
+     * empty or other folders on the server already hold notes. Nextcloud Notes, for example,
+     * creates a folder in the user's language, so it can differ from the folder QOwnNotes
+     * desktop uses. The folder is never changed without the user's choice.
+     */
+    private fun reviewNoteFolderOf(accountId: String) {
+        if (!supportsNoteFolderDiscovery(accountId)) return
+        applicationScope.launch {
+            try {
+                val discovery = discoverNoteFolders(accountId)
+                val currentEmpty = discovery.current?.isEmpty ?: true
+                if (discovery.candidates.isEmpty() && !currentEmpty) return@launch
+                val settings = noteSettings(accountId)
+                if (settings.notesPath.trim('/') != discovery.currentPath) return@launch
+                mutableNoteFolderReview.value = NoteFolderReview(accountId, settings, discovery)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The note folder stays reachable from the account's note settings.
+            }
+        }
+    }
+
+    fun dismissNoteFolderReview() {
+        mutableNoteFolderReview.value = null
     }
 
     internal suspend fun importImage(localId: String, uri: android.net.Uri): ImportedImage =

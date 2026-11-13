@@ -23,4 +23,12 @@
     <string name="note_folder_does_not_exist">Ainda não existe</string>
     <string name="note_folder_suggestions_title">Outras pastas com notas</string>
     <string name="note_folder_suggestion_use">Usar %1$s como pasta de notas</string>
+    <string name="note_folder_review_title">Verifique sua pasta de notas</string>
+    <string name="note_folder_review_current">Suas notas são sincronizadas com esta pasta das configurações de notas do Nextcloud:</string>
+    <string name="note_folder_review_candidates">Também foram encontradas notas em outras pastas. Escolha a pasta usada pelo QOwnNotes para desktop e pelos seus outros apps, para que todos mostrem as mesmas notas.</string>
+    <string name="note_folder_review_empty">Esta pasta ainda não contém notas. Se suas notas estiverem em outra pasta, escolha-a agora.</string>
+    <string name="note_folder_review_keep">Manter a pasta atual</string>
+    <string name="note_folder_review_choose_other">Escolher outra pasta</string>
+    <string name="note_folder_review_switching">Mudando para %1$s…</string>
+    <string name="note_folder_switch_failed">Não foi possível alterar a pasta de notas</string>
 </resources>

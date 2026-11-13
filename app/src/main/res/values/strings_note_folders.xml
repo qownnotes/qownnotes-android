@@ -24,4 +24,12 @@
     <string name="note_folder_summary_separator" translatable="false">" · "</string>
     <string name="note_folder_suggestions_title">Other folders with notes</string>
     <string name="note_folder_suggestion_use">Use %1$s as note folder</string>
+    <string name="note_folder_review_title">Check your note folder</string>
+    <string name="note_folder_review_current">Your notes are synchronized with this folder from your Nextcloud notes settings:</string>
+    <string name="note_folder_review_candidates">Notes were also found in other folders. Choose the folder QOwnNotes desktop and your other apps use, so that all of them show the same notes.</string>
+    <string name="note_folder_review_empty">This folder holds no notes yet. If your notes are in another folder, choose it now.</string>
+    <string name="note_folder_review_keep">Keep current folder</string>
+    <string name="note_folder_review_choose_other">Choose another folder</string>
+    <string name="note_folder_review_switching">Switching to %1$s…</string>
+    <string name="note_folder_switch_failed">Could not change the note folder</string>
 </resources>

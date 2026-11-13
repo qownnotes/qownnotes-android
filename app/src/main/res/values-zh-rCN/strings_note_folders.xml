@@ -21,4 +21,12 @@
     <string name="note_folder_does_not_exist">尚不存在</string>
     <string name="note_folder_suggestions_title">其他包含笔记的文件夹</string>
     <string name="note_folder_suggestion_use">将 %1$s 用作笔记文件夹</string>
+    <string name="note_folder_review_title">检查你的笔记文件夹</string>
+    <string name="note_folder_review_current">你的笔记与 Nextcloud 笔记设置中的此文件夹同步：</string>
+    <string name="note_folder_review_candidates">在其他文件夹中也找到了笔记。请选择 QOwnNotes 桌面版和其他应用使用的文件夹，让它们显示相同的笔记。</string>
+    <string name="note_folder_review_empty">此文件夹中还没有笔记。如果你的笔记在其他文件夹中，请现在选择它。</string>
+    <string name="note_folder_review_keep">保留当前文件夹</string>
+    <string name="note_folder_review_choose_other">选择其他文件夹</string>
+    <string name="note_folder_review_switching">正在切换到 %1$s…</string>
+    <string name="note_folder_switch_failed">无法更改笔记文件夹</string>
 </resources>

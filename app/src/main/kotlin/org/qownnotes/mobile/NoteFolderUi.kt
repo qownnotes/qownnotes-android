@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -23,9 +24,12 @@ import androidx.compose.material.icons.filled.FolderSpecial
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.FolderOff
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.util.concurrent.CancellationException
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.core.NoteFolderCandidates
 import org.qownnotes.mobile.core.RemoteFolderListing
@@ -417,5 +423,174 @@ private fun NoteFolderList(subfolders: List<String>, onOpen: (String) -> Unit) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Asks once, after a Nextcloud account was added, whether its note folder is the right one, when
+ * that folder is empty or other folders already hold notes. Keeping the folder is the default;
+ * another folder is only used after the user chooses it.
+ */
+@Composable
+internal fun NoteFolderReviewDialog(
+    component: ApplicationComponent,
+    review: NoteFolderReview,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope { UiDispatcher }
+    val currentPath = review.discovery.currentPath
+    var selectedPath by remember(review.accountId) { mutableStateOf(currentPath) }
+    var picked by remember(review.accountId) { mutableStateOf<RemoteNoteFolder?>(null) }
+    var picking by rememberSaveable(review.accountId) { mutableStateOf(false) }
+    var switching by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val switchFailed = stringResource(R.string.note_folder_switch_failed)
+    val candidates = review.discovery.candidates
+    val currentEmpty = review.discovery.current?.isEmpty ?: true
+
+    AlertDialog(
+        onDismissRequest = { if (!switching) onDismiss() },
+        icon = { Icon(Icons.Filled.FolderOpen, contentDescription = null) },
+        title = { Text(stringResource(R.string.note_folder_review_title)) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    stringResource(R.string.note_folder_review_current),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                NoteFolderOption(
+                    path = currentPath,
+                    folder = review.discovery.current,
+                    selected = selectedPath == currentPath,
+                    enabled = !switching,
+                    onClick = { selectedPath = currentPath },
+                    modifier = Modifier.testTag("note-folder-review-current")
+                )
+                if (candidates.isNotEmpty() || picked != null) {
+                    if (candidates.isNotEmpty()) {
+                        Text(
+                            stringResource(R.string.note_folder_review_candidates),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    candidates.forEach { candidate ->
+                        NoteFolderOption(
+                            path = candidate.path,
+                            folder = candidate,
+                            selected = selectedPath == candidate.path,
+                            enabled = !switching,
+                            onClick = { selectedPath = candidate.path },
+                            modifier = Modifier.testTag("note-folder-review-${candidate.path}")
+                        )
+                    }
+                    picked?.takeIf { folder ->
+                        folder.path != currentPath && candidates.none { it.path == folder.path }
+                    }?.let { folder ->
+                        NoteFolderOption(
+                            path = folder.path,
+                            folder = folder,
+                            selected = selectedPath == folder.path,
+                            enabled = !switching,
+                            onClick = { selectedPath = folder.path },
+                            modifier = Modifier.testTag("note-folder-review-picked")
+                        )
+                    }
+                } else if (currentEmpty) {
+                    Text(
+                        stringResource(R.string.note_folder_review_empty),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                OutlinedButton(
+                    onClick = { picking = true },
+                    enabled = !switching,
+                    modifier = Modifier.fillMaxWidth().testTag("note-folder-review-browse")
+                ) {
+                    IconLabel(
+                        Icons.Filled.FolderOpen,
+                        stringResource(R.string.note_folder_review_choose_other)
+                    )
+                }
+                if (selectedPath != currentPath) {
+                    DialogNotice(stringResource(R.string.note_settings_folder_warning))
+                }
+                if (switching) {
+                    HorizontalDivider()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            stringResource(R.string.note_folder_review_switching, selectedPath),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                error?.let {
+                    DialogErrorPanel(message = it, messageTag = "note-folder-review-error")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (selectedPath == currentPath) {
+                        onDismiss()
+                        return@TextButton
+                    }
+                    switching = true
+                    error = null
+                    scope.launch {
+                        try {
+                            component.updateNoteSettings(
+                                review.accountId,
+                                review.settings,
+                                selectedPath,
+                                review.settings.fileSuffix
+                            )
+                            onDismiss()
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (failure: Exception) {
+                            error = failure.message ?: switchFailed
+                            switching = false
+                        }
+                    }
+                },
+                enabled = !switching,
+                modifier = Modifier.testTag("note-folder-review-confirm")
+            ) {
+                Text(
+                    if (selectedPath == currentPath) {
+                        stringResource(R.string.note_folder_review_keep)
+                    } else {
+                        stringResource(R.string.note_folder_picker_select)
+                    }
+                )
+            }
+        },
+        modifier = Modifier.testTag("note-folder-review")
+    )
+
+    if (picking) {
+        NoteFolderPickerDialog(
+            component = component,
+            accountId = review.accountId,
+            initialPath = selectedPath,
+            fileSuffix = review.settings.fileSuffix,
+            onSelect = { path, folder ->
+                picking = false
+                picked = folder
+                selectedPath = path
+            },
+            onDismiss = { picking = false }
+        )
     }
 }

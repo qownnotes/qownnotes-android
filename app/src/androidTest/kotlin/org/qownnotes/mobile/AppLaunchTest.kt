@@ -81,6 +81,7 @@ import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.core.NoteNames
+import org.qownnotes.mobile.core.NoteSettings
 import org.qownnotes.mobile.core.PullResult
 import org.qownnotes.mobile.core.RemoteFolderListing
 import org.qownnotes.mobile.core.RemoteNote
@@ -1265,6 +1266,7 @@ class AppLaunchTest {
         application.fakeBackend.noteFolderCandidates =
             listOf(RemoteNoteFolder("Notizen", 7, 0, false))
         val aliceId = importAccount("alice", "Alice note", "etag-a", 10).localAccountId()
+        dismissNoteFolderReview()
 
         accountAction("manage-accounts")
         composeRule.onNodeWithTag("account-settings-$aliceId").performClick()
@@ -1289,11 +1291,44 @@ class AppLaunchTest {
         }
     }
 
+    @Test
+    fun aNewAccountOffersAnotherFolderThatAlreadyHoldsNotes() {
+        application.fakeBackend.noteFolderCandidates =
+            listOf(RemoteNoteFolder("Notes", 12, 2, hasTagDatabase = true))
+        val aliceId = testAccount("alice").localAccountId()
+        application.fakeBackend.settingsByAccount[aliceId] = NoteSettings("Notizen", ".md")
+        importAccount("alice", "Alice note", "etag-a", 10)
+        composeRule.waitForTag("note-folder-review")
+        composeRule.onNodeWithTag("note-folder-review-current").assertTextContains("Notizen")
+
+        composeRule.onNodeWithTag("note-folder-review-Notes").performClick()
+        composeRule.onNodeWithText(
+            application.getString(R.string.note_settings_folder_warning)
+        ).assertIsDisplayed()
+        composeRule.onNodeWithTag("note-folder-review-confirm").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            application.fakeBackend.settingsUpdates.lastOrNull() ==
+                (aliceId to NoteSettings("Notes", ".md"))
+        }
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("note-folder-review").fetchSemanticsNodes().isEmpty()
+        }
+    }
+
     private fun folderListing(
         path: String,
         notes: Int = 0,
         subfolders: List<String> = emptyList()
     ) = RemoteFolderListing(RemoteNoteFolder(path, notes, subfolders.size, false), subfolders)
+
+    private fun dismissNoteFolderReview() {
+        composeRule.waitForTag("note-folder-review")
+        composeRule.onNodeWithTag("note-folder-review-confirm").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("note-folder-review").fetchSemanticsNodes().isEmpty()
+        }
+    }
 
     @Test
     fun synchronizationStatusStaysAboveTheScrollingNoteList() {

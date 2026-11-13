@@ -15,6 +15,10 @@ zero-based increasing release counter within the month. See [the release guide](
   such as the localized folder Nextcloud Notes creates (for example `Notizen`) next to the `Notes`
   folder of QOwnNotes desktop, with their note counts and whether QOwnNotes desktop uses them
   ([#54](https://github.com/qownnotes/qownnotes-android/issues/54)).
+- After adding a Nextcloud account whose note folder is empty, or when other folders already hold
+  notes, the app shows which folder it synchronizes and offers to switch to another one, so that
+  QOwnNotes desktop, the web, and Android show the same notes. Nothing changes without your choice,
+  and no files are moved ([#54](https://github.com/qownnotes/qownnotes-android/issues/54)).
 
 ### Changed
 

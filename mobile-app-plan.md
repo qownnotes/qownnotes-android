@@ -782,9 +782,9 @@ Nextcloud Notes creates its default folder under a localized name (for example `
 QOwnNotes desktop suggests `Notes`, so both can exist with different notes. The app therefore
 probes top-level folders named like a Nextcloud Notes default folder (portable policy in
 `NoteFolderCandidates`) and offers those that hold notes, preferring folders with a QOwnNotes
-desktop `notes.sqlite`. The candidates appear in note settings. Nothing is switched or moved
-without the user's explicit choice, and the switch uses the same guarded path as account
-management.
+desktop `notes.sqlite`. The candidates appear in note settings and, once after adding an account,
+when its folder is empty or other candidates exist. Nothing is switched or moved without the user's
+explicit choice, and the switch uses the same guarded path as account management.
 
 Map QOwnNotes note subfolders onto `category`. The mapping is lossless in both directions, including nesting, so this is the supported way to give QOwnNotes users folders on a Nextcloud account.
 

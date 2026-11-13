@@ -27,4 +27,12 @@
     <string name="note_folder_does_not_exist">Jeszcze nie istnieje</string>
     <string name="note_folder_suggestions_title">Inne foldery z notatkami</string>
     <string name="note_folder_suggestion_use">Użyj %1$s jako folderu notatek</string>
+    <string name="note_folder_review_title">Sprawdź folder notatek</string>
+    <string name="note_folder_review_current">Twoje notatki są synchronizowane z tym folderem z ustawień notatek Nextcloud:</string>
+    <string name="note_folder_review_candidates">Notatki znaleziono także w innych folderach. Wybierz folder używany przez QOwnNotes na komputerze i inne aplikacje, aby wszędzie były widoczne te same notatki.</string>
+    <string name="note_folder_review_empty">Ten folder nie zawiera jeszcze notatek. Jeśli Twoje notatki są w innym folderze, wybierz go teraz.</string>
+    <string name="note_folder_review_keep">Zachowaj bieżący folder</string>
+    <string name="note_folder_review_choose_other">Wybierz inny folder</string>
+    <string name="note_folder_review_switching">Przełączanie na %1$s…</string>
+    <string name="note_folder_switch_failed">Nie udało się zmienić folderu notatek</string>
 </resources>

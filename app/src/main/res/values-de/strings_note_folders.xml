@@ -23,4 +23,12 @@
     <string name="note_folder_does_not_exist">Existiert noch nicht</string>
     <string name="note_folder_suggestions_title">Weitere Ordner mit Notizen</string>
     <string name="note_folder_suggestion_use">%1$s als Notizordner verwenden</string>
+    <string name="note_folder_review_title">Notizordner prüfen</string>
+    <string name="note_folder_review_current">Deine Notizen werden mit diesem Ordner aus deinen Nextcloud-Notizeinstellungen synchronisiert:</string>
+    <string name="note_folder_review_candidates">Auch in anderen Ordnern wurden Notizen gefunden. Wähle den Ordner, den QOwnNotes Desktop und deine anderen Apps verwenden, damit überall dieselben Notizen erscheinen.</string>
+    <string name="note_folder_review_empty">Dieser Ordner enthält noch keine Notizen. Wenn deine Notizen in einem anderen Ordner liegen, wähle ihn jetzt aus.</string>
+    <string name="note_folder_review_keep">Aktuellen Ordner behalten</string>
+    <string name="note_folder_review_choose_other">Anderen Ordner auswählen</string>
+    <string name="note_folder_review_switching">Wechsle zu %1$s…</string>
+    <string name="note_folder_switch_failed">Der Notizordner konnte nicht geändert werden</string>
 </resources>
