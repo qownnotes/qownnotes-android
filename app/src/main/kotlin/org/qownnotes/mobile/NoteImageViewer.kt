@@ -28,8 +28,10 @@ import androidx.compose.foundation.gestures.calculateCentroidSize
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -96,6 +98,7 @@ import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -129,6 +132,21 @@ internal fun NoteImageViewer(
     var savingShrunk by remember { mutableStateOf(false) }
     var showingInfo by remember { mutableStateOf(false) }
     val panelOpen = shrinking || showingInfo
+    // Read once for both the bar at the bottom and the details panel.
+    val detailsLoader = infoSource?.loadDetails
+    var detailsLoading by remember(infoSource) { mutableStateOf(detailsLoader != null) }
+    var details by remember(infoSource) { mutableStateOf<ImageFileDetails?>(null) }
+    LaunchedEffect(infoSource) {
+        if (detailsLoader == null) return@LaunchedEffect
+        details = try {
+            detailsLoader()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            null
+        }
+        detailsLoading = false
+    }
     val context = LocalContext.current
     val zoomAnimation = remember { arrayOfNulls<Job>(1) }
 
@@ -427,23 +445,48 @@ internal fun NoteImageViewer(
                 }
             }
             AnimatedVisibility(
-                visible = controlsShown && zoomed,
-                enter = fadeIn() + scaleIn(initialScale = 0.9f),
-                exit = fadeOut() + scaleOut(targetScale = 0.9f),
+                visible = controlsShown,
+                enter = fadeIn(),
+                exit = fadeOut(),
                 modifier = Modifier.align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 24.dp)
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFF2E2E2E).copy(alpha = 0.88f),
-                    contentColor = Color.White
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                            )
+                        )
+                        .navigationBarsPadding()
+                        .displayCutoutPadding()
+                        .padding(start = 16.dp, end = 16.dp, top = 32.dp, bottom = 20.dp)
                 ) {
-                    Text(
-                        text = zoomState,
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                            .testTag("image-viewer-zoom")
+                    AnimatedVisibility(
+                        visible = zoomed,
+                        enter = fadeIn() + scaleIn(initialScale = 0.9f),
+                        exit = fadeOut() + scaleOut(targetScale = 0.9f)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF2E2E2E).copy(alpha = 0.88f),
+                            contentColor = Color.White
+                        ) {
+                            Text(
+                                text = zoomState,
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                    .testTag("image-viewer-zoom")
+                            )
+                        }
+                    }
+                    ImageMetadataBar(
+                        image = image,
+                        link = infoSource?.link,
+                        details = details,
+                        loading = detailsLoading,
+                        onClick = { showingInfo = true }
                     )
                 }
             }
@@ -471,6 +514,8 @@ internal fun NoteImageViewer(
                 ImageInfoPanel(
                     image = image,
                     source = infoSource,
+                    details = details,
+                    loading = detailsLoading,
                     onShrink = shrinkActions?.let {
                         {
                             showingInfo = false

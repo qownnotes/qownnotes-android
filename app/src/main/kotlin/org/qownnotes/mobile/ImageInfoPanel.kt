@@ -9,7 +9,9 @@ import android.os.Build
 import android.text.format.Formatter
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -32,6 +35,7 @@ import androidx.compose.material.icons.filled.PhotoSizeSelectSmall
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,18 +45,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -62,7 +64,6 @@ import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
-import kotlinx.coroutines.CancellationException
 import org.qownnotes.mobile.core.apertureLabel
 import org.qownnotes.mobile.core.aspectRatioLabel
 import org.qownnotes.mobile.core.coordinatesLabel
@@ -88,25 +89,14 @@ internal class NoteImageInfoSource(
 internal fun ImageInfoPanel(
     image: NoteImage,
     source: NoteImageInfoSource?,
+    details: ImageFileDetails?,
+    loading: Boolean,
     onShrink: (() -> Unit)?,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val loader = source?.loadDetails
-    var loading by remember { mutableStateOf(loader != null) }
-    var details by remember { mutableStateOf<ImageFileDetails?>(null) }
     BackHandler { onClose() }
-    LaunchedEffect(loader) {
-        if (loader == null) return@LaunchedEffect
-        details = try {
-            loader()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Exception) {
-            null
-        }
-        loading = false
-    }
 
     ViewerPanel(
         icon = Icons.Outlined.Info,
@@ -169,9 +159,7 @@ private fun FileHeader(
     loading: Boolean
 ) {
     val context = LocalContext.current
-    val format = details?.info?.mimeType?.let(::imageFormatName)
-        ?: link?.substringAfterLast('.', "")?.substringBefore('?')?.uppercase()
-            ?.takeIf { it.length in 2..4 }
+    val format = imageFormatLabel(details, link)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -518,5 +506,82 @@ private fun InfoDivider() {
         modifier = Modifier.padding(start = 52.dp)
     )
 }
+
+/**
+ * The file type, resolution, and file size of the viewed image, shown at the bottom of the viewer
+ * with its other controls. Tapping it opens the image details.
+ */
+@Composable
+internal fun ImageMetadataBar(
+    image: NoteImage,
+    link: String?,
+    details: ImageFileDetails?,
+    loading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val format = imageFormatLabel(details, link)
+    val width = details?.info?.width ?: image.bitmap.width
+    val height = details?.info?.height ?: image.bitmap.height
+    val summary = listOfNotNull(
+        stringResource(R.string.image_info_pixels, integer(width), integer(height)),
+        details?.info?.bytes?.let { Formatter.formatShortFileSize(context, it) }
+    ).joinToString(" · ")
+    val label = stringResource(R.string.image_info)
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = Color(0xFF2E2E2E).copy(alpha = 0.88f),
+        contentColor = Color.White,
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = "$label: ${listOfNotNull(format, summary).joinToString(", ")}"
+        }.testTag("image-viewer-metadata")
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(start = 6.dp, end = 16.dp, top = 6.dp, bottom = 6.dp)
+                .animateContentSize()
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.16f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    format ?: "IMG",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Text(summary, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            AnimatedVisibility(visible = loading) {
+                CircularProgressIndicator(
+                    color = Color.White.copy(alpha = 0.7f),
+                    strokeWidth = 1.5.dp,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+        }
+    }
+}
+
+/** The file type from the file's content, or else from the link's extension. */
+private fun imageFormatLabel(details: ImageFileDetails?, link: String?): String? =
+    details?.info?.mimeType?.let(::imageFormatName)
+        ?: link?.substringBefore('?')?.substringBefore('#')?.substringAfterLast('/')
+            ?.substringAfterLast('.', "")?.uppercase()
+            ?.let {
+                if (it == "JPG") {
+                    "JPEG"
+                } else if (it == "WEBP") {
+                    "WebP"
+                } else {
+                    it
+                }
+            }
+            ?.takeIf { it.length in 2..4 }
 
 private fun integer(value: Int): String = NumberFormat.getIntegerInstance().format(value)

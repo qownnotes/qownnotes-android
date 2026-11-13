@@ -4,13 +4,18 @@ import android.content.ClipboardManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.text.format.Formatter
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -113,6 +118,41 @@ class ImageInfoTest {
     }
 
     @Test
+    fun bottomBarShowsTypeResolutionAndSizeWithTheControlsAndOpensTheDetails() {
+        val file = writePhoto(4000, 3000, withExif = false)
+        composeRule.setContent {
+            MaterialTheme {
+                NoteImageViewer(
+                    NoteImage(BitmapFactory.decodeFile(file.path), "Whiteboard", 0),
+                    infoSource = NoteImageInfoSource("media/photo.jpg") {
+                        ImageDetailsReader.read(file)
+                    }
+                ) {}
+            }
+        }
+        val size = Formatter.formatShortFileSize(application, file.length())
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(
+                hasTestTag("image-viewer-metadata") and hasText(size, substring = true)
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("image-viewer-metadata").assertTextContains("JPEG")
+            .assertTextContains(dimensions(4000, 3000), substring = true)
+
+        // Tapping the image hides the bar with the other controls, and a second tap shows it.
+        composeRule.onNodeWithTag("image-viewer-image").performTouchInput { click(center) }
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("image-viewer-metadata").fetchSemanticsNodes().isEmpty()
+        }
+        composeRule.onNodeWithTag("image-viewer-image").performTouchInput { click(center) }
+        waitForTag("image-viewer-metadata")
+
+        composeRule.onNodeWithTag("image-viewer-metadata").performClick()
+        waitForTag("image-info-panel")
+        composeRule.onNodeWithTag("image-info-file-size").assertTextContains(size)
+    }
+
+    @Test
     fun infoPanelShowsTheFileTheCameraAndTheLinkAndOffersShrinking() {
         val file = writePhoto(4000, 3000, withExif = true)
         val link = "media/info-photo.jpg"
@@ -173,6 +213,9 @@ class ImageInfoTest {
             }
         }
 
+        waitForTag("image-viewer-metadata")
+        composeRule.onNodeWithTag("image-viewer-metadata").assertTextContains("PNG")
+            .assertTextContains(dimensions(1920, 1080), substring = true)
         composeRule.onNodeWithTag("image-viewer-info").performClick()
         waitForTag("image-info-unavailable")
         composeRule.onNodeWithTag("image-info-file").assertTextContains("banner.png")

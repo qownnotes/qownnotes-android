@@ -51,4 +51,5 @@
     <string name="image_info_link">Ссылка</string>
     <string name="image_info_copy_link">Копировать ссылку</string>
     <string name="image_info_link_copied">Ссылка скопирована</string>
+    <string name="image_info_pixels">%1$s × %2$s пикс.</string>
 </resources>
