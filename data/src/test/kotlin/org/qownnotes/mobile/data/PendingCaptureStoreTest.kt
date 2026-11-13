@@ -49,6 +49,46 @@ class PendingCaptureStoreTest {
     }
 
     @Test
+    fun webpPhotoKeepsItsTypeAcrossRecreationAndUpload() = runBlocking {
+        val directory = temporary.newFolder()
+        val store = PendingCaptureStore(directory)
+        val content = byteArrayOf(7, 8, 9)
+        assertEquals(
+            "image-local-note.webp",
+            store.save("local-note", "image/webp") { content.inputStream() }
+        )
+        // Saving again after a restart keeps the WebP photo rather than adding a JPEG one.
+        assertEquals(
+            "image-local-note.webp",
+            store.save("local-note") { throw IOException("Original camera file is gone") }
+        )
+        val recreated = PendingCaptureStore(directory)
+        assertEquals("image/webp", recreated.mimeType("local-note"))
+        assertEquals("image-local-note.webp", recreated.fileName("local-note"))
+        assertEquals(directory.resolve("image-local-note.webp"), recreated.image("local-note"))
+        assertArrayEquals(content, recreated.read("local-note"))
+        assertNull(recreated.readAudio("local-note"))
+        recreated.markUploaded("local-note")
+        assertNull(recreated.read("local-note"))
+        recreated.remove("local-note")
+        assertEquals(emptyList<String>(), directory.list()!!.toList())
+    }
+
+    @Test
+    fun rejectsUnsupportedCaptureTypes() = runBlocking {
+        val directory = temporary.newFolder()
+        try {
+            PendingCaptureStore(directory).save("local-note", "image/gif") {
+                byteArrayOf(1).inputStream()
+            }
+            throw AssertionError("A GIF capture was accepted")
+        } catch (_: IllegalArgumentException) {
+            // Expected.
+        }
+        assertEquals(emptyList<String>(), directory.list()!!.toList())
+    }
+
+    @Test
     fun resumedSaveDoesNotReplaceDurablePhoto() = runBlocking {
         val store = PendingCaptureStore(temporary.newFolder())
         val content = byteArrayOf(1)

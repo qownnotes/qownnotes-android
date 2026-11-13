@@ -7,4 +7,24 @@
     <string name="image_viewer_copy">Копировать изображение</string>
     <string name="image_viewer_copied">Изображение скопировано</string>
     <string name="image_viewer_copy_failed">Не удалось скопировать изображение</string>
+    <string name="image_shrink">Уменьшить изображение</string>
+    <string name="image_shrink_now">Сейчас</string>
+    <string name="image_shrink_after">После</string>
+    <string name="image_shrink_details">%1$s × %2$s пикс. · %3$s</string>
+    <string name="image_shrink_resolution">Разрешение</string>
+    <string name="image_shrink_original">Исходное</string>
+    <string name="image_shrink_webp">Преобразовать в WebP</string>
+    <string name="image_shrink_webp_description">Обычно примерно на треть меньше. Изображения PNG остаются без потерь.</string>
+    <string name="image_shrink_already_webp">Это изображение уже сохранено в WebP.</string>
+    <string name="image_shrink_loading">Загрузка исходного изображения…</string>
+    <string name="image_shrink_calculating">Расчёт…</string>
+    <string name="image_shrink_no_savings">С этими параметрами изображение не станет меньше.</string>
+    <string name="image_shrink_original_unavailable">Не удалось загрузить исходное изображение. Синхронизируйте заметку и попробуйте снова.</string>
+    <string name="image_shrink_keeps_original">Исходный файл остаётся в папке медиафайлов.</string>
+    <string name="image_shrink_add">Добавить копию</string>
+    <string name="image_shrink_replace">Заменить</string>
+    <string name="image_shrink_added">Уменьшенная копия добавлена</string>
+    <string name="image_shrink_replaced">Изображение заменено уменьшенной копией</string>
+    <string name="image_shrink_failed">Не удалось уменьшить изображение</string>
+    <string name="image_shrink_close">Закрыть</string>
 </resources>

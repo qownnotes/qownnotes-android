@@ -39,7 +39,8 @@ internal fun SettingsToggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     testTag: String,
-    description: String? = null
+    description: String? = null,
+    icon: ImageVector? = null
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -50,6 +51,14 @@ internal fun SettingsToggle(
             .padding(vertical = 10.dp)
             .testTag(testTag)
     ) {
+        icon?.let {
+            Icon(
+                it,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+        }
         Column(
             verticalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier.weight(1f)

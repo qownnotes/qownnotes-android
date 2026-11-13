@@ -14,6 +14,9 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.qownnotes.mobile.core.Account
+import org.qownnotes.mobile.core.ImageShrinkSettings
+import org.qownnotes.mobile.core.PhotoResolution
+import org.qownnotes.mobile.core.PhotoSize
 
 @RunWith(AndroidJUnit4::class)
 class AnnotatedImageSaveTest {
@@ -41,8 +44,8 @@ class AnnotatedImageSaveTest {
         application.component.saveAnnotatedImage(localId, CONTENT, 1, annotated(), replace = false)
 
         val (name, bytes) = application.fakeBackend.uploadedImages.single()
-        assertTrue(name.endsWith(".jpg"))
-        assertEquals("image/jpeg", application.fakeBackend.uploadedMediaTypes.single())
+        assertTrue(name.endsWith(".webp"))
+        assertEquals("image/webp", application.fakeBackend.uploadedMediaTypes.single())
         val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
         assertEquals(120, decoded.width)
         assertTrue(Color.red(decoded.getPixel(60, 40)) > 200)
@@ -51,6 +54,34 @@ class AnnotatedImageSaveTest {
                 "![Whiteboard](media/$name)\n\nAfter\n",
             content()
         )
+    }
+
+    @Test
+    fun keepsAnnotatedImagesAsJpegWhenTheyAreNotShrunk() = runBlocking<Unit> {
+        application.component.settings.setImageShrink(ImageShrinkSettings(annotatedImages = false))
+
+        application.component.saveAnnotatedImage(localId, CONTENT, 1, annotated(), replace = false)
+
+        val (name, bytes) = application.fakeBackend.uploadedImages.single()
+        assertTrue(name.endsWith(".jpg"))
+        assertEquals("image/jpeg", application.fakeBackend.uploadedMediaTypes.single())
+        assertEquals(120, BitmapFactory.decodeByteArray(bytes, 0, bytes.size).width)
+    }
+
+    @Test
+    fun scalesALargeAnnotatedImageDownToTheChosenSize() = runBlocking<Unit> {
+        application.component.settings.setPhotoResolution(PhotoResolution(size = PhotoSize.SMALL))
+        val large = Bitmap.createBitmap(2400, 1200, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(Color.BLUE)
+            setHasAlpha(false)
+        }
+
+        application.component.saveAnnotatedImage(localId, CONTENT, 1, large, replace = true)
+
+        val bytes = application.fakeBackend.uploadedImages.single().second
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        assertEquals(1920, decoded.width)
+        assertEquals(960, decoded.height)
     }
 
     @Test

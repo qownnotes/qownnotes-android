@@ -21,8 +21,24 @@ zero-based increasing release counter within the month. See [the release guide](
   notes, the app shows which folder it synchronizes and offers to switch to another one, so that
   QOwnNotes desktop, the web, and Android show the same notes. Nothing changes without your choice,
   and no files are moved ([#54](https://github.com/qownnotes/qownnotes-android/issues/54)).
+- Photos are now stored as WebP by default, which usually takes about a third less space than JPEG
+  at a similar quality. **Save as WebP** can be turned off in the new **Images** section of the
+  settings. Screenshots and graphics from PNG files are converted losslessly, and an image is kept
+  as it is whenever converting or scaling it would not make it smaller.
+- Choose which images are shrunk when they are added to a note: camera photos taken in a note or
+  from a widget, images chosen from the gallery or files, and annotated copies each have their own
+  switch. Chosen images stay as they are unless turned on, and images up to 30 MB can then be
+  chosen. A preview card shows what the current settings save on a typical photo.
+- Shrink an image that is already in a note from the full-screen image viewer: choose a resolution
+  and whether to convert to WebP, compare the current size with the actual size of the shrunk copy,
+  then replace the image or add the smaller copy after it. The original file stays in the media
+  folder.
 
 ### Changed
+
+- The **Photos** settings are now called **Images**, and the photo resolution applies to every
+  kind of image that is shrunk. Annotated images are now saved as WebP by default and scaled down to
+  the chosen resolution.
 
 - Expand the F-Droid and README screenshot gallery to showcase Nextcloud Deck browsing, editing
   and card creation, note trash, version search and restoration, desktop-compatible tags, and

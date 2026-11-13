@@ -7,4 +7,24 @@
     <string name="image_viewer_copy">Copier l’image</string>
     <string name="image_viewer_copied">Image copiée</string>
     <string name="image_viewer_copy_failed">Impossible de copier l’image</string>
+    <string name="image_shrink">Réduire l’image</string>
+    <string name="image_shrink_now">Actuelle</string>
+    <string name="image_shrink_after">Réduite</string>
+    <string name="image_shrink_details">%1$s × %2$s\u00A0px · %3$s</string>
+    <string name="image_shrink_resolution">Résolution</string>
+    <string name="image_shrink_original">Originale</string>
+    <string name="image_shrink_webp">Convertir en WebP</string>
+    <string name="image_shrink_webp_description">Généralement un tiers plus léger. Les images PNG restent sans perte.</string>
+    <string name="image_shrink_already_webp">Cette image est déjà enregistrée en WebP.</string>
+    <string name="image_shrink_loading">Chargement de l’image originale…</string>
+    <string name="image_shrink_calculating">Calcul…</string>
+    <string name="image_shrink_no_savings">Ces options ne rendraient pas cette image plus légère.</string>
+    <string name="image_shrink_original_unavailable">Impossible de charger l’image originale. Synchronisez la note et réessayez.</string>
+    <string name="image_shrink_keeps_original">Le fichier original reste dans le dossier des médias.</string>
+    <string name="image_shrink_add">Ajouter une copie</string>
+    <string name="image_shrink_replace">Remplacer</string>
+    <string name="image_shrink_added">Copie plus légère ajoutée</string>
+    <string name="image_shrink_replaced">Image remplacée par une copie plus légère</string>
+    <string name="image_shrink_failed">Impossible de réduire l’image</string>
+    <string name="image_shrink_close">Fermer</string>
 </resources>

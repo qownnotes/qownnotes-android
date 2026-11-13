@@ -20,54 +20,68 @@ internal class SelectedImageReader(
     private val contentResolver: ContentResolver,
     private val resources: Resources
 ) {
-    suspend fun read(uri: Uri): SelectedImage = withContext(Dispatchers.IO) {
-        val mimeType = contentResolver.getType(uri).orEmpty().lowercase()
-        require(mimeType in SUPPORTED_IMAGE_TYPES) {
-            resources.getString(R.string.image_unsupported_type)
-        }
-        val metadata = contentResolver.query(
-            uri,
-            arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
-            null,
-            null,
-            null
-        )?.use { cursor ->
-            if (!cursor.moveToFirst()) return@use null
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-            val name = nameIndex.takeIf { it >= 0 }?.let(cursor::getString)
-            val size = sizeIndex.takeIf { it >= 0 && !cursor.isNull(it) }?.let(cursor::getLong)
-            name to size
-        }
-        require(metadata?.second == null || metadata.second!! <= MAX_IMAGE_BYTES) {
-            resources.getString(R.string.image_too_large)
-        }
-        val bytes = contentResolver.openInputStream(uri)?.use { input ->
-            val output = ByteArrayOutputStream()
-            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-            var total = 0
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                total += count
-                require(total <= MAX_IMAGE_BYTES) {
-                    resources.getString(R.string.image_too_large)
+    /**
+     * Reads a chosen image of at most [maxBytes]. A larger limit is allowed when the image is
+     * shrunk before it is attached, which brings it back under [MAX_IMAGE_BYTES].
+     */
+    suspend fun read(uri: Uri, maxBytes: Int = MAX_IMAGE_BYTES): SelectedImage =
+        withContext(Dispatchers.IO) {
+            val tooLarge = resources.getString(
+                if (maxBytes >
+                    MAX_IMAGE_BYTES
+                ) {
+                    R.string.image_too_large_to_shrink
+                } else {
+                    R.string.image_too_large
                 }
-                output.write(buffer, 0, count)
+            )
+            val mimeType = contentResolver.getType(uri).orEmpty().lowercase()
+            require(mimeType in SUPPORTED_IMAGE_TYPES) {
+                resources.getString(R.string.image_unsupported_type)
             }
-            output.toByteArray()
-        } ?: error(resources.getString(R.string.image_open_failed))
-        require(bytes.isNotEmpty()) { resources.getString(R.string.image_empty) }
-        SelectedImage(
-            description = metadata?.first?.substringBeforeLast('.')?.takeIf(String::isNotBlank)
-                ?: "image",
-            mimeType = mimeType,
-            content = bytes
-        )
-    }
+            val metadata = contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                if (!cursor.moveToFirst()) return@use null
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                val name = nameIndex.takeIf { it >= 0 }?.let(cursor::getString)
+                val size = sizeIndex.takeIf { it >= 0 && !cursor.isNull(it) }?.let(cursor::getLong)
+                name to size
+            }
+            require(metadata?.second == null || metadata.second!! <= maxBytes) { tooLarge }
+            val bytes = contentResolver.openInputStream(uri)?.use { input ->
+                val output = ByteArrayOutputStream()
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                var total = 0
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    require(total <= maxBytes) { tooLarge }
+                    output.write(buffer, 0, count)
+                }
+                output.toByteArray()
+            } ?: error(resources.getString(R.string.image_open_failed))
+            require(bytes.isNotEmpty()) { resources.getString(R.string.image_empty) }
+            SelectedImage(
+                description = metadata?.first?.substringBeforeLast('.')?.takeIf(String::isNotBlank)
+                    ?: "image",
+                mimeType = mimeType,
+                content = bytes
+            )
+        }
 
-    private companion object {
+    companion object {
+        /** The largest image that is attached to a note. */
         const val MAX_IMAGE_BYTES = 5 * 1024 * 1024
-        val SUPPORTED_IMAGE_TYPES = setOf("image/jpeg", "image/png", "image/webp")
+
+        /** The largest chosen image that is read to be shrunk below [MAX_IMAGE_BYTES]. */
+        const val MAX_SHRINKABLE_IMAGE_BYTES = 30 * 1024 * 1024
+        private val SUPPORTED_IMAGE_TYPES = setOf("image/jpeg", "image/png", "image/webp")
     }
 }

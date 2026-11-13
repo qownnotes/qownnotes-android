@@ -154,6 +154,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -229,6 +230,7 @@ import kotlinx.coroutines.withContext
 import org.qownnotes.mobile.BuildConfig
 import org.qownnotes.mobile.backend.localfolder.LocalFolderBackend
 import org.qownnotes.mobile.core.Account
+import org.qownnotes.mobile.core.ImageShrinking
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteConflict
@@ -1269,6 +1271,8 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val photoResolution by component.settings.photoResolution
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val imageShrink by component.settings.imageShrink
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     // Visibility is kept apart from the name because the field may report a last value change
     // while the dialog closes, which must not reopen it.
     var namingNewNote by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -2244,9 +2248,11 @@ private fun NoteListScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     SettingsSectionHeader(stringResource(R.string.settings_section_photos))
-                    PhotoResolutionSettings(
+                    ImageShrinkSettingsSection(
+                        shrink = imageShrink,
                         resolution = photoResolution,
-                        onChange = component.settings::setPhotoResolution
+                        onShrinkChange = component.settings::setImageShrink,
+                        onResolutionChange = component.settings::setPhotoResolution
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     SettingsSectionHeader(stringResource(R.string.settings_section_more))
@@ -4629,8 +4635,44 @@ private fun NoteDetailScreen(
                 SyncState.REMOTE_MISSING,
                 SyncState.READ_ONLY_CONFLICT
             )
+        val shrinkablePath by produceState<String?>(
+            null,
+            image,
+            renderedContent,
+            canSaveAnnotation
+        ) {
+            value = if (canSaveAnnotation && sourceIndex != null) {
+                component.shrinkableImagePath(localId, renderedContent, sourceIndex)
+            } else {
+                null
+            }
+        }
+        val shrinkActions = shrinkablePath?.let { path ->
+            remember(path, image) {
+                NoteImageShrinkActions(
+                    defaults = component.settings.photoResolution.value.let { resolution ->
+                        ImageShrinking(
+                            resolution.maxDimension,
+                            component.settings.imageShrink.value.saveAsWebp
+                        )
+                    },
+                    loadOriginal = { component.originalNoteImage(localId, path) },
+                    shrink = component::shrinkNoteImage,
+                    save = { shrunk, replace ->
+                        component.saveShrunkImage(
+                            localId,
+                            renderedContent,
+                            requireNotNull(sourceIndex),
+                            shrunk,
+                            replace
+                        )
+                    }
+                )
+            }
+        }
         NoteImageViewer(
             image = image,
+            shrinkActions = shrinkActions,
             onSaveAnnotation = if (canSaveAnnotation && sourceIndex != null) {
                 { annotated, replace ->
                     component.saveAnnotatedImage(

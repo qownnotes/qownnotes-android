@@ -6,6 +6,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.qownnotes.mobile.core.DEFAULT_BOOKMARKS_PATH
 import org.qownnotes.mobile.core.DeckStackTarget
+import org.qownnotes.mobile.core.ImageOrigin
+import org.qownnotes.mobile.core.ImageShrinkSettings
+import org.qownnotes.mobile.core.ImageShrinking
 import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.core.PhotoResolution
@@ -181,7 +184,7 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         )
     )
 
-    /** How photos taken in a note or from a widget are scaled down before they are attached. */
+    /** How far images are scaled down when they are shrunk; see [imageShrink] for which ones. */
     val photoResolution: StateFlow<PhotoResolution> = mutablePhotoResolution.asStateFlow()
 
     fun setPhotoResolution(resolution: PhotoResolution) {
@@ -192,6 +195,36 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
             .apply()
         mutablePhotoResolution.value = resolution
     }
+
+    private val mutableImageShrink = MutableStateFlow(
+        ImageShrinkSettings().let { defaults ->
+            ImageShrinkSettings(
+                saveAsWebp = preferences.getBoolean(SAVE_IMAGES_AS_WEBP, defaults.saveAsWebp),
+                cameraPhotos = preferences.getBoolean(SHRINK_CAMERA_PHOTOS, defaults.cameraPhotos),
+                chosenImages = preferences.getBoolean(SHRINK_CHOSEN_IMAGES, defaults.chosenImages),
+                annotatedImages =
+                preferences.getBoolean(SHRINK_ANNOTATED_IMAGES, defaults.annotatedImages)
+            )
+        }
+    )
+
+    /** Which ways of adding images shrink them, and whether shrunk images are stored as WebP. */
+    val imageShrink: StateFlow<ImageShrinkSettings> = mutableImageShrink.asStateFlow()
+
+    fun setImageShrink(settings: ImageShrinkSettings) {
+        if (settings == mutableImageShrink.value) return
+        preferences.edit()
+            .putBoolean(SAVE_IMAGES_AS_WEBP, settings.saveAsWebp)
+            .putBoolean(SHRINK_CAMERA_PHOTOS, settings.cameraPhotos)
+            .putBoolean(SHRINK_CHOSEN_IMAGES, settings.chosenImages)
+            .putBoolean(SHRINK_ANNOTATED_IMAGES, settings.annotatedImages)
+            .apply()
+        mutableImageShrink.value = settings
+    }
+
+    /** How an image added in the given way is shrunk under the current settings. */
+    fun imageShrinkingFor(origin: ImageOrigin): ImageShrinking =
+        imageShrink.value.shrinkingFor(origin, photoResolution.value)
 
     private val mutableAppearance = MutableStateFlow(readAppearance())
 
@@ -463,6 +496,10 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val AUDIO_LINK_OPENING = "audioLinkOpening"
         const val REDUCE_PHOTO_RESOLUTION = "reducePhotoResolution"
         const val PHOTO_SIZE = "photoSize"
+        const val SAVE_IMAGES_AS_WEBP = "saveImagesAsWebp"
+        const val SHRINK_CAMERA_PHOTOS = "shrinkCameraPhotos"
+        const val SHRINK_CHOSEN_IMAGES = "shrinkChosenImages"
+        const val SHRINK_ANNOTATED_IMAGES = "shrinkAnnotatedImages"
 
         // Legacy global key migrated to existing accounts when the application starts.
         const val SHOW_CATEGORY = "showCategory"

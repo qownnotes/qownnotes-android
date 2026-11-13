@@ -169,4 +169,6 @@
     <string name="backend_no_note_settings">This account backend does not provide note folder settings</string>
     <string name="backend_no_image_uploads">This account backend does not support image uploads</string>
     <string name="backend_no_deck">This account backend does not support Nextcloud Deck</string>
+    <string name="image_too_large_to_shrink">Images must be 30 MB or smaller</string>
+    <string name="image_too_large_after_shrinking">This image is still larger than 5 MB after shrinking. Choose a lower resolution in the settings.</string>
 </resources>

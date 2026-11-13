@@ -39,6 +39,9 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.qownnotes.mobile.core.ImageOrigin
+import org.qownnotes.mobile.core.ImageShrinkSettings
+import org.qownnotes.mobile.core.ImageShrinking
 import org.qownnotes.mobile.core.PhotoResolution
 import org.qownnotes.mobile.core.PhotoSize
 import org.qownnotes.mobile.core.PullResult
@@ -70,8 +73,12 @@ class CameraPhotoTest {
         // Cameras commonly store portrait photos sideways and record the turn in Exif.
         val file = writePhoto(4000, 3000, ExifInterface.ORIENTATION_ROTATE_90)
 
-        CapturedPhotoProcessor.reduce(file, PhotoSize.MEDIUM.maxDimension)
+        val mimeType = ImageShrinker.shrinkInPlace(
+            file,
+            ImageShrinking(PhotoSize.MEDIUM.maxDimension)
+        )
 
+        assertEquals("image/jpeg", mimeType)
         val bounds = bounds(file)
         assertEquals(1920, bounds.outWidth)
         assertEquals(2560, bounds.outHeight)
@@ -86,19 +93,53 @@ class CameraPhotoTest {
         val upright = BitmapFactory.decodeFile(file.path)
         assertTrue(Color.red(upright.getPixel(upright.width - 20, 20)) > 200)
         assertTrue(Color.red(upright.getPixel(20, 20)) < 80)
-        assertFalse(File(file.parentFile, "${file.name}.reduced").exists())
+        assertFalse(File(file.parentFile, "${file.name}.shrunk").exists())
+    }
+
+    @Test
+    fun storesAShrunkPhotoAsWebpUprightWithItsCaptureTime() = runBlocking {
+        val file = writePhoto(4000, 3000, ExifInterface.ORIENTATION_ROTATE_90)
+        val originalBytes = file.length()
+
+        val mimeType = ImageShrinker.shrinkInPlace(
+            file,
+            ImageShrinking(PhotoSize.MEDIUM.maxDimension, webp = true)
+        )
+
+        assertEquals("image/webp", mimeType)
+        val bounds = bounds(file)
+        assertEquals("image/webp", bounds.outMimeType)
+        assertEquals(1920, bounds.outWidth)
+        assertEquals(2560, bounds.outHeight)
+        assertTrue(file.length() < originalBytes)
+        assertEquals(
+            CAPTURE_TIME,
+            ExifInterface(file.path).getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+        )
+        val upright = BitmapFactory.decodeFile(file.path)
+        assertTrue(Color.red(upright.getPixel(upright.width - 20, 20)) > 200)
+        // Shrinking again is harmless: the photo already fits and is kept as it is.
+        val shrunkBytes = file.readBytes()
+        assertEquals(
+            "image/webp",
+            ImageShrinker.shrinkInPlace(
+                file,
+                ImageShrinking(PhotoSize.MEDIUM.maxDimension, webp = true)
+            )
+        )
+        assertArrayEquals(shrunkBytes, file.readBytes())
     }
 
     @Test
     fun keepsTheCameraFileWhenItFitsOrFullResolutionIsChosen() = runBlocking {
         val small = writePhoto(1600, 1200, ExifInterface.ORIENTATION_ROTATE_90)
         val smallBytes = small.readBytes()
-        CapturedPhotoProcessor.reduce(small, PhotoSize.MEDIUM.maxDimension)
+        ImageShrinker.shrinkInPlace(small, ImageShrinking(PhotoSize.MEDIUM.maxDimension))
         assertArrayEquals(smallBytes, small.readBytes())
 
         val large = writePhoto(4000, 3000, ExifInterface.ORIENTATION_NORMAL)
         val largeBytes = large.readBytes()
-        CapturedPhotoProcessor.reduce(large, null)
+        ImageShrinker.shrinkInPlace(large, ImageShrinking.NONE)
         assertArrayEquals(largeBytes, large.readBytes())
     }
 
@@ -147,7 +188,65 @@ class CameraPhotoTest {
     }
 
     @Test
-    fun toolbarCameraAttachesAReducedPhotoAtTheCursor() {
+    fun settingsChooseWebpAndWhichImagesAreShrunk() {
+        importNote()
+        composeRule.onNodeWithTag("back-to-note-list").performClick()
+        composeRule.onNodeWithTag("note-list-menu").performClick()
+        composeRule.onNodeWithTag("settings").performClick()
+        val settings = application.component.settings
+
+        composeRule.onNodeWithTag("toggle-save-as-webp").performScrollTo().assertIsOn()
+        composeRule.onNodeWithTag("toggle-shrink-camera").performScrollTo().assertIsOn()
+        composeRule.onNodeWithTag("toggle-shrink-chosen").performScrollTo().assertIsOff()
+        composeRule.onNodeWithTag("toggle-shrink-annotated").performScrollTo().assertIsOn()
+        composeRule.onNodeWithTag("image-shrink-saved").performScrollTo()
+            .assertTextContains("79", substring = true)
+
+        composeRule.onNodeWithTag("toggle-save-as-webp").performScrollTo().performClick()
+            .assertIsOff()
+        assertEquals(ImageShrinkSettings(saveAsWebp = false), settings.imageShrink.value)
+        composeRule.onNodeWithTag("image-shrink-saved").assertTextContains("70", substring = true)
+
+        composeRule.onNodeWithTag("toggle-shrink-chosen").performScrollTo().performClick()
+            .assertIsOn()
+        composeRule.onNodeWithTag("toggle-shrink-camera").performScrollTo().performClick()
+            .assertIsOff()
+        assertEquals(
+            ImageShrinkSettings(saveAsWebp = false, cameraPhotos = false, chosenImages = true),
+            settings.imageShrink.value
+        )
+        assertEquals(ImageShrinking.NONE, settings.imageShrinkingFor(ImageOrigin.CAMERA))
+        assertEquals(
+            ImageShrinking(PhotoSize.MEDIUM.maxDimension, webp = false),
+            settings.imageShrinkingFor(ImageOrigin.CHOSEN)
+        )
+
+        composeRule.onNodeWithTag("toggle-shrink-chosen").performScrollTo().performClick()
+        composeRule.onNodeWithTag("toggle-shrink-annotated").performScrollTo().performClick()
+        waitUntilGone("image-shrink-saved")
+        composeRule.onNodeWithTag("image-shrink-estimate-text").performScrollTo()
+            .assertTextContains("exactly as they are", substring = true)
+        composeRule.onNodeWithTag("close-settings").performClick()
+    }
+
+    @Test
+    fun imageShrinkSettingsPersist() {
+        val name = "image-shrink-test"
+        val settings = AppSettings(composeRule.activity, name)
+        assertEquals(ImageShrinkSettings(), settings.imageShrink.value)
+        val changed = ImageShrinkSettings(
+            saveAsWebp = false,
+            cameraPhotos = false,
+            chosenImages = true,
+            annotatedImages = false
+        )
+        settings.setImageShrink(changed)
+        assertEquals(changed, AppSettings(composeRule.activity, name).imageShrink.value)
+        settings.setImageShrink(ImageShrinkSettings())
+    }
+
+    @Test
+    fun toolbarCameraAttachesAReducedWebpPhotoAtTheCursor() {
         assumeTrue(
             composeRule.activity.packageManager.hasSystemFeature(
                 android.content.pm.PackageManager.FEATURE_CAMERA_ANY
@@ -169,9 +268,11 @@ class CameraPhotoTest {
 
         composeRule.waitUntil(10_000) { application.fakeBackend.uploadedImages.isNotEmpty() }
         val (name, content) = application.fakeBackend.uploadedImages.single()
-        assertEquals("image/jpeg", application.fakeBackend.uploadedMediaTypes.single())
+        assertEquals("image/webp", application.fakeBackend.uploadedMediaTypes.single())
+        assertTrue(name.endsWith(".webp"))
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(content, 0, content.size, bounds)
+        assertEquals("image/webp", bounds.outMimeType)
         assertEquals(2560, bounds.outWidth)
         assertEquals(1920, bounds.outHeight)
         awaitEditorText("Look: ![photo](media/$name)")

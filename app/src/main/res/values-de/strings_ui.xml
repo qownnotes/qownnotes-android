@@ -170,4 +170,6 @@
     <string name="bookmarks_edit_invalid">Gib einen Namen und eine noch nicht verwendete schema://-URL ein. Felder müssen in eine Markdown-Zeile passen; Namen dürfen keine Klammern und Beschreibungen keine #Schlagwörter enthalten.</string>
     <string name="bookmarks_edited">Lesezeichen aktualisiert</string>
     <string name="bookmarks_edit_failed">Das Lesezeichen konnte nicht aktualisiert werden. Die Notiz wurde möglicherweise geändert oder ist nicht mehr bearbeitbar. Deine Änderungen bleiben in diesem Dialog erhalten; öffne ihn erneut, um die aktuelle Notiz zu laden.</string>
+    <string name="image_too_large_to_shrink">Bilder dürfen höchstens 30 MB groß sein</string>
+    <string name="image_too_large_after_shrinking">Das Bild ist auch nach dem Verkleinern größer als 5 MB. In den Einstellungen eine geringere Auflösung wählen.</string>
 </resources>

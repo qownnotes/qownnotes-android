@@ -145,4 +145,6 @@
     <string name="bookmarks_edit_invalid">Saisissez un nom et une URL schéma:// non utilisée par un autre favori. Les champs doivent tenir sur une ligne Markdown ; les noms ne peuvent pas contenir de crochets ni les descriptions de #étiquettes.</string>
     <string name="bookmarks_edited">Favori mis à jour</string>
     <string name="bookmarks_edit_failed">Impossible de mettre à jour le favori. La note a peut-être changé ou ne peut plus être modifiée. Vos modifications sont conservées dans cette boîte de dialogue ; rouvrez-la pour charger la dernière version.</string>
+    <string name="image_too_large_to_shrink">Les images ne doivent pas dépasser 30\u00A0Mo</string>
+    <string name="image_too_large_after_shrinking">L’image dépasse encore 5\u00A0Mo après réduction. Choisissez une résolution plus faible dans les paramètres.</string>
 </resources>

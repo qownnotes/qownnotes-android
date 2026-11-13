@@ -19,6 +19,13 @@ fun uniqueMediaImageFileName(
     return "image-$safeId.$extension"
 }
 
+/** Whether an image link points to a JPEG, PNG, or WebP file, which can be shrunk. */
+fun isShrinkableImagePath(path: String): Boolean =
+    path.substringBefore('?').substringBefore('#').substringAfterLast('/')
+        .substringAfterLast('.', "").lowercase() in SHRINKABLE_IMAGE_EXTENSIONS
+
+private val SHRINKABLE_IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
+
 /** Returns a link from a note category to the account's top-level media folder. */
 fun mediaImagePath(category: String, fileName: String): String =
     noteMediaPath(category, fileName, "image/jpeg")

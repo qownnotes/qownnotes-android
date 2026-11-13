@@ -57,9 +57,15 @@ class CaptureNoteActivity : ComponentActivity() {
         lifecycleScope.launch {
             val component = application().component
             val result = runCatching {
-                // Reducing twice is harmless: a reduced photo already fits and is kept as it is.
-                capturedFile()?.let { component.prepareCameraPhoto(it) }
-                component.createCapturedNote(accountId, localId, uri).localId
+                // Shrinking twice is harmless: a shrunk photo already fits and is kept as it is.
+                val mimeType = capturedFile()?.let { component.prepareCameraPhoto(it) }
+                    ?: ImageShrinker.JPEG
+                component.createCapturedNote(
+                    accountId,
+                    localId,
+                    uri,
+                    imageMimeType = mimeType
+                ).localId
             }
             result.onSuccess { localId ->
                 capturedFile()?.delete()

@@ -7,4 +7,24 @@
     <string name="image_viewer_copy">复制图片</string>
     <string name="image_viewer_copied">已复制图片</string>
     <string name="image_viewer_copy_failed">无法复制图片</string>
+    <string name="image_shrink">缩小图片</string>
+    <string name="image_shrink_now">当前</string>
+    <string name="image_shrink_after">缩小后</string>
+    <string name="image_shrink_details">%1$s × %2$s 像素 · %3$s</string>
+    <string name="image_shrink_resolution">分辨率</string>
+    <string name="image_shrink_original">原始</string>
+    <string name="image_shrink_webp">转换为 WebP</string>
+    <string name="image_shrink_webp_description">通常小约三分之一。PNG 图片保持无损。</string>
+    <string name="image_shrink_already_webp">此图片已保存为 WebP。</string>
+    <string name="image_shrink_loading">正在加载原始图片…</string>
+    <string name="image_shrink_calculating">正在计算…</string>
+    <string name="image_shrink_no_savings">使用这些选项不会让图片变小。</string>
+    <string name="image_shrink_original_unavailable">无法加载原始图片。请同步笔记后重试。</string>
+    <string name="image_shrink_keeps_original">原始文件仍保留在媒体文件夹中。</string>
+    <string name="image_shrink_add">添加副本</string>
+    <string name="image_shrink_replace">替换</string>
+    <string name="image_shrink_added">已添加较小的副本</string>
+    <string name="image_shrink_replaced">已用较小的副本替换图片</string>
+    <string name="image_shrink_failed">无法缩小图片</string>
+    <string name="image_shrink_close">关闭</string>
 </resources>

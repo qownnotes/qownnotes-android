@@ -48,6 +48,8 @@ import org.qownnotes.mobile.core.DeckCardDetails
 import org.qownnotes.mobile.core.DeckCardDraft
 import org.qownnotes.mobile.core.DeckCardLink
 import org.qownnotes.mobile.core.DeckStackTarget
+import org.qownnotes.mobile.core.ImageOrigin
+import org.qownnotes.mobile.core.ImageShrinking
 import org.qownnotes.mobile.core.LOCAL_FOLDER_ACCOUNT_ID_PREFIX
 import org.qownnotes.mobile.core.NextcloudDeck
 import org.qownnotes.mobile.core.Note
@@ -85,6 +87,7 @@ import org.qownnotes.mobile.core.inlineMarkdownImages
 import org.qownnotes.mobile.core.insertMarkdownImageAfter
 import org.qownnotes.mobile.core.isLocalFolder
 import org.qownnotes.mobile.core.isLocalFolderAccountId
+import org.qownnotes.mobile.core.isShrinkableImagePath
 import org.qownnotes.mobile.core.mediaImagePath
 import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.core.noteMediaPath
@@ -634,8 +637,57 @@ class ApplicationComponent(
         mutableNoteFolderReview.value = null
     }
 
-    internal suspend fun importImage(localId: String, uri: android.net.Uri): ImportedImage =
-        uploadImage(localId, selectedImageReader.read(uri))
+    /**
+     * Attaches an image chosen from the gallery or files, shrunk first when the image settings ask
+     * for it. Shrinking lets larger images be chosen, as long as they end up small enough.
+     */
+    internal suspend fun importImage(localId: String, uri: android.net.Uri): ImportedImage {
+        val shrinking = settings.imageShrinkingFor(ImageOrigin.CHOSEN)
+        if (!shrinking.changesImages) return uploadImage(localId, selectedImageReader.read(uri))
+        val selected = selectedImageReader.read(
+            uri,
+            SelectedImageReader.MAX_SHRINKABLE_IMAGE_BYTES
+        )
+        val shrunk = shrinkSelectedImage(selected, shrinking)
+        require(shrunk.content.size <= SelectedImageReader.MAX_IMAGE_BYTES) {
+            application.getString(R.string.image_too_large_after_shrinking)
+        }
+        return uploadImage(localId, shrunk)
+    }
+
+    /** [selected] shrunk as [shrinking] asks, or unchanged if it cannot be made smaller. */
+    private suspend fun shrinkSelectedImage(
+        selected: SelectedImage,
+        shrinking: ImageShrinking
+    ): SelectedImage = withContext(Dispatchers.IO) {
+        val directory = java.io.File(application.cacheDir, SHRINKING_DIRECTORY).apply { mkdirs() }
+        val id = java.util.UUID.randomUUID()
+        val source = java.io.File(directory, "chosen-$id")
+        val target = java.io.File(directory, "chosen-$id.shrunk")
+        try {
+            source.writeBytes(selected.content)
+            keepingOriginalOnFailure(selected) {
+                ImageShrinker.shrinkTo(source, shrinking, target)?.let { shrunk ->
+                    selected.copy(mimeType = shrunk.mimeType, content = target.readBytes())
+                } ?: selected
+            }
+        } finally {
+            source.delete()
+            target.delete()
+        }
+    }
+
+    private inline fun <T> keepingOriginalOnFailure(original: T, shrink: () -> T): T = try {
+        shrink()
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: Exception) {
+        android.util.Log.w("QOwnNotes", "Keeping the image as it is", error)
+        original
+    } catch (error: OutOfMemoryError) {
+        android.util.Log.w("QOwnNotes", "Keeping the image as it is", error)
+        original
+    }
 
     /** A new private file for the camera to write a photo for a note into. */
     internal fun newCameraPhotoFile(): java.io.File =
@@ -643,12 +695,12 @@ class ApplicationComponent(
             .also { it.parentFile?.mkdirs() }
 
     /**
-     * Reduces a photo the camera wrote to [file] as the photo setting asks, then attaches it to the
+     * Shrinks a photo the camera wrote to [file] as the image settings ask, then attaches it to the
      * note. The file is removed afterwards, whether or not the photo could be attached.
      */
     internal suspend fun importCameraPhoto(localId: String, file: java.io.File): ImportedImage =
         try {
-            prepareCameraPhoto(file)
+            val mimeType = prepareCameraPhoto(file)
             val content = withContext(Dispatchers.IO) {
                 file.takeIf(java.io.File::isFile)?.readBytes()
             }
@@ -659,7 +711,7 @@ class ApplicationComponent(
                 localId,
                 SelectedImage(
                     description = application.getString(R.string.camera_photo_description),
-                    mimeType = "image/jpeg",
+                    mimeType = mimeType,
                     content = content
                 )
             )
@@ -668,19 +720,16 @@ class ApplicationComponent(
         }
 
     /**
-     * Scales a photo the camera wrote down in place, as the photo setting asks. A photo that cannot
-     * be reduced is kept at its full resolution rather than lost.
+     * Shrinks a photo the camera wrote in place, as the image settings ask, and returns its type
+     * afterwards. A photo that cannot be shrunk is kept as the camera wrote it rather than lost.
+     * Shrinking twice is harmless: a shrunk photo already fits and is kept as it is.
      */
-    internal suspend fun prepareCameraPhoto(file: java.io.File) {
-        try {
-            CapturedPhotoProcessor.reduce(file, settings.photoResolution.value.maxDimension)
-        } catch (error: kotlinx.coroutines.CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            android.util.Log.w("QOwnNotes", "Keeping the photo at full resolution", error)
-        } catch (error: OutOfMemoryError) {
-            android.util.Log.w("QOwnNotes", "Keeping the photo at full resolution", error)
-        }
+    internal suspend fun prepareCameraPhoto(file: java.io.File): String {
+        val shrinking = settings.imageShrinkingFor(ImageOrigin.CAMERA)
+        val mimeType = keepingOriginalOnFailure(null) {
+            ImageShrinker.shrinkInPlace(file, shrinking)
+        } ?: withContext(Dispatchers.IO) { ImageShrinker.inspect(file)?.mimeType }
+        return mimeType?.takeIf { it in CAMERA_PHOTO_TYPES } ?: ImageShrinker.JPEG
     }
 
     /**
@@ -696,11 +745,94 @@ class ApplicationComponent(
         annotated: android.graphics.Bitmap,
         replace: Boolean
     ) {
+        val shrinking = settings.imageShrinkingFor(ImageOrigin.ANNOTATED)
+        val (mimeType, content) = withContext(Dispatchers.IO) {
+            ImageShrinker.encode(annotated, shrinking)
+        }
+        saveDerivedImage(localId, renderedContent, imageIndex, mimeType, content, replace)
+    }
+
+    /**
+     * The link of note image [imageIndex] of `inlineMarkdownImages`, as it was written in
+     * [renderedContent], when it points to a file in the account's media folder that can be shrunk.
+     */
+    internal suspend fun shrinkableImagePath(
+        localId: String,
+        renderedContent: String,
+        imageIndex: Int
+    ): String? {
+        val note = noteRepository.get(localId) ?: return null
+        val image = inlineMarkdownImages(renderedContent).getOrNull(imageIndex) ?: return null
+        val path = renderedContent.substring(image.destinationStart, image.destinationEnd)
+        return path.takeIf {
+            org.qownnotes.mobile.core.parseRelativeAttachmentLink(it, note.category) != null &&
+                isShrinkableImagePath(it)
+        }
+    }
+
+    /**
+     * A private copy of the original file behind the note image at [path], at its full
+     * resolution. A photo captured from a widget is read from the device until it is uploaded.
+     */
+    internal suspend fun originalNoteImage(localId: String, path: String): java.io.File {
+        val note = noteRepository.get(localId) ?: error("The note no longer exists")
+        pendingImages(note)[path]?.let { return it }
+        return resolveAttachment(localId, path)
+            ?: error(application.getString(R.string.image_shrink_original_unavailable))
+    }
+
+    /**
+     * Shrinks the file behind a note image into the cache as [shrinking] asks, for a preview that
+     * [saveShrunkImage] can attach. Returns `null` when the image would not get smaller.
+     */
+    internal suspend fun shrinkNoteImage(
+        original: java.io.File,
+        shrinking: ImageShrinking
+    ): ShrunkNoteImage? = withContext(Dispatchers.IO) {
+        val directory = java.io.File(application.cacheDir, SHRINKING_DIRECTORY).apply { mkdirs() }
+        val target = java.io.File(directory, "preview-${java.util.UUID.randomUUID()}")
+        try {
+            ImageShrinker.shrinkTo(original, shrinking, target)?.let { ShrunkNoteImage(target, it) }
+        } catch (error: Exception) {
+            target.delete()
+            throw error
+        }
+    }
+
+    /**
+     * Uploads a shrunk copy of note image [imageIndex], then points that image at the copy or adds
+     * the copy after it. The original file is never overwritten or deleted.
+     */
+    internal suspend fun saveShrunkImage(
+        localId: String,
+        renderedContent: String,
+        imageIndex: Int,
+        shrunk: ShrunkNoteImage,
+        replace: Boolean
+    ) {
+        val content = withContext(Dispatchers.IO) { shrunk.file.readBytes() }
+        saveDerivedImage(
+            localId,
+            renderedContent,
+            imageIndex,
+            shrunk.info.mimeType,
+            content,
+            replace
+        )
+    }
+
+    private suspend fun saveDerivedImage(
+        localId: String,
+        renderedContent: String,
+        imageIndex: Int,
+        mimeType: String,
+        content: ByteArray,
+        replace: Boolean
+    ) {
         val changed = application.getString(R.string.image_annotation_note_changed)
         val image = inlineMarkdownImages(renderedContent).getOrNull(imageIndex) ?: error(changed)
         val original = renderedContent.substring(image.start, image.end)
         val description = renderedContent.substring(image.descriptionStart, image.descriptionEnd)
-        val (mimeType, content) = withContext(Dispatchers.IO) { encodeAnnotatedImage(annotated) }
         val imported = uploadImage(localId, SelectedImage(description, mimeType, content))
         val saved = editMutexes.getOrPut(localId, ::Mutex).withLock {
             val current = noteRepository.get(localId)?.content ?: error(changed)
@@ -899,14 +1031,15 @@ class ApplicationComponent(
         localId: String,
         uri: android.net.Uri,
         audio: Boolean = false,
-        category: String = ""
+        category: String = "",
+        imageMimeType: String = ImageShrinker.JPEG
     ): Note = editMutexes.getOrPut(localId, ::Mutex).withLock {
         noteRepository.get(localId)?.let {
             scheduleSync(accountId, 0)
             return@withLock it
         }
         check(accountRepository.get(accountId) != null) { "The account no longer exists" }
-        val fileName = pendingCaptures.save(localId, audio) {
+        val fileName = pendingCaptures.save(localId, if (audio) "audio/mp4" else imageMimeType) {
             application.contentResolver.openInputStream(uri)
                 ?: error(application.getString(R.string.image_open_failed))
         }
@@ -1725,6 +1858,12 @@ class ApplicationComponent(
             application.getString(R.string.backend_no_sharing)
         )
 }
+
+/** Cache folder for images while they are shrunk. */
+private const val SHRINKING_DIRECTORY = "shrinking-images"
+
+/** Formats a camera photo can be attached in; anything else is attached as the camera's JPEG. */
+private val CAMERA_PHOTO_TYPES = setOf(ImageShrinker.JPEG, ImageShrinker.WEBP)
 
 /** Marks an attachment request of a local-folder account, which the folder serves itself. */
 private const val LOCAL_ATTACHMENT_ACCOUNT_PREFIX = "local-folder-attachments:"

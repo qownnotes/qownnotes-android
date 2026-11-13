@@ -145,4 +145,6 @@
     <string name="bookmarks_edit_invalid">Podaj nazwę i adres schemat:// nieużywany przez inną zakładkę. Pola muszą mieścić się w jednym wierszu Markdown; nazwy nie mogą zawierać nawiasów kwadratowych, a opisy #tagów.</string>
     <string name="bookmarks_edited">Zakładka zaktualizowana</string>
     <string name="bookmarks_edit_failed">Nie udało się zaktualizować zakładki. Notatka mogła się zmienić lub nie można jej już edytować. Zmiany pozostają w tym oknie; otwórz je ponownie, aby wczytać najnowszą notatkę.</string>
+    <string name="image_too_large_to_shrink">Obrazy mogą mieć maksymalnie 30 MB</string>
+    <string name="image_too_large_after_shrinking">Po zmniejszeniu obraz nadal ma ponad 5 MB. Wybierz niższą rozdzielczość w ustawieniach.</string>
 </resources>

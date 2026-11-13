@@ -17,6 +17,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -41,6 +43,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Draw
 import androidx.compose.material.icons.filled.FitScreen
+import androidx.compose.material.icons.filled.PhotoSizeSelectSmall
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -107,6 +110,7 @@ import org.qownnotes.mobile.markdown.NoteImage
 internal fun NoteImageViewer(
     image: NoteImage,
     onSaveAnnotation: (suspend (annotated: Bitmap, replace: Boolean) -> Unit)? = null,
+    shrinkActions: NoteImageShrinkActions? = null,
     onDismiss: () -> Unit
 ) {
     val bitmap = remember(image) { image.bitmap.asImageBitmap() }
@@ -119,6 +123,8 @@ internal fun NoteImageViewer(
     var controlsVisible by remember { mutableStateOf(true) }
     var copying by remember { mutableStateOf(false) }
     var annotating by remember { mutableStateOf(false) }
+    var shrinking by remember { mutableStateOf(false) }
+    var savingShrunk by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val zoomAnimation = remember { arrayOfNulls<Job>(1) }
 
@@ -141,14 +147,14 @@ internal fun NoteImageViewer(
     }
 
     Dialog(
-        // While annotating, back is handled by the editor, which may ask before discarding.
-        onDismissRequest = { if (!annotating) close() },
+        // While annotating or shrinking, back is handled by that panel, which may be saving.
+        onDismissRequest = { if (!annotating && !shrinking) close() },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
         )
     ) {
-        ImmersiveViewerWindow(systemBarsVisible = controlsVisible || annotating)
+        ImmersiveViewerWindow(systemBarsVisible = controlsVisible || annotating || shrinking)
         BoxWithConstraints(Modifier.fillMaxSize().testTag("image-viewer")) {
             val viewport = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             val center = Offset(viewport.width / 2f, viewport.height / 2f)
@@ -311,7 +317,7 @@ internal fun NoteImageViewer(
                     .testTag("image-viewer-image")
             )
 
-            val controlsShown = controlsVisible && !closing && dismissDrag == 0f
+            val controlsShown = controlsVisible && !closing && dismissDrag == 0f && !shrinking
             AnimatedVisibility(
                 visible = controlsShown,
                 enter = fadeIn(),
@@ -375,6 +381,18 @@ internal fun NoteImageViewer(
                             tint = Color.White
                         )
                     }
+                    if (shrinkActions != null) {
+                        IconButton(
+                            onClick = { shrinking = true },
+                            modifier = Modifier.testTag("image-viewer-shrink")
+                        ) {
+                            Icon(
+                                Icons.Filled.PhotoSizeSelectSmall,
+                                contentDescription = stringResource(R.string.image_shrink),
+                                tint = Color.White
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = {
                             copying = true
@@ -412,6 +430,36 @@ internal fun NoteImageViewer(
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                             .testTag("image-viewer-zoom")
+                    )
+                }
+            }
+            AnimatedVisibility(
+                visible = shrinking,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
+                        .pointerInput(Unit) {
+                            detectTapGestures { if (!savingShrunk) shrinking = false }
+                        }
+                )
+            }
+            AnimatedVisibility(
+                visible = shrinking && shrinkActions != null,
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut(),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                shrinkActions?.let { actions ->
+                    ImageShrinkPanel(
+                        actions = actions,
+                        onSaved = {
+                            shrinking = false
+                            close()
+                        },
+                        onClose = { shrinking = false },
+                        onSavingChange = { savingShrunk = it }
                     )
                 }
             }

@@ -1,7 +1,9 @@
 package org.qownnotes.mobile.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NoteMediaTest {
@@ -52,5 +54,17 @@ class NoteMediaTest {
         assertThrows(IllegalArgumentException::class.java) {
             mediaImagePath("", "nested/photo.png")
         }
+    }
+
+    @Test
+    fun onlyJpegPngAndWebpImagesCanBeShrunk() {
+        assertTrue(isShrinkableImagePath("media/photo.jpg"))
+        assertTrue(isShrinkableImagePath("../media/Photo.JPEG"))
+        assertTrue(isShrinkableImagePath("media/shot.png"))
+        assertTrue(isShrinkableImagePath("media/image.webp"))
+        assertFalse(isShrinkableImagePath("media/animation.gif"))
+        assertFalse(isShrinkableImagePath("media/drawing.svg"))
+        assertFalse(isShrinkableImagePath("media/no-extension"))
+        assertFalse(isShrinkableImagePath("media.jpg/file"))
     }
 }

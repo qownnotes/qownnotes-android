@@ -11,7 +11,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import java.io.ByteArrayOutputStream
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -249,25 +248,6 @@ internal fun renderAnnotatedImage(source: Bitmap, annotations: List<ImageAnnotat
     return result
 }
 
-/**
- * Encodes an annotated image for upload. Photos stay JPEG, which keeps them small; images with
- * transparency, such as screenshots with clear areas, are kept lossless as PNG.
- */
-internal fun encodeAnnotatedImage(image: Bitmap): Pair<String, ByteArray> {
-    val png = image.hasAlpha()
-    val bytes = ByteArrayOutputStream().use { output ->
-        check(
-            image.compress(
-                if (png) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG,
-                if (png) 100 else JPEG_QUALITY,
-                output
-            )
-        ) { "The image could not be encoded" }
-        output.toByteArray()
-    }
-    return (if (png) "image/png" else "image/jpeg") to bytes
-}
-
 /** Drops points closer than [minimumDistance] to the previous one, keeping strokes light. */
 internal fun List<Offset>.plusPoint(point: Offset, minimumDistance: Float): List<Offset> {
     val last = lastOrNull() ?: return listOf(point)
@@ -276,4 +256,3 @@ internal fun List<Offset>.plusPoint(point: Offset, minimumDistance: Float): List
 
 private const val HIGHLIGHTER_ALPHA = 0x66
 private const val ARROW_HEAD_DEGREES = 28f
-private const val JPEG_QUALITY = 92

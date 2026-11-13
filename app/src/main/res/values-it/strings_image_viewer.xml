@@ -7,4 +7,24 @@
     <string name="image_viewer_copy">Copia immagine</string>
     <string name="image_viewer_copied">Immagine copiata</string>
     <string name="image_viewer_copy_failed">Impossibile copiare l’immagine</string>
+    <string name="image_shrink">Riduci immagine</string>
+    <string name="image_shrink_now">Ora</string>
+    <string name="image_shrink_after">Ridotta</string>
+    <string name="image_shrink_details">%1$s × %2$s px · %3$s</string>
+    <string name="image_shrink_resolution">Risoluzione</string>
+    <string name="image_shrink_original">Originale</string>
+    <string name="image_shrink_webp">Converti in WebP</string>
+    <string name="image_shrink_webp_description">Di solito circa un terzo più piccola. Le immagini PNG restano senza perdita.</string>
+    <string name="image_shrink_already_webp">Questa immagine è già salvata come WebP.</string>
+    <string name="image_shrink_loading">Caricamento dell’immagine originale…</string>
+    <string name="image_shrink_calculating">Calcolo…</string>
+    <string name="image_shrink_no_savings">Con queste opzioni l’immagine non diventerebbe più piccola.</string>
+    <string name="image_shrink_original_unavailable">Impossibile caricare l’immagine originale. Sincronizza la nota e riprova.</string>
+    <string name="image_shrink_keeps_original">Il file originale resta nella cartella dei media.</string>
+    <string name="image_shrink_add">Aggiungi copia</string>
+    <string name="image_shrink_replace">Sostituisci</string>
+    <string name="image_shrink_added">Copia più piccola aggiunta</string>
+    <string name="image_shrink_replaced">Immagine sostituita con una copia più piccola</string>
+    <string name="image_shrink_failed">Impossibile ridurre l’immagine</string>
+    <string name="image_shrink_close">Chiudi</string>
 </resources>

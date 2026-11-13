@@ -7,4 +7,24 @@
     <string name="image_viewer_copy">Bild kopieren</string>
     <string name="image_viewer_copied">Bild kopiert</string>
     <string name="image_viewer_copy_failed">Das Bild konnte nicht kopiert werden</string>
+    <string name="image_shrink">Bild verkleinern</string>
+    <string name="image_shrink_now">Jetzt</string>
+    <string name="image_shrink_after">Verkleinert</string>
+    <string name="image_shrink_details">%1$s × %2$s px · %3$s</string>
+    <string name="image_shrink_resolution">Auflösung</string>
+    <string name="image_shrink_original">Original</string>
+    <string name="image_shrink_webp">In WebP umwandeln</string>
+    <string name="image_shrink_webp_description">Meist etwa ein Drittel kleiner. PNG-Bilder bleiben verlustfrei.</string>
+    <string name="image_shrink_already_webp">Dieses Bild ist bereits als WebP gespeichert.</string>
+    <string name="image_shrink_loading">Originalbild wird geladen…</string>
+    <string name="image_shrink_calculating">Wird berechnet…</string>
+    <string name="image_shrink_no_savings">Mit diesen Optionen wird das Bild nicht kleiner.</string>
+    <string name="image_shrink_original_unavailable">Das Originalbild konnte nicht geladen werden. Notiz synchronisieren und erneut versuchen.</string>
+    <string name="image_shrink_keeps_original">Die Originaldatei bleibt im Medienordner.</string>
+    <string name="image_shrink_add">Kopie hinzufügen</string>
+    <string name="image_shrink_replace">Ersetzen</string>
+    <string name="image_shrink_added">Kleinere Kopie hinzugefügt</string>
+    <string name="image_shrink_replaced">Bild durch kleinere Kopie ersetzt</string>
+    <string name="image_shrink_failed">Das Bild konnte nicht verkleinert werden</string>
+    <string name="image_shrink_close">Schließen</string>
 </resources>

@@ -7,4 +7,24 @@
     <string name="image_viewer_copy">Copy image</string>
     <string name="image_viewer_copied">Image copied</string>
     <string name="image_viewer_copy_failed">Could not copy the image</string>
+    <string name="image_shrink">Shrink image</string>
+    <string name="image_shrink_now">Now</string>
+    <string name="image_shrink_after">Shrunk</string>
+    <string name="image_shrink_details">%1$s × %2$s px · %3$s</string>
+    <string name="image_shrink_resolution">Resolution</string>
+    <string name="image_shrink_original">Original</string>
+    <string name="image_shrink_webp">Convert to WebP</string>
+    <string name="image_shrink_webp_description">Usually about a third smaller. PNG images stay lossless.</string>
+    <string name="image_shrink_already_webp">This image is already stored as WebP.</string>
+    <string name="image_shrink_loading">Loading the original image…</string>
+    <string name="image_shrink_calculating">Calculating…</string>
+    <string name="image_shrink_no_savings">These options would not make this image smaller.</string>
+    <string name="image_shrink_original_unavailable">The original image could not be loaded. Synchronize the note and try again.</string>
+    <string name="image_shrink_keeps_original">The original file stays in the media folder.</string>
+    <string name="image_shrink_add">Add copy</string>
+    <string name="image_shrink_replace">Replace</string>
+    <string name="image_shrink_added">Smaller copy added</string>
+    <string name="image_shrink_replaced">Image replaced with a smaller copy</string>
+    <string name="image_shrink_failed">The image could not be shrunk</string>
+    <string name="image_shrink_close">Close</string>
 </resources>

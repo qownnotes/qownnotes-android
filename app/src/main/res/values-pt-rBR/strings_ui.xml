@@ -145,4 +145,6 @@
     <string name="bookmarks_edit_invalid">Insira um nome e uma URL esquema:// não usada por outro marcador. Os campos devem caber em uma linha Markdown; nomes não podem conter colchetes e descrições não podem conter #etiquetas.</string>
     <string name="bookmarks_edited">Marcador atualizado</string>
     <string name="bookmarks_edit_failed">Não foi possível atualizar o marcador. A nota pode ter mudado ou não ser mais editável. Suas alterações ficam neste diálogo; abra-o novamente para carregar a nota mais recente.</string>
+    <string name="image_too_large_to_shrink">As imagens devem ter 30 MB ou menos</string>
+    <string name="image_too_large_after_shrinking">A imagem ainda tem mais de 5 MB depois de reduzida. Escolha uma resolução menor nas configurações.</string>
 </resources>
