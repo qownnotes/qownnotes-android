@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -366,6 +367,10 @@ class CameraPhotoTest {
         )
         composeRule.onNodeWithTag("add-account").performClick()
         waitForTag("note-list-menu")
+        // The list toolbar is ready before the asynchronous pull publishes its note rows.
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Photo note").fetchSemanticsNodes().size == 1
+        }
         composeRule.onNodeWithText("Photo note").performClick()
         waitForTag("edit-note")
     }

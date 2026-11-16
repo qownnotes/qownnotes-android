@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -320,6 +321,10 @@ class DeckCardUiTest {
         )
         composeRule.onNodeWithTag("add-account").performClick()
         waitForTag("note-list-menu")
+        // The list toolbar is ready before the asynchronous pull publishes its note rows.
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Linked note").fetchSemanticsNodes().size == 1
+        }
         composeRule.onNodeWithText("Linked note").performClick()
         waitForTag("edit-note")
         return account
