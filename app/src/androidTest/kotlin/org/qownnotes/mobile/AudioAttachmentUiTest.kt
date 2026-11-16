@@ -5,6 +5,7 @@ import android.view.MotionEvent
 import android.widget.TextView
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -65,8 +66,7 @@ class AudioAttachmentUiTest {
         composeRule.onNodeWithTag("reset-audio-opening").performScrollTo().performClick()
         assertNull(application.component.settings.audioLinkOpening())
         composeRule.onNodeWithTag("close-settings").performClick()
-        composeRule.onNodeWithText("Audio note").performClick()
-        waitForTag("edit-note")
+        openAudioNote()
         tapAudioLink()
         waitForTag("audio-opening-dialog")
     }
@@ -120,6 +120,14 @@ class AudioAttachmentUiTest {
         )
         composeRule.onNodeWithTag("add-account").performClick()
         waitForTag("note-list-menu")
+        openAudioNote()
+    }
+
+    private fun openAudioNote() {
+        // The list toolbar is ready before the asynchronous pull publishes its note rows.
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Audio note").fetchSemanticsNodes().size == 1
+        }
         composeRule.onNodeWithText("Audio note").performClick()
         waitForTag("edit-note")
     }
