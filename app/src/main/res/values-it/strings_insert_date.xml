@@ -1,0 +1,26 @@
+<resources>
+    <string name="insert_date_formats">Formati data</string>
+    <string name="insert_date_kind_date">Data</string>
+    <string name="insert_date_kind_date_time">Data e ora</string>
+    <string name="insert_date_preview_title">Inserito nella nota</string>
+    <string name="insert_date_common_formats">Formati comuni</string>
+    <string name="insert_date_default">Predefinito</string>
+    <string name="insert_date_custom">Modello personalizzato</string>
+    <string name="insert_date_custom_label">Modello</string>
+    <string name="insert_date_custom_invalid">Questo modello non può essere usato</string>
+    <string name="insert_date_custom_preview">Inserisce %1$s</string>
+    <string name="insert_date_pitfall_week_year">Y è l\'anno basato sulle settimane, che differisce dall\'anno solare intorno a Capodanno. Usa y per l\'anno solare.</string>
+    <string name="insert_date_pitfall_day_of_year">D è il giorno dell\'anno. Usa d per il giorno del mese.</string>
+    <string name="insert_date_tokens_title">Tocca per aggiungere</string>
+    <string name="insert_date_tokens_quote_hint">Il testo tra apici singoli viene inserito così com\'è, ad esempio \'settimana\' w.</string>
+    <string name="insert_date_token_year">Anno</string>
+    <string name="insert_date_token_short_year">Anno breve</string>
+    <string name="insert_date_token_month">Mese</string>
+    <string name="insert_date_token_month_name">Nome del mese</string>
+    <string name="insert_date_token_day">Giorno</string>
+    <string name="insert_date_token_weekday">Giorno della settimana</string>
+    <string name="insert_date_token_hour">Ora</string>
+    <string name="insert_date_token_minute">Minuto</string>
+    <string name="insert_date_token_second">Secondo</string>
+    <string name="insert_date_token_am_pm">AM/PM</string>
+</resources>

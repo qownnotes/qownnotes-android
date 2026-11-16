@@ -1,0 +1,26 @@
+<resources>
+    <string name="insert_date_formats">日期格式</string>
+    <string name="insert_date_kind_date">日期</string>
+    <string name="insert_date_kind_date_time">日期和时间</string>
+    <string name="insert_date_preview_title">插入到笔记中</string>
+    <string name="insert_date_common_formats">常用格式</string>
+    <string name="insert_date_default">默认</string>
+    <string name="insert_date_custom">自定义格式</string>
+    <string name="insert_date_custom_label">格式</string>
+    <string name="insert_date_custom_invalid">无法使用此格式</string>
+    <string name="insert_date_custom_preview">插入 %1$s</string>
+    <string name="insert_date_pitfall_week_year">Y 是基于周的年份，在新年前后与日历年份不同。日历年份请使用 y。</string>
+    <string name="insert_date_pitfall_day_of_year">D 是一年中的第几天。月份中的日期请使用 d。</string>
+    <string name="insert_date_tokens_title">点按以添加</string>
+    <string name="insert_date_tokens_quote_hint">单引号中的文字会按原样插入，例如 \'第\'w\'周\'。</string>
+    <string name="insert_date_token_year">年</string>
+    <string name="insert_date_token_short_year">短年份</string>
+    <string name="insert_date_token_month">月</string>
+    <string name="insert_date_token_month_name">月份名称</string>
+    <string name="insert_date_token_day">日</string>
+    <string name="insert_date_token_weekday">星期</string>
+    <string name="insert_date_token_hour">小时</string>
+    <string name="insert_date_token_minute">分钟</string>
+    <string name="insert_date_token_second">秒</string>
+    <string name="insert_date_token_am_pm">上午/下午</string>
+</resources>

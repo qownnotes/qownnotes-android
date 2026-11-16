@@ -1,0 +1,26 @@
+<resources>
+    <string name="insert_date_formats">Datumsformate</string>
+    <string name="insert_date_kind_date">Datum</string>
+    <string name="insert_date_kind_date_time">Datum und Uhrzeit</string>
+    <string name="insert_date_preview_title">Wird in die Notiz eingefügt</string>
+    <string name="insert_date_common_formats">Gängige Formate</string>
+    <string name="insert_date_default">Standard</string>
+    <string name="insert_date_custom">Eigenes Muster</string>
+    <string name="insert_date_custom_label">Muster</string>
+    <string name="insert_date_custom_invalid">Dieses Muster kann nicht verwendet werden</string>
+    <string name="insert_date_custom_preview">Fügt %1$s ein</string>
+    <string name="insert_date_pitfall_week_year">Y ist das wochenbasierte Jahr, das um den Jahreswechsel vom Kalenderjahr abweicht. Verwende y für das Kalenderjahr.</string>
+    <string name="insert_date_pitfall_day_of_year">D ist der Tag im Jahr. Verwende d für den Tag im Monat.</string>
+    <string name="insert_date_tokens_title">Zum Einfügen antippen</string>
+    <string name="insert_date_tokens_quote_hint">Text in einfachen Anführungszeichen wird unverändert eingefügt, etwa \'KW\' w.</string>
+    <string name="insert_date_token_year">Jahr</string>
+    <string name="insert_date_token_short_year">Kurzes Jahr</string>
+    <string name="insert_date_token_month">Monat</string>
+    <string name="insert_date_token_month_name">Monatsname</string>
+    <string name="insert_date_token_day">Tag</string>
+    <string name="insert_date_token_weekday">Wochentag</string>
+    <string name="insert_date_token_hour">Stunde</string>
+    <string name="insert_date_token_minute">Minute</string>
+    <string name="insert_date_token_second">Sekunde</string>
+    <string name="insert_date_token_am_pm">AM/PM</string>
+</resources>

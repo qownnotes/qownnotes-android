@@ -8,6 +8,13 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+### Added
+
+- Choose the formats that the editor's **Insert date** and **Insert date and time** tools use in
+  the new **Date formats** settings. Pick a common format such as `dd.MM.yy`, `dd.MM.yyyy`, or
+  `MM/dd/yyyy` with a live preview, or enter your own pattern with tappable building blocks.
+  Mistakes like `YY` for the week-based year are pointed out. The default formats are unchanged.
+
 ## [26.11.2] - 2026-11-13
 
 ### Added

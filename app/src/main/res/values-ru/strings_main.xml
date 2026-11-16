@@ -299,8 +299,8 @@
     <string name="toolbar_help_link">Добавить веб-ссылку. Выделенный текст становится названием ссылки, а скопированный веб-адрес подставляется автоматически.</string>
     <string name="toolbar_help_image">Выбрать изображение, прикрепить его к заметке и вставить в позицию курсора.</string>
     <string name="toolbar_help_camera">Сделать фото камерой, прикрепить его к заметке и вставить в позицию курсора. Фото уменьшаются согласно настройкам.</string>
-    <string name="toolbar_help_date">Вставить сегодняшнюю дату, например 2026-10-09.</string>
-    <string name="toolbar_help_date_time">Вставить текущие дату и время, например 2026-10-09 14:30:00.</string>
+    <string name="toolbar_help_date">Вставить сегодняшнюю дату, например %1$s.</string>
+    <string name="toolbar_help_date_time">Вставить текущие дату и время, например %1$s.</string>
     <string name="toolbar_help_create_deck_card">Создать карточку Nextcloud Deck. Выделенный текст становится названием карточки и заменяется ссылкой на неё.</string>
     <string name="toolbar_help_deck_cards">Просмотреть и найти карточки Nextcloud Deck и вставить ссылку на одну из них.</string>
     <string name="toolbar_group_history">История</string>

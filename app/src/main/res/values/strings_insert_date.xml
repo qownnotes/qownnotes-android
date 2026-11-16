@@ -1,0 +1,26 @@
+<resources>
+    <string name="insert_date_formats">Date formats</string>
+    <string name="insert_date_kind_date">Date</string>
+    <string name="insert_date_kind_date_time">Date and time</string>
+    <string name="insert_date_preview_title">Inserted into the note</string>
+    <string name="insert_date_common_formats">Common formats</string>
+    <string name="insert_date_default">Default</string>
+    <string name="insert_date_custom">Custom pattern</string>
+    <string name="insert_date_custom_label">Pattern</string>
+    <string name="insert_date_custom_invalid">This pattern cannot be used</string>
+    <string name="insert_date_custom_preview">Inserts %1$s</string>
+    <string name="insert_date_pitfall_week_year">Y is the week-based year, which differs from the calendar year around New Year. Use y for the calendar year.</string>
+    <string name="insert_date_pitfall_day_of_year">D is the day of the year. Use d for the day of the month.</string>
+    <string name="insert_date_tokens_title">Tap to add</string>
+    <string name="insert_date_tokens_quote_hint">Text in single quotes is inserted as written, such as \'week\' w.</string>
+    <string name="insert_date_token_year">Year</string>
+    <string name="insert_date_token_short_year">Short year</string>
+    <string name="insert_date_token_month">Month</string>
+    <string name="insert_date_token_month_name">Month name</string>
+    <string name="insert_date_token_day">Day</string>
+    <string name="insert_date_token_weekday">Weekday</string>
+    <string name="insert_date_token_hour">Hour</string>
+    <string name="insert_date_token_minute">Minute</string>
+    <string name="insert_date_token_second">Second</string>
+    <string name="insert_date_token_am_pm">AM/PM</string>
+</resources>

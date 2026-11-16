@@ -292,8 +292,8 @@
     <string name="toolbar_help_link">Adiciona um link. O texto selecionado vira o título do link e um endereço web copiado é preenchido.</string>
     <string name="toolbar_help_image">Escolhe uma imagem, anexa à nota e a insere no cursor.</string>
     <string name="toolbar_help_camera">Tira uma foto com a câmera, anexa à nota e a insere no cursor. As fotos são reduzidas conforme as configurações.</string>
-    <string name="toolbar_help_date">Insere a data de hoje, como 2026-10-09.</string>
-    <string name="toolbar_help_date_time">Insere a data e a hora atuais, como 2026-10-09 14:30:00.</string>
+    <string name="toolbar_help_date">Insere a data de hoje, como %1$s.</string>
+    <string name="toolbar_help_date_time">Insere a data e a hora atuais, como %1$s.</string>
     <string name="toolbar_help_create_deck_card">Cria um cartão do Nextcloud Deck. O texto selecionado vira o título do cartão e é substituído por um link para ele.</string>
     <string name="toolbar_help_deck_cards">Navega e pesquisa seus cartões do Nextcloud Deck e insere um link para um deles.</string>
     <string name="toolbar_group_history">Histórico</string>

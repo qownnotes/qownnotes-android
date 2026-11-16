@@ -216,9 +216,9 @@ import com.nextcloud.android.sso.exceptions.AccountImportCancelledException
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import java.io.File
 import java.text.DateFormat
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.time.ZonedDateTime
 import java.util.Date
+import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -231,6 +231,7 @@ import org.qownnotes.mobile.BuildConfig
 import org.qownnotes.mobile.backend.localfolder.LocalFolderBackend
 import org.qownnotes.mobile.core.Account
 import org.qownnotes.mobile.core.ImageShrinking
+import org.qownnotes.mobile.core.InsertDateKind
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteConflict
@@ -1163,6 +1164,7 @@ private fun NoteListScreen(
     val deckAvailable by deckAvailableFlow.collectAsStateWithLifecycle(context = UiDispatcher)
     LaunchedEffect(accountId) { component.refreshDeckAvailability(accountId) }
     var showAppearance by rememberSaveable(accountId) { mutableStateOf(false) }
+    var showInsertDateFormats by rememberSaveable(accountId) { mutableStateOf(false) }
     var showDiagnostics by rememberSaveable(accountId) { mutableStateOf(false) }
     var diagnosticReport by remember(accountId) { mutableStateOf<String?>(null) }
     var showAbout by rememberSaveable(accountId) { mutableStateOf(false) }
@@ -1272,6 +1274,8 @@ private fun NoteListScreen(
     val photoResolution by component.settings.photoResolution
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val imageShrink by component.settings.imageShrink
+        .collectAsStateWithLifecycle(context = UiDispatcher)
+    val insertDateFormats by component.settings.insertDateFormats
         .collectAsStateWithLifecycle(context = UiDispatcher)
     // Visibility is kept apart from the name because the field may report a last value change
     // while the dialog closes, which must not reopen it.
@@ -2229,6 +2233,13 @@ private fun NoteListScreen(
                         onCheckedChange = component.settings::setRemoveEditedTrailingSpaces,
                         testTag = "toggle-remove-edited-trailing-spaces"
                     )
+                    InsertDateFormatsSettingsRow(
+                        formats = insertDateFormats,
+                        onClick = {
+                            showSettings = false
+                            showInsertDateFormats = true
+                        }
+                    )
                     OutlinedTextField(
                         value = bookmarksPath,
                         onValueChange = { component.settings.setBookmarksPath(accountId, it) },
@@ -2298,6 +2309,16 @@ private fun NoteListScreen(
                 ) { Text(stringResource(R.string.action_close)) }
             },
             modifier = Modifier.testTag("settings-dialog")
+        )
+    }
+    if (showInsertDateFormats) {
+        InsertDateFormatsDialog(
+            formats = insertDateFormats,
+            onChange = component.settings::setInsertDateFormats,
+            onDismiss = {
+                showInsertDateFormats = false
+                showSettings = true
+            }
         )
     }
     if (showAppearance) {
@@ -3396,6 +3417,8 @@ private fun NoteDetailScreen(
     val previewViewport = remember { android.graphics.Rect() }
     val noteTextSizeSp by component.settings.noteTextSizeSp
         .collectAsStateWithLifecycle(context = UiDispatcher)
+    val insertDateFormats by component.settings.insertDateFormats
+        .collectAsStateWithLifecycle(context = UiDispatcher)
     val showToolbarLabels by component.settings.showEditorToolbarLabels
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val toolbarHintDismissed by component.settings.editorToolbarHintDismissed
@@ -4289,17 +4312,16 @@ private fun NoteDetailScreen(
                                     }
                                     EditorTool.IMAGE -> imagePicker.launch("image/*")
                                     EditorTool.CAMERA -> takePhoto()
-                                    EditorTool.DATE -> {
+                                    EditorTool.DATE, EditorTool.DATE_TIME -> {
                                         editor?.insertText(
-                                            LocalDateTime.now()
-                                                .format(DateTimeFormatter.ISO_LOCAL_DATE)
-                                        )
-                                        editor?.focusForInput()
-                                    }
-                                    EditorTool.DATE_TIME -> {
-                                        editor?.insertText(
-                                            LocalDateTime.now().format(
-                                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                            component.settings.insertDateFormats.value.format(
+                                                if (tool == EditorTool.DATE) {
+                                                    InsertDateKind.DATE
+                                                } else {
+                                                    InsertDateKind.DATE_TIME
+                                                },
+                                                ZonedDateTime.now(),
+                                                Locale.getDefault()
                                             )
                                         )
                                         editor?.focusForInput()
@@ -5051,6 +5073,7 @@ private fun NoteDetailScreen(
             cameraAvailable = cameraAvailable,
             showLabels = showToolbarLabels,
             onShowLabelsChange = component.settings::setShowEditorToolbarLabels,
+            insertDateFormats = insertDateFormats,
             onDismiss = {
                 showToolbarHelp = false
                 editor?.focusForInput()

@@ -75,6 +75,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -85,6 +86,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
+import java.time.ZonedDateTime
+import org.qownnotes.mobile.core.InsertDateFormats
+import org.qownnotes.mobile.core.InsertDateKind
 import org.qownnotes.mobile.markdown.MAX_HEADING_LEVEL
 
 /** Related editor tools, shown together and separated from the other groups. */
@@ -601,9 +605,12 @@ internal fun EditorToolbarHelpDialog(
     cameraAvailable: Boolean,
     showLabels: Boolean,
     onShowLabelsChange: (Boolean) -> Unit,
+    insertDateFormats: InsertDateFormats,
     onDismiss: () -> Unit
 ) {
     val tools = availableEditorTools(deckAvailable, cameraAvailable)
+    val now = remember { ZonedDateTime.now() }
+    val locale = LocalConfiguration.current.locales[0]
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null) },
@@ -627,7 +634,21 @@ internal fun EditorToolbarHelpDialog(
                 tools.groupBy { it.group }.forEach { (group, groupTools) ->
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     SettingsSectionHeader(stringResource(group.title))
-                    groupTools.forEach { tool -> ToolHelpRow(tool) }
+                    groupTools.forEach { tool ->
+                        val example = when (tool) {
+                            EditorTool.DATE -> InsertDateKind.DATE
+                            EditorTool.DATE_TIME -> InsertDateKind.DATE_TIME
+                            else -> null
+                        }?.let { insertDateFormats.format(it, now, locale) }
+                        ToolHelpRow(
+                            tool,
+                            if (example == null) {
+                                stringResource(tool.help)
+                            } else {
+                                stringResource(tool.help, example)
+                            }
+                        )
+                    }
                 }
             }
         },
@@ -641,7 +662,7 @@ internal fun EditorToolbarHelpDialog(
 }
 
 @Composable
-private fun ToolHelpRow(tool: EditorTool) {
+private fun ToolHelpRow(tool: EditorTool, help: String) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
@@ -656,7 +677,7 @@ private fun ToolHelpRow(tool: EditorTool) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(stringResource(tool.description), style = MaterialTheme.typography.bodyLarge)
             Text(
-                stringResource(tool.help),
+                help,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

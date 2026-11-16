@@ -78,6 +78,7 @@ import org.qownnotes.mobile.core.DeckBoard
 import org.qownnotes.mobile.core.DeckCardDraft
 import org.qownnotes.mobile.core.DeckStack
 import org.qownnotes.mobile.core.DeckStackTarget
+import org.qownnotes.mobile.core.InsertDateFormats
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.core.NoteNames
@@ -2700,6 +2701,42 @@ class AppLaunchTest {
                 text == "before ${after.format(formatter)}"
         }
         onView(withId(R.id.markdown_editor)).check(matches(hasFocus()))
+    }
+
+    @Test
+    fun settingsChooseTheFormatsInsertedByTheDateTools() {
+        importAccount("alice", "Existing note", "etag-1", 10)
+        listAction("settings")
+        composeRule.onNodeWithTag("open-insert-date-formats").performScrollTo().performClick()
+        composeRule.onNodeWithTag("insert-date-formats-dialog").assertIsDisplayed()
+        composeRule.onNodeWithTag("insert-date-preset-dd.MM.yy").performScrollTo().performClick()
+        composeRule.onNodeWithTag("insert-date-preview-pattern").assertTextEquals("dd.MM.yy")
+
+        composeRule.onNodeWithTag("insert-date-kind-datetime").performClick()
+        composeRule.onNodeWithTag("insert-date-custom").performScrollTo().performClick()
+        composeRule.onNodeWithTag("insert-date-custom-pattern").performTextReplacement("YYYY {")
+        composeRule.onNodeWithTag("insert-date-custom-supporting", useUnmergedTree = true)
+            .assertTextEquals("This pattern cannot be used")
+        composeRule.onNodeWithTag("insert-date-pitfall-week_based_year").assertExists()
+        composeRule.onNodeWithTag("insert-date-custom-pattern")
+            .performTextReplacement("'at' HH 'h'")
+        composeRule.onNodeWithTag("insert-date-preview-pattern").assertTextEquals("'at' HH 'h'")
+        composeRule.onNodeWithTag("close-insert-date-formats").performClick()
+        composeRule.onNodeWithTag("close-settings").performClick()
+        assertEquals(
+            InsertDateFormats(date = "dd.MM.yy", dateTime = "'at' HH 'h'"),
+            application.component.settings.insertDateFormats.value
+        )
+
+        composeRule.onNodeWithText("Existing note").performClick()
+        composeRule.enterEditMode()
+        onView(withId(R.id.markdown_editor)).perform(click(), replaceText(""))
+        val today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yy"))
+        composeRule.onNodeWithTag("insert-date").performScrollTo().performClick()
+        awaitEditorText(today)
+        composeRule.onNodeWithTag("insert-datetime").performScrollTo().performClick()
+        awaitEditorText("at ")
+        awaitEditorText(" h")
     }
 
     @Test

@@ -1,0 +1,26 @@
+<resources>
+    <string name="insert_date_formats">Formaty daty</string>
+    <string name="insert_date_kind_date">Data</string>
+    <string name="insert_date_kind_date_time">Data i godzina</string>
+    <string name="insert_date_preview_title">Wstawiane do notatki</string>
+    <string name="insert_date_common_formats">Popularne formaty</string>
+    <string name="insert_date_default">Domyślny</string>
+    <string name="insert_date_custom">Własny wzorzec</string>
+    <string name="insert_date_custom_label">Wzorzec</string>
+    <string name="insert_date_custom_invalid">Tego wzorca nie można użyć</string>
+    <string name="insert_date_custom_preview">Wstawia %1$s</string>
+    <string name="insert_date_pitfall_week_year">Y to rok tygodniowy, który w okolicach Nowego Roku różni się od roku kalendarzowego. Użyj y dla roku kalendarzowego.</string>
+    <string name="insert_date_pitfall_day_of_year">D to dzień roku. Użyj d dla dnia miesiąca.</string>
+    <string name="insert_date_tokens_title">Dotknij, aby dodać</string>
+    <string name="insert_date_tokens_quote_hint">Tekst w pojedynczych cudzysłowach jest wstawiany bez zmian, np. \'tydz.\' w.</string>
+    <string name="insert_date_token_year">Rok</string>
+    <string name="insert_date_token_short_year">Krótki rok</string>
+    <string name="insert_date_token_month">Miesiąc</string>
+    <string name="insert_date_token_month_name">Nazwa miesiąca</string>
+    <string name="insert_date_token_day">Dzień</string>
+    <string name="insert_date_token_weekday">Dzień tygodnia</string>
+    <string name="insert_date_token_hour">Godzina</string>
+    <string name="insert_date_token_minute">Minuta</string>
+    <string name="insert_date_token_second">Sekunda</string>
+    <string name="insert_date_token_am_pm">AM/PM</string>
+</resources>

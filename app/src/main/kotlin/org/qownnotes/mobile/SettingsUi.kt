@@ -83,7 +83,8 @@ internal fun SettingsActionRow(
     label: String,
     onClick: () -> Unit,
     testTag: String,
-    navigates: Boolean = true
+    navigates: Boolean = true,
+    description: String? = null
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -100,11 +101,19 @@ internal fun SettingsActionRow(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp)
         )
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyLarge,
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier.weight(1f)
-        )
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            description?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         if (navigates) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,

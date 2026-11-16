@@ -1,0 +1,26 @@
+<resources>
+    <string name="insert_date_formats">Форматы даты</string>
+    <string name="insert_date_kind_date">Дата</string>
+    <string name="insert_date_kind_date_time">Дата и время</string>
+    <string name="insert_date_preview_title">Вставляется в заметку</string>
+    <string name="insert_date_common_formats">Распространённые форматы</string>
+    <string name="insert_date_default">По умолчанию</string>
+    <string name="insert_date_custom">Свой шаблон</string>
+    <string name="insert_date_custom_label">Шаблон</string>
+    <string name="insert_date_custom_invalid">Этот шаблон нельзя использовать</string>
+    <string name="insert_date_custom_preview">Вставляет %1$s</string>
+    <string name="insert_date_pitfall_week_year">Y — год по неделям, который около Нового года отличается от календарного. Используйте y для календарного года.</string>
+    <string name="insert_date_pitfall_day_of_year">D — день года. Используйте d для дня месяца.</string>
+    <string name="insert_date_tokens_title">Нажмите, чтобы добавить</string>
+    <string name="insert_date_tokens_quote_hint">Текст в одинарных кавычках вставляется как есть, например \'неделя\' w.</string>
+    <string name="insert_date_token_year">Год</string>
+    <string name="insert_date_token_short_year">Короткий год</string>
+    <string name="insert_date_token_month">Месяц</string>
+    <string name="insert_date_token_month_name">Название месяца</string>
+    <string name="insert_date_token_day">День</string>
+    <string name="insert_date_token_weekday">День недели</string>
+    <string name="insert_date_token_hour">Час</string>
+    <string name="insert_date_token_minute">Минута</string>
+    <string name="insert_date_token_second">Секунда</string>
+    <string name="insert_date_token_am_pm">AM/PM</string>
+</resources>

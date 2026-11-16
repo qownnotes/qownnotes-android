@@ -292,8 +292,8 @@
     <string name="toolbar_help_link">Añade un enlace web. El texto seleccionado se convierte en el título y se rellena una dirección web copiada.</string>
     <string name="toolbar_help_image">Elige una imagen, la adjunta a la nota y la inserta en el cursor.</string>
     <string name="toolbar_help_camera">Hace una foto con la cámara, la adjunta a la nota y la inserta en el cursor. Las fotos se reducen según los ajustes.</string>
-    <string name="toolbar_help_date">Inserta la fecha de hoy, como 2026-10-09.</string>
-    <string name="toolbar_help_date_time">Inserta la fecha y hora actuales, como 2026-10-09 14:30:00.</string>
+    <string name="toolbar_help_date">Inserta la fecha de hoy, como %1$s.</string>
+    <string name="toolbar_help_date_time">Inserta la fecha y hora actuales, como %1$s.</string>
     <string name="toolbar_help_create_deck_card">Crea una tarjeta de Nextcloud Deck. El texto seleccionado se convierte en el título y se sustituye por un enlace a la tarjeta.</string>
     <string name="toolbar_help_deck_cards">Explora y busca tus tarjetas de Nextcloud Deck e inserta un enlace a una.</string>
     <string name="toolbar_group_history">Historial</string>

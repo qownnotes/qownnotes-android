@@ -281,8 +281,8 @@
     <string name="toolbar_help_link">添加网页链接。所选文本将成为链接标题，并自动填入已复制的网址。</string>
     <string name="toolbar_help_image">选择一张图片，将其附加到笔记并插入到光标处。</string>
     <string name="toolbar_help_camera">使用相机拍照，将其附加到笔记并插入到光标处。照片会按设置缩小。</string>
-    <string name="toolbar_help_date">插入今天的日期，例如 2026-10-09。</string>
-    <string name="toolbar_help_date_time">插入当前日期和时间，例如 2026-10-09 14:30:00。</string>
+    <string name="toolbar_help_date">插入今天的日期，例如 %1$s。</string>
+    <string name="toolbar_help_date_time">插入当前日期和时间，例如 %1$s。</string>
     <string name="toolbar_help_create_deck_card">创建 Nextcloud Deck 卡片。所选文本将成为卡片标题，并被替换为指向该卡片的链接。</string>
     <string name="toolbar_help_deck_cards">浏览和搜索你的 Nextcloud Deck 卡片，并插入指向其中一张的链接。</string>
     <string name="toolbar_group_history">历史</string>

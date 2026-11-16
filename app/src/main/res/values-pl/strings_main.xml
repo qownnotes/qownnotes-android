@@ -299,8 +299,8 @@
     <string name="toolbar_help_link">Dodaje link. Zaznaczony tekst staje się tytułem linku, a skopiowany adres internetowy zostaje wstawiony.</string>
     <string name="toolbar_help_image">Wybiera obraz, dołącza go do notatki i wstawia w miejscu kursora.</string>
     <string name="toolbar_help_camera">Robi zdjęcie aparatem, dołącza je do notatki i wstawia w miejscu kursora. Zdjęcia są zmniejszane zgodnie z ustawieniami.</string>
-    <string name="toolbar_help_date">Wstawia dzisiejszą datę, np. 2026-10-09.</string>
-    <string name="toolbar_help_date_time">Wstawia bieżącą datę i godzinę, np. 2026-10-09 14:30:00.</string>
+    <string name="toolbar_help_date">Wstawia dzisiejszą datę, np. %1$s.</string>
+    <string name="toolbar_help_date_time">Wstawia bieżącą datę i godzinę, np. %1$s.</string>
     <string name="toolbar_help_create_deck_card">Tworzy kartę Nextcloud Deck. Zaznaczony tekst staje się tytułem karty i zostaje zastąpiony linkiem do niej.</string>
     <string name="toolbar_help_deck_cards">Przegląda i przeszukuje karty Nextcloud Deck oraz wstawia link do jednej z nich.</string>
     <string name="toolbar_group_history">Historia</string>

@@ -287,8 +287,8 @@
     <string name="toolbar_help_link">Fügt einen Weblink ein. Ausgewählter Text wird zum Linktitel, und eine kopierte Webadresse wird übernommen.</string>
     <string name="toolbar_help_image">Wählt ein Bild, hängt es an die Notiz an und fügt es an der Cursorposition ein.</string>
     <string name="toolbar_help_camera">Nimmt ein Foto mit der Kamera auf, hängt es an die Notiz an und fügt es an der Cursorposition ein. Fotos werden gemäß den Einstellungen verkleinert.</string>
-    <string name="toolbar_help_date">Fügt das heutige Datum ein, etwa 2026-10-09.</string>
-    <string name="toolbar_help_date_time">Fügt das aktuelle Datum und die Uhrzeit ein, etwa 2026-10-09 14:30:00.</string>
+    <string name="toolbar_help_date">Fügt das heutige Datum ein, etwa %1$s.</string>
+    <string name="toolbar_help_date_time">Fügt das aktuelle Datum und die Uhrzeit ein, etwa %1$s.</string>
     <string name="toolbar_help_create_deck_card">Erstellt eine Nextcloud-Deck-Karte. Ausgewählter Text wird zum Kartentitel und durch einen Link zur Karte ersetzt.</string>
     <string name="toolbar_help_deck_cards">Durchsucht deine Nextcloud-Deck-Karten und fügt einen Link zu einer Karte ein.</string>
     <string name="toolbar_group_history">Verlauf</string>

@@ -23,6 +23,7 @@ import org.qownnotes.mobile.core.DeckCardDraft
 import org.qownnotes.mobile.core.DeckCardLink
 import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.ImageShrinkSettings
+import org.qownnotes.mobile.core.InsertDateFormats
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
@@ -119,6 +120,7 @@ class TestQOwnNotesApplication : QOwnNotesApplication() {
         component.settings.setAppearance(AppAppearance())
         component.settings.setPhotoResolution(PhotoResolution())
         component.settings.setImageShrink(ImageShrinkSettings())
+        component.settings.setInsertDateFormats(InsertDateFormats())
         component.settings.resetDeckLinkOpening()
         component.settings.resetAudioLinkOpening()
         fakeBackend.reset()

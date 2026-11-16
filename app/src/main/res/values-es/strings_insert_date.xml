@@ -1,0 +1,26 @@
+<resources>
+    <string name="insert_date_formats">Formatos de fecha</string>
+    <string name="insert_date_kind_date">Fecha</string>
+    <string name="insert_date_kind_date_time">Fecha y hora</string>
+    <string name="insert_date_preview_title">Se inserta en la nota</string>
+    <string name="insert_date_common_formats">Formatos habituales</string>
+    <string name="insert_date_default">Predeterminado</string>
+    <string name="insert_date_custom">Patrón personalizado</string>
+    <string name="insert_date_custom_label">Patrón</string>
+    <string name="insert_date_custom_invalid">Este patrón no se puede usar</string>
+    <string name="insert_date_custom_preview">Inserta %1$s</string>
+    <string name="insert_date_pitfall_week_year">Y es el año basado en semanas, que difiere del año natural en torno a Año Nuevo. Usa y para el año natural.</string>
+    <string name="insert_date_pitfall_day_of_year">D es el día del año. Usa d para el día del mes.</string>
+    <string name="insert_date_tokens_title">Toca para añadir</string>
+    <string name="insert_date_tokens_quote_hint">El texto entre comillas simples se inserta tal cual, como \'semana\' w.</string>
+    <string name="insert_date_token_year">Año</string>
+    <string name="insert_date_token_short_year">Año corto</string>
+    <string name="insert_date_token_month">Mes</string>
+    <string name="insert_date_token_month_name">Nombre del mes</string>
+    <string name="insert_date_token_day">Día</string>
+    <string name="insert_date_token_weekday">Día de la semana</string>
+    <string name="insert_date_token_hour">Hora</string>
+    <string name="insert_date_token_minute">Minuto</string>
+    <string name="insert_date_token_second">Segundo</string>
+    <string name="insert_date_token_am_pm">a. m./p. m.</string>
+</resources>

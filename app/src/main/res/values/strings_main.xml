@@ -287,8 +287,8 @@
     <string name="toolbar_help_link">Add a web link. Selected text becomes the link title, and a copied web address is filled in.</string>
     <string name="toolbar_help_image">Choose an image, attach it to the note, and insert it at the cursor.</string>
     <string name="toolbar_help_camera">Take a photo with the camera, attach it to the note, and insert it at the cursor. Photos are reduced as set in the settings.</string>
-    <string name="toolbar_help_date">Insert today\'s date, such as 2026-10-09.</string>
-    <string name="toolbar_help_date_time">Insert the current date and time, such as 2026-10-09 14:30:00.</string>
+    <string name="toolbar_help_date">Insert today\'s date, such as %1$s.</string>
+    <string name="toolbar_help_date_time">Insert the current date and time, such as %1$s.</string>
     <string name="toolbar_help_create_deck_card">Create a Nextcloud Deck card. Selected text becomes the card title and is replaced by a link to the card.</string>
     <string name="toolbar_help_deck_cards">Browse and search your Nextcloud Deck cards, and insert a link to one.</string>
     <string name="toolbar_group_history">History</string>

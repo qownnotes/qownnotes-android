@@ -9,6 +9,7 @@ import org.qownnotes.mobile.core.DeckStackTarget
 import org.qownnotes.mobile.core.ImageOrigin
 import org.qownnotes.mobile.core.ImageShrinkSettings
 import org.qownnotes.mobile.core.ImageShrinking
+import org.qownnotes.mobile.core.InsertDateFormats
 import org.qownnotes.mobile.core.NoteCategoryScope
 import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.core.PhotoResolution
@@ -160,6 +161,28 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         if (enabled == mutableRemoveEditedTrailingSpaces.value) return
         preferences.edit().putBoolean(REMOVE_EDITED_TRAILING_SPACES, enabled).apply()
         mutableRemoveEditedTrailingSpaces.value = enabled
+    }
+
+    private val mutableInsertDateFormats = MutableStateFlow(
+        InsertDateFormats().let { defaults ->
+            InsertDateFormats(
+                date = preferences.getString(INSERT_DATE_FORMAT, null) ?: defaults.date,
+                dateTime = preferences.getString(INSERT_DATE_TIME_FORMAT, null)
+                    ?: defaults.dateTime
+            )
+        }
+    )
+
+    /** Patterns of the editor's insert-date and insert-date-and-time actions. */
+    val insertDateFormats: StateFlow<InsertDateFormats> = mutableInsertDateFormats.asStateFlow()
+
+    fun setInsertDateFormats(formats: InsertDateFormats) {
+        if (formats == mutableInsertDateFormats.value) return
+        preferences.edit()
+            .putString(INSERT_DATE_FORMAT, formats.date)
+            .putString(INSERT_DATE_TIME_FORMAT, formats.dateTime)
+            .apply()
+        mutableInsertDateFormats.value = formats
     }
 
     private val mutableEditorToolbarHintDismissed =
@@ -487,6 +510,8 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val SHOW_EDITOR_TOOLBAR_LABELS = "showEditorToolbarLabels"
         const val REMOVE_EDITED_TRAILING_SPACES = "removeEditedTrailingSpaces"
         const val EDITOR_TOOLBAR_HINT_DISMISSED = "editorToolbarHintDismissed"
+        const val INSERT_DATE_FORMAT = "insertDateFormat"
+        const val INSERT_DATE_TIME_FORMAT = "insertDateTimeFormat"
         const val HEADER_COLOR = "headerColor"
         const val NOTE_BACKGROUND_COLOR = "noteBackgroundColor"
         const val HIGHLIGHT_CATEGORIES = "highlightCategories"
