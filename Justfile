@@ -78,6 +78,11 @@ check: check-fdroid-metadata test-deploy-device
 release:
     ./scripts/with-android-signing release ./gradlew --no-configuration-cache spotlessCheck test lintRelease :app:licensee assembleRelease bundleRelease
 
+# Show GitHub release download counts for APK and AAB assets as TSV.
+release-downloads:
+    @gh api --paginate 'repos/qownnotes/qownnotes-android/releases?per_page=100' \
+      --jq '.[] | .tag_name as $tag | .assets[] | select(.name | endswith(".apk") or endswith(".aab")) | [$tag, .name, .download_count] | @tsv'
+
 # Create the project-local API 36 emulator.
 create-avd:
     mkdir -p "$DEVENV_ROOT/.devenv/state/avd"
