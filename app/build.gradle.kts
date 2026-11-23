@@ -16,7 +16,9 @@ val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 
 android {
     namespace = "org.qownnotes.mobile"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) { minorApiLevel = 1 }
+    }
 
     defaultConfig {
         applicationId = "org.qownnotes.mobile"

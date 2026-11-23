@@ -1176,7 +1176,9 @@ class AppLaunchTest {
             }
         }
         composeRule.onNodeWithTag("finish-editing").performClick()
+        composeRule.waitUntilDisplayed("back-to-note-list")
         composeRule.onNodeWithTag("back-to-note-list").performClick()
+        composeRule.waitUntilDisplayed("clear-note-search")
         composeRule.onNodeWithTag("clear-note-search").performClick()
         composeRule.waitForText("New idea")
     }
