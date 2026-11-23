@@ -15,6 +15,11 @@ zero-based increasing release counter within the month. See [the release guide](
   `MM/dd/yyyy` with a live preview, or enter your own pattern with tappable building blocks.
   Mistakes like `YY` for the week-based year are pointed out. The default formats are unchanged.
 
+### Changed
+
+- Updated Jetpack Compose to 1.13 and raised the compile SDK to Android API 37.1. The minimum and
+  target Android versions are unchanged.
+
 ## [26.11.2] - 2026-11-13
 
 ### Added

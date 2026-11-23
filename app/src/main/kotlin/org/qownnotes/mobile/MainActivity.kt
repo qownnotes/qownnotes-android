@@ -2684,15 +2684,6 @@ private fun CompactSearchField(
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = textColor),
         cursorBrush = SolidColor(accentColor),
         modifier = modifier.onFocusChanged { onFocusChange(it.isFocused) }
-            // Reaching for the field opens search even when it already holds the focus that the
-            // previous search left behind. The touch is only observed, never taken, so the field
-            // still places the cursor where it was tapped.
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                    currentOnPress()
-                }
-            }
             .height(40.dp)
             .border(
                 1.dp,
@@ -2705,24 +2696,39 @@ private fun CompactSearchField(
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Filled.Search,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = secondaryColor
-                )
-                Box(
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.CenterStart
+                Row(
+                    // Reopen search even when the text field already has focus. Restrict this
+                    // to the input area so taps on Clear or Filter don't move the buttons.
+                    modifier = Modifier.weight(1f).fillMaxHeight().pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown(
+                                requireUnconsumed = false,
+                                pass = PointerEventPass.Initial
+                            )
+                            currentOnPress()
+                        }
+                    },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (value.isEmpty()) {
-                        Text(
-                            stringResource(R.string.search_notes),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = secondaryColor
-                        )
+                    Icon(
+                        Icons.Filled.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = secondaryColor
+                    )
+                    Box(
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                stringResource(R.string.search_notes),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = secondaryColor
+                            )
+                        }
+                        innerTextField()
                     }
-                    innerTextField()
                 }
                 Box {
                     IconButton(
