@@ -8,6 +8,8 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+## [26.11.3] - 2026-11-23
+
 ### Added
 
 - Choose the formats that the editor's **Insert date** and **Insert date and time** tools use in
@@ -17,8 +19,18 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ### Changed
 
-- Updated Jetpack Compose to 1.13 and raised the compile SDK to Android API 37.1. The minimum and
-  target Android versions are unchanged.
+- Updated Jetpack Compose to 1.13 (Compose BOM `2026.11.01`) and raised the compile SDK to Android
+  API 37.1. The minimum and target Android versions are unchanged.
+- Updated the Gradle wrapper to `9.9.2`, the Android Gradle Plugin to `9.5.2`, and Kotlin Symbol
+  Processing (KSP) to `2.3.14`.
+
+### Fixed
+
+- Tapping **Clear** or **Filter** in compact note search no longer expands the search field and
+  moves the buttons
+  ([fix commit](https://github.com/qownnotes/qownnotes-android/commit/6eb152b5aedc601ae1ef13090bf1afc165661cbe)).
+- Reduced intermittent Android test failures by waiting for note imports and saves to finish before
+  continuing.
 
 ## [26.11.2] - 2026-11-13
 
@@ -813,7 +825,8 @@ zero-based increasing release counter within the month. See [the release guide](
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.2...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.3...HEAD
+[26.11.3]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.2...v26.11.3
 [26.11.2]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.1...v26.11.2
 [26.11.1]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.0...v26.11.1
 [26.11.0]: https://github.com/qownnotes/qownnotes-android/compare/v26.10.10...v26.11.0

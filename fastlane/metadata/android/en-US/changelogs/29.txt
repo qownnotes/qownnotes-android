@@ -1,0 +1,3 @@
+• Customize the editor’s Insert date and Insert date and time formats with presets or a custom pattern and live preview
+• Fix Clear and Filter taps opening compact note search
+• Update Jetpack Compose and build tools without changing the minimum or target Android version
