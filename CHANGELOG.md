@@ -8,6 +8,12 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+### Added
+
+- Share a screenshot or another file to QOwnNotes from Android. Create a note with the file or
+  search for an existing note and attach it at the bottom. Files up to 32 MiB are saved on the
+  device first and synchronized with the note ([#44](https://github.com/qownnotes/qownnotes-android/issues/44)).
+
 ## [26.11.3] - 2026-11-23
 
 ### Added

@@ -2,6 +2,7 @@ package org.qownnotes.mobile
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.room.Room
 import com.google.gson.GsonBuilder
 import com.nextcloud.android.sso.AccountImporter
@@ -82,6 +83,7 @@ import org.qownnotes.mobile.core.SyncDiagnosticSource
 import org.qownnotes.mobile.core.SyncOutcome
 import org.qownnotes.mobile.core.SyncState
 import org.qownnotes.mobile.core.TrashedNote
+import org.qownnotes.mobile.core.appendSharedAttachment
 import org.qownnotes.mobile.core.attachmentApiPath
 import org.qownnotes.mobile.core.inlineMarkdownImages
 import org.qownnotes.mobile.core.insertMarkdownImageAfter
@@ -91,7 +93,9 @@ import org.qownnotes.mobile.core.isShrinkableImagePath
 import org.qownnotes.mobile.core.mediaImagePath
 import org.qownnotes.mobile.core.mergeNoteConflict
 import org.qownnotes.mobile.core.noteMediaPath
+import org.qownnotes.mobile.core.parseRelativeAttachmentLink
 import org.qownnotes.mobile.core.replaceMarkdownImage
+import org.qownnotes.mobile.core.sharedAttachmentFileName
 import org.qownnotes.mobile.core.uniqueMediaImageFileName
 import org.qownnotes.mobile.core.withDiscoveredApi
 import org.qownnotes.mobile.data.MIGRATION_10_11
@@ -105,6 +109,7 @@ import org.qownnotes.mobile.data.MIGRATION_7_8
 import org.qownnotes.mobile.data.MIGRATION_8_9
 import org.qownnotes.mobile.data.MIGRATION_9_10
 import org.qownnotes.mobile.data.PendingCaptureStore
+import org.qownnotes.mobile.data.PendingSharedAttachments
 import org.qownnotes.mobile.data.QOwnNotesDatabase
 import org.qownnotes.mobile.data.RoomAccountRepository
 import org.qownnotes.mobile.data.RoomNoteRepository
@@ -112,6 +117,7 @@ import org.qownnotes.mobile.data.RoomNoteTagRepository
 import org.qownnotes.mobile.data.RoomPullStore
 import org.qownnotes.mobile.data.RoomPushStore
 import org.qownnotes.mobile.data.RoomSyncDiagnosticRepository
+import org.qownnotes.mobile.data.SharedAttachmentTooLargeException
 import org.qownnotes.mobile.markdown.MarkdownRenderer
 import org.qownnotes.mobile.markdown.NextcloudAttachmentHttpClient
 
@@ -210,6 +216,10 @@ class ApplicationComponent(
     private val pendingCaptures = PendingCaptureStore(
         java.io.File(application.filesDir, "pending-captures")
     )
+    private val pendingSharedFiles = PendingSharedAttachments(
+        java.io.File(application.filesDir, "pending-shared-files")
+    )
+    private val sharedFileMutexes = ConcurrentHashMap<String, Mutex>()
     private val noteTagRepository = RoomNoteTagRepository(database)
     private val tagSynchronizer = tagFileBackend?.let {
         NoteTagSynchronizer(noteTagRepository, it, java.io.File(application.filesDir, "note-tags"))
@@ -274,9 +284,14 @@ class ApplicationComponent(
             pushStore,
             accountBackend,
             onNoteFailure = ::recordNoteSyncDiagnostic,
-            onNoteSuccess = { localId ->
-                pendingCaptures.remove(localId)
-                clearNoteSyncDiagnostic(localId)
+            onNoteSuccess = { note ->
+                pendingCaptures.remove(note.localId)
+                withContext(Dispatchers.IO) {
+                    pendingSharedFiles.entries(note.accountId)
+                        .filter { it.uploaded && it.isLinkedIn(note.content) }
+                        .forEach { it.remove() }
+                }
+                clearNoteSyncDiagnostic(note.localId)
             },
             synchronizeMedia = { account, note ->
                 val content = pendingCaptures.read(note.localId)
@@ -290,6 +305,7 @@ class ApplicationComponent(
                     )
                     pendingCaptures.markUploaded(note.localId)
                 }
+                uploadPendingSharedFiles(account, note)
             },
             synchronizeTags = { account -> tagSynchronizerFor(account.id)?.synchronize(account) }
         )
@@ -300,6 +316,8 @@ class ApplicationComponent(
      */
     private val mutablePendingShare = MutableStateFlow<SharedText?>(null)
     val pendingShare: StateFlow<SharedText?> = mutablePendingShare.asStateFlow()
+    private val mutableFileShare = MutableStateFlow<FileShareState?>(null)
+    internal val fileShare = mutableFileShare.asStateFlow()
     private val mutableWidgetRequest = MutableStateFlow<WidgetRequest?>(null)
     val widgetRequest: StateFlow<WidgetRequest?> = mutableWidgetRequest.asStateFlow()
     private val refreshMutexes = ConcurrentHashMap<String, Mutex>()
@@ -553,7 +571,10 @@ class ApplicationComponent(
             val localNoteIds =
                 noteRepository.observeNotes(accountId).first().map { it.localId }
             val folderUri = accountRepository.get(accountId)?.localFolderUri
-            accountRepository.remove(accountId)
+            sharedFileMutexes.getOrPut(accountId, ::Mutex).withLock {
+                accountRepository.remove(accountId)
+                pendingSharedFiles.clear(accountId)
+            }
             if (folderUri != null) {
                 localFolderBackend.forget(accountId)
                 releaseFolderAccess(folderUri)
@@ -1018,8 +1039,14 @@ class ApplicationComponent(
      */
     internal suspend fun resolveAttachment(localId: String, path: String): java.io.File? {
         val note = noteRepository.get(localId) ?: return null
-        if (org.qownnotes.mobile.core.parseRelativeAttachmentLink(path, note.category) == null) {
-            return null
+        val relativePath = parseRelativeAttachmentLink(path, note.category) ?: return null
+        withContext(Dispatchers.IO) {
+            pendingSharedFiles.entries(note.accountId).firstOrNull {
+                it.isLinkedIn(note.content) &&
+                    noteMediaPath(note.category, it.file.name, it.mimeType) == relativePath
+            }
+        }?.let { entry ->
+            attachmentOpener.cachePendingFile(entry.file)?.let { return it }
         }
         val account = accountRepository.get(note.accountId) ?: return null
         if (path == noteMediaPath(
@@ -1045,6 +1072,172 @@ class ApplicationComponent(
     internal fun pendingImages(note: Note): Map<String, java.io.File> {
         val file = pendingCaptures.image(note.localId) ?: return emptyMap()
         return mapOf(mediaImagePath(note.category, file.name) to file)
+    }
+
+    internal suspend fun pendingSharedImages(note: Note): Map<String, java.io.File> =
+        withContext(Dispatchers.IO) {
+            pendingSharedFiles.entries(note.accountId)
+                .filter { it.isLinkedIn(note.content) && it.mimeType.startsWith("image/") }
+                .associate { noteMediaPath(note.category, it.file.name, it.mimeType) to it.file }
+        }
+
+    private suspend fun uploadPendingSharedFiles(account: Account, note: Note) {
+        withContext(Dispatchers.IO) {
+            val pending = pendingSharedFiles.entries(account.id)
+                .filter { !it.uploaded && it.isLinkedIn(note.content) }
+            if (pending.isEmpty()) return@withContext
+            val backend = requireNoteMediaBackend(account)
+            val notesPath = mediaNotesPath(account)
+            for (entry in pending) {
+                val name = backend.uploadSharedAttachment(
+                    account,
+                    notesPath,
+                    entry.file.name,
+                    entry.mimeType,
+                    entry.file.readBytes()
+                )
+                check(name == entry.file.name) {
+                    "The attachment was stored under a different name"
+                }
+                entry.markUploaded()
+            }
+        }
+    }
+
+    private suspend fun pruneSharedFiles(accountId: String) =
+        sharedFileMutexes.getOrPut(accountId, ::Mutex).withLock {
+            withContext(Dispatchers.IO) {
+                pendingSharedFiles.discardIncomplete(accountId)
+                for (entry in pendingSharedFiles.entries(accountId)) {
+                    if (!noteRepository.hasAttachmentLink(
+                            accountId,
+                            "${entry.path})"
+                        )
+                    ) {
+                        entry.remove()
+                    }
+                }
+            }
+        }
+
+    internal fun receiveFileShare(uri: Uri?, type: String?) {
+        if ((mutableFileShare.value as? FileShareState.Ready)?.saving == true) return
+        val loading = FileShareState.Loading(UUID.randomUUID())
+        mutableFileShare.value = loading
+        applicationScope.launch {
+            val state = try {
+                val file = readSharedFile(application, requireNotNull(uri), type)
+                if (file.size != null && file.size > SHARED_FILE_LIMIT) {
+                    FileShareState.Unavailable(R.string.shared_file_too_large)
+                } else {
+                    FileShareState.Ready(loading.id, file)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                FileShareState.Unavailable(R.string.shared_file_read_failed)
+            }
+            mutableFileShare.compareAndSet(loading, state)
+        }
+    }
+
+    internal fun dismissFileShare() {
+        mutableFileShare.update { state ->
+            state.takeIf { it is FileShareState.Ready && it.saving }
+        }
+    }
+
+    internal fun consumeSavedFileShare(share: FileShareState.Saved): Boolean =
+        mutableFileShare.compareAndSet(share, null)
+
+    internal fun saveFileShare(accountId: String, localId: String?, newTitle: String) {
+        val ready = mutableFileShare.value as? FileShareState.Ready ?: return
+        if (ready.saving) return
+        val saving = ready.copy(saving = true, error = null)
+        if (!mutableFileShare.compareAndSet(ready, saving)) return
+        applicationScope.launch {
+            mutableFileShare.value = try {
+                val note = attachSharedFile(accountId, localId, newTitle, ready.id, ready.file)
+                FileShareState.Saved(note)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: SharedAttachmentTooLargeException) {
+                FileShareState.Unavailable(R.string.shared_file_too_large)
+            } catch (_: ShareDestinationUnavailable) {
+                ready.copy(error = R.string.shared_file_destination_unavailable)
+            } catch (_: Exception) {
+                ready.copy(error = R.string.shared_file_save_failed)
+            }
+        }
+    }
+
+    internal fun supportsSharedFiles(account: Account): Boolean =
+        account.isLocalFolder || mediaBackend != null
+
+    /** Save independently of in-flight network work, using a revision check for existing notes. */
+    private suspend fun attachSharedFile(
+        accountId: String,
+        localId: String?,
+        newTitle: String,
+        id: UUID,
+        file: SharedFile
+    ): Note = sharedFileMutexes.getOrPut(accountId, ::Mutex).withLock {
+        val account = accountRepository.get(accountId) ?: throw ShareDestinationUnavailable()
+        if (!supportsSharedFiles(account)) throw ShareDestinationUnavailable()
+        val target = if (localId == null) {
+            noteFactory.createNamed(accountId, newTitle, "")
+        } else {
+            noteRepository.get(localId) ?: throw ShareDestinationUnavailable()
+        }
+        val staged = pendingSharedFiles.save(
+            accountId,
+            id,
+            sharedAttachmentFileName(file.storageName, id),
+            file.mimeType,
+            SHARED_FILE_LIMIT,
+            file.open
+        )
+        var committed = false
+        try {
+            editMutexes.getOrPut(target.localId, ::Mutex).withLock {
+                val current = if (localId == null) {
+                    target
+                } else {
+                    noteRepository.get(localId) ?: throw ShareDestinationUnavailable()
+                }
+                if (current.accountId != accountId || current.readOnly ||
+                    current.syncState !in SHARED_FILE_WRITABLE_STATES ||
+                    markdownRenderer.hasEncryptedContent(current.content) ||
+                    editReservations.containsKey(current.localId) ||
+                    draft(current.localId, current.content) != current.content
+                ) {
+                    throw ShareDestinationUnavailable()
+                }
+                val content = appendSharedAttachment(
+                    current.content,
+                    file.name,
+                    current.category,
+                    staged.file.name,
+                    file.mimeType
+                )
+                if (localId == null) {
+                    noteRepository.save(current.copy(content = content))
+                } else if (!noteRepository.appendAttachment(
+                        current,
+                        content,
+                        clock.instant().epochSecond
+                    )
+                ) {
+                    throw ShareDestinationUnavailable()
+                }
+                committed = true
+                editorDrafts.replaceWithPersisted(current.localId, content)
+                scheduleSync(accountId, 0)
+                current.copy(content = content)
+            }
+        } finally {
+            if (!committed) withContext(Dispatchers.IO) { staged.remove() }
+        }
     }
 
     suspend fun createNote(accountId: String, category: String = ""): Note =
@@ -1505,6 +1698,7 @@ class ApplicationComponent(
         if (localIds.isEmpty()) return
         accountMutex(accountId).withLock {
             noteRepository.moveToTrash(accountId, localIds)
+            pruneSharedFiles(accountId)
         }
         scheduleSync(accountId, 0)
     }
@@ -1708,7 +1902,10 @@ class ApplicationComponent(
             throw error
         }
         when (outcome) {
-            SyncOutcome.Success -> updateSyncState(accountId, SyncUiState.Idle)
+            SyncOutcome.Success -> {
+                pruneSharedFiles(accountId)
+                updateSyncState(accountId, SyncUiState.Idle)
+            }
             is SyncOutcome.RetryableFailure -> reportSyncFailure(accountId, outcome.error)
             is SyncOutcome.UserActionRequired -> reportSyncFailure(accountId, outcome.error)
             is SyncOutcome.PermanentFailure -> reportSyncFailure(accountId, outcome.error)

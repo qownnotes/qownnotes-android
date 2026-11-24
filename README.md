@@ -36,6 +36,8 @@ local, Nextcloud, and remote-image data are handled.
   `Bookmarks.md` used by default and optional tag filtering. Edit or delete bookmarks directly,
   including while offline.
 - Create a note from text shared by another Android application.
+- Share a file from another app to create a note or append it to an existing note. Shared files
+  up to 32 MiB are saved locally before synchronization.
 - Record audio notes from the note-list menu or home-screen note-list widget, with offline saving
   and background upload of M4A attachments. Recording requires microphone permission and stops
   when the recording screen is left; each recording is limited to 10 MiB. Recordings can be played

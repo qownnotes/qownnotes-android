@@ -21,7 +21,7 @@ interface NoteDao {
     @Query(
         "SELECT localId, accountId, remoteId, title, category, modifiedAtEpochSeconds, " +
             "favorite, syncState, substr(content, 1, 500) AS excerpt, " +
-            "lastSyncedTitle, lastSyncedCategory " +
+            "lastSyncedTitle, lastSyncedCategory, readOnly " +
             "FROM notes WHERE accountId = :accountId " +
             "AND syncState != 'PENDING_DELETION' " +
             "ORDER BY favorite DESC, modifiedAtEpochSeconds DESC, localId ASC"
@@ -31,7 +31,7 @@ interface NoteDao {
     @Query(
         """SELECT localId, accountId, remoteId, title, category, modifiedAtEpochSeconds,
            favorite, syncState, substr(content, 1, 500) AS excerpt,
-           lastSyncedTitle, lastSyncedCategory
+           lastSyncedTitle, lastSyncedCategory, readOnly
            FROM notes WHERE accountId = :accountId
            AND syncState != 'PENDING_DELETION' AND
            (NOT :filterFolder OR category = :folder COLLATE NOCASE OR
@@ -71,6 +71,12 @@ interface NoteDao {
 
     @Query("SELECT * FROM notes WHERE localId = :localId")
     suspend fun get(localId: String): NoteEntity?
+
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM notes WHERE accountId = :accountId " +
+            "AND syncState != 'PENDING_DELETION' AND instr(content, :path) > 0)"
+    )
+    suspend fun hasAttachmentLink(accountId: String, path: String): Boolean
 
     @Query(
         "SELECT * FROM notes WHERE accountId = :accountId AND " +
@@ -125,6 +131,23 @@ interface NoteDao {
              AND content != :content"""
     )
     suspend fun updateDraft(localId: String, content: String, modifiedAtEpochSeconds: Long): Int
+
+    @Query(
+        """UPDATE notes SET content = :content, modifiedAtEpochSeconds = :modifiedAtEpochSeconds,
+           localRevision = localRevision + 1, lastSyncError = NULL,
+           syncState = CASE WHEN remoteId IS NULL THEN 'LOCALLY_CREATED' ELSE 'LOCALLY_MODIFIED' END
+           WHERE localId = :localId AND localRevision = :expectedRevision
+             AND content = :expectedContent AND category = :expectedCategory AND readOnly = 0
+             AND syncState IN ('SYNCHRONIZED', 'LOCALLY_CREATED', 'LOCALLY_MODIFIED')"""
+    )
+    suspend fun appendAttachment(
+        localId: String,
+        expectedRevision: Long,
+        expectedContent: String,
+        expectedCategory: String,
+        content: String,
+        modifiedAtEpochSeconds: Long
+    ): Int
 
     @Query(
         """UPDATE notes SET title = :title,

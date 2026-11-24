@@ -124,7 +124,8 @@ data class NoteListItemEntity(
     val syncState: SyncState,
     val excerpt: String,
     val lastSyncedTitle: String? = null,
-    val lastSyncedCategory: String? = null
+    val lastSyncedCategory: String? = null,
+    val readOnly: Boolean
 )
 
 data class RemoteNoteReference(
@@ -270,7 +271,8 @@ fun NoteListItemEntity.toDomain() = NoteListItem(
     syncState = syncState,
     excerpt = excerpt,
     syncedTitle = lastSyncedTitle,
-    syncedCategory = lastSyncedCategory
+    syncedCategory = lastSyncedCategory,
+    readOnly = readOnly
 )
 
 fun SyncDiagnosticEntity.toDomain() = SyncDiagnostic(

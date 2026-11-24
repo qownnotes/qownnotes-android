@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shared_file_title">Dołącz udostępniony plik</string>
+    <string name="shared_file_preparing">Otwieranie udostępnionego pliku…</string>
+    <string name="shared_file_no_account">Dodaj konto Nextcloud lub folder lokalny w QOwnNotes, a następnie udostępnij plik ponownie.</string>
+    <string name="shared_file_existing_note">Istniejąca notatka</string>
+    <string name="shared_file_note_title">Tytuł notatki</string>
+    <string name="shared_file_saving">Zapisywanie na tym urządzeniu…</string>
+    <string name="shared_file_attach">Dołącz plik</string>
+    <string name="shared_file_create">Utwórz notatkę</string>
+    <string name="shared_file_image">Obraz</string>
+    <string name="shared_file_kind">Plik</string>
+    <string name="shared_file_kind_size">%1$s · %2$s</string>
+    <string name="shared_file_fallback">Udostępniony plik</string>
+    <string name="shared_file_account">Konto: %1$s</string>
+    <string name="shared_file_search">Szukaj notatek lub folderów</string>
+    <string name="shared_file_loading_notes">Wczytywanie notatek…</string>
+    <string name="shared_file_no_notes">Na tym koncie nie ma notatek, które można edytować. Możesz utworzyć nową.</string>
+    <string name="shared_file_no_matches">Żadna notatka nie pasuje do wyszukiwania.</string>
+    <string name="shared_file_selected">Dodaj na końcu notatki: %1$s</string>
+    <string name="shared_file_too_large">Plik przekracza limit 32 MiB dla załączników.</string>
+    <string name="shared_file_read_failed">QOwnNotes nie może odczytać tego pliku. Udostępnij go ponownie z aplikacji źródłowej.</string>
+    <string name="shared_file_save_failed">Nie można zapisać pliku. Spróbuj ponownie lub udostępnij go jeszcze raz z aplikacji źródłowej.</string>
+    <string name="shared_file_destination_unavailable">Nie można edytować tej notatki. Zakończ bieżącą edycję, wybierz inną notatkę lub utwórz nową.</string>
+</resources>

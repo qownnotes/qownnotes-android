@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shared_file_title">添加共享文件</string>
+    <string name="shared_file_preparing">正在打开共享文件…</string>
+    <string name="shared_file_no_account">请在 QOwnNotes 中添加 Nextcloud 或本地文件夹账户，然后重新分享此文件。</string>
+    <string name="shared_file_existing_note">现有笔记</string>
+    <string name="shared_file_note_title">笔记标题</string>
+    <string name="shared_file_saving">正在保存到此设备…</string>
+    <string name="shared_file_attach">添加附件</string>
+    <string name="shared_file_create">创建笔记</string>
+    <string name="shared_file_image">图片</string>
+    <string name="shared_file_kind">文件</string>
+    <string name="shared_file_kind_size">%1$s · %2$s</string>
+    <string name="shared_file_fallback">共享文件</string>
+    <string name="shared_file_account">账户：%1$s</string>
+    <string name="shared_file_search">搜索笔记或文件夹</string>
+    <string name="shared_file_loading_notes">正在加载笔记…</string>
+    <string name="shared_file_no_notes">此账户没有可编辑的笔记。你可以创建一条新笔记。</string>
+    <string name="shared_file_no_matches">没有找到匹配的笔记。</string>
+    <string name="shared_file_selected">添加到笔记末尾：%1$s</string>
+    <string name="shared_file_too_large">此文件超过 32 MiB 的附件大小限制。</string>
+    <string name="shared_file_read_failed">QOwnNotes 无法读取此文件。请从原应用重新分享。</string>
+    <string name="shared_file_save_failed">无法保存文件。请重试，或从原应用重新分享此文件。</string>
+    <string name="shared_file_destination_unavailable">这条笔记目前不可编辑。请完成正在进行的编辑，选择其他笔记，或创建新笔记。</string>
+</resources>

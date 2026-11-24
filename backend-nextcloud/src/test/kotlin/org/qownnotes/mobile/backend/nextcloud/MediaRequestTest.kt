@@ -8,6 +8,26 @@ import org.junit.Test
 
 class MediaRequestTest {
     @Test
+    fun sharedDocumentKeepsItsNameAndMimeTypeUnderAttachments() {
+        val requests = mutableListOf<NextcloudRequest>()
+        val client = MediaRequestClient { request ->
+            requests += request
+            null
+        }
+        val name = "trip-details-bfae32c0.pdf"
+        assertEquals(
+            name,
+            uploadImageWithClient(client, "/Notes", name, "application/pdf", byteArrayOf(1, 2))
+        )
+        assertEquals(listOf("MKCOL", "PUT"), requests.map(NextcloudRequest::getMethod))
+        val upload = requests.last()
+        assertEquals("/Notes/attachments/$name", upload.url)
+        assertEquals(listOf("application/pdf"), upload.header["Content-Type"])
+        assertEquals(listOf("*"), upload.header["If-None-Match"])
+        assertEquals(listOf<Byte>(1, 2), upload.bodyAsStream.readBytes().toList())
+    }
+
+    @Test
     fun audioUsesAttachmentsFolderAndAudioMimeTypeWithoutOverwriting() {
         val requests = mutableListOf<NextcloudRequest>()
         val client = MediaRequestClient { request ->

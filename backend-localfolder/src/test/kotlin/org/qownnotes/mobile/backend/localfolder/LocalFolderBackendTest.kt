@@ -282,6 +282,26 @@ class LocalFolderBackendTest {
     }
 
     @Test
+    fun retriesSharedAttachmentsAtTheSamePathWithoutOverwritingDifferentContent() = runBlocking {
+        val name = "report-bfae32c0.pdf"
+        val bytes = byteArrayOf(1, 2, 3)
+        repeat(2) {
+            assertEquals(
+                name,
+                backend.uploadSharedAttachment(account, "", name, "application/pdf", bytes)
+            )
+        }
+        assertTrue(
+            runCatching {
+                backend.uploadSharedAttachment(account, "", name, "application/pdf", byteArrayOf(4))
+            }.exceptionOrNull() is BackendException.Protocol
+        )
+        val directory = File(folder, "attachments")
+        assertEquals(listOf(name), directory.list()!!.toList())
+        assertArrayEquals(bytes, File(directory, name).readBytes())
+    }
+
+    @Test
     fun attachmentPathsStayInsideTheReservedFolders() {
         assertEquals(
             "media/a b.png",

@@ -11,6 +11,22 @@ import org.qownnotes.mobile.core.NoteSortOrder
 import org.qownnotes.mobile.core.SyncState
 
 class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
+    suspend fun hasAttachmentLink(accountId: String, path: String): Boolean =
+        noteDao.hasAttachmentLink(accountId, path)
+
+    suspend fun appendAttachment(
+        note: Note,
+        content: String,
+        modifiedAtEpochSeconds: Long
+    ): Boolean = noteDao.appendAttachment(
+        note.localId,
+        note.localRevision,
+        note.content,
+        note.category,
+        content,
+        modifiedAtEpochSeconds
+    ) > 0
+
     override fun observeNotes(accountId: String) =
         noteDao.observeAll(accountId).map { notes -> notes.map(NoteListItemEntity::toDomain) }
 

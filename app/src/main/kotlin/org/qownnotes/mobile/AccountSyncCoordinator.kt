@@ -22,7 +22,7 @@ internal class AccountSyncCoordinator(
     private val pushStore: PushStore,
     private val backend: NoteBackend,
     private val onNoteFailure: suspend (String, Throwable) -> Unit,
-    private val onNoteSuccess: suspend (String) -> Unit,
+    private val onNoteSuccess: suspend (Note) -> Unit,
     private val synchronizeMedia: suspend (Account, Note) -> Unit = { _, _ -> },
     /** Runs after notes were pushed, so tag operations refer to the names the server confirmed. */
     private val synchronizeTags: suspend (Account) -> Unit = {}
@@ -59,8 +59,8 @@ internal class AccountSyncCoordinator(
     private suspend fun pushPending(account: Account): SyncOutcome.UserActionRequired? {
         var issue: SyncOutcome.UserActionRequired? = null
         noteRepository.pending(account.id).forEach { note ->
-            // A failed photo upload is not an uncertain note creation. Keep the local note
-            // pending, and never publish a note whose image has not been uploaded yet.
+            // A failed attachment upload is not an uncertain note creation. Keep the local note
+            // pending and do not publish it before its attachments.
             try {
                 synchronizeMedia(account, note)
             } catch (error: CancellationException) {
@@ -77,7 +77,7 @@ internal class AccountSyncCoordinator(
                         backend.update(account, note)
                     }
                 pushStore.applySuccess(note.localId, note.localRevision, remote)
-                onNoteSuccess(note.localId)
+                onNoteSuccess(note)
             } catch (error: BackendException.Conflict) {
                 recordFailure(note, error, SyncState.CONFLICT)
                 captureConflict(account, note)

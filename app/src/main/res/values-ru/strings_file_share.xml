@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shared_file_title">Прикрепить файл</string>
+    <string name="shared_file_preparing">Открытие полученного файла…</string>
+    <string name="shared_file_no_account">Добавьте учётную запись Nextcloud или локальную папку в QOwnNotes и поделитесь файлом ещё раз.</string>
+    <string name="shared_file_existing_note">Существующая заметка</string>
+    <string name="shared_file_note_title">Название заметки</string>
+    <string name="shared_file_saving">Сохранение на устройстве…</string>
+    <string name="shared_file_attach">Прикрепить файл</string>
+    <string name="shared_file_create">Создать заметку</string>
+    <string name="shared_file_image">Изображение</string>
+    <string name="shared_file_kind">Файл</string>
+    <string name="shared_file_kind_size">%1$s · %2$s</string>
+    <string name="shared_file_fallback">Полученный файл</string>
+    <string name="shared_file_account">Учётная запись: %1$s</string>
+    <string name="shared_file_search">Поиск заметок или папок</string>
+    <string name="shared_file_loading_notes">Загрузка заметок…</string>
+    <string name="shared_file_no_notes">В этой учётной записи нет заметок, доступных для редактирования. Можно создать новую.</string>
+    <string name="shared_file_no_matches">Подходящие заметки не найдены.</string>
+    <string name="shared_file_selected">Добавить в конец заметки: %1$s</string>
+    <string name="shared_file_too_large">Размер файла превышает ограничение в 32 МиБ для вложений.</string>
+    <string name="shared_file_read_failed">QOwnNotes не удалось прочитать файл. Поделитесь им ещё раз из исходного приложения.</string>
+    <string name="shared_file_save_failed">Не удалось сохранить файл. Повторите попытку или поделитесь файлом из исходного приложения ещё раз.</string>
+    <string name="shared_file_destination_unavailable">Эту заметку нельзя редактировать. Завершите текущее редактирование, выберите другую заметку или создайте новую.</string>
+</resources>

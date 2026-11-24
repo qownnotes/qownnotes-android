@@ -40,3 +40,37 @@ fun noteMediaPath(category: String, fileName: String, mimeType: String): String 
     val parentTraversal = "../".repeat(category.split('/').count(String::isNotBlank))
     return "$parentTraversal${noteMediaFolder(mimeType)}/$fileName"
 }
+
+/** Shared names are untrusted. Keep the extension, but use only URL- and Markdown-safe ASCII. */
+fun sharedAttachmentFileName(displayName: String, id: UUID): String {
+    val extension = displayName.substringAfterLast('.', "")
+        .takeIf { it.matches(Regex("[a-zA-Z0-9]{1,16}")) && !displayName.startsWith('.') }
+    val base = (if (extension == null) displayName else displayName.substringBeforeLast('.'))
+        .replace(Regex("[^a-zA-Z0-9_-]+"), "-").trim('-').take(48).ifBlank { "attachment" }
+    return "$base-$id${extension?.let { ".$it" }.orEmpty()}"
+}
+
+fun appendSharedAttachment(
+    content: String,
+    label: String,
+    category: String,
+    fileName: String,
+    mimeType: String
+): String {
+    val escapedLabel = label.map {
+        if (it in "\\`*_{}[]<>#+-.!|&~") "\\$it" else it.toString()
+    }.joinToString("")
+    val image = mimeType in setOf("image/jpeg", "image/png", "image/webp", "image/gif")
+    val link = "${if (image) "!" else ""}[$escapedLabel](${noteMediaPath(
+        category,
+        fileName,
+        mimeType
+    )})"
+    if (content.isEmpty()) return "$link\n"
+    val separator = when {
+        content.endsWith("\n\n") || content.endsWith("\r\n\r\n") -> ""
+        content.endsWith('\n') -> "\n"
+        else -> "\n\n"
+    }
+    return "$content$separator$link\n"
+}

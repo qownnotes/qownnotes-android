@@ -1,5 +1,6 @@
 package org.qownnotes.mobile
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -56,15 +57,33 @@ class ShareIntentTest {
         assertEquals("body", shared?.text)
     }
 
-    /** An attachment is a stream this release cannot store, so it is not mistaken for a note. */
     @Test
-    fun ignoresASharedStreamWithoutText() {
-        val shared = sharedTextOf(
-            sendIntent("image/png")
-                .putExtra(Intent.EXTRA_STREAM, Uri.parse("content://example/photo.png"))
-        )
+    fun takesASharedStreamRatherThanTreatingItAsText() {
+        val photo = Uri.parse("content://example/photo.png")
+        val intent = sendIntent("image/png").putExtra(Intent.EXTRA_STREAM, photo)
+        assertEquals(photo, sharedFileUri(intent))
+        assertNull(sharedTextOf(intent))
+    }
 
-        assertNull(shared)
+    @Test
+    fun takesASingleClipDataUriWhenThereIsNoStreamExtra() {
+        val file = Uri.parse("content://example/file.pdf")
+        val intent = sendIntent("application/pdf").apply {
+            clipData = ClipData.newRawUri("file", file)
+        }
+        assertEquals(file, sharedFileUri(intent))
+        intent.clipData!!.addItem(ClipData.Item(Uri.parse("content://example/another.pdf")))
+        assertNull(sharedFileUri(intent))
+    }
+
+    @Test
+    fun doesNotMistakeAWebLinkInClipDataForAFile() {
+        val url = "https://example.com"
+        val intent = sendIntent("text/plain").putExtra(Intent.EXTRA_TEXT, url).apply {
+            clipData = ClipData.newRawUri("web page", Uri.parse(url))
+        }
+        assertNull(sharedFileUri(intent))
+        assertEquals(url, sharedTextOf(intent)?.text)
     }
 
     @Test
@@ -94,6 +113,12 @@ class ShareIntentTest {
     fun offersItselfForTextSubtypesOtherThanPlain() {
         assertNotNull("no share target for text/html", shareTargetFor("text/html"))
         assertNotNull("no share target for text/markdown", shareTargetFor("text/markdown"))
+    }
+
+    @Test
+    fun offersItselfForScreenshotsAndOtherFiles() {
+        assertNotNull("no share target for image/png", shareTargetFor("image/png"))
+        assertNotNull("no share target for application/pdf", shareTargetFor("application/pdf"))
     }
 
     private fun shareTargetFor(type: String): ActivityInfo? {

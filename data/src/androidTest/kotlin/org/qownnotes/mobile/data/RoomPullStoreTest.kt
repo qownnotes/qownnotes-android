@@ -445,6 +445,29 @@ class RoomPullStoreTest {
     }
 
     @Test
+    fun attachingAFileDoesNotOverwriteNewerContentOrReviveADeletedNote() = runBlocking {
+        val accounts = RoomAccountRepository(database.accountDao())
+        val notes = RoomNoteRepository(database.noteDao())
+        accounts.save(testAccount())
+        database.noteDao().upsert(localNote(42, SyncState.SYNCHRONIZED))
+        val original = notes.get("account-local-42")!!
+        val link = "[File](attachments/report.pdf)"
+
+        assertTrue(notes.updateDraft(original.localId, "Newer text", 20))
+        assertFalse(notes.appendAttachment(original, "${original.content}\n\n$link", 21))
+        val current = notes.get(original.localId)!!
+        assertTrue(notes.appendAttachment(current, "Newer text\n\n$link", 21))
+        val attached = notes.get(original.localId)!!
+        assertEquals("Newer text\n\n$link", attached.content)
+        assertEquals(current.localRevision + 1, attached.localRevision)
+        assertEquals(current.remoteEtag, attached.remoteEtag)
+
+        notes.moveToTrash(attached.accountId, listOf(attached.localId))
+        assertFalse(notes.appendAttachment(attached, "$link\n$link", 22))
+        assertFalse(notes.hasAttachmentLink(attached.accountId, "attachments/report.pdf)"))
+    }
+
+    @Test
     fun anUnchangedEditReservationRestoresThePreviousSyncState() = runBlocking {
         val accounts = RoomAccountRepository(database.accountDao())
         val notes = RoomNoteRepository(database.noteDao())

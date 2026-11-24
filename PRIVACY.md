@@ -60,8 +60,11 @@ must be granted again through Nextcloud Files.
 
 ## Android Sharing
 
-Text shared into QOwnNotes Mobile is stored as a local note and synchronized to the selected
-Nextcloud account. QOwnNotes Mobile does not send it to the QOwnNotes project.
+Text shared into QOwnNotes Mobile is stored as a local note. When you attach a file shared from
+another app, QOwnNotes reads the file Android granted it access to and copies it to private
+storage until the note is synchronized. Shared text and files are synchronized only to the
+selected Nextcloud account or written to the selected local folder. QOwnNotes Mobile does not
+send them to the QOwnNotes project.
 
 ## Contact
 

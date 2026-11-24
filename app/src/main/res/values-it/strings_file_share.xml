@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shared_file_title">Allega il file condiviso</string>
+    <string name="shared_file_preparing">Apertura del file condiviso…</string>
+    <string name="shared_file_no_account">Aggiungi un account Nextcloud o una cartella locale in QOwnNotes, quindi condividi di nuovo il file.</string>
+    <string name="shared_file_existing_note">Nota esistente</string>
+    <string name="shared_file_note_title">Titolo della nota</string>
+    <string name="shared_file_saving">Salvataggio sul dispositivo…</string>
+    <string name="shared_file_attach">Allega il file</string>
+    <string name="shared_file_create">Crea nota</string>
+    <string name="shared_file_image">Immagine</string>
+    <string name="shared_file_kind">File</string>
+    <string name="shared_file_kind_size">%1$s · %2$s</string>
+    <string name="shared_file_fallback">File condiviso</string>
+    <string name="shared_file_account">Account: %1$s</string>
+    <string name="shared_file_search">Cerca note o cartelle</string>
+    <string name="shared_file_loading_notes">Caricamento delle note…</string>
+    <string name="shared_file_no_notes">Questo account non contiene note modificabili. Puoi crearne una nuova.</string>
+    <string name="shared_file_no_matches">Nessuna nota corrisponde alla ricerca.</string>
+    <string name="shared_file_selected">Aggiungi in fondo a: %1$s</string>
+    <string name="shared_file_too_large">Il file supera il limite di 32 MiB per gli allegati.</string>
+    <string name="shared_file_read_failed">QOwnNotes non riesce a leggere il file. Condividilo di nuovo dall’app di origine.</string>
+    <string name="shared_file_save_failed">Impossibile salvare il file. Riprova o condividilo di nuovo dall’app di origine.</string>
+    <string name="shared_file_destination_unavailable">Questa nota non è modificabile. Completa le modifiche aperte, scegli un’altra nota o creane una nuova.</string>
+</resources>

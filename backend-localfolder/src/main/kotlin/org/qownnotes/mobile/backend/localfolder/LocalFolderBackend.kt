@@ -263,6 +263,34 @@ class LocalFolderBackend(
         files.create("$folder/$name", content).substringAfterLast('/')
     }
 
+    override suspend fun uploadSharedAttachment(
+        account: Account,
+        notesPath: String,
+        fileName: String,
+        mimeType: String,
+        content: ByteArray
+    ): String = io(account) { files, _ ->
+        require(fileName.matches(Regex("[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9]+)?")))
+        val path = "${noteMediaFolder(mimeType)}/$fileName"
+        if (files.exists(path)) {
+            if (files.stat(path)?.size != content.size.toLong() ||
+                !files.read(path).contentEquals(content)
+            ) {
+                throw BackendException.Protocol(message = "Attachment name is already in use")
+            }
+            fileName
+        } else {
+            val created = files.create(path, content)
+            if (created != path) {
+                files.delete(created)
+                throw BackendException.Protocol(
+                    message = "The provider changed the attachment name"
+                )
+            }
+            fileName
+        }
+    }
+
     override suspend fun downloadTagFile(account: Account, etag: String?): NoteTagFileDownload =
         io(account) { files, state ->
             val file = files.stat(TAG_FILE) ?: return@io NoteTagFileDownload.Missing

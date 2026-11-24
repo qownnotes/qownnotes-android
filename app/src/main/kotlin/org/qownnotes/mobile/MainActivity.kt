@@ -328,7 +328,15 @@ class MainActivity : ComponentActivity() {
     }
 
     internal fun acceptShare(intent: Intent?) {
-        sharedTextOf(intent)?.let(applicationComponent()::receiveShare)
+        if (intent?.action != Intent.ACTION_SEND) return
+        val file = sharedFileUri(intent)
+        val component = applicationComponent()
+        if (file != null || intent.type?.startsWith("text/") != true) {
+            val grantsRead = intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0
+            component.receiveFileShare(file.takeIf { grantsRead }, intent.type)
+        } else {
+            sharedTextOf(intent)?.let(component::receiveShare)
+        }
     }
 
     private fun importAccount(expectedAccountId: String? = null) {
@@ -410,10 +418,8 @@ class MainActivity : ComponentActivity() {
 /**
  * Reads the text of a share.
  *
- * Only text is read. An attachment is a stream this release cannot store, and an intent that
- * carries no text at all is an ordinary start rather than a share, so both leave the note list as
- * it was. The text can be styled, and its markup is dropped rather than guessed at, because the
- * note is Markdown and no sharing application promises which formatting its styling stood for.
+ * Attachments are handled separately. Styled text becomes plain text rather than guessing which
+ * Markdown its spans stood for.
  */
 internal fun sharedTextOf(intent: Intent?): SharedText? {
     if (intent?.action != Intent.ACTION_SEND) return null
@@ -496,6 +502,7 @@ private fun NotesNavigation(
     var selectedHeading by rememberSaveable { mutableStateOf<String?>(null) }
     var editOnOpenNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var navigationRequest by rememberSaveable { mutableStateOf(0) }
+    var detailGeneration by rememberSaveable { mutableStateOf(0) }
     // The note-list search that was active when a note was opened from the list, so the opened
     // note starts by finding the same text. Every other way of opening a note clears it.
     var findOnOpen by rememberSaveable { mutableStateOf<String?>(null) }
@@ -546,6 +553,7 @@ private fun NotesNavigation(
         }
     }
     val pendingShare by component.pendingShare.collectAsStateWithLifecycle(context = UiDispatcher)
+    val fileShare by component.fileShare.collectAsStateWithLifecycle(context = UiDispatcher)
     val widgetRequest by component.widgetRequest.collectAsStateWithLifecycle(context = UiDispatcher)
     // Text another application shared becomes a note in the account that is being looked at, and
     // that note is opened, so the share ends where the user can see and correct it. A share that
@@ -622,7 +630,7 @@ private fun NotesNavigation(
     if (loadedAccounts == null) {
         LoadingScreen()
     } else if (noteId != null) {
-        key(noteId) {
+        key(noteId, detailGeneration) {
             NoteDetailScreen(
                 component = component,
                 localId = noteId,
@@ -731,6 +739,25 @@ private fun NotesNavigation(
                 onDismiss = component::dismissNoteFolderReview
             )
         }
+    }
+    val share = fileShare
+    if (share is FileShareState.Saved) {
+        LaunchedEffect(share) {
+            if (!component.consumeSavedFileShare(share)) return@LaunchedEffect
+            selectedAccountId = share.note.accountId
+            browsingBookmarks = false
+            managingAccounts = false
+            noteHistory = emptyList()
+            // An editor kept open behind the dialog must not keep showing the pre-append source.
+            if (selectedNoteId == share.note.localId) detailGeneration++
+            selectedNoteId = share.note.localId
+            selectedHeading = null
+            editOnOpenNoteId = null
+            findOnOpen = null
+            navigationRequest++
+        }
+    } else if (share != null) {
+        FileShareDialog(component, share, loadedAccounts, activeAccountId)
     }
 }
 
@@ -3193,6 +3220,11 @@ private fun NoteDetailScreen(
 ) {
     val note by component.noteRepository.observeNote(localId)
         .collectAsStateWithLifecycle(initialValue = null, context = UiDispatcher)
+    val pendingSharedImages by produceState(emptyMap<String, java.io.File>(), note) {
+        withContext(UiDispatcher) {
+            value = note?.let { component.pendingSharedImages(it) }.orEmpty()
+        }
+    }
     val noteSyncDiagnostics by component.noteSyncDiagnostics
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val accountNotesFlow = remember(note?.accountId) {
@@ -4506,7 +4538,8 @@ private fun NoteDetailScreen(
                                     pendingHeading,
                                     loadImages,
                                     source?.remoteId,
-                                    account?.attachmentAccountName()
+                                    account?.attachmentAccountName(),
+                                    pendingSharedImages
                                 )
                             if (renderedNote.needsRendering(view, renderKey)) {
                                 component.markdownRenderer.render(
@@ -4625,7 +4658,8 @@ private fun NoteDetailScreen(
                                     category = source?.category.orEmpty(),
                                     attachmentApiPath = account?.attachmentApiPath()
                                         ?: "/index.php/apps/notes/api/v1.4/attachment/",
-                                    localImages = source?.let(component::pendingImages).orEmpty(),
+                                    localImages = source?.let(component::pendingImages).orEmpty() +
+                                        pendingSharedImages,
                                     onImageClick = { image ->
                                         viewedImage = image to source?.content.orEmpty()
                                     }

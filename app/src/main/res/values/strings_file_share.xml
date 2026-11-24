@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shared_file_title">Attach shared file</string>
+    <string name="shared_file_preparing">Opening shared file…</string>
+    <string name="shared_file_no_account">Add a Nextcloud or local-folder account in QOwnNotes, then share this file again.</string>
+    <string name="shared_file_existing_note">Existing note</string>
+    <string name="shared_file_note_title">Note title</string>
+    <string name="shared_file_saving">Saving on this device…</string>
+    <string name="shared_file_attach">Attach file</string>
+    <string name="shared_file_create">Create note</string>
+    <string name="shared_file_image">Image</string>
+    <string name="shared_file_kind">File</string>
+    <string name="shared_file_kind_size">%1$s · %2$s</string>
+    <string name="shared_file_fallback">Shared file</string>
+    <string name="shared_file_account">Account: %1$s</string>
+    <string name="shared_file_search">Search notes or folders</string>
+    <string name="shared_file_loading_notes">Loading notes…</string>
+    <string name="shared_file_no_notes">There are no writable notes in this account. You can create a new one instead.</string>
+    <string name="shared_file_no_matches">No notes match your search.</string>
+    <string name="shared_file_selected">Append to: %1$s</string>
+    <string name="shared_file_too_large">This file is larger than the 32 MiB attachment limit.</string>
+    <string name="shared_file_read_failed">QOwnNotes could not read this file. Try sharing it again from the original app.</string>
+    <string name="shared_file_save_failed">Could not save the file. Try again or share it again from the original app.</string>
+    <string name="shared_file_destination_unavailable">This note is no longer available for editing. Finish any open edits, choose a different note, or create a new one.</string>
+</resources>

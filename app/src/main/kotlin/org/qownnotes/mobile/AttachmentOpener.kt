@@ -35,6 +35,13 @@ internal class AttachmentOpener(
             }.getOrNull()
         }
 
+    suspend fun cachePendingFile(file: File): File? = withContext(Dispatchers.IO) {
+        runCatching {
+            val directory = File(context.cacheDir, "attachments").apply { mkdirs() }
+            file.copyTo(directory.resolve(file.name), overwrite = true)
+        }.getOrNull()
+    }
+
     fun openFile(file: File): AttachmentOpenResult {
         val uri = FileProvider.getUriForFile(
             context,

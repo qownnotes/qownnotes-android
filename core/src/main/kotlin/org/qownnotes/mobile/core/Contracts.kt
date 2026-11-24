@@ -130,6 +130,15 @@ interface NoteMediaBackend {
         mimeType: String,
         content: ByteArray
     ): String
+
+    /** Writes a staged attachment at its preassigned name. Retrying identical bytes is safe. */
+    suspend fun uploadSharedAttachment(
+        account: Account,
+        notesPath: String,
+        fileName: String,
+        mimeType: String,
+        content: ByteArray
+    ): String = uploadMedia(account, notesPath, fileName, mimeType, content)
 }
 
 data class RemoteNoteVersion(val timestamp: Long, val displayTimestamp: String, val content: String)

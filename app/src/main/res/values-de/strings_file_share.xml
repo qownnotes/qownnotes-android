@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shared_file_title">Geteilte Datei anhängen</string>
+    <string name="shared_file_preparing">Geteilte Datei wird geöffnet…</string>
+    <string name="shared_file_no_account">Füge in QOwnNotes ein Nextcloud- oder lokales Ordnerkonto hinzu und teile die Datei erneut.</string>
+    <string name="shared_file_existing_note">Vorhandene Notiz</string>
+    <string name="shared_file_note_title">Titel der Notiz</string>
+    <string name="shared_file_saving">Wird auf diesem Gerät gespeichert…</string>
+    <string name="shared_file_attach">Datei anhängen</string>
+    <string name="shared_file_create">Notiz erstellen</string>
+    <string name="shared_file_image">Bild</string>
+    <string name="shared_file_kind">Datei</string>
+    <string name="shared_file_kind_size">%1$s · %2$s</string>
+    <string name="shared_file_fallback">Geteilte Datei</string>
+    <string name="shared_file_account">Konto: %1$s</string>
+    <string name="shared_file_search">Notizen oder Ordner suchen</string>
+    <string name="shared_file_loading_notes">Notizen werden geladen…</string>
+    <string name="shared_file_no_notes">Dieses Konto enthält keine bearbeitbaren Notizen. Du kannst stattdessen eine neue Notiz erstellen.</string>
+    <string name="shared_file_no_matches">Keine passenden Notizen gefunden.</string>
+    <string name="shared_file_selected">Anhängen an: %1$s</string>
+    <string name="shared_file_too_large">Diese Datei überschreitet das Limit von 32 MiB für Anhänge.</string>
+    <string name="shared_file_read_failed">QOwnNotes konnte diese Datei nicht lesen. Teile sie erneut aus der ursprünglichen App.</string>
+    <string name="shared_file_save_failed">Die Datei konnte nicht gespeichert werden. Versuche es erneut oder teile sie erneut aus der ursprünglichen App.</string>
+    <string name="shared_file_destination_unavailable">Diese Notiz kann nicht bearbeitet werden. Schließe laufende Bearbeitungen ab oder wähle eine andere Notiz.</string>
+</resources>

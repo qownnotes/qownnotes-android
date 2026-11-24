@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shared_file_title">Joindre le fichier partagé</string>
+    <string name="shared_file_preparing">Ouverture du fichier partagé…</string>
+    <string name="shared_file_no_account">Ajoutez un compte Nextcloud ou un dossier local dans QOwnNotes, puis partagez à nouveau ce fichier.</string>
+    <string name="shared_file_existing_note">Note existante</string>
+    <string name="shared_file_note_title">Titre de la note</string>
+    <string name="shared_file_saving">Enregistrement sur cet appareil…</string>
+    <string name="shared_file_attach">Joindre le fichier</string>
+    <string name="shared_file_create">Créer la note</string>
+    <string name="shared_file_image">Image</string>
+    <string name="shared_file_kind">Fichier</string>
+    <string name="shared_file_kind_size">%1$s · %2$s</string>
+    <string name="shared_file_fallback">Fichier partagé</string>
+    <string name="shared_file_account">Compte : %1$s</string>
+    <string name="shared_file_search">Rechercher des notes ou des dossiers</string>
+    <string name="shared_file_loading_notes">Chargement des notes…</string>
+    <string name="shared_file_no_notes">Ce compte ne contient aucune note modifiable. Vous pouvez en créer une.</string>
+    <string name="shared_file_no_matches">Aucune note ne correspond à votre recherche.</string>
+    <string name="shared_file_selected">Ajouter à la fin de : %1$s</string>
+    <string name="shared_file_too_large">Le fichier dépasse la limite de 32 Mio pour les pièces jointes.</string>
+    <string name="shared_file_read_failed">QOwnNotes ne peut pas lire ce fichier. Partagez-le à nouveau depuis l’application d’origine.</string>
+    <string name="shared_file_save_failed">Impossible d’enregistrer le fichier. Réessayez ou partagez-le à nouveau depuis l’application d’origine.</string>
+    <string name="shared_file_destination_unavailable">Cette note ne peut pas être modifiée. Terminez les modifications en cours, choisissez une autre note ou créez-en une nouvelle.</string>
+</resources>

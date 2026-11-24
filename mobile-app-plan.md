@@ -273,7 +273,8 @@ For the first release, automatic title-to-first-heading renaming applies only wh
 
 A note is very often something read somewhere else first, so the application is a share target for text, as Nextcloud Notes for Android is. Sharing text creates a note from it.
 
-- Accept `ACTION_SEND` with a text type. An attachment is a stream this release cannot store, and an intent carrying no text is an ordinary start, so neither creates a note.
+- Accept text from `ACTION_SEND` when there is no file stream. A share carrying a file instead
+  opens the attachment destination picker; a plain launch does not create a note.
 - Read the shared text as a `CharSequence`, because it may be styled, and keep only its characters. No sharing application promises which Markdown its styling stood for.
 - Name the note after the sharing application's subject when it sent one, sanitized by the same rule that names any other note, because a shared page or message already carries a name its reader recognizes. Without a usable subject, keep the dated default name.
 - Write the name as the first heading and the shared text under it, so the note reads like every other note created here. Text that the sharing application also sent as the subject is not repeated under it.
@@ -1375,7 +1376,10 @@ Original scope:
   other rendered text (#53). Copying puts the block's Markdown source on the clipboard, with the
   indentation of its first line removed. Confirmed deletion removes the task, its nested items, and continuation
   lines through the existing offline-first content replacement path; single-item lists are supported.
-- Image sharing and general attachments
+- Incoming Android file sharing (#44): choose a new note or search for an existing note in a
+  Nextcloud or local-folder account. The app copies one explicitly granted content URI at a time
+  to private storage (up to 32 MiB), appends a category-relative Markdown link, and uploads the
+  file before synchronizing the note. Supported image formats render inline.
 - Camera photos in notes: the editor toolbar's camera action (#45) attaches a photo through the
   same immediate media upload as a chosen image. Camera photos from the editor and the widget are
   reduced to a device-wide maximum longest side (default 2560 px; 1920 or 3840 selectable) unless
