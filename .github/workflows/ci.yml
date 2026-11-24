@@ -74,7 +74,24 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - name: Build device-test APKs
         timeout-minutes: 20
-        run: ./gradlew --no-daemon --no-configuration-cache ${{ matrix.build-tasks }}
+        shell: bash
+        run: |
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          for attempt in 1 2 3; do
+            if ./gradlew --no-daemon --no-configuration-cache ${{ matrix.build-tasks }} 2>&1 | tee "$log"; then
+              break
+            else
+              status=$?
+            fi
+            # A fresh Gradle invocation can recover a repository disabled by HTTP 429.
+            if [[ "$attempt" == 3 ]] || ! grep -Fq 'Received status code 429 from server' "$log"; then
+              exit "$status"
+            fi
+            delay=$((30 * attempt))
+            echo "::warning::Dependency download was rate-limited (HTTP 429); retrying in ${delay}s."
+            sleep "$delay"
+          done
       - name: Run Android device tests
         timeout-minutes: 20
         uses: reactivecircus/android-emulator-runner@v2
