@@ -8,6 +8,8 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+## [26.11.4] - 2026-11-24
+
 ### Added
 
 - Share a screenshot or another file to QOwnNotes from Android. Create a note with the file or
@@ -831,7 +833,8 @@ zero-based increasing release counter within the month. See [the release guide](
   `QOwnNotes Dev`.
 - JVM, MockWebServer, Room, Markdown widget, Compose, migration, and Android device test coverage.
 
-[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.3...HEAD
+[Unreleased]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.4...HEAD
+[26.11.4]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.3...v26.11.4
 [26.11.3]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.2...v26.11.3
 [26.11.2]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.1...v26.11.2
 [26.11.1]: https://github.com/qownnotes/qownnotes-android/compare/v26.11.0...v26.11.1

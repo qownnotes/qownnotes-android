@@ -1,0 +1,1 @@
+• Share screenshots and other files up to 32 MiB from Android to QOwnNotes. Create a note with the file or attach it to an existing note. Files are saved on the device first and synchronized with the note.
