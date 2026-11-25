@@ -207,6 +207,7 @@
     <string name="note_copy_rejected">未复制任何内容。部分笔记在此期间已被删除。</string>
     <string name="note_transfer_storage_failed">未更改任何内容，因为无法在此设备上保存笔记。请重试。</string>
     <string name="action_rename">重命名</string>
+    <string name="action_duplicate">创建副本</string>
     <string name="retry_sync">重试同步</string>
     <string name="note_text_size_decrease">减小笔记字号</string>
     <string name="note_text_size_increase">增大笔记字号</string>

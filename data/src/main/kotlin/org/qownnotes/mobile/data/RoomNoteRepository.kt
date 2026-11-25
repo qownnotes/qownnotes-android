@@ -123,6 +123,12 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
         )
     }
 
+    override suspend fun duplicateNotes(
+        accountId: String,
+        localIds: List<String>,
+        modifiedAtEpochSeconds: Long
+    ): Int = noteDao.duplicateNotes(accountId, localIds.distinct(), modifiedAtEpochSeconds)
+
     override suspend fun retry(localId: String): Boolean = noteDao.retry(localId) > 0
 
     override suspend fun moveToTrash(accountId: String, localIds: List<String>) =

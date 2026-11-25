@@ -8,6 +8,13 @@ zero-based increasing release counter within the month. See [the release guide](
 
 ## [Unreleased]
 
+### Added
+
+- Rename, share, and duplicate notes right from the note list. Long-press a note to select it, then
+  open the selection menu. **Rename** and **Share note** appear when one note is selected.
+  **Duplicate** copies every selected note into its own folder under a numbered name, even without
+  subfolders ([#40](https://github.com/qownnotes/qownnotes-android/issues/40)).
+
 ## [26.11.4] - 2026-11-24
 
 ### Added

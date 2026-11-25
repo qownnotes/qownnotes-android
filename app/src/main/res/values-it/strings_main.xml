@@ -218,6 +218,7 @@
     <string name="note_copy_rejected">Non è stato copiato nulla. Alcune note sono state eliminate nel frattempo.</string>
     <string name="note_transfer_storage_failed">Non è stato modificato nulla perché non è stato possibile salvare le note su questo dispositivo. Riprova.</string>
     <string name="action_rename">Rinomina</string>
+    <string name="action_duplicate">Duplica</string>
     <string name="retry_sync">Riprova sincronizzazione</string>
     <string name="note_text_size_decrease">Riduci dimensione testo della nota</string>
     <string name="note_text_size_increase">Aumenta dimensione testo della nota</string>

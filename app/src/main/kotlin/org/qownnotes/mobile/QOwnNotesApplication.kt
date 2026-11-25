@@ -1557,6 +1557,16 @@ class ApplicationComponent(
         return changed
     }
 
+    /** Copies each note beside itself, so this works with and without subfolders. */
+    suspend fun duplicateNotes(accountId: String, localIds: List<String>): Int {
+        if (localIds.isEmpty()) return 0
+        val changed = accountMutex(accountId).withLock {
+            noteRepository.duplicateNotes(accountId, localIds, clock.instant().epochSecond)
+        }
+        if (changed > 0) scheduleSync(accountId)
+        return changed
+    }
+
     fun cacheDraft(localId: String, content: String) {
         editorDrafts.cache(localId, content)
     }

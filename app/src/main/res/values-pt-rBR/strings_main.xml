@@ -218,6 +218,7 @@
     <string name="note_copy_rejected">Nada foi copiado. Algumas notas foram excluídas nesse meio-tempo.</string>
     <string name="note_transfer_storage_failed">Nada foi alterado porque as notas não puderam ser salvas neste dispositivo. Tente novamente.</string>
     <string name="action_rename">Renomear</string>
+    <string name="action_duplicate">Duplicar</string>
     <string name="retry_sync">Tentar sincronizar novamente</string>
     <string name="note_text_size_decrease">Diminuir tamanho do texto da nota</string>
     <string name="note_text_size_increase">Aumentar tamanho do texto da nota</string>

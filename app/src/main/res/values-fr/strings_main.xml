@@ -218,6 +218,7 @@
     <string name="note_copy_rejected">Rien n\'a été copié. Certaines notes ont été supprimées entre-temps.</string>
     <string name="note_transfer_storage_failed">Rien n\'a été modifié, car les notes n\'ont pas pu être enregistrées sur cet appareil. Veuillez réessayer.</string>
     <string name="action_rename">Renommer</string>
+    <string name="action_duplicate">Dupliquer</string>
     <string name="retry_sync">Réessayer la synchronisation</string>
     <string name="note_text_size_decrease">Réduire la taille du texte de la note</string>
     <string name="note_text_size_increase">Augmenter la taille du texte de la note</string>

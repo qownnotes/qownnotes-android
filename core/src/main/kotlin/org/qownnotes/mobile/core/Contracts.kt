@@ -76,6 +76,17 @@ interface NoteRepository {
         modifiedAtEpochSeconds: Long
     ): Int
 
+    /**
+     * Atomically copies each note of a selection into its own folder under a unique numbered
+     * name, as [transferNotes] copies. Missing, deleted, or cross-account notes reject the entire
+     * selection. Returns the number of copies.
+     */
+    suspend fun duplicateNotes(
+        accountId: String,
+        localIds: List<String>,
+        modifiedAtEpochSeconds: Long
+    ): Int
+
     suspend fun retry(localId: String): Boolean
 
     suspend fun moveToTrash(accountId: String, localIds: List<String>)

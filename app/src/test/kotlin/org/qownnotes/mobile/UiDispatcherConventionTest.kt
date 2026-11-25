@@ -132,6 +132,7 @@ class UiDispatcherConventionTest {
             "deckBrowseBoards",
             "deckCard",
             "deckCards",
+            "duplicateNotes",
             "moveNotesToTrash",
             "transferNotes",
             "noteVersions",

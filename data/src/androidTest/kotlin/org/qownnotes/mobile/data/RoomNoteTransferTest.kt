@@ -112,6 +112,37 @@ class RoomNoteTransferTest {
     }
 
     @Test
+    fun duplicatesEachNoteInItsOwnFolder() = runBlocking {
+        notes.save(source("first"))
+        notes.save(source("work").copy(category = "Work", readOnly = true))
+
+        assertEquals(2, notes.duplicateNotes("account", listOf("first", "work", "first"), 100))
+        val copies = notes.observeNotes("account").first()
+            .filter { it.localId !in setOf("first", "work") }
+            .associate { it.title to it.category }
+        assertEquals(mapOf("first (2)" to "", "work (2)" to "Work"), copies)
+        for (copy in notes.observeNotes("account").first().filter { it.remoteId == null }) {
+            val note = notes.get(copy.localId)!!
+            assertEquals("# Source\n\nExact markdown  \n", note.content)
+            assertFalse(note.readOnly)
+            assertEquals(SyncState.LOCALLY_CREATED, note.syncState)
+        }
+        assertEquals(source("first"), notes.get("first"))
+    }
+
+    @Test
+    fun duplicateRejectsMissingCrossAccountAndDeletedSelections() = runBlocking {
+        notes.save(source("first"))
+        notes.save(source("other").copy(accountId = "other"))
+        notes.save(source("deleted").copy(syncState = SyncState.PENDING_DELETION))
+        for (rejected in listOf("missing", "other", "deleted")) {
+            assertEquals(0, notes.duplicateNotes("account", listOf("first", rejected), 100))
+        }
+        assertEquals(source("first"), notes.get("first"))
+        assertEquals(1, notes.observeNotes("account").first().size)
+    }
+
+    @Test
     fun protectedSelectionIsRejectedWithoutMovingAnyNotes() = runBlocking {
         notes.save(source("first"))
         val protected = listOf(

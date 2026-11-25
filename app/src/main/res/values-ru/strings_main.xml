@@ -225,6 +225,7 @@
     <string name="note_copy_rejected">Ничего не скопировано. Некоторые заметки были удалены за это время.</string>
     <string name="note_transfer_storage_failed">Ничего не изменено, так как заметки не удалось сохранить на этом устройстве. Попробуйте ещё раз.</string>
     <string name="action_rename">Переименовать</string>
+    <string name="action_duplicate">Дублировать</string>
     <string name="retry_sync">Повторить синхронизацию</string>
     <string name="note_text_size_decrease">Уменьшить размер текста заметки</string>
     <string name="note_text_size_increase">Увеличить размер текста заметки</string>

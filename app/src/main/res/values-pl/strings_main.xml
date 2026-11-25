@@ -225,6 +225,7 @@
     <string name="note_copy_rejected">Nic nie zostało skopiowane. Niektóre notatki zostały w międzyczasie usunięte.</string>
     <string name="note_transfer_storage_failed">Nic nie zostało zmienione, ponieważ nie udało się zapisać notatek na tym urządzeniu. Spróbuj ponownie.</string>
     <string name="action_rename">Zmień nazwę</string>
+    <string name="action_duplicate">Duplikuj</string>
     <string name="retry_sync">Ponów synchronizację</string>
     <string name="note_text_size_decrease">Zmniejsz rozmiar tekstu notatki</string>
     <string name="note_text_size_increase">Zwiększ rozmiar tekstu notatki</string>

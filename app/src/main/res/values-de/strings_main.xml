@@ -213,6 +213,7 @@
     <string name="note_copy_rejected">Es wurde nichts kopiert. Einige Notizen wurden zwischenzeitlich gelöscht.</string>
     <string name="note_transfer_storage_failed">Es wurde nichts geändert, weil die Notizen nicht auf diesem Gerät gespeichert werden konnten. Bitte versuche es erneut.</string>
     <string name="action_rename">Umbenennen</string>
+    <string name="action_duplicate">Duplizieren</string>
     <string name="retry_sync">Synchronisierung wiederholen</string>
     <string name="note_text_size_decrease">Notizschrift verkleinern</string>
     <string name="note_text_size_increase">Notizschrift vergrößern</string>

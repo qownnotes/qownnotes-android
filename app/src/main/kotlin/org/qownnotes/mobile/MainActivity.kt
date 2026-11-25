@@ -111,6 +111,7 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewKanban
+import androidx.compose.material.icons.outlined.FileCopy
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -1226,6 +1227,10 @@ private fun NoteListScreen(
     var searchAllFolders by rememberSaveable(accountId) { mutableStateOf(false) }
     val folderDrawerState = rememberDrawerState(DrawerValue.Closed)
     var selectedNoteIds by rememberSaveable(accountId) { mutableStateOf(emptyList<String>()) }
+    var renamingNoteId by rememberSaveable(accountId) { mutableStateOf<String?>(null) }
+    var renamingNoteName by rememberSaveable(accountId) { mutableStateOf("") }
+    var renamingUpdatesHeading by rememberSaveable(accountId) { mutableStateOf(true) }
+    var sharingNoteId by rememberSaveable(accountId) { mutableStateOf<String?>(null) }
     var trashState by remember(accountId) {
         mutableStateOf<ArchiveLoadState<TrashedNote>>(ArchiveLoadState.Idle)
     }
@@ -1680,6 +1685,89 @@ private fun NoteListScreen(
                                         expanded = selectionMenuOpen,
                                         onDismissRequest = { selectionMenuOpen = false }
                                     ) {
+                                        // Actions on a single note come first, as in the note
+                                        // view, and only appear when one note is selected.
+                                        val single = selectedNoteIds.singleOrNull()?.let { id ->
+                                            visibleNotes?.firstOrNull { it.localId == id }
+                                        }
+                                        if (single != null && single.isWritable()) {
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(stringResource(R.string.action_rename))
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        Icons.Filled.DriveFileRenameOutline,
+                                                        contentDescription = null
+                                                    )
+                                                },
+                                                onClick = {
+                                                    selectionMenuOpen = false
+                                                    renamingNoteName = single.title
+                                                    renamingUpdatesHeading = true
+                                                    renamingNoteId = single.localId
+                                                },
+                                                modifier = Modifier.testTag("rename-selected-note")
+                                            )
+                                        }
+                                        if (single?.remoteId != null &&
+                                            component.supportsNoteSharing(accountId)
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(stringResource(R.string.share_note))
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        Icons.Filled.Share,
+                                                        contentDescription = null
+                                                    )
+                                                },
+                                                onClick = {
+                                                    selectionMenuOpen = false
+                                                    sharingNoteId = single.localId
+                                                },
+                                                modifier = Modifier.testTag("share-selected-note")
+                                            )
+                                        }
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.action_duplicate))
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Outlined.FileCopy,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                selectionMenuOpen = false
+                                                val ids = selectedNoteIds
+                                                scope.launch {
+                                                    try {
+                                                        val copies =
+                                                            component.duplicateNotes(accountId, ids)
+                                                        if (copies > 0) {
+                                                            selectedNoteIds = emptyList()
+                                                        } else {
+                                                            transferFailure =
+                                                                NoteTransferFailure.of(
+                                                                    copy = true,
+                                                                    rejected = true
+                                                                )
+                                                        }
+                                                    } catch (cancelled: CancellationException) {
+                                                        throw cancelled
+                                                    } catch (_: Exception) {
+                                                        transferFailure = NoteTransferFailure.of(
+                                                            copy = true,
+                                                            rejected = false
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                            modifier = Modifier.testTag("duplicate-notes")
+                                        )
                                         if (useSubfolders) {
                                             listOf(false, true).forEach { copy ->
                                                 val icon = if (copy) {
@@ -1719,8 +1807,8 @@ private fun NoteListScreen(
                                                     )
                                                 )
                                             }
-                                            HorizontalDivider()
                                         }
+                                        HorizontalDivider()
                                         DropdownMenuItem(
                                             text = {
                                                 Text(stringResource(R.string.action_move_to_trash))
@@ -2505,6 +2593,41 @@ private fun NoteListScreen(
     }
     transferFailure?.let { failure ->
         NoteTransferFailureDialog(failure) { transferFailure = null }
+    }
+    renamingNoteId?.let { id ->
+        var savingRename by remember(id) { mutableStateOf(false) }
+        RenameNoteDialog(
+            name = renamingNoteName,
+            onNameChange = { renamingNoteName = it },
+            updateHeading = renamingUpdatesHeading,
+            onUpdateHeadingChange = { renamingUpdatesHeading = it },
+            enabled = !savingRename,
+            onDismiss = { if (!savingRename) renamingNoteId = null },
+            onConfirm = {
+                savingRename = true
+                val title = NoteNames.sanitize(renamingNoteName)
+                val updateHeading = renamingUpdatesHeading
+                scope.launch {
+                    try {
+                        component.renameNote(id, title, updateHeading)
+                        selectedNoteIds = emptyList()
+                    } finally {
+                        savingRename = false
+                        renamingNoteId = null
+                    }
+                }
+            }
+        )
+    }
+    sharingNoteId?.let { id ->
+        val sharedNoteFlow = remember(id) { component.noteRepository.observeNote(id) }
+        val sharedNote by sharedNoteFlow.collectAsStateWithLifecycle(
+            initialValue = null as Note?,
+            context = UiDispatcher
+        )
+        sharedNote?.let { note ->
+            NoteShareDialog(component, note, onDismiss = { sharingNoteId = null })
+        }
     }
     trashConfirmationIds?.let { ids ->
         AlertDialog(
@@ -5809,6 +5932,11 @@ private fun ChangeNoteCategoryDialog(
 }
 
 /** Why a move or copy changed nothing, which decides how the failure is explained. */
+
+/** Whether the note can be renamed, matching the rename action of the note view. */
+private fun NoteListItem.isWritable() = !readOnly &&
+    syncState !in setOf(SyncState.CONFLICT, SyncState.REMOTE_MISSING, SyncState.READ_ONLY_CONFLICT)
+
 private enum class NoteTransferFailure(val copy: Boolean, val rejected: Boolean) {
     MOVE_REJECTED(copy = false, rejected = true),
     COPY_REJECTED(copy = true, rejected = true),

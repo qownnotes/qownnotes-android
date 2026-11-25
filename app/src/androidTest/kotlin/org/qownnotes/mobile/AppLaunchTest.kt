@@ -1457,6 +1457,10 @@ class AppLaunchTest {
         composeRule.onNodeWithTag("note-selection-menu").performClick()
         composeRule.onNodeWithTag("move-notes-to-category").assertDoesNotExist()
         composeRule.onNodeWithTag("copy-notes-to-category").assertDoesNotExist()
+        // Renaming and sharing act on one note, so a larger selection does not offer them.
+        composeRule.onNodeWithTag("rename-selected-note").assertDoesNotExist()
+        composeRule.onNodeWithTag("share-selected-note").assertDoesNotExist()
+        composeRule.onNodeWithTag("duplicate-notes").assertIsDisplayed()
         composeRule.onNodeWithTag("move-notes-to-trash").performClick()
         composeRule.onNodeWithText("Move 2 notes to trash?").assertIsDisplayed()
         // Nothing is removed before the move is confirmed.
@@ -3489,6 +3493,40 @@ class AppLaunchTest {
         assertEquals(first.remoteEtag, moved.remoteEtag)
         assertEquals(first.content, moved.content)
         assertEquals(SyncState.LOCALLY_MODIFIED, moved.syncState)
+    }
+
+    @Test
+    fun singleSelectionCanRenameAndDuplicateWithoutOpeningTheNote() {
+        importAccount("alice", "First note", "etag-1", 10)
+        application.fakeSyncScheduler.pause()
+        val first = runBlocking { notesOf("alice").single() }
+        composeRule.waitForText("First note")
+
+        composeRule.onNodeWithTag("note-${first.localId}").performTouchInput { longClick() }
+        composeRule.onNodeWithTag("note-selection-menu").performClick()
+        composeRule.onNodeWithTag("rename-selected-note").performClick()
+        composeRule.onNodeWithTag("note-name-field").performTextReplacement("Renamed note")
+        composeRule.onNodeWithTag("confirm-rename-note").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking {
+                application.component.noteRepository.get(first.localId)?.title == "Renamed note"
+            }
+        }
+        val renamed = runBlocking { application.component.noteRepository.get(first.localId)!! }
+        assertEquals(NoteNames.replaceFirstHeading(first.content, "Renamed note"), renamed.content)
+        composeRule.waitForTag("note-list-menu")
+
+        // Duplicating needs no subfolders: the copy stays beside the note under a numbered name.
+        composeRule.onNodeWithTag("note-${first.localId}").performTouchInput { longClick() }
+        composeRule.onNodeWithTag("note-selection-menu").performClick()
+        composeRule.onNodeWithTag("move-notes-to-category").assertDoesNotExist()
+        composeRule.onNodeWithTag("duplicate-notes").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) { runBlocking { notesOf("alice").size == 2 } }
+        val copy = runBlocking { notesOf("alice").single { it.localId != first.localId } }
+        assertEquals("Renamed note (2)", copy.title)
+        assertEquals(renamed.content, copy.content)
+        assertEquals(SyncState.LOCALLY_CREATED, copy.syncState)
+        composeRule.waitForTag("note-list-menu")
     }
 
     @Test

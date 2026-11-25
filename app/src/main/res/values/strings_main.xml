@@ -213,6 +213,7 @@
     <string name="note_copy_rejected">Nothing was copied. Some of the notes were deleted in the meantime.</string>
     <string name="note_transfer_storage_failed">Nothing was changed because the notes couldn\'t be saved on this device. Please try again.</string>
     <string name="action_rename">Rename</string>
+    <string name="action_duplicate">Duplicate</string>
     <string name="retry_sync">Retry sync</string>
     <string name="note_text_size_decrease">Decrease note text size</string>
     <string name="note_text_size_increase">Increase note text size</string>

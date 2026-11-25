@@ -245,31 +245,53 @@ interface NoteDao {
         var changed = 0
         for (source in notes) {
             if (copy) {
-                var title = source.title
-                var suffix = 2
-                while (titleExists(accountId, category, title)) {
-                    val ending = " (${suffix++})"
-                    title = source.title.take(120 - ending.length).trimEnd() + ending
-                }
-                // Construct a fresh note: no server identity, conflict base, or failure state.
-                upsert(
-                    Note(
-                        localId = UUID.randomUUID().toString(),
-                        accountId = accountId,
-                        title = title,
-                        content = source.content,
-                        category = category,
-                        modifiedAtEpochSeconds = modifiedAtEpochSeconds,
-                        favorite = source.favorite,
-                        syncState = SyncState.LOCALLY_CREATED
-                    ).toEntity()
-                )
+                insertCopy(source, category, modifiedAtEpochSeconds)
                 changed++
             } else {
                 changed += updateCategory(source.localId, category)
             }
         }
         return changed
+    }
+
+    /** Copies each note into the folder it is already in, like a copy to that same folder. */
+    @Transaction
+    suspend fun duplicateNotes(
+        accountId: String,
+        localIds: List<String>,
+        modifiedAtEpochSeconds: Long
+    ): Int {
+        val notes = localIds.map { get(it) ?: return 0 }
+        if (notes.any {
+                it.accountId != accountId || it.syncState == SyncState.PENDING_DELETION
+            }
+        ) {
+            return 0
+        }
+        notes.forEach { insertCopy(it, it.category, modifiedAtEpochSeconds) }
+        return notes.size
+    }
+
+    suspend fun insertCopy(source: NoteEntity, category: String, modifiedAtEpochSeconds: Long) {
+        var title = source.title
+        var suffix = 2
+        while (titleExists(source.accountId, category, title)) {
+            val ending = " (${suffix++})"
+            title = source.title.take(120 - ending.length).trimEnd() + ending
+        }
+        // Construct a fresh note: no server identity, conflict base, or failure state.
+        upsert(
+            Note(
+                localId = UUID.randomUUID().toString(),
+                accountId = source.accountId,
+                title = title,
+                content = source.content,
+                category = category,
+                modifiedAtEpochSeconds = modifiedAtEpochSeconds,
+                favorite = source.favorite,
+                syncState = SyncState.LOCALLY_CREATED
+            ).toEntity()
+        )
     }
 
     @Query(

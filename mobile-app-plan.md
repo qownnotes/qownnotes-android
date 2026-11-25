@@ -101,6 +101,11 @@ copying creates fresh writable local notes without server identity or conflict s
 Markdown and favorites. Copies can stay in the source folder, with unique local names. Moving
 retains local identities and ETags and refuses read-only or unresolved-conflict selections.
 
+The note-list selection menu doubles as the list's context menu (#40): long-press still selects.
+With one note selected it adds the note view's **Rename** and **Share note**, under the same
+writability and sharing conditions. **Duplicate** copies every selected note atomically into its
+own folder, like a copy to that folder, and works with and without subfolders.
+
 Optional Nextcloud Deck support, enabled per account in Settings, adds a note-editor action that
 creates a Deck card and links it into the note (#16). See "Implemented Nextcloud Deck Links" below.
 

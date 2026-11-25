@@ -1,11 +1,13 @@
 package org.qownnotes.mobile
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -13,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.nextcloud.android.sso.model.SingleSignOnAccount
 import kotlinx.coroutines.runBlocking
@@ -125,7 +128,32 @@ class NoteShareUiTest {
         waitUntilGone("note-share-dialog")
     }
 
+    @Test
+    fun aSingleSelectedNoteIsSharedFromTheList() {
+        importSharedNote()
+        composeRule.onNodeWithText("Shared note").performTouchInput { longClick() }
+        composeRule.onNodeWithTag("note-selection-menu").performClick()
+        composeRule.onNodeWithTag("share-selected-note").performClick()
+        waitForTag("note-share-create")
+        composeRule.onNodeWithTag("note-share-create").performClick()
+        waitForTag("note-share-url")
+        assertTrue(application.fakeBackend.noteShares.containsKey(100))
+        composeRule.onNodeWithTag("note-share-done").performClick()
+        waitUntilGone("note-share-dialog")
+        // Sharing does not open the note, and leaves the selection to the user.
+        composeRule.onNodeWithText("1 selected").assertIsDisplayed()
+    }
+
     private fun openShareDialog() {
+        importSharedNote()
+        composeRule.onNodeWithText("Shared note").performClick()
+        waitForTag("note-menu")
+        composeRule.onNodeWithTag("note-menu").performClick()
+        composeRule.onNodeWithTag("share-note").performClick()
+        waitForTag("note-share-dialog")
+    }
+
+    private fun importSharedNote() {
         val account = SingleSignOnAccount(
             "alice",
             "alice",
@@ -148,11 +176,6 @@ class NoteShareUiTest {
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithText("Shared note").fetchSemanticsNodes().size == 1
         }
-        composeRule.onNodeWithText("Shared note").performClick()
-        waitForTag("note-menu")
-        composeRule.onNodeWithTag("note-menu").performClick()
-        composeRule.onNodeWithTag("share-note").performClick()
-        waitForTag("note-share-dialog")
     }
 
     private fun waitForTag(tag: String) = composeRule.waitUntil(10_000) {
