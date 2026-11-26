@@ -151,4 +151,46 @@ class NoteFoldersTest {
             NoteFolderScope.fromCategoryScope(NoteCategoryScope.All, false)
         )
     }
+
+    @Test
+    fun `created folders are listed without notes and without changing counts`() {
+        val tree = NoteFolders.tree(
+            listOf("", "Work"),
+            emptyFolders = listOf("Ideas", "work/Drafts/2026", "media/x", "")
+        )
+
+        assertEquals(2, tree.totalNoteCount)
+        assertEquals(listOf("Ideas", "Work"), tree.folders.map { it.name })
+        assertEquals(0, tree.find("Ideas")!!.subtreeNoteCount)
+        val drafts = tree.find("Work/Drafts")!!
+        // A created folder below a folder with notes extends its spelling.
+        assertEquals("Work/Drafts", drafts.path)
+        assertEquals("Work/Drafts/2026", tree.find("work/drafts/2026")!!.path)
+        assertEquals(1, tree.find("Work")!!.subtreeNoteCount)
+        assertNull(tree.find("media"))
+    }
+
+    @Test
+    fun `paths inside a folder are recognized and moved case-insensitively`() {
+        assertTrue(NoteFolders.isWithin("Work", "work"))
+        assertTrue(NoteFolders.isWithin("work/Archive/2026", "Work/Archive"))
+        assertTrue(NoteFolders.isWithin("Anything", ""))
+        assertFalse(NoteFolders.isWithin("Workshop", "Work"))
+        assertFalse(NoteFolders.isWithin("", "Work"))
+
+        assertEquals("Job", NoteFolders.moved("work", "Work", "Job"))
+        assertEquals("Job/Archive/2026", NoteFolders.moved("work/Archive/2026", "Work", "Job"))
+        assertEquals("A/New/c", NoteFolders.moved("a/b/c", "A/B", "A/New"))
+        assertNull(NoteFolders.moved("Workshop", "Work", "Job"))
+        assertNull(NoteFolders.moved("Work", "", "Job"))
+    }
+
+    @Test
+    fun `parent and join treat the empty path as the root`() {
+        assertEquals("", NoteFolders.parent("Work"))
+        assertEquals("Work/Archive", NoteFolders.parent("Work/Archive/2026"))
+        assertEquals("Work", NoteFolders.join("", "Work"))
+        assertEquals("Work", NoteFolders.join("Work", ""))
+        assertEquals("Work/Archive", NoteFolders.join("Work", "Archive"))
+    }
 }

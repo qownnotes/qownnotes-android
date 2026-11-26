@@ -22,4 +22,14 @@ data class NoteListItem(
     val syncedTitle: String? = null,
     val syncedCategory: String? = null,
     val readOnly: Boolean = false
-) : NoteListEntry
+) : NoteListEntry {
+    /** Whether a move may change the note's folder, as the repository's moves allow. */
+    val isMovable: Boolean
+        get() = !readOnly &&
+            syncState !in setOf(
+                SyncState.CONFLICT,
+                SyncState.REMOTE_MISSING,
+                SyncState.READ_ONLY_CONFLICT
+            ) &&
+            !(syncState == SyncState.FAILED && remoteId == null)
+}

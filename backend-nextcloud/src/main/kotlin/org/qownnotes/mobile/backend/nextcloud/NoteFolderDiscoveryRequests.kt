@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import javax.xml.parsers.DocumentBuilderFactory
 import org.qownnotes.mobile.core.BackendException
+import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteFolderCandidates
 import org.qownnotes.mobile.core.NoteFolderDiscovery
 import org.qownnotes.mobile.core.NoteSettings
@@ -78,6 +79,63 @@ internal fun browseFolderWithClient(
             .distinct()
             .sortedWith(String.CASE_INSENSITIVE_ORDER)
     )
+}
+
+/**
+ * Creates a folder below the notes folder, and each missing parent, through WebDAV. [path] is a
+ * category, and [folderEndpoint] turns a category into its WebDAV URL.
+ */
+internal fun createFolderWithClient(
+    client: WebDavRequestClient,
+    path: String,
+    folderEndpoint: (String) -> String
+) {
+    val segments = validatedFolder(path).split('/')
+    segments.indices.forEach { index ->
+        try {
+            client.execute(
+                NextcloudRequest.Builder()
+                    .setMethod("MKCOL")
+                    .setUrl(folderEndpoint(segments.take(index + 1).joinToString("/")))
+                    .build(),
+                0
+            )
+        } catch (error: WebDavStatusException) {
+            // The folder already exists.
+            if (error.statusCode == HTTP_METHOD_NOT_ALLOWED) return@forEach
+            throw backendExceptionForHttpStatus(error.statusCode, error)
+        }
+    }
+}
+
+/**
+ * Deletes a folder below the notes folder only when its listing is empty, so neither notes nor
+ * other files can be lost. Returns `false` when something is inside.
+ */
+internal fun removeEmptyFolderWithClient(
+    client: WebDavRequestClient,
+    path: String,
+    folderEndpoint: (String) -> String
+): Boolean {
+    val endpoint = folderEndpoint(validatedFolder(path))
+    val entries = listFolder(client, endpoint) ?: return true
+    if (entries.isNotEmpty()) return false
+    try {
+        client.execute(NextcloudRequest.Builder().setMethod("DELETE").setUrl(endpoint).build(), 0)
+    } catch (error: WebDavStatusException) {
+        if (error.statusCode == HttpURLConnection.HTTP_NOT_FOUND) return true
+        throw backendExceptionForHttpStatus(error.statusCode, error)
+    }
+    return true
+}
+
+/** Never lets a folder request reach the notes folder itself, a parent, or the media folders. */
+private fun validatedFolder(path: String): String {
+    require(
+        path.isNotEmpty() && path == NoteCategories.normalize(path) &&
+            !NoteCategories.isInternal(path)
+    ) { "Invalid note folder" }
+    return path
 }
 
 private fun describeFolder(

@@ -56,11 +56,17 @@ import org.qownnotes.mobile.core.NextcloudDeck
 import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
+import org.qownnotes.mobile.core.NoteCategories
 import org.qownnotes.mobile.core.NoteConflict
 import org.qownnotes.mobile.core.NoteDeckBackend
 import org.qownnotes.mobile.core.NoteFactory
+import org.qownnotes.mobile.core.NoteFolder
+import org.qownnotes.mobile.core.NoteFolderBackend
+import org.qownnotes.mobile.core.NoteFolderChanges
 import org.qownnotes.mobile.core.NoteFolderDiscovery
 import org.qownnotes.mobile.core.NoteFolderDiscoveryBackend
+import org.qownnotes.mobile.core.NoteFolders
+import org.qownnotes.mobile.core.NoteListItem
 import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteSettings
@@ -149,6 +155,23 @@ sealed interface SyncUiState {
     data class AccountRemoved(val message: String) : SyncUiState
 }
 
+sealed interface FolderRenameResult {
+    data class Renamed(val path: String) : FolderRenameResult
+
+    /** A folder with the new name already exists next to the renamed one. */
+    data object AlreadyExists : FolderRenameResult
+
+    /** [notes] notes cannot be moved, such as unresolved conflicts or read-only notes. */
+    data class Blocked(val notes: Int) : FolderRenameResult
+
+    data object Invalid : FolderRenameResult
+}
+
+/** The paths of this folder and of every folder below it. */
+private fun NoteFolder.subtreePaths(): List<String> = listOf(path) + children.flatMap {
+    it.subtreePaths()
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class ApplicationComponent(
     private val application: Application,
@@ -177,6 +200,7 @@ class ApplicationComponent(
     private val tagFileBackend: NoteTagFileBackend? = backend as? NoteTagFileBackend,
     private val deckBackend: NoteDeckBackend? = backend as? NoteDeckBackend,
     private val shareBackend: NoteShareBackend? = backend as? NoteShareBackend,
+    private val folderBackend: NoteFolderBackend? = backend as? NoteFolderBackend,
     private val localFolderBackend: LocalFolderBackend = LocalFolderBackend(
         java.io.File(application.filesDir, "local-folders"),
         { account -> localFolderFiles(application, account) }
@@ -586,6 +610,7 @@ class ApplicationComponent(
             settings.removeRefreshAttempt(accountId)
             settings.removeUseSubfolders(accountId)
             settings.removeNoteFolderScope(accountId)
+            settings.removeNoteFolderChanges(accountId)
             settings.removeBookmarksPath(accountId)
             settings.removeNextcloudDeck(accountId)
             deckChecks.remove(accountId)
@@ -960,6 +985,8 @@ class ApplicationComponent(
         suspend fun resetCachedCollection() {
             noteRepository.observeNotes(accountId).first().map { it.localId }.also {
                 pullStore.resetCollection(accountId)
+                // Folder changes belong to the previous note folder.
+                settings.removeNoteFolderChanges(accountId)
                 // Another folder has its own notes.sqlite; tag changes for this one are void.
                 noteTagRepository.reset(accountId)
                 tagSynchronizerFor(accountId)?.forget(accountId)
@@ -1567,6 +1594,162 @@ class ApplicationComponent(
         return changed
     }
 
+    /** Folders created in the app without notes, and folder changes not synchronized yet. */
+    fun noteFolderChanges(accountId: String): StateFlow<NoteFolderChanges> =
+        settings.noteFolderChanges(accountId)
+
+    /**
+     * Creates an empty folder. It is listed right away and created in the note folder by the next
+     * synchronization, so QOwnNotes desktop sees it too. Returns the created folder's path.
+     */
+    suspend fun createFolder(accountId: String, path: String): String? {
+        val folder = NoteCategories.normalize(path)
+        if (folder.isEmpty() || NoteCategories.isInternal(folder)) return null
+        accountMutex(accountId).withLock {
+            accountRepository.get(accountId) ?: return null
+            settings.updateNoteFolderChanges(accountId) { it.created(folder) }
+        }
+        scheduleSync(accountId, 0)
+        return folder
+    }
+
+    /**
+     * Renames the last segment of folder [from] to [newName] by moving every note at and below it,
+     * atomically on the device. A note that cannot be moved, such as an unresolved conflict or a
+     * read-only note, blocks the entire rename instead of leaving the folder split.
+     */
+    suspend fun renameFolder(accountId: String, from: String, newName: String): FolderRenameResult {
+        val name = NoteCategories.normalize(newName)
+        if (from.isEmpty() || name.isEmpty() || '/' in name) return FolderRenameResult.Invalid
+        val to = NoteFolders.join(NoteFolders.parent(from), name)
+        if (NoteCategories.isInternal(to) || NoteFolders.key(to) == NoteFolders.key(from)) {
+            return FolderRenameResult.Invalid
+        }
+        val result = accountMutex(accountId).withLock {
+            val notes = noteRepository.observeNotes(accountId).first()
+            val tree = NoteFolders.tree(
+                notes.map(NoteListItem::category),
+                nestedFolders(accountId),
+                settings.noteFolderChanges(accountId).value.emptyFolders
+            )
+            val folder = tree.find(from) ?: return@withLock FolderRenameResult.Invalid
+            if (tree.find(to) != null) return@withLock FolderRenameResult.AlreadyExists
+            val moving = notes.filter { NoteFolders.isWithin(it.category, from) }
+            val blocked = moving.count { !it.isMovable }
+            if (blocked > 0) return@withLock FolderRenameResult.Blocked(blocked)
+            if (moving.isNotEmpty()) {
+                val changed = noteRepository.recategorizeNotes(
+                    accountId,
+                    moving.associate { it.localId to NoteFolders.moved(it.category, from, to)!! }
+                )
+                if (changed == 0) return@withLock FolderRenameResult.Blocked(moving.size)
+            }
+            settings.updateNoteFolderChanges(accountId) {
+                it.renamed(folder.path, to, folder.subtreePaths())
+            }
+            FolderRenameResult.Renamed(to)
+        }
+        if (result is FolderRenameResult.Renamed) scheduleSync(accountId, 0)
+        return result
+    }
+
+    /**
+     * Moves every note at and below folder [path] to the trash and removes the folder. Returns the
+     * number of notes moved to the trash.
+     */
+    suspend fun deleteFolder(accountId: String, path: String): Int {
+        if (path.isEmpty()) return 0
+        val deleted = accountMutex(accountId).withLock {
+            val notes = noteRepository.observeNotes(accountId).first()
+            val tree = NoteFolders.tree(
+                notes.map(NoteListItem::category),
+                nestedFolders(accountId),
+                settings.noteFolderChanges(accountId).value.emptyFolders
+            )
+            val folder = tree.find(path) ?: return@withLock 0
+            val ids = notes.filter { NoteFolders.isWithin(it.category, path) }.map { it.localId }
+            if (ids.isNotEmpty()) {
+                noteRepository.moveToTrash(accountId, ids)
+                pruneSharedFiles(accountId)
+            }
+            settings.updateNoteFolderChanges(accountId) {
+                it.deleted(folder.path, folder.subtreePaths())
+            }
+            ids.size
+        }
+        scheduleSync(accountId, 0)
+        return deleted
+    }
+
+    /**
+     * Makes the folder changes recorded in the app in the note folder: creates new folders, then
+     * removes those that renaming or deleting left behind, once nothing is left in them. A failure
+     * that may pass keeps the change for the next synchronization.
+     */
+    private suspend fun synchronizeFolderChanges(accountId: String) {
+        val account = accountRepository.get(accountId) ?: return
+        val backend = folderBackendFor(account) ?: return
+        val categories = noteRepository.observeNotes(accountId).first()
+            .map(NoteListItem::category)
+        val changes = settings.updateNoteFolderChanges(accountId) { it.withNotes(categories) }
+        if (changes.pendingCreations.isEmpty() && changes.pendingRemovals.isEmpty()) return
+        for (path in changes.creationOrder()) {
+            if (!applyFolderChange(accountId) { backend.createFolder(account, path) }) return
+            settings.updateNoteFolderChanges(accountId) { current ->
+                current.copy(
+                    pendingCreations = current.pendingCreations.filterNot {
+                        NoteFolders.key(it) == NoteFolders.key(path)
+                    }
+                )
+            }
+        }
+        for (path in changes.removalOrder()) {
+            val current = settings.noteFolderChanges(accountId).value
+            // A folder that holds notes again, or was created again, is in use and stays.
+            val inUse = categories.any { NoteFolders.isWithin(it, path) } ||
+                current.emptyFolders.any { NoteFolders.isWithin(it, path) }
+            if (!inUse &&
+                !applyFolderChange(accountId) { backend.removeEmptyFolder(account, path) }
+            ) {
+                return
+            }
+            settings.updateNoteFolderChanges(accountId) { latest ->
+                latest.copy(
+                    pendingRemovals = latest.pendingRemovals.filterNot {
+                        NoteFolders.key(it) == NoteFolders.key(path)
+                    }
+                )
+            }
+        }
+    }
+
+    /**
+     * Runs one folder change. Returns `false` to keep it for later when the failure may pass;
+     * any other failure is recorded and the change dropped, since folders are only a convenience
+     * that notes recreate as needed.
+     */
+    private suspend fun applyFolderChange(accountId: String, change: suspend () -> Unit): Boolean =
+        try {
+            change()
+            true
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: BackendException) {
+            recordSyncDiagnosticSafely(accountId, SyncDiagnosticSource.ACCOUNT, error)
+            error !is BackendException.Retryable &&
+                error !is BackendException.Authentication &&
+                error !is BackendException.AuthorizationRequired &&
+                error !is BackendException.AccountRemoved &&
+                error !is BackendException.FilesAppUnavailable &&
+                error !is BackendException.InsufficientStorage
+        } catch (error: Exception) {
+            recordSyncDiagnosticSafely(accountId, SyncDiagnosticSource.ACCOUNT, error)
+            true
+        }
+
+    private fun folderBackendFor(account: Account): NoteFolderBackend? =
+        if (account.isLocalFolder) localFolderBackend else folderBackend
+
     fun cacheDraft(localId: String, content: String) {
         editorDrafts.cache(localId, content)
     }
@@ -1914,6 +2097,7 @@ class ApplicationComponent(
         when (outcome) {
             SyncOutcome.Success -> {
                 pruneSharedFiles(accountId)
+                synchronizeFolderChanges(accountId)
                 updateSyncState(accountId, SyncUiState.Idle)
             }
             is SyncOutcome.RetryableFailure -> reportSyncFailure(accountId, outcome.error)

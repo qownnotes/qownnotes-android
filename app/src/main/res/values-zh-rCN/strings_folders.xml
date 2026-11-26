@@ -11,4 +11,32 @@
     <string name="search_all_folders">搜索所有文件夹</string>
     <string name="settings_use_subfolders">使用子文件夹</string>
     <string name="settings_use_subfolders_description">按账户设置。关闭后，与 QOwnNotes 桌面版相同，只列出根文件夹中的笔记，新笔记也创建在根文件夹中。子文件夹中的笔记仍会同步。</string>
+    <!-- Creating, renaming, and deleting subfolders -->
+    <string name="folders_actions">子文件夹操作</string>
+    <string name="folders_action_delete">删除</string>
+    <string name="folders_name">子文件夹名称</string>
+    <string name="folders_new_location">将在 %1$s 中创建。使用 / 可创建嵌套子文件夹。</string>
+    <string name="folders_new_location_root">将在根文件夹中创建。使用 / 可创建嵌套子文件夹。</string>
+    <string name="folders_exists">已存在同名子文件夹。</string>
+    <string name="folders_name_slash">子文件夹名称不能包含 /。</string>
+    <string name="folders_rename_title">重命名子文件夹</string>
+    <plurals name="folders_rename_notes">
+        <item quantity="other">%1$d 条笔记将随之移动。</item>
+    </plurals>
+    <string name="folders_rename_failed">无法重命名子文件夹</string>
+    <plurals name="folders_rename_blocked">
+        <item quantity="other">此子文件夹中有 %1$d 条笔记无法移动，因为它们是只读的或存在未解决的冲突。请先解决，然后重试。</item>
+    </plurals>
+    <string name="folders_rename_retry">未做任何更改。请重试。</string>
+    <string name="folders_delete_title">删除子文件夹 %1$s？</string>
+    <string name="folders_delete_empty">该子文件夹不含笔记，将被移除。</string>
+    <plurals name="folders_delete_notes">
+        <item quantity="other">此子文件夹及其子文件夹中的 %1$d 条笔记将移到回收站。</item>
+    </plurals>
+    <plurals name="folders_delete_unsynchronized">
+        <item quantity="other">%1$d 条笔记有尚未同步的更改。这些更改不会保留在回收站中。</item>
+    </plurals>
+    <string name="new_note_folder_title">新笔记的子文件夹</string>
+    <string name="new_note_folder_change">更改子文件夹</string>
+    <string name="action_select">选择</string>
 </resources>

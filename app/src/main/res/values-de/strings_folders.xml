@@ -11,4 +11,36 @@
     <string name="search_all_folders">Alle Ordner durchsuchen</string>
     <string name="settings_use_subfolders">Unterordner verwenden</string>
     <string name="settings_use_subfolders_description">Pro Konto. Ist dies aus, werden wie in QOwnNotes Desktop nur Notizen im Stammordner angezeigt und dort angelegt. Notizen in Unterordnern werden weiterhin synchronisiert.</string>
+    <!-- Creating, renaming, and deleting subfolders -->
+    <string name="folders_actions">Unterordner-Aktionen</string>
+    <string name="folders_action_delete">Löschen</string>
+    <string name="folders_name">Name des Unterordners</string>
+    <string name="folders_new_location">Wird in %1$s angelegt. Mit / lassen sich verschachtelte Unterordner anlegen.</string>
+    <string name="folders_new_location_root">Wird im Stammordner angelegt. Mit / lassen sich verschachtelte Unterordner anlegen.</string>
+    <string name="folders_exists">Ein Unterordner mit diesem Namen existiert bereits.</string>
+    <string name="folders_name_slash">Ein Unterordnername darf kein / enthalten.</string>
+    <string name="folders_rename_title">Unterordner umbenennen</string>
+    <plurals name="folders_rename_notes">
+        <item quantity="one">%1$d Notiz wird mit verschoben.</item>
+        <item quantity="other">%1$d Notizen werden mit verschoben.</item>
+    </plurals>
+    <string name="folders_rename_failed">Unterordner konnte nicht umbenannt werden</string>
+    <plurals name="folders_rename_blocked">
+        <item quantity="one">%1$d Notiz in diesem Unterordner kann nicht verschoben werden, weil sie schreibgeschützt ist oder einen ungelösten Konflikt hat. Löse das zuerst und versuche es dann erneut.</item>
+        <item quantity="other">%1$d Notizen in diesem Unterordner können nicht verschoben werden, weil sie schreibgeschützt sind oder ungelöste Konflikte haben. Löse das zuerst und versuche es dann erneut.</item>
+    </plurals>
+    <string name="folders_rename_retry">Es wurde nichts geändert. Bitte versuche es erneut.</string>
+    <string name="folders_delete_title">Unterordner %1$s löschen?</string>
+    <string name="folders_delete_empty">Der Unterordner enthält keine Notizen und wird entfernt.</string>
+    <plurals name="folders_delete_notes">
+        <item quantity="one">%1$d Notiz in diesem Unterordner und seinen Unterordnern wird in den Papierkorb verschoben.</item>
+        <item quantity="other">%1$d Notizen in diesem Unterordner und seinen Unterordnern werden in den Papierkorb verschoben.</item>
+    </plurals>
+    <plurals name="folders_delete_unsynchronized">
+        <item quantity="one">%1$d Notiz hat noch nicht synchronisierte Änderungen. Diese Änderungen bleiben im Papierkorb nicht erhalten.</item>
+        <item quantity="other">%1$d Notizen haben noch nicht synchronisierte Änderungen. Diese Änderungen bleiben im Papierkorb nicht erhalten.</item>
+    </plurals>
+    <string name="new_note_folder_title">Unterordner für neue Notiz</string>
+    <string name="new_note_folder_change">Unterordner ändern</string>
+    <string name="action_select">Auswählen</string>
 </resources>

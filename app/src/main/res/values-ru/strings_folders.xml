@@ -11,4 +11,44 @@
     <string name="search_all_folders">Искать во всех папках</string>
     <string name="settings_use_subfolders">Использовать подпапки</string>
     <string name="settings_use_subfolders_description">Для каждой учётной записи. Если выключено, показываются только заметки из корневой папки и новые заметки создаются в ней, как в QOwnNotes для компьютера. Заметки в подпапках по-прежнему синхронизируются.</string>
+    <!-- Creating, renaming, and deleting subfolders -->
+    <string name="folders_actions">Действия с подпапкой</string>
+    <string name="folders_action_delete">Удалить</string>
+    <string name="folders_name">Имя подпапки</string>
+    <string name="folders_new_location">Будет создана в: %1$s. Используйте /, чтобы создать вложенные подпапки.</string>
+    <string name="folders_new_location_root">Будет создана в корневой папке. Используйте /, чтобы создать вложенные подпапки.</string>
+    <string name="folders_exists">Подпапка с таким именем уже существует.</string>
+    <string name="folders_name_slash">Имя подпапки не может содержать /.</string>
+    <string name="folders_rename_title">Переименовать подпапку</string>
+    <plurals name="folders_rename_notes">
+        <item quantity="one">%1$d заметка будет перемещена вместе с ней.</item>
+        <item quantity="few">%1$d заметки будут перемещены вместе с ней.</item>
+        <item quantity="many">%1$d заметок будут перемещены вместе с ней.</item>
+        <item quantity="other">%1$d заметки будут перемещены вместе с ней.</item>
+    </plurals>
+    <string name="folders_rename_failed">Не удалось переименовать подпапку</string>
+    <plurals name="folders_rename_blocked">
+        <item quantity="one">%1$d заметку в этой подпапке нельзя переместить: она доступна только для чтения или имеет неразрешённый конфликт. Сначала устраните это, затем повторите попытку.</item>
+        <item quantity="few">%1$d заметки в этой подпапке нельзя переместить: они доступны только для чтения или имеют неразрешённые конфликты. Сначала устраните это, затем повторите попытку.</item>
+        <item quantity="many">%1$d заметок в этой подпапке нельзя переместить: они доступны только для чтения или имеют неразрешённые конфликты. Сначала устраните это, затем повторите попытку.</item>
+        <item quantity="other">%1$d заметки в этой подпапке нельзя переместить: они доступны только для чтения или имеют неразрешённые конфликты. Сначала устраните это, затем повторите попытку.</item>
+    </plurals>
+    <string name="folders_rename_retry">Ничего не изменено. Повторите попытку.</string>
+    <string name="folders_delete_title">Удалить подпапку %1$s?</string>
+    <string name="folders_delete_empty">Подпапка не содержит заметок и будет удалена.</string>
+    <plurals name="folders_delete_notes">
+        <item quantity="one">%1$d заметка из этой подпапки и её подпапок будет перемещена в корзину.</item>
+        <item quantity="few">%1$d заметки из этой подпапки и её подпапок будут перемещены в корзину.</item>
+        <item quantity="many">%1$d заметок из этой подпапки и её подпапок будут перемещены в корзину.</item>
+        <item quantity="other">%1$d заметки из этой подпапки и её подпапок будут перемещены в корзину.</item>
+    </plurals>
+    <plurals name="folders_delete_unsynchronized">
+        <item quantity="one">У %1$d заметки есть несинхронизированные изменения. Эти изменения не сохранятся в корзине.</item>
+        <item quantity="few">У %1$d заметок есть несинхронизированные изменения. Эти изменения не сохранятся в корзине.</item>
+        <item quantity="many">У %1$d заметок есть несинхронизированные изменения. Эти изменения не сохранятся в корзине.</item>
+        <item quantity="other">У %1$d заметок есть несинхронизированные изменения. Эти изменения не сохранятся в корзине.</item>
+    </plurals>
+    <string name="new_note_folder_title">Подпапка для новой заметки</string>
+    <string name="new_note_folder_change">Изменить подпапку</string>
+    <string name="action_select">Выбрать</string>
 </resources>

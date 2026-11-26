@@ -229,15 +229,7 @@ interface NoteDao {
         val notes = localIds.map { get(it) ?: return 0 }
         if (notes.any {
                 it.accountId != accountId || it.syncState == SyncState.PENDING_DELETION ||
-                    (
-                        !copy && (
-                            it.readOnly || it.syncState in setOf(
-                                SyncState.CONFLICT,
-                                SyncState.REMOTE_MISSING,
-                                SyncState.READ_ONLY_CONFLICT
-                            ) || (it.syncState == SyncState.FAILED && it.remoteId == null)
-                            )
-                        )
+                    (!copy && !it.isMovable())
             }
         ) {
             return 0
@@ -252,6 +244,20 @@ interface NoteDao {
             }
         }
         return changed
+    }
+
+    /** Moves each note to its own category; any note that cannot move rejects the entire change. */
+    @Transaction
+    suspend fun recategorizeNotes(accountId: String, categories: Map<String, String>): Int {
+        val notes = categories.keys.map { get(it) ?: return 0 }
+        if (notes.any {
+                it.accountId != accountId || it.syncState == SyncState.PENDING_DELETION ||
+                    !it.isMovable()
+            }
+        ) {
+            return 0
+        }
+        return notes.sumOf { updateCategory(it.localId, categories.getValue(it.localId)) }
     }
 
     /** Copies each note into the folder it is already in, like a copy to that same folder. */
@@ -335,6 +341,15 @@ interface NoteDao {
     @Query("DELETE FROM notes WHERE accountId = :accountId AND syncState = 'SYNCHRONIZED'")
     suspend fun deleteSynchronized(accountId: String)
 }
+
+/** Whether a move may change the note's category, as [NoteDao.updateCategory] allows. */
+private fun NoteEntity.isMovable() = !readOnly &&
+    syncState !in setOf(
+        SyncState.CONFLICT,
+        SyncState.REMOTE_MISSING,
+        SyncState.READ_ONLY_CONFLICT
+    ) &&
+    !(syncState == SyncState.FAILED && remoteId == null)
 
 @Dao
 interface AccountDao {

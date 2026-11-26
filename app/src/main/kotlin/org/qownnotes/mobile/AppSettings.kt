@@ -11,6 +11,7 @@ import org.qownnotes.mobile.core.ImageShrinkSettings
 import org.qownnotes.mobile.core.ImageShrinking
 import org.qownnotes.mobile.core.InsertDateFormats
 import org.qownnotes.mobile.core.NoteCategoryScope
+import org.qownnotes.mobile.core.NoteFolderChanges
 import org.qownnotes.mobile.core.NoteFolderScope
 import org.qownnotes.mobile.core.PhotoResolution
 import org.qownnotes.mobile.core.PhotoSize
@@ -387,6 +388,52 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
             .apply()
     }
 
+    private val mutableFolderChanges = mutableMapOf<String, MutableStateFlow<NoteFolderChanges>>()
+
+    /** Folders created in the app without notes, and folder changes still to be synchronized. */
+    fun noteFolderChanges(accountId: String): StateFlow<NoteFolderChanges> =
+        mutableFolderChanges(accountId).asStateFlow()
+
+    @Synchronized
+    fun updateNoteFolderChanges(
+        accountId: String,
+        change: (NoteFolderChanges) -> NoteFolderChanges
+    ): NoteFolderChanges {
+        val state = mutableFolderChanges(accountId)
+        val updated = change(state.value)
+        if (updated == state.value) return updated
+        preferences.edit()
+            .putStringSet("$EMPTY_FOLDERS_PREFIX$accountId", updated.emptyFolders.toSet())
+            .putStringSet("$FOLDER_CREATIONS_PREFIX$accountId", updated.pendingCreations.toSet())
+            .putStringSet("$FOLDER_REMOVALS_PREFIX$accountId", updated.pendingRemovals.toSet())
+            .apply()
+        state.value = updated
+        return updated
+    }
+
+    fun removeNoteFolderChanges(accountId: String) {
+        preferences.edit()
+            .remove("$EMPTY_FOLDERS_PREFIX$accountId")
+            .remove("$FOLDER_CREATIONS_PREFIX$accountId")
+            .remove("$FOLDER_REMOVALS_PREFIX$accountId")
+            .apply()
+        mutableFolderChanges.remove(accountId)?.value = NoteFolderChanges()
+    }
+
+    @Synchronized
+    private fun mutableFolderChanges(accountId: String): MutableStateFlow<NoteFolderChanges> =
+        mutableFolderChanges.getOrPut(accountId) {
+            fun read(prefix: String) =
+                preferences.getStringSet("$prefix$accountId", null).orEmpty().sorted()
+            MutableStateFlow(
+                NoteFolderChanges(
+                    emptyFolders = read(EMPTY_FOLDERS_PREFIX),
+                    pendingCreations = read(FOLDER_CREATIONS_PREFIX),
+                    pendingRemovals = read(FOLDER_REMOVALS_PREFIX)
+                )
+            )
+        }
+
     /** Relative Markdown path of the bookmarks note for this account. */
     fun bookmarksPath(accountId: String): StateFlow<String> =
         mutableBookmarksPath(accountId).asStateFlow()
@@ -532,6 +579,9 @@ class AppSettings(context: Context, name: String = PREFERENCES) {
         const val NOTE_CATEGORY_SCOPE_PREFIX = "noteCategoryScope."
         const val NOTE_FOLDER_SUBFOLDERS_PREFIX = "noteFolderSubfolders."
         const val USE_SUBFOLDERS_PREFIX = "useSubfolders."
+        const val EMPTY_FOLDERS_PREFIX = "emptyFolders."
+        const val FOLDER_CREATIONS_PREFIX = "folderCreations."
+        const val FOLDER_REMOVALS_PREFIX = "folderRemovals."
         const val BOOKMARKS_PATH_PREFIX = "bookmarksPath."
         const val NEXTCLOUD_DECK_AVAILABLE_PREFIX = "nextcloudDeckAvailable."
         const val NEXTCLOUD_DECK_BOARD_PREFIX = "nextcloudDeckBoardId."

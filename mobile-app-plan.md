@@ -800,7 +800,7 @@ Folder scope is a local view, not a server query. Keep pulling the full unfilter
 
 Folders are derived state, not stored entities. Build the tree from the distinct category values of the cached notes. This needs no new table and no note-schema migration, because `category` and `lastSyncedCategory` are already modeled, persisted, parsed, and sent.
 
-An empty folder cannot exist on the server. Do not offer creating an empty folder as a durable object. A new-folder affordance may only pre-fill the category of a note that is being created.
+The Notes API never reports a folder without notes, and the Notes server removes a category folder once its last note leaves it. A folder created in the app is therefore remembered per account in `AppSettings` until a note is put into it, and it is created in the note folder as well, through WebDAV for Nextcloud and the Storage Access Framework for a local folder, so QOwnNotes desktop sees it. The app does not scan the note folder for empty folders created elsewhere. See [Implemented Folder Management](#implemented-folder-management).
 
 The selected scope is a device-local preference. Persist it per account through the existing `AppSettings` rather than in Room, and fall back to Undefined when the remembered category no longer contains notes. The first category increment used a flat exact-category selector. It has been replaced by the hierarchical scope, a folder plus a subfolder choice, and its stored Undefined and All categories values now mean the root without and with subfolders.
 
@@ -1210,9 +1210,44 @@ Remaining:
 - Verify the folder drawer, subfolder switch, and folder-scoped search against a real Nextcloud
   account with nested categories created by QOwnNotes desktop.
 
-Explicitly out of scope for this phase: creating durable empty folders, renaming or deleting
-category folders, per-folder exclusion, and subfolder scopes for note-list widgets, which keep
-their exact-category filter.
+Explicitly out of scope for this phase: per-folder exclusion and subfolder scopes for note-list
+widgets, which keep their exact-category filter. Creating, renaming, and deleting folders followed
+in [Implemented Folder Management](#implemented-folder-management).
+
+### Implemented Folder Management
+
+Folders can be created, renamed, and deleted from the folder drawer, and the new-note name dialog
+chooses the folder of the note ([#34](https://github.com/qownnotes/qownnotes-android/issues/34)).
+
+- `NoteFolderChanges` in `core` holds, per account, the folders created in the app that have no
+  notes yet, the folders still to be created in the note folder, and the folders still to be
+  removed. `AppSettings` persists it, because it is device-local presentation and best-effort
+  folder housekeeping rather than synchronized note content. A remembered folder is forgotten once
+  a note is in it or below it, after which it behaves like every derived folder.
+- `NoteFolderBackend` creates a folder with its parents and removes a folder only while nothing at
+  all is inside it, so neither notes nor other files can be lost. Nextcloud uses WebDAV `MKCOL`,
+  `PROPFIND`, and `DELETE` below the notes path; local folders use the Storage Access Framework.
+  Both refuse the notes root, parent paths, and the `media` and `attachments` trees.
+- Folder changes run after a successful synchronization, creations parents first and removals
+  deepest first. A folder that holds notes again or was created again is not removed. Retryable,
+  authentication, and storage failures keep a change for the next synchronization; other failures
+  are recorded as diagnostics and drop it, because notes recreate folders as needed.
+- Renaming changes only the last path segment, so relative media links keep working. Every note at
+  and below the folder moves in one Room transaction through `NoteRepository.recategorizeNotes`,
+  and each move is pushed with `If-Match` like any other. A read-only note, an unresolved conflict,
+  or an uncertain create blocks the entire rename up front instead of splitting the folder; a
+  concurrent server change during the push becomes an ordinary conflict. The old folders are then
+  removed once empty, which the Notes server usually has done already.
+- Deleting moves every note at and below the folder to the trash after a confirmation that counts
+  them and warns about changes that are not synchronized yet, then removes the emptied folders.
+- With "Ask for name of new notes" on and subfolders in use, the new-note dialog shows the folder
+  as a chip that opens the folder picker. Without the dialog a new note is still created in the
+  selected folder without an extra step.
+
+Remaining:
+
+- Verify folder creation, renaming, and deletion against a real Nextcloud server and a Syncthing
+  folder shared with QOwnNotes desktop.
 
 ### Implemented Bookmark Browser
 

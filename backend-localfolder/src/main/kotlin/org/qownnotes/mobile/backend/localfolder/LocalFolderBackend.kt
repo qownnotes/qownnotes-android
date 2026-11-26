@@ -27,6 +27,7 @@ import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteCategories
+import org.qownnotes.mobile.core.NoteFolderBackend
 import org.qownnotes.mobile.core.NoteMediaBackend
 import org.qownnotes.mobile.core.NoteNames
 import org.qownnotes.mobile.core.NoteTagFileBackend
@@ -61,6 +62,7 @@ class LocalFolderBackend(
     private val filesFor: (Account) -> NoteFolderFiles,
     private val clock: Clock = Clock.systemDefaultZone()
 ) : NoteBackend,
+    NoteFolderBackend,
     NoteMediaBackend,
     NoteTagFileBackend,
     NoteArchiveBackend {
@@ -205,6 +207,13 @@ class LocalFolderBackend(
         state.paths.remove(remoteId)
         favorites(account.id).update { it - path }
     }
+
+    override suspend fun createFolder(account: Account, path: String) = io(account) { files, _ ->
+        files.createDirectory(validatedFolder(path))
+    }
+
+    override suspend fun removeEmptyFolder(account: Account, path: String): Boolean =
+        io(account) { files, _ -> files.deleteEmptyDirectory(validatedFolder(path)) }
 
     override suspend fun versions(account: Account, note: Note): List<RemoteNoteVersion> =
         throw BackendException.FeatureUnavailable(VERSIONS_UNAVAILABLE_MESSAGE)
@@ -528,6 +537,15 @@ class LocalFolderBackend(
         }
 
         private fun categoryOf(note: Note): String = NoteCategories.normalize(note.category)
+
+        /** Folder requests never reach the note folder itself, a parent, or the media folders. */
+        private fun validatedFolder(path: String): String {
+            require(
+                path.isNotEmpty() && path == NoteCategories.normalize(path) &&
+                    !NoteCategories.isInternal(path) && isListedDirectory(path)
+            ) { "Invalid note folder" }
+            return path
+        }
 
         private fun joinPath(category: String, name: String) =
             if (category.isEmpty()) name else "$category/$name"

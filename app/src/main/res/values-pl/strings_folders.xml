@@ -11,4 +11,44 @@
     <string name="search_all_folders">Szukaj we wszystkich folderach</string>
     <string name="settings_use_subfolders">Używaj podfolderów</string>
     <string name="settings_use_subfolders_description">Dla każdego konta osobno. Po wyłączeniu wyświetlane są tylko notatki z folderu głównego i tam tworzone są nowe notatki, jak w QOwnNotes na komputer. Notatki w podfolderach są nadal synchronizowane.</string>
+    <!-- Creating, renaming, and deleting subfolders -->
+    <string name="folders_actions">Akcje podfolderu</string>
+    <string name="folders_action_delete">Usuń</string>
+    <string name="folders_name">Nazwa podfolderu</string>
+    <string name="folders_new_location">Zostanie utworzony w: %1$s. Użyj /, aby utworzyć zagnieżdżone podfoldery.</string>
+    <string name="folders_new_location_root">Zostanie utworzony w folderze głównym. Użyj /, aby utworzyć zagnieżdżone podfoldery.</string>
+    <string name="folders_exists">Podfolder o tej nazwie już istnieje.</string>
+    <string name="folders_name_slash">Nazwa podfolderu nie może zawierać /.</string>
+    <string name="folders_rename_title">Zmień nazwę podfolderu</string>
+    <plurals name="folders_rename_notes">
+        <item quantity="one">%1$d notatka zostanie przeniesiona razem z nim.</item>
+        <item quantity="few">%1$d notatki zostaną przeniesione razem z nim.</item>
+        <item quantity="many">%1$d notatek zostanie przeniesionych razem z nim.</item>
+        <item quantity="other">%1$d notatki zostanie przeniesione razem z nim.</item>
+    </plurals>
+    <string name="folders_rename_failed">Nie udało się zmienić nazwy podfolderu</string>
+    <plurals name="folders_rename_blocked">
+        <item quantity="one">%1$d notatki w tym podfolderze nie można przenieść, ponieważ jest tylko do odczytu lub ma nierozwiązany konflikt. Najpierw to rozwiąż, a potem spróbuj ponownie.</item>
+        <item quantity="few">%1$d notatek w tym podfolderze nie można przenieść, ponieważ są tylko do odczytu lub mają nierozwiązane konflikty. Najpierw to rozwiąż, a potem spróbuj ponownie.</item>
+        <item quantity="many">%1$d notatek w tym podfolderze nie można przenieść, ponieważ są tylko do odczytu lub mają nierozwiązane konflikty. Najpierw to rozwiąż, a potem spróbuj ponownie.</item>
+        <item quantity="other">%1$d notatek w tym podfolderze nie można przenieść, ponieważ są tylko do odczytu lub mają nierozwiązane konflikty. Najpierw to rozwiąż, a potem spróbuj ponownie.</item>
+    </plurals>
+    <string name="folders_rename_retry">Niczego nie zmieniono. Spróbuj ponownie.</string>
+    <string name="folders_delete_title">Usunąć podfolder %1$s?</string>
+    <string name="folders_delete_empty">Podfolder nie zawiera notatek i zostanie usunięty.</string>
+    <plurals name="folders_delete_notes">
+        <item quantity="one">%1$d notatka z tego podfolderu i jego podfolderów zostanie przeniesiona do kosza.</item>
+        <item quantity="few">%1$d notatki z tego podfolderu i jego podfolderów zostaną przeniesione do kosza.</item>
+        <item quantity="many">%1$d notatek z tego podfolderu i jego podfolderów zostanie przeniesionych do kosza.</item>
+        <item quantity="other">%1$d notatki z tego podfolderu i jego podfolderów zostanie przeniesione do kosza.</item>
+    </plurals>
+    <plurals name="folders_delete_unsynchronized">
+        <item quantity="one">%1$d notatka ma zmiany, które nie zostały jeszcze zsynchronizowane. Te zmiany nie zostaną zachowane w koszu.</item>
+        <item quantity="few">%1$d notatki mają zmiany, które nie zostały jeszcze zsynchronizowane. Te zmiany nie zostaną zachowane w koszu.</item>
+        <item quantity="many">%1$d notatek ma zmiany, które nie zostały jeszcze zsynchronizowane. Te zmiany nie zostaną zachowane w koszu.</item>
+        <item quantity="other">%1$d notatki ma zmiany, które nie zostały jeszcze zsynchronizowane. Te zmiany nie zostaną zachowane w koszu.</item>
+    </plurals>
+    <string name="new_note_folder_title">Podfolder nowej notatki</string>
+    <string name="new_note_folder_change">Zmień podfolder</string>
+    <string name="action_select">Wybierz</string>
 </resources>

@@ -366,6 +366,41 @@ class LocalFolderBackendTest {
 
     private fun read(path: String) = File(folder, path).readText()
 
+    @Test
+    fun foldersAreCreatedAndOnlyRemovedWhileEmpty() = runBlocking {
+        backend.createFolder(account, "Projects/Ideas")
+        backend.createFolder(account, "Projects/Ideas")
+        assertTrue(File(folder, "Projects/Ideas").isDirectory)
+
+        write("Projects/Ideas/picture.png", "kept")
+        assertFalse(backend.removeEmptyFolder(account, "Projects/Ideas"))
+        assertTrue(File(folder, "Projects/Ideas/picture.png").isFile)
+        assertFalse(backend.removeEmptyFolder(account, "Projects"))
+
+        File(folder, "Projects/Ideas/picture.png").delete()
+        assertTrue(backend.removeEmptyFolder(account, "Projects/Ideas"))
+        assertTrue(backend.removeEmptyFolder(account, "Projects"))
+        assertFalse(File(folder, "Projects").exists())
+        assertTrue(backend.removeEmptyFolder(account, "Projects"))
+    }
+
+    @Test
+    fun folderRequestsStayBelowTheNoteFolder() = runBlocking {
+        for (path in listOf("", "..", "media", "Projects/../..", ".hidden", "/Projects")) {
+            try {
+                backend.createFolder(account, path)
+                fail(path)
+            } catch (_: IllegalArgumentException) {
+            }
+            try {
+                backend.removeEmptyFolder(account, path)
+                fail(path)
+            } catch (_: IllegalArgumentException) {
+            }
+        }
+        assertTrue(folder.isDirectory)
+    }
+
     private fun PullResult.checkpoint() = PullCheckpoint(collectionEtag, lastModifiedEpochSeconds)
 
     private fun note(title: String, content: String, category: String = "") = Note(

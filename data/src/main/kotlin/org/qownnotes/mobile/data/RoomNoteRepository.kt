@@ -129,6 +129,15 @@ class RoomNoteRepository(private val noteDao: NoteDao) : NoteRepository {
         modifiedAtEpochSeconds: Long
     ): Int = noteDao.duplicateNotes(accountId, localIds.distinct(), modifiedAtEpochSeconds)
 
+    override suspend fun recategorizeNotes(
+        accountId: String,
+        categories: Map<String, String>
+    ): Int {
+        val normalized = categories.mapValues { NoteCategories.normalize(it.value) }
+        if (normalized.isEmpty() || normalized.values.any(NoteCategories::isInternal)) return 0
+        return noteDao.recategorizeNotes(accountId, normalized)
+    }
+
     override suspend fun retry(localId: String): Boolean = noteDao.retry(localId) > 0
 
     override suspend fun moveToTrash(accountId: String, localIds: List<String>) =

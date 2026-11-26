@@ -39,6 +39,7 @@ import org.qownnotes.mobile.core.Note
 import org.qownnotes.mobile.core.NoteArchiveBackend
 import org.qownnotes.mobile.core.NoteBackend
 import org.qownnotes.mobile.core.NoteDeckBackend
+import org.qownnotes.mobile.core.NoteFolderBackend
 import org.qownnotes.mobile.core.NoteFolderDiscovery
 import org.qownnotes.mobile.core.NoteFolderDiscoveryBackend
 import org.qownnotes.mobile.core.NoteMediaBackend
@@ -75,6 +76,7 @@ class NextcloudBackend(context: Context) :
     NoteMediaBackend,
     NoteSettingsBackend,
     NoteFolderDiscoveryBackend,
+    NoteFolderBackend,
     NoteTagFileBackend,
     NoteDeckBackend,
     NoteShareBackend {
@@ -260,6 +262,28 @@ class NextcloudBackend(context: Context) :
             throw error.asBackendException()
         }
     }
+
+    override suspend fun createFolder(account: Account, path: String) =
+        withContext(Dispatchers.IO) {
+            try {
+                withWebDav(account) { client, endpoint ->
+                    createFolderWithClient(client, path) { endpoint.withFolder(it) }
+                }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
+
+    override suspend fun removeEmptyFolder(account: Account, path: String): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                withWebDav(account) { client, endpoint ->
+                    removeEmptyFolderWithClient(client, path) { endpoint.withFolder(it) }
+                }
+            } catch (error: Throwable) {
+                throw error.asBackendException()
+            }
+        }
 
     override suspend fun versions(account: Account, note: Note): List<RemoteNoteVersion> =
         withContext(Dispatchers.IO) {
@@ -519,6 +543,16 @@ class NextcloudBackend(context: Context) :
         append(Uri.encode(account.userId))
         append('/')
         notesPath.trim('/').split('/').filter(String::isNotBlank).forEach { segment ->
+            append(Uri.encode(segment))
+            append('/')
+        }
+    }
+
+    /** The WebDAV URL of a category below this notes folder URL. */
+    private fun String.withFolder(category: String): String = buildString {
+        append(this@withFolder.trimEnd('/'))
+        append('/')
+        category.split('/').filter(String::isNotEmpty).forEach { segment ->
             append(Uri.encode(segment))
             append('/')
         }
@@ -934,7 +968,7 @@ private class NotesHttpException(val statusCode: Int) :
 private const val NOTES_CHUNK_SIZE = 200
 private const val SSO_TRANSPORT_ERROR = 900
 private const val HTTP_LOCKED = 423
-private const val HTTP_METHOD_NOT_ALLOWED = 405
+internal const val HTTP_METHOD_NOT_ALLOWED = 405
 private const val HTTP_TOO_MANY_REQUESTS = 429
 private const val HTTP_INSUFFICIENT_STORAGE = 507
 private const val MIN_QOWNNOTES_API_VERSION = "0.4.4"

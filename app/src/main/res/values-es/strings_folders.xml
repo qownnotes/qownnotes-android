@@ -11,4 +11,40 @@
     <string name="search_all_folders">Buscar en todas las carpetas</string>
     <string name="settings_use_subfolders">Usar subcarpetas</string>
     <string name="settings_use_subfolders_description">Por cuenta. Si está desactivado, solo se muestran las notas de la carpeta raíz y las notas nuevas se crean allí, como en QOwnNotes de escritorio. Las notas de las subcarpetas se siguen sincronizando.</string>
+    <!-- Creating, renaming, and deleting subfolders -->
+    <string name="folders_actions">Acciones de subcarpeta</string>
+    <string name="folders_action_delete">Eliminar</string>
+    <string name="folders_name">Nombre de la subcarpeta</string>
+    <string name="folders_new_location">Se creará en %1$s. Usa / para crear subcarpetas anidadas.</string>
+    <string name="folders_new_location_root">Se creará en la carpeta raíz. Usa / para crear subcarpetas anidadas.</string>
+    <string name="folders_exists">Ya existe una subcarpeta con este nombre.</string>
+    <string name="folders_name_slash">El nombre de una subcarpeta no puede contener /.</string>
+    <string name="folders_rename_title">Renombrar subcarpeta</string>
+    <plurals name="folders_rename_notes">
+        <item quantity="one">%1$d nota se moverá con ella.</item>
+        <item quantity="many">%1$d notas se moverán con ella.</item>
+        <item quantity="other">%1$d notas se moverán con ella.</item>
+    </plurals>
+    <string name="folders_rename_failed">No se pudo renombrar la subcarpeta</string>
+    <plurals name="folders_rename_blocked">
+        <item quantity="one">%1$d nota de esta subcarpeta no se puede mover porque es de solo lectura o tiene un conflicto sin resolver. Resuélvelo primero y vuelve a intentarlo.</item>
+        <item quantity="many">%1$d notas de esta subcarpeta no se pueden mover porque son de solo lectura o tienen conflictos sin resolver. Resuélvelos primero y vuelve a intentarlo.</item>
+        <item quantity="other">%1$d notas de esta subcarpeta no se pueden mover porque son de solo lectura o tienen conflictos sin resolver. Resuélvelos primero y vuelve a intentarlo.</item>
+    </plurals>
+    <string name="folders_rename_retry">No se cambió nada. Vuelve a intentarlo.</string>
+    <string name="folders_delete_title">¿Eliminar la subcarpeta %1$s?</string>
+    <string name="folders_delete_empty">La subcarpeta no contiene notas y se eliminará.</string>
+    <plurals name="folders_delete_notes">
+        <item quantity="one">%1$d nota de esta subcarpeta y sus subcarpetas se moverá a la papelera.</item>
+        <item quantity="many">%1$d notas de esta subcarpeta y sus subcarpetas se moverán a la papelera.</item>
+        <item quantity="other">%1$d notas de esta subcarpeta y sus subcarpetas se moverán a la papelera.</item>
+    </plurals>
+    <plurals name="folders_delete_unsynchronized">
+        <item quantity="one">%1$d nota tiene cambios que aún no se han sincronizado. Esos cambios no se conservarán en la papelera.</item>
+        <item quantity="many">%1$d notas tienen cambios que aún no se han sincronizado. Esos cambios no se conservarán en la papelera.</item>
+        <item quantity="other">%1$d notas tienen cambios que aún no se han sincronizado. Esos cambios no se conservarán en la papelera.</item>
+    </plurals>
+    <string name="new_note_folder_title">Subcarpeta para la nota nueva</string>
+    <string name="new_note_folder_change">Cambiar subcarpeta</string>
+    <string name="action_select">Seleccionar</string>
 </resources>

@@ -47,6 +47,15 @@ interface NoteFolderFiles {
     fun create(path: String, content: ByteArray): String
 
     fun delete(path: String)
+
+    /** Creates a directory and any missing parents; an existing directory is left as it is. */
+    fun createDirectory(path: String)
+
+    /**
+     * Deletes a directory only when nothing is inside it. Returns `false` when something is, and
+     * `true` once no such directory exists.
+     */
+    fun deleteEmptyDirectory(path: String): Boolean
 }
 
 /** The selected folder is gone or its access grant was revoked. */
@@ -108,6 +117,21 @@ class DirectoryNoteFolderFiles(private val root: File) : NoteFolderFiles {
     override fun delete(path: String) {
         val file = resolve(path)
         if (file.exists() && !file.delete()) throw IOException("$path could not be deleted")
+    }
+
+    override fun createDirectory(path: String) {
+        val directory = resolve(path)
+        if (!directory.isDirectory && !directory.mkdirs()) {
+            throw IOException("$path could not be created")
+        }
+    }
+
+    override fun deleteEmptyDirectory(path: String): Boolean {
+        val directory = resolve(path)
+        if (!directory.exists()) return true
+        if (!directory.isDirectory || directory.list().orEmpty().isNotEmpty()) return false
+        if (!directory.delete()) throw IOException("$path could not be deleted")
+        return true
     }
 
     private fun resolve(path: String) = File(root, path)

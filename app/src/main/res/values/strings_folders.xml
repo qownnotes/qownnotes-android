@@ -11,4 +11,37 @@
     <string name="search_all_folders">Search all folders</string>
     <string name="settings_use_subfolders">Use subfolders</string>
     <string name="settings_use_subfolders_description">Per account. When off, only notes in the root folder are listed and new notes are created there, as in QOwnNotes desktop. Notes in subfolders are still synchronized.</string>
+
+    <!-- Creating, renaming, and deleting subfolders -->
+    <string name="folders_actions">Subfolder actions</string>
+    <string name="folders_action_delete">Delete</string>
+    <string name="folders_name">Subfolder name</string>
+    <string name="folders_new_location">Created in %1$s. Use / to create nested subfolders.</string>
+    <string name="folders_new_location_root">Created in the root folder. Use / to create nested subfolders.</string>
+    <string name="folders_exists">A subfolder with this name already exists.</string>
+    <string name="folders_name_slash">A subfolder name can\'t contain /.</string>
+    <string name="folders_rename_title">Rename subfolder</string>
+    <plurals name="folders_rename_notes">
+        <item quantity="one">%1$d note moves with it.</item>
+        <item quantity="other">%1$d notes move with it.</item>
+    </plurals>
+    <string name="folders_rename_failed">Couldn\'t rename subfolder</string>
+    <plurals name="folders_rename_blocked">
+        <item quantity="one">%1$d note in this subfolder can\'t be moved because it is read-only or has an unresolved conflict. Resolve it first, then try again.</item>
+        <item quantity="other">%1$d notes in this subfolder can\'t be moved because they are read-only or have unresolved conflicts. Resolve them first, then try again.</item>
+    </plurals>
+    <string name="folders_rename_retry">Nothing was changed. Please try again.</string>
+    <string name="folders_delete_title">Delete subfolder %1$s?</string>
+    <string name="folders_delete_empty">The subfolder holds no notes and will be removed.</string>
+    <plurals name="folders_delete_notes">
+        <item quantity="one">%1$d note in this subfolder and its subfolders will move to the trash.</item>
+        <item quantity="other">%1$d notes in this subfolder and its subfolders will move to the trash.</item>
+    </plurals>
+    <plurals name="folders_delete_unsynchronized">
+        <item quantity="one">%1$d note has changes that aren\'t synchronized yet. Those changes won\'t be kept in the trash.</item>
+        <item quantity="other">%1$d notes have changes that aren\'t synchronized yet. Those changes won\'t be kept in the trash.</item>
+    </plurals>
+    <string name="new_note_folder_title">Subfolder for new note</string>
+    <string name="new_note_folder_change">Change subfolder</string>
+    <string name="action_select">Select</string>
 </resources>

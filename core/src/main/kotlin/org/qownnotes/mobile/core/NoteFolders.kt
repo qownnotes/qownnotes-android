@@ -44,7 +44,10 @@ data class NoteFolder(
     val children: List<NoteFolder>
 )
 
-/** Folder tree of one account. Folders only exist while at least one note is inside them. */
+/**
+ * Folder tree of one account. Folders exist while at least one note is inside them, and folders
+ * created in the app stay listed without notes until a note is put into them.
+ */
 data class NoteFolderTree(
     /** Notes without a category. */
     val rootNoteCount: Int,
@@ -95,8 +98,13 @@ object NoteFolders {
     /**
      * Builds the folder tree from the category of every note. With [nested] false the backend has
      * no hierarchy, so each category is a top-level folder even when it contains a `/`.
+     * [emptyFolders] are folders created in the app that are listed even without notes.
      */
-    fun tree(categories: Iterable<String>, nested: Boolean = true): NoteFolderTree {
+    fun tree(
+        categories: Iterable<String>,
+        nested: Boolean = true,
+        emptyFolders: Iterable<String> = emptyList()
+    ): NoteFolderTree {
         class Node(val path: String, val name: String, val depth: Int) {
             var count = 0
             val children = linkedMapOf<String, Node>()
@@ -105,24 +113,12 @@ object NoteFolders {
         val top = linkedMapOf<String, Node>()
         var rootCount = 0
         var total = 0
-        categories.forEach { category ->
-            if (category.isEmpty()) {
-                rootCount++
-                total++
-                return@forEach
-            }
-            if (NoteCategories.isInternal(category)) return@forEach
-            total++
+
+        fun nodeOf(category: String): Node? {
             val segments = if (nested) {
-                category.split(
-                    '/'
-                ).filter(String::isNotEmpty)
+                category.split('/').filter(String::isNotEmpty)
             } else {
                 listOf(category)
-            }
-            if (segments.isEmpty()) {
-                rootCount++
-                return@forEach
             }
             var level = top
             var node: Node? = null
@@ -132,7 +128,22 @@ object NoteFolders {
                 node = level.getOrPut(key(segment)) { Node(path, segment, index) }
                 level = node!!.children
             }
-            node!!.count++
+            return node
+        }
+
+        categories.forEach { category ->
+            if (category.isEmpty()) {
+                rootCount++
+                total++
+                return@forEach
+            }
+            if (NoteCategories.isInternal(category)) return@forEach
+            total++
+            val node = nodeOf(category)
+            if (node == null) rootCount++ else node.count++
+        }
+        emptyFolders.forEach { folder ->
+            if (folder.isNotEmpty() && !NoteCategories.isInternal(folder)) nodeOf(folder)
         }
 
         fun build(node: Node): NoteFolder {
@@ -162,6 +173,35 @@ object NoteFolders {
         val scopeKey = key(scope.path)
         return categoryKey == scopeKey ||
             nested && scope.includeSubfolders && categoryKey.startsWith("$scopeKey/")
+    }
+
+    /** Whether [path] is [folder] itself or a folder below it. The root contains every path. */
+    fun isWithin(path: String, folder: String): Boolean {
+        if (folder.isEmpty()) return true
+        val pathKey = key(path)
+        val folderKey = key(folder)
+        return pathKey == folderKey || pathKey.startsWith("$folderKey/")
+    }
+
+    /**
+     * Where [path] ends up when folder [from] becomes [to]: [to] itself, the same subpath below
+     * [to], or `null` when [path] is outside [from].
+     */
+    fun moved(path: String, from: String, to: String): String? = when {
+        from.isEmpty() -> null
+        key(path) == key(from) -> to
+        isWithin(path, from) -> to + path.substring(from.length)
+        else -> null
+    }
+
+    /** The folder containing [path], or the empty root. */
+    fun parent(path: String): String = path.substringBeforeLast('/', "")
+
+    /** Joins a parent folder and a relative folder path, either of which may be the root. */
+    fun join(parent: String, child: String): String = when {
+        parent.isEmpty() -> child
+        child.isEmpty() -> parent
+        else -> "$parent/$child"
     }
 
     /**

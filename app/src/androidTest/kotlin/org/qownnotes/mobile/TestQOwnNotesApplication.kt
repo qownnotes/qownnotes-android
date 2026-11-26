@@ -217,6 +217,7 @@ class FakePullBackend :
     NoteArchiveBackend,
     NoteSettingsBackend,
     NoteFolderDiscoveryBackend,
+    org.qownnotes.mobile.core.NoteFolderBackend,
     org.qownnotes.mobile.core.NoteMediaBackend,
     org.qownnotes.mobile.core.NoteTagFileBackend,
     NoteDeckBackend,
@@ -246,6 +247,26 @@ class FakePullBackend :
 
     /** Other folders that hold notes; none by default, so imports do not ask about the folder. */
     var noteFolderCandidates = emptyList<RemoteNoteFolder>()
+
+    /** Folders created or removed in the note folder, in request order. */
+    val createdFolders = mutableListOf<String>()
+    val removedFolders = mutableListOf<String>()
+
+    /** Folders that still hold something, which are therefore not removed. */
+    val occupiedFolders = mutableSetOf<String>()
+    var folderFailure: Throwable? = null
+
+    override suspend fun createFolder(account: Account, path: String) {
+        folderFailure?.let { throw it }
+        createdFolders += path
+    }
+
+    override suspend fun removeEmptyFolder(account: Account, path: String): Boolean {
+        folderFailure?.let { throw it }
+        if (path in occupiedFolders) return false
+        removedFolders += path
+        return true
+    }
     var validationGate: CompletableDeferred<Unit>? = null
     var pullGate: CompletableDeferred<Unit>? = null
     var createFailure: Throwable? = null
@@ -585,6 +606,10 @@ class FakePullBackend :
         settingsUpdates.clear()
         remoteFolders.clear()
         noteFolderCandidates = emptyList()
+        createdFolders.clear()
+        removedFolders.clear()
+        occupiedFolders.clear()
+        folderFailure = null
         validationGate?.cancel()
         validationGate = null
         pullGate?.cancel()

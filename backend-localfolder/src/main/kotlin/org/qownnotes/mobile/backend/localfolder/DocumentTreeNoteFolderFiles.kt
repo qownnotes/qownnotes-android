@@ -105,6 +105,19 @@ class DocumentTreeNoteFolderFiles(private val resolver: ContentResolver, private
         }
     }
 
+    override fun createDirectory(path: String) {
+        guarded { ensureDirectory(path) }
+    }
+
+    override fun deleteEmptyDirectory(path: String): Boolean = guarded {
+        val id = find(path, ignoreCase = false) ?: return@guarded true
+        val directory = query(id) ?: return@guarded true
+        if (!directory.isDirectory || children(id).isNotEmpty()) return@guarded false
+        DocumentsContract.deleteDocument(resolver, documentUri(id))
+        ids.keys.removeAll { it == path || it.startsWith("$path/") }
+        true
+    }
+
     private fun replace(path: String, id: String, content: ByteArray) {
         DocumentsContract.deleteDocument(resolver, documentUri(id))
         ids.remove(path)

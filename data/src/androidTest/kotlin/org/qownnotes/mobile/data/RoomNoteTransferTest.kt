@@ -178,6 +178,50 @@ class RoomNoteTransferTest {
     }
 
     @Test
+    fun recategorizesEachNoteToItsOwnFolderAtOnce() = runBlocking {
+        notes.save(source("work").copy(category = "Work"))
+        notes.save(source("archive").copy(category = "Work/Archive"))
+
+        assertEquals(
+            2,
+            notes.recategorizeNotes(
+                "account",
+                mapOf("work" to "Job", "archive" to " Job / Archive ")
+            )
+        )
+        assertEquals("Job", notes.get("work")!!.category)
+        assertEquals(SyncState.LOCALLY_MODIFIED, notes.get("work")!!.syncState)
+        assertEquals("Job/Archive", notes.get("archive")!!.category)
+        assertEquals(8L, notes.get("archive")!!.localRevision)
+    }
+
+    @Test
+    fun recategorizingRejectsTheEntireChangeForOneProtectedNote() = runBlocking {
+        notes.save(source("work").copy(category = "Work"))
+        notes.save(source("other").copy(accountId = "other", category = "Work"))
+        val protected = listOf(
+            source("protected").copy(category = "Work", readOnly = true),
+            source("protected").copy(category = "Work", syncState = SyncState.CONFLICT),
+            source("protected").copy(category = "Work", syncState = SyncState.PENDING_DELETION)
+        )
+        for (note in protected) {
+            notes.save(note)
+            assertEquals(
+                0,
+                notes.recategorizeNotes("account", mapOf("work" to "Job", "protected" to "Job"))
+            )
+            assertEquals("Work", notes.get("work")!!.category)
+            assertEquals(note, notes.get("protected"))
+        }
+        assertEquals(
+            0,
+            notes.recategorizeNotes("account", mapOf("work" to "Job", "other" to "Job"))
+        )
+        assertEquals(0, notes.recategorizeNotes("account", mapOf("work" to "media")))
+        assertEquals("Work", notes.get("work")!!.category)
+    }
+
+    @Test
     fun stalePushCannotUndoAMove() = runBlocking {
         val source = source("first")
         notes.save(source)

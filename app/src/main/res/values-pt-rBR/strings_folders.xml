@@ -11,4 +11,40 @@
     <string name="search_all_folders">Pesquisar em todas as pastas</string>
     <string name="settings_use_subfolders">Usar subpastas</string>
     <string name="settings_use_subfolders_description">Por conta. Quando desativado, apenas as notas da pasta raiz são listadas e as novas notas são criadas nela, como no QOwnNotes para desktop. As notas em subpastas continuam sendo sincronizadas.</string>
+    <!-- Creating, renaming, and deleting subfolders -->
+    <string name="folders_actions">Ações da subpasta</string>
+    <string name="folders_action_delete">Excluir</string>
+    <string name="folders_name">Nome da subpasta</string>
+    <string name="folders_new_location">Será criada em %1$s. Use / para criar subpastas aninhadas.</string>
+    <string name="folders_new_location_root">Será criada na pasta raiz. Use / para criar subpastas aninhadas.</string>
+    <string name="folders_exists">Já existe uma subpasta com este nome.</string>
+    <string name="folders_name_slash">O nome de uma subpasta não pode conter /.</string>
+    <string name="folders_rename_title">Renomear subpasta</string>
+    <plurals name="folders_rename_notes">
+        <item quantity="one">%1$d nota será movida junto.</item>
+        <item quantity="many">%1$d notas serão movidas junto.</item>
+        <item quantity="other">%1$d notas serão movidas junto.</item>
+    </plurals>
+    <string name="folders_rename_failed">Não foi possível renomear a subpasta</string>
+    <plurals name="folders_rename_blocked">
+        <item quantity="one">%1$d nota nesta subpasta não pode ser movida porque é somente leitura ou tem um conflito não resolvido. Resolva-o primeiro e tente novamente.</item>
+        <item quantity="many">%1$d notas nesta subpasta não podem ser movidas porque são somente leitura ou têm conflitos não resolvidos. Resolva-os primeiro e tente novamente.</item>
+        <item quantity="other">%1$d notas nesta subpasta não podem ser movidas porque são somente leitura ou têm conflitos não resolvidos. Resolva-os primeiro e tente novamente.</item>
+    </plurals>
+    <string name="folders_rename_retry">Nada foi alterado. Tente novamente.</string>
+    <string name="folders_delete_title">Excluir a subpasta %1$s?</string>
+    <string name="folders_delete_empty">A subpasta não contém notas e será removida.</string>
+    <plurals name="folders_delete_notes">
+        <item quantity="one">%1$d nota desta subpasta e das subpastas dela será movida para a lixeira.</item>
+        <item quantity="many">%1$d notas desta subpasta e das subpastas dela serão movidas para a lixeira.</item>
+        <item quantity="other">%1$d notas desta subpasta e das subpastas dela serão movidas para a lixeira.</item>
+    </plurals>
+    <plurals name="folders_delete_unsynchronized">
+        <item quantity="one">%1$d nota tem alterações que ainda não foram sincronizadas. Essas alterações não serão mantidas na lixeira.</item>
+        <item quantity="many">%1$d notas têm alterações que ainda não foram sincronizadas. Essas alterações não serão mantidas na lixeira.</item>
+        <item quantity="other">%1$d notas têm alterações que ainda não foram sincronizadas. Essas alterações não serão mantidas na lixeira.</item>
+    </plurals>
+    <string name="new_note_folder_title">Subpasta da nova nota</string>
+    <string name="new_note_folder_change">Alterar subpasta</string>
+    <string name="action_select">Selecionar</string>
 </resources>

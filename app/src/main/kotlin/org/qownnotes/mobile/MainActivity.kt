@@ -70,6 +70,7 @@ import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.BugReport
@@ -114,6 +115,8 @@ import androidx.compose.material.icons.filled.ViewKanban
 import androidx.compose.material.icons.outlined.FileCopy
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -1327,9 +1330,23 @@ private fun NoteListScreen(
         .collectAsStateWithLifecycle(context = UiDispatcher)
     val bookmarksPathFlow = remember(accountId) { component.settings.bookmarksPath(accountId) }
     val bookmarksPath by bookmarksPathFlow.collectAsStateWithLifecycle(context = UiDispatcher)
-    val folderTree = remember(allNotes, nestedFolders) {
-        NoteFolders.tree(allNotes.orEmpty().map(NoteListItem::category), nestedFolders)
+    val folderChangesFlow = remember(accountId) { component.noteFolderChanges(accountId) }
+    val folderChanges by folderChangesFlow.collectAsStateWithLifecycle(context = UiDispatcher)
+    val folderTree = remember(allNotes, nestedFolders, folderChanges.emptyFolders) {
+        NoteFolders.tree(
+            allNotes.orEmpty().map(NoteListItem::category),
+            nestedFolders,
+            folderChanges.emptyFolders
+        )
     }
+    // The folder whose dialog is open: the parent of a new folder, or the renamed or deleted one.
+    var newFolderParent by rememberSaveable(accountId) { mutableStateOf<String?>(null) }
+    var renamingFolderPath by rememberSaveable(accountId) { mutableStateOf<String?>(null) }
+    var deletingFolderPath by rememberSaveable(accountId) { mutableStateOf<String?>(null) }
+    var folderRenameFailure by rememberSaveable(accountId) { mutableStateOf<String?>(null) }
+    // The folder a named new note is created in, which the name dialog lets the reader change.
+    var newNoteFolder by rememberSaveable(accountId) { mutableStateOf("") }
+    var choosingNewNoteFolder by rememberSaveable(accountId) { mutableStateOf(false) }
     val tagStateFlow = remember(accountId) { component.observeNoteTags(accountId) }
     val tagState by tagStateFlow.collectAsStateWithLifecycle(
         initialValue = NoteTagState(),
@@ -1386,6 +1403,7 @@ private fun NoteListScreen(
         if (askForNewNoteName) {
             // Offer the name the note would have been given without asking.
             newNoteName = component.defaultNoteName(searchName)
+            newNoteFolder = folderScope.path
             namingNewNote = true
         } else {
             createNamedNote(searchName)
@@ -1396,12 +1414,31 @@ private fun NoteListScreen(
         storedFolderScope = selected
         component.settings.setNoteFolderScope(accountId, selected)
     }
-    LaunchedEffect(allNotes, folderTree, folderScope) {
+    // A folder created or renamed a moment ago, opened once the tree has caught up with it.
+    var pendingFolderSelection by remember(accountId) { mutableStateOf<String?>(null) }
+    LaunchedEffect(folderTree, pendingFolderSelection) {
+        val path = pendingFolderSelection ?: return@LaunchedEffect
+        if (!folderTree.contains(path)) return@LaunchedEffect
+        pendingFolderSelection = null
+        selectFolderScope(folderScope.copy(path = path))
+    }
+    // Read during composition, so the check below never pairs a selection made by the effect
+    // above with the folder scope of an earlier composition.
+    val awaitingFolderSelection = pendingFolderSelection != null
+    LaunchedEffect(allNotes, folderTree, folderScope, awaitingFolderSelection) {
         allNotes ?: return@LaunchedEffect
-        if (!useSubfolders) return@LaunchedEffect
-        // A folder exists only while it holds notes, so a remembered one may have disappeared.
+        if (!useSubfolders || awaitingFolderSelection) return@LaunchedEffect
+        // A folder exists only while it holds notes or was created in the app, so a remembered
+        // one may have disappeared.
         if (!folderTree.contains(folderScope.path)) selectFolderScope(folderScope.copy(path = ""))
     }
+    /** Shows [path] in the drawer by expanding every folder above it. */
+    val revealFolder = { path: String ->
+        val ancestors = NoteFolders.key(path).split('/').dropLast(1)
+            .runningReduce { parent, segment -> "$parent/$segment" }
+        expandedFolders = (expandedFolders + ancestors).distinct()
+    }
+    val folderResources = LocalContext.current.resources
     LaunchedEffect(tagState) {
         // Forget selected tags that no longer exist, so the list cannot stay filtered to nothing.
         if (tagState.availability != NoteTagAvailability.AVAILABLE) return@LaunchedEffect
@@ -1448,6 +1485,9 @@ private fun NoteListScreen(
                 onIncludeSubfoldersChange = { include ->
                     selectFolderScope(folderScope.copy(includeSubfolders = include))
                 },
+                onCreateFolder = { parent -> newFolderParent = parent },
+                onRenameFolder = { folder -> renamingFolderPath = folder.path },
+                onDeleteFolder = { folder -> deletingFolderPath = folder.path },
                 visible = folderDrawerState.isOpen ||
                     folderDrawerState.targetValue == DrawerValue.Open
             )
@@ -2242,12 +2282,119 @@ private fun NoteListScreen(
         NewNoteNameDialog(
             name = newNoteName,
             onNameChange = { newNoteName = it },
+            folder = newNoteFolder.takeIf { useSubfolders },
+            onChooseFolder = { choosingNewNoteFolder = true },
             onDismiss = { namingNewNote = false },
             onConfirm = {
                 namingNewNote = false
-                createNamedNote(newNoteName)
+                onCreate(accountId, if (useSubfolders) newNoteFolder else "", newNoteName)
             }
         )
+    }
+    if (namingNewNote && choosingNewNoteFolder && useSubfolders) {
+        ChangeNoteCategoryDialog(
+            currentCategory = newNoteFolder,
+            folders = folderTree.flatten(),
+            purpose = FolderChoice.NEW_NOTE,
+            onDismiss = { choosingNewNoteFolder = false },
+            onConfirm = { category ->
+                choosingNewNoteFolder = false
+                newNoteFolder = category
+            }
+        )
+    }
+    newFolderParent?.let { parent ->
+        NewFolderDialog(
+            parent = parent,
+            tree = folderTree,
+            onDismiss = { newFolderParent = null },
+            onConfirm = { path ->
+                newFolderParent = null
+                scope.launch {
+                    val created = component.createFolder(accountId, path) ?: return@launch
+                    // Open the new folder, so the next note can be created right in it.
+                    revealFolder(created)
+                    pendingFolderSelection = created
+                    folderDrawerState.close()
+                }
+            }
+        )
+    }
+    renamingFolderPath?.let { path ->
+        val folder = folderTree.find(path)
+        if (folder == null) {
+            // The folder went away, unless the notes are still loading after recreation.
+            if (allNotes != null) LaunchedEffect(path) { renamingFolderPath = null }
+        } else {
+            RenameFolderDialog(
+                folder = folder,
+                tree = folderTree,
+                noteCount = allNotes.orEmpty().count { NoteFolders.isWithin(it.category, path) },
+                onDismiss = { renamingFolderPath = null },
+                onConfirm = { name ->
+                    renamingFolderPath = null
+                    scope.launch {
+                        when (val result = component.renameFolder(accountId, folder.path, name)) {
+                            is FolderRenameResult.Renamed -> {
+                                fun moved(key: String) =
+                                    NoteFolders.moved(key, folder.path, result.path)
+                                        ?.let(NoteFolders::key) ?: key
+                                expandedFolders = expandedFolders.map(::moved).distinct()
+                                NoteFolders.moved(folderScope.path, folder.path, result.path)
+                                    ?.let { pendingFolderSelection = it }
+                            }
+                            FolderRenameResult.AlreadyExists ->
+                                folderRenameFailure =
+                                    folderResources.getString(R.string.folders_exists)
+                            is FolderRenameResult.Blocked ->
+                                folderRenameFailure =
+                                    folderResources.getQuantityString(
+                                        R.plurals.folders_rename_blocked,
+                                        result.notes,
+                                        result.notes
+                                    )
+                            FolderRenameResult.Invalid ->
+                                folderRenameFailure =
+                                    folderResources.getString(R.string.folders_rename_retry)
+                        }
+                    }
+                }
+            )
+        }
+    }
+    folderRenameFailure?.let { message ->
+        FolderRenameFailureDialog(message) { folderRenameFailure = null }
+    }
+    deletingFolderPath?.let { path ->
+        val folder = folderTree.find(path)
+        if (folder == null) {
+            // The folder went away, unless the notes are still loading after recreation.
+            if (allNotes != null) LaunchedEffect(path) { deletingFolderPath = null }
+        } else {
+            val contained = allNotes.orEmpty().filter { NoteFolders.isWithin(it.category, path) }
+            DeleteFolderDialog(
+                folder = folder,
+                noteCount = contained.size,
+                unsynchronizedCount = contained.count { it.syncState != SyncState.SYNCHRONIZED },
+                trashMessage = backendText(
+                    accountId,
+                    R.string.delete_notes_message,
+                    R.string.local_folder_delete_notes_message
+                ),
+                onDismiss = { deletingFolderPath = null },
+                onConfirm = {
+                    deletingFolderPath = null
+                    scope.launch {
+                        component.deleteFolder(accountId, folder.path)
+                        if (NoteFolders.isWithin(folderScope.path, folder.path)) {
+                            selectFolderScope(
+                                folderScope.copy(path = NoteFolders.parent(folder.path))
+                            )
+                        }
+                    }
+                }
+            )
+        }
     }
     if (showDeckBrowser) {
         DeckCardBrowserDialog(component, account, onDismiss = { showDeckBrowser = false })
@@ -5346,7 +5493,8 @@ private fun NoteDetailScreen(
                 folders = remember(accountNotes) {
                     NoteFolders.tree(
                         accountNotes.map(NoteListItem::category),
-                        component.nestedFolders(current.accountId)
+                        component.nestedFolders(current.accountId),
+                        component.noteFolderChanges(current.accountId).value.emptyFolders
                     ).flatten()
                 },
                 onDismiss = {
@@ -5718,11 +5866,17 @@ private fun RenameNoteDialog(
     )
 }
 
-/** Asks for a new note's name, starting from the name it would otherwise have been given. */
+/**
+ * Asks for a new note's name, starting from the name it would otherwise have been given. With
+ * subfolders, a chip below the name shows the folder the note is created in and changes it.
+ */
 @Composable
 private fun NewNoteNameDialog(
     name: String,
     onNameChange: (String) -> Unit,
+    /** The folder the note is created in, or `null` when the account uses no subfolders. */
+    folder: String? = null,
+    onChooseFolder: () -> Unit = {},
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -5742,23 +5896,54 @@ private fun NewNoteNameDialog(
         icon = { Icon(Icons.AutoMirrored.Filled.NoteAdd, contentDescription = null) },
         title = { Text(stringResource(R.string.action_new_note)) },
         text = {
-            OutlinedTextField(
-                value = fieldValue,
-                onValueChange = {
-                    fieldValue = it
-                    onNameChange(it.text)
-                },
-                label = { Text(stringResource(R.string.new_note_name)) },
-                singleLine = true,
-                supportingText = {
-                    Text(stringResource(R.string.note_name_invalid_characters_hint))
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { if (valid) onConfirm() }),
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
-                    .onPlaced { fieldPlaced = true }
-                    .testTag("new-note-name-field")
-            )
+            Column {
+                OutlinedTextField(
+                    value = fieldValue,
+                    onValueChange = {
+                        fieldValue = it
+                        onNameChange(it.text)
+                    },
+                    label = { Text(stringResource(R.string.new_note_name)) },
+                    singleLine = true,
+                    supportingText = {
+                        Text(stringResource(R.string.note_name_invalid_characters_hint))
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { if (valid) onConfirm() }),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
+                        .onPlaced { fieldPlaced = true }
+                        .testTag("new-note-name-field")
+                )
+                if (folder != null) {
+                    val changeFolder = stringResource(R.string.new_note_folder_change)
+                    AssistChip(
+                        onClick = onChooseFolder,
+                        label = {
+                            Text(
+                                folder.ifEmpty { stringResource(R.string.folders_root) },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                if (folder.isEmpty()) Icons.Filled.Home else Icons.Filled.Folder,
+                                // Read before the folder name, saying what the chip does.
+                                contentDescription = changeFolder,
+                                modifier = Modifier.size(AssistChipDefaults.IconSize)
+                            )
+                        },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Filled.ArrowDropDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(AssistChipDefaults.IconSize)
+                            )
+                        },
+                        modifier = Modifier.padding(top = 4.dp).testTag("new-note-folder")
+                    )
+                }
+            }
         },
         confirmButton = {
             TextButton(
@@ -5777,9 +5962,12 @@ private fun NewNoteNameDialog(
     )
 }
 
+/** What a folder is chosen for in [ChangeNoteCategoryDialog]. */
+private enum class FolderChoice { MOVE, COPY, NEW_NOTE }
+
 /**
- * Chooses the subfolder notes are moved or copied to. [currentCategory] is the folder all notes
- * are in, or `null` when they come from several folders.
+ * Chooses the subfolder notes are moved or copied to, or a new note is created in.
+ * [currentCategory] is the folder all notes are in, or `null` when they come from several folders.
  */
 @Composable
 private fun ChangeNoteCategoryDialog(
@@ -5788,15 +5976,18 @@ private fun ChangeNoteCategoryDialog(
     folders: List<NoteFolder>,
     copy: Boolean = false,
     noteCount: Int = 1,
+    purpose: FolderChoice = if (copy) FolderChoice.COPY else FolderChoice.MOVE,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
-    // Moving to the folder the notes are already in does nothing, so only a copy starts there.
-    var selectedCategory by rememberSaveable(currentCategory, copy, noteCount) {
-        mutableStateOf(currentCategory.takeIf { copy })
+    // Moving to the folder the notes are already in does nothing, so only a copy or a new note
+    // starts there.
+    val keepsCurrent = purpose != FolderChoice.MOVE
+    var selectedCategory by rememberSaveable(currentCategory, purpose, noteCount) {
+        mutableStateOf(currentCategory.takeIf { keepsCurrent })
     }
-    var newCategory by rememberSaveable(currentCategory, copy, noteCount) { mutableStateOf("") }
-    var creatingCategory by rememberSaveable(currentCategory, copy, noteCount) {
+    var newCategory by rememberSaveable(currentCategory, purpose, noteCount) { mutableStateOf("") }
+    var creatingCategory by rememberSaveable(currentCategory, purpose, noteCount) {
         mutableStateOf(false)
     }
     val newCategoryFocus = remember { FocusRequester() }
@@ -5806,10 +5997,12 @@ private fun ChangeNoteCategoryDialog(
     fun isCurrent(path: String) =
         currentCategory != null && NoteFolders.key(path) == NoteFolders.key(currentCategory)
     val validDestination = destination != null &&
-        (copy || !isCurrent(destination)) &&
+        (keepsCurrent || !isCurrent(destination)) &&
         (!creatingCategory || normalizedNewCategory.isNotEmpty()) &&
         !NoteCategories.isInternal(destination)
+    // A new note has no folder yet, so its preselected folder needs no marker.
     val currentLabel = stringResource(R.string.category_current)
+        .takeIf { purpose != FolderChoice.NEW_NOTE }
     fun isSelected(path: String) = !creatingCategory &&
         selectedCategory?.let { NoteFolders.key(it) == NoteFolders.key(path) } == true
 
@@ -5817,13 +6010,19 @@ private fun ChangeNoteCategoryDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                if (copy) Icons.Filled.ContentCopy else Icons.AutoMirrored.Filled.DriveFileMove,
+                when (purpose) {
+                    FolderChoice.COPY -> Icons.Filled.ContentCopy
+                    FolderChoice.MOVE -> Icons.AutoMirrored.Filled.DriveFileMove
+                    FolderChoice.NEW_NOTE -> Icons.Filled.FolderOpen
+                },
                 contentDescription = null
             )
         },
         title = {
             Text(
                 when {
+                    purpose == FolderChoice.NEW_NOTE ->
+                        stringResource(R.string.new_note_folder_title)
                     noteCount > 1 && copy ->
                         pluralStringResource(R.plurals.copy_notes_title, noteCount, noteCount)
                     noteCount > 1 ->
@@ -5921,7 +6120,15 @@ private fun ChangeNoteCategoryDialog(
                 enabled = validDestination,
                 modifier = Modifier.testTag("confirm-note-category")
             ) {
-                Text(stringResource(if (copy) R.string.action_copy_note else R.string.action_move))
+                Text(
+                    stringResource(
+                        when (purpose) {
+                            FolderChoice.COPY -> R.string.action_copy_note
+                            FolderChoice.MOVE -> R.string.action_move
+                            FolderChoice.NEW_NOTE -> R.string.action_select
+                        }
+                    )
+                )
             }
         },
         dismissButton = {

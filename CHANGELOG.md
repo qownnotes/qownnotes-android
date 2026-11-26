@@ -14,6 +14,16 @@ zero-based increasing release counter within the month. See [the release guide](
   open the selection menu. **Rename** and **Share note** appear when one note is selected.
   **Duplicate** copies every selected note into its own folder under a numbered name, even without
   subfolders ([#40](https://github.com/qownnotes/qownnotes-android/issues/40)).
+- Create, rename, and delete subfolders from the subfolder drawer. Tap the new-folder button at the
+  top, or long-press a subfolder for **New subfolder**, **Rename**, and **Delete**. A new subfolder
+  opens right away, even before it holds a note, and is created in the note folder on the server or
+  on the device, so QOwnNotes desktop shows it too. Renaming moves every note in the subfolder with
+  it, and is refused while a note in it is read-only or has an unresolved conflict. Deleting moves
+  its notes to the trash after a confirmation that warns about unsynchronized changes.
+- Choose the subfolder of a new note in the **New note** dialog. When **Ask for name of new notes**
+  is on and subfolders are used, a chip below the name shows the subfolder the note is created in;
+  tap it to pick another one or create a new one
+  ([#34](https://github.com/qownnotes/qownnotes-android/issues/34)).
 
 ## [26.11.4] - 2026-11-24
 

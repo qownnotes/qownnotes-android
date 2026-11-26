@@ -11,4 +11,40 @@
     <string name="search_all_folders">Rechercher dans tous les dossiers</string>
     <string name="settings_use_subfolders">Utiliser les sous-dossiers</string>
     <string name="settings_use_subfolders_description">Par compte. Désactivé, seules les notes du dossier racine sont affichées et les nouvelles notes y sont créées, comme dans QOwnNotes pour ordinateur. Les notes des sous-dossiers restent synchronisées.</string>
+    <!-- Creating, renaming, and deleting subfolders -->
+    <string name="folders_actions">Actions du sous-dossier</string>
+    <string name="folders_action_delete">Supprimer</string>
+    <string name="folders_name">Nom du sous-dossier</string>
+    <string name="folders_new_location">Sera créé dans %1$s. Utilisez / pour créer des sous-dossiers imbriqués.</string>
+    <string name="folders_new_location_root">Sera créé dans le dossier racine. Utilisez / pour créer des sous-dossiers imbriqués.</string>
+    <string name="folders_exists">Un sous-dossier portant ce nom existe déjà.</string>
+    <string name="folders_name_slash">Le nom d\'un sous-dossier ne peut pas contenir /.</string>
+    <string name="folders_rename_title">Renommer le sous-dossier</string>
+    <plurals name="folders_rename_notes">
+        <item quantity="one">%1$d note est déplacée avec lui.</item>
+        <item quantity="many">%1$d notes sont déplacées avec lui.</item>
+        <item quantity="other">%1$d notes sont déplacées avec lui.</item>
+    </plurals>
+    <string name="folders_rename_failed">Impossible de renommer le sous-dossier</string>
+    <plurals name="folders_rename_blocked">
+        <item quantity="one">%1$d note de ce sous-dossier ne peut pas être déplacée, car elle est en lecture seule ou présente un conflit non résolu. Résolvez-le d\'abord, puis réessayez.</item>
+        <item quantity="many">%1$d notes de ce sous-dossier ne peuvent pas être déplacées, car elles sont en lecture seule ou présentent des conflits non résolus. Résolvez-les d\'abord, puis réessayez.</item>
+        <item quantity="other">%1$d notes de ce sous-dossier ne peuvent pas être déplacées, car elles sont en lecture seule ou présentent des conflits non résolus. Résolvez-les d\'abord, puis réessayez.</item>
+    </plurals>
+    <string name="folders_rename_retry">Rien n\'a été modifié. Veuillez réessayer.</string>
+    <string name="folders_delete_title">Supprimer le sous-dossier %1$s\u00A0?</string>
+    <string name="folders_delete_empty">Le sous-dossier ne contient aucune note et sera supprimé.</string>
+    <plurals name="folders_delete_notes">
+        <item quantity="one">%1$d note de ce sous-dossier et de ses sous-dossiers sera mise à la corbeille.</item>
+        <item quantity="many">%1$d notes de ce sous-dossier et de ses sous-dossiers seront mises à la corbeille.</item>
+        <item quantity="other">%1$d notes de ce sous-dossier et de ses sous-dossiers seront mises à la corbeille.</item>
+    </plurals>
+    <plurals name="folders_delete_unsynchronized">
+        <item quantity="one">%1$d note contient des modifications pas encore synchronisées. Ces modifications ne seront pas conservées dans la corbeille.</item>
+        <item quantity="many">%1$d notes contiennent des modifications pas encore synchronisées. Ces modifications ne seront pas conservées dans la corbeille.</item>
+        <item quantity="other">%1$d notes contiennent des modifications pas encore synchronisées. Ces modifications ne seront pas conservées dans la corbeille.</item>
+    </plurals>
+    <string name="new_note_folder_title">Sous-dossier de la nouvelle note</string>
+    <string name="new_note_folder_change">Changer de sous-dossier</string>
+    <string name="action_select">Sélectionner</string>
 </resources>

@@ -87,6 +87,12 @@ interface NoteRepository {
         modifiedAtEpochSeconds: Long
     ): Int
 
+    /**
+     * Atomically moves each note to its own category, as by local ID in [categories]. Rejects the
+     * entire change like a move by [transferNotes]; returns the number of notes that changed.
+     */
+    suspend fun recategorizeNotes(accountId: String, categories: Map<String, String>): Int
+
     suspend fun retry(localId: String): Boolean
 
     suspend fun moveToTrash(accountId: String, localIds: List<String>)
@@ -150,6 +156,18 @@ interface NoteMediaBackend {
         mimeType: String,
         content: ByteArray
     ): String = uploadMedia(account, notesPath, fileName, mimeType, content)
+}
+
+/** Folders of the note folder that exist without notes. Paths are categories, `/`-separated. */
+interface NoteFolderBackend {
+    /** Creates the folder and any missing parents. An existing folder is left as it is. */
+    suspend fun createFolder(account: Account, path: String)
+
+    /**
+     * Removes the folder if nothing at all is inside it. Returns `false`, and removes nothing,
+     * when something is; a folder that does not exist counts as removed.
+     */
+    suspend fun removeEmptyFolder(account: Account, path: String): Boolean
 }
 
 data class RemoteNoteVersion(val timestamp: Long, val displayTimestamp: String, val content: String)

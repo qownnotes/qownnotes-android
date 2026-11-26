@@ -11,4 +11,40 @@
     <string name="search_all_folders">Cerca in tutte le cartelle</string>
     <string name="settings_use_subfolders">Usa sottocartelle</string>
     <string name="settings_use_subfolders_description">Per account. Se disattivato, vengono elencate solo le note della cartella principale e le nuove note vengono create lì, come in QOwnNotes desktop. Le note nelle sottocartelle continuano a essere sincronizzate.</string>
+    <!-- Creating, renaming, and deleting subfolders -->
+    <string name="folders_actions">Azioni sottocartella</string>
+    <string name="folders_action_delete">Elimina</string>
+    <string name="folders_name">Nome della sottocartella</string>
+    <string name="folders_new_location">Verrà creata in %1$s. Usa / per creare sottocartelle annidate.</string>
+    <string name="folders_new_location_root">Verrà creata nella cartella principale. Usa / per creare sottocartelle annidate.</string>
+    <string name="folders_exists">Esiste già una sottocartella con questo nome.</string>
+    <string name="folders_name_slash">Il nome di una sottocartella non può contenere /.</string>
+    <string name="folders_rename_title">Rinomina sottocartella</string>
+    <plurals name="folders_rename_notes">
+        <item quantity="one">%1$d nota viene spostata con essa.</item>
+        <item quantity="many">%1$d note vengono spostate con essa.</item>
+        <item quantity="other">%1$d note vengono spostate con essa.</item>
+    </plurals>
+    <string name="folders_rename_failed">Impossibile rinominare la sottocartella</string>
+    <plurals name="folders_rename_blocked">
+        <item quantity="one">%1$d nota in questa sottocartella non può essere spostata perché è di sola lettura o ha un conflitto non risolto. Risolvilo prima, poi riprova.</item>
+        <item quantity="many">%1$d note in questa sottocartella non possono essere spostate perché sono di sola lettura o hanno conflitti non risolti. Risolvili prima, poi riprova.</item>
+        <item quantity="other">%1$d note in questa sottocartella non possono essere spostate perché sono di sola lettura o hanno conflitti non risolti. Risolvili prima, poi riprova.</item>
+    </plurals>
+    <string name="folders_rename_retry">Non è stato modificato nulla. Riprova.</string>
+    <string name="folders_delete_title">Eliminare la sottocartella %1$s?</string>
+    <string name="folders_delete_empty">La sottocartella non contiene note e verrà rimossa.</string>
+    <plurals name="folders_delete_notes">
+        <item quantity="one">%1$d nota in questa sottocartella e nelle sue sottocartelle verrà spostata nel cestino.</item>
+        <item quantity="many">%1$d note in questa sottocartella e nelle sue sottocartelle verranno spostate nel cestino.</item>
+        <item quantity="other">%1$d note in questa sottocartella e nelle sue sottocartelle verranno spostate nel cestino.</item>
+    </plurals>
+    <plurals name="folders_delete_unsynchronized">
+        <item quantity="one">%1$d nota ha modifiche non ancora sincronizzate. Queste modifiche non verranno conservate nel cestino.</item>
+        <item quantity="many">%1$d note hanno modifiche non ancora sincronizzate. Queste modifiche non verranno conservate nel cestino.</item>
+        <item quantity="other">%1$d note hanno modifiche non ancora sincronizzate. Queste modifiche non verranno conservate nel cestino.</item>
+    </plurals>
+    <string name="new_note_folder_title">Sottocartella per la nuova nota</string>
+    <string name="new_note_folder_change">Cambia sottocartella</string>
+    <string name="action_select">Seleziona</string>
 </resources>
